@@ -6,9 +6,15 @@ import requests
 from dotenv import load_dotenv
 from src.common.retry import *
 
-http_errors_to_handle = ConnectionResetError, urllib3.exceptions.MaxRetryError, requests.exceptions.ProxyError, requests.exceptions.HTTPError, ssl.SSLCertVerificationError
+http_errors_to_handle = (
+    ConnectionResetError,
+    urllib3.exceptions.MaxRetryError,
+    requests.exceptions.ProxyError,
+    requests.exceptions.HTTPError,
+    ssl.SSLCertVerificationError,
+)
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../..', '.env'))
 proxies = {
     'http': os.getenv('HTTP_PROXY'),
     'https': os.getenv('HTTPS_PROXY')

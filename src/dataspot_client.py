@@ -33,7 +33,7 @@ class DataspotClient:
             requests.exceptions.RequestException: If the request fails
             json.JSONDecodeError: If the response is not valid JSON
         """
-        endpoint = url_join(self.base_url, relative_path)
+        endpoint = url_join(self.base_url, 'api', self.database_name, relative_path)
         headers = self.auth.get_headers()
         
         response = requests_get(endpoint, headers=headers, params=params)
