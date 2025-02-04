@@ -1,7 +1,7 @@
 import logging
 
 from dataspot_auth import DataspotAuth
-from src.common import requests_get, requests_delete
+from src.common import requests_get, requests_delete, requests_post
 import json
 import os
 
@@ -107,3 +107,40 @@ class DataspotClient:
             collection_url = url_join(self.base_url, collection_relative_path)
             logging.debug(f"Deleting collection: {collection_url}")
             requests_delete(collection_url, headers=headers)
+
+    def create_new_department(self, title: str) -> dict:
+        """
+        Create a new department in the Dataspot API.
+
+        Args:
+            title (str): The title of the new department.
+
+        Returns:
+            dict: The created department metadata as returned by the API.
+
+        Raises:
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        relative_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
+        endpoint = url_join(self.base_url, relative_path)
+        headers = self.auth.get_headers()
+
+        department_data = {
+            "_type": "Collection",
+            "label": title,
+            "stereotype": "DEPARTEMENT"
+        }
+
+        # TODO: Handle case where the department already exists
+
+        try:
+            response = requests_post(endpoint, headers=headers, json=department_data)
+            response.raise_for_status()
+            return response.json()
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )
+

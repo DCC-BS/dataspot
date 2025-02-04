@@ -28,6 +28,11 @@ def main():
             logging.info("\nTearing down DNK assets...")
             client.teardown_dnk()
             logging.info("Successfully deleted all DNK assets")
+
+        # Test creating new departments
+        if True:
+            title = "Test-Departement"
+            client.create_new_department(title)
         
     except Exception as e:
         print(f"Error: {str(e)}")
