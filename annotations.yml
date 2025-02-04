@@ -1,206 +1,26 @@
-# annotations.yml
-
 ##INHALTSVERZEICHNIS##
-#1 - COLLECTION
-#2 - GESCHÄFTSOBJEKTMODELL
-#3 - RDM
-#4 - DATENKATALOG
-#5 - WORKFLOW
-#6 - HERKUNFT 
-#7 - DEPENDENCY
-#8 - TECHNISCHE DATENMODEllE
-#9 - TRANSFORMATIONSREGELN
-#10 - SYSTEMKATALOG
-#11 - SONSTIGES
-#12 - PROJEKTE
 
-#1 - COLLECTION
-Collection:
-  #label: Sammlungstyp
+#100 - DATENKATALOG
+#200 - GESCHÄFTSOBJEKTMODELL
+#300 - REFERENZDATEN (RDM)
+#400 - TECHNISCHE DATENMODEllE
+#500 - SYSTEMKATALOG
+#600 - PROJEKTVERZEICHNIS
 
-#PROPERTIES
-  properties:
+#000 - ÜBERGREIFENDE ANPASSUNGEN
+#010 - SAMMLUNGEN
+#020 - HERKUNFT
+#030 - ASSET, WORKFLOW, TAG
+#040 - ABHÄNGIGKEIT
+#050 - TRANSFORMATIONSREGELN
+#060 - KENNZEICHNUNG VON HERKUNFT
 
+############################################################
 
-#STEREOTYP SAMMLUNGSART
-    stereotype:
-      label: Sammlungstyp
-      title: Sammlungstypen definieren spezifische Sammlungen zur Strukturierung von Metadatenobjekten.
-      literals:
-      
-#SAMMLUNGSART SAMMLUNG
-        BASISSAMMLUNG:
-          label: Sammlung
-          icon: box-archive
-          
-#SAMMLUNGSART DEPARTEMENT
-        DEPARTEMENT:
-          label: Departement
-          icon: city
-
-#SAMMLUNGSART DIENSTABTEILUNG
-        DA:
-          label: Dienststelle
-          icon: building
-
-#KONFIGURATION SAMMLUNGSART DATENBESTAND
-        #DATENBESTAND:
-          #label: Datenbestand
-          #icon: rectangle-history
-
-
-
-#2 - GESCHÄFTSOBJEKTMODELL
-BusinessObject:
-
-  properties:
-    dataProtectionCategory:
-      literals:
-        "1":
-          label: Personendaten natürlicher Personen
-        "2":
-          label: Personendaten juristischer Personen
-        "3":
-          label: besonders schützenswerte Personendaten
-
-BusinessAttribute:
-
-  groups:
-    AUFBEW:
-      label: Archivierung
-      order: 30
-      icon: box-archive      
-    DP:
-      label: Datenschutz
-      order: 10
-      icon: field
-    HIST:
-      label: Historisierung
-      order: 40
-      #icon:
-
-
-      
-  properties:
-    identifying:
-      label: Primärschlüssel
-    dataProtectionCategory:
-      literals:
-        "1":
-          label: Personendaten natürlicher Personen
-        "2":
-          label: Personendaten juristischer Personen
-        "3":
-          label: besonders schützenswerte Personendaten
-
-
-  customProperties:
-    ID:
-      label: Identifikation 
-      baseType: INTEGER
-      order: 10
-    PRIM:
-      label: Primärerhebung
-      baseType: BOOLEAN
-      order: 20
-    HIST:
-      label: Historisierung
-      title: Wird der Datensatz historisiert?
-      baseType: BOOLEAN
-      group: HIST
-      order: 30
-    HISTFROM:
-      label: Historisierung seit wann
-      title: Seit wann liegen historisierte Daten vor?
-      baseType: DATE
-      group: HIST
-      order: 40
-    HISTART:
-      label: Art der Historisierung
-      title: Wir wird historisiert (Snapshots etc.)?
-      baseType: TEXT
-      group: HIST    
-      order: 50
-    Identifikator:
-      label: Identifikator
-      title: tbd
-      baseType: STRING 
-      order: 5   
-
-    VERTR:
-      label: Vertraulichkeit
-      #title:
-      order: 10
-      group: DP
-      literals:
-        "1":
-          label: Öffentlich
-          order: 1
-        "2":
-          label: Intern  
-          order: 2
-        "3":
-          label: Vertraulich
-          order: 3
-        "4":
-          label: Geheim
-          order: 4
-    SCHUBAN:
-      label: Schutzbedarfsstufen
-      group: DP
-      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
-      order: 11
-      literals:
-        "1":
-          label: Grundschutz (GS)
-          order: 1
-        "2":
-          label: erhöhter Schutzbedarf (ES)  
-          order: 2
-        "3":
-          label: sehr hoher Schutzbedarf (SHS)
-          order: 3
-
-#3 - RDM
-ReferenceDataModel:
-
-#PROPERTIES
-  properties:
-    stereotype:
-      label: Modelltyp
-      literals:
-        Rechtsgrundlage:
-          label: Rechtsgrundlagen
-          ling: s2p3m
-          icon: section
-        Leistungsverzeichnis:
-          label: Leistungsverzeichnis
-          ling: s2p3m
-          icon: book       
-#REFERENZLISTE/ REFERENCE OBJECT
-ReferenceObject:
-  label: Element
-  ling: s1p1n
-
-#STEREOPTYPE TYP
-  properties:
-    stereotype:   
-      label: Typ
-      literals:
-
-#TYPE RECHTSGRUNDLAGE 
-        RECHTSGRUNDLAGE:
-          label: Rechtsgrundlage
-          ling: s3p3f
-          icon: section
-
-
-#4 - DATENKATALOG
-#DataCatalog:
-
+#100 - DATENKATALOG  
 Dataset:
-  #label: Datensatz
-  #ling: s1p1um
+  label: Datensatz
+  ling: s1p1um
 
   groups:
     PERSOND:
@@ -237,104 +57,112 @@ Dataset:
     temporalStart:
       title: Datum, an dem der Datensatz ursprünglich erstellt wurde
     accrualPeriodicity: 
-      title: Frequenz der Aktualisierung der Attribute im Datensatz
-      
-     
-      literals:
-        001:
-          label: annually
-        002:
-          label: asNeeded    
-        003:
-          label: biannually    
-        004:
-          label: continual    
-        005:
-          label: daily
-        006:
-          label: fortnightly          
-        007:
-          label: irregular          
-        008:
-          label: monthly
-        009:
-          label: notPlanned    
-        010:
-          label: quarterly    
-        011:
-          label: unknown    
-        012:
-          label: weekly
-        013:
-          label: dreijährlich          
-        014:
-          label: zweijährlich
-        015:
-          label: jährlich
-        016:
-          label: halbjährlich    
-        017:
-          label: dreimal im Jahr    
-        018:
-          label: vierteljährlich    
-        019:
-          label: zweimonatlich
+      title: Frequenz der Aktualisierung der Attribute im Datensatz           
+      literals:        
         020:
-          label: monatlich          
-        021:
-          label: zweimal im Monat          
-        022:
-          label: zweiwöchentlich
-        023:
-          label: dreimal im Monat    
-        024:
-          label: wöchentlich    
-        025:
-          label: zweimal pro Woche    
-        026:
-          label: dreimal pro Woche
-        027:
-          label: täglich          
-        028:
-          label: kontinuierlich           
-        029:
-          label: unregelmäßig
+          label: alle drei Stunden
+          order: 20
         030:
-          label: anderer    
-        031:
-          label: zweimal täglich    
-        032:
-          label: niemals    
-        033:
-          label: Vorläufige Daten
-        034:
-          label: unbekannt          
-        035:
-          label: ständige Aktualisierung          
-        036:
-          label: fünfjährlich
-        037:
-          label: alle zehn Jahre    
-        038:
-          label: stündlich    
-        039:
-          label: vierjährlich    
+          label: alle dreissig Jahre
+          order: 30
         040:
-          label: alle zwei Stunden
-        041:
-          label: alle drei Stunden          
-        042:
+          label: alle zehn Jahre
+          order: 40
+        050:
           label: alle zwanzig Jahre
-        043:
-          label: alle dreißig Jahre          
-          
-          
-    
+          order: 50          
+        060:
+          label: alle zwei Stunden
+          order: 60
+        080:
+          label: anderer
+          order: 80
+        081:
+          label: dreijährlich
+          order: 81          
+        090:
+          label: dreimal im Jahr
+          order: 90
+        100:
+          label: dreimal im Monat
+          order: 100
+        110:
+          label: dreimal pro Woche
+          order: 110
+        111:
+          label: fünfjährlich
+          order: 111
+        112:
+          label: halbjährlich
+          order: 112          
+        113:
+          label: jährlich
+          order: 120
+        130:
+          label: kontinuierlich
+          order: 130
+        140:
+          label: minütlich
+          order: 140
+        150:
+          label: monatlich
+          order: 150
+        160:
+          label: niemals
+          order: 160
+        170:
+          label: ständige Aktualisierung
+          order: 170
+        180:
+          label: stündlich
+          order: 180
+        190:
+          label: täglich
+          order: 190
+        200:
+          label: unbekannt
+          order: 200
+        210:
+          label: unregelmässig
+          order: 210
+        211:
+          label: vierjährlich
+          order: 211          
+        220:
+          label: vierteljährlich
+          order: 220
+        230:
+          label: vorläufige Daten
+          order: 230
+        240:
+          label: wöchentlich
+          order: 240
+        241:
+          label: zweijährlich
+          order: 241          
+        260:
+          label: zweimal im Monat
+          order: 260
+        270:
+          label: zweimal pro Woche
+          order: 270
+        280:
+          label: zweimal täglich
+          order: 280
+        290:
+          label: zweimonatlich
+          order: 290
+        300:
+          label: zweiwöchentlich
+          order: 300         
+
+## DATENSATZ-TYP ##             
     stereotype:
       label: Datensatztyp
       title: Der Datensatztyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
       literals:
 
+## OGD ##
         OGD:
           label: OGD-Datensatz
           icon: globe
@@ -555,7 +383,8 @@ Dataset:
               group: OGD
               order: 110
               cardinality: MANY
-
+              
+## GEO UND OGD ##
         GEOUNDOGD:
           label: Geo- und OGD-Datensatz
           icon: earth-europe
@@ -620,22 +449,6 @@ Dataset:
                   label: Landwirtschaft
                 "026":
                   label: Wirtschaftliche Aktivitäten
-            #ZGB:
-              #label: Zugangsberechtigungsstufe 
-              #title: Zugangsberechtigungsstufe der Daten
-              #group: GEO
-              #order: 20
-              #literals:
-                #"001":
-                  #label: A - öffentlich 
-                #"002":
-                  #label: B1 - beschränkt öffentlich (intern)
-                #"003":
-                  #label: B2 - beschränkt öffentlich (nur einzelne Dienststellen)
-                #"004":
-                  #label: B3 - beschränkt öffentlich (nur einzelne Personen)
-                #"005":
-                  #label: C - geheim
             AUSDBESCHR:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -893,7 +706,8 @@ Dataset:
               group: OGD
               order: 110
               cardinality: MANY
-              
+
+## GEO ##
         GEO:
           label: Geo-Datensatz
           icon: solid-location-dot
@@ -959,22 +773,6 @@ Dataset:
                   label: Landwirtschaft
                 "026":
                   label: Wirtschaftliche Aktivitäten
-            #ZGB:
-              #label: Zugangsberechtigungsstufe 
-              #title: Zugangsberechtigungsstufe der Daten
-              #group: GEO
-              #order: 20
-              #literals:
-                #"001":
-                  #label: A - öffentlich 
-                #"002":
-                  #label: B1 - beschränkt öffentlich (intern)
-                #"003":
-                  #label: B2 - beschränkt öffentlich (nur einzelne Dienststellen)
-                #"004":
-                  #label: B3 - beschränkt öffentlich (nur einzelne Personen)
-                #"005":
-                  #label: C - geheim
             AUSDBESCHR:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -1006,7 +804,7 @@ Dataset:
               group: GEO
               order: 70
 
-###CUSTUM PROPERTIES###
+## CUSTOM PROPERTIES ##
 
   customProperties:
      #DATASPACE:
@@ -1061,8 +859,7 @@ Dataset:
          #"3":
            #label: xx    
          #"4":
-           #label: xx
-           
+           #label: xx           
      LASTACTl:
        label: Letzte Aktualisierung
        title: Letzte Aktualisierung des Datensatzes
@@ -1135,14 +932,308 @@ Dataset:
        baseType: TEXT
        order: 130
        
-       
-       
-#5 - WORKFLOW
+## BESTANDTEILE ##
+Composition:
+  properties:
+    label:
+      label: Bezeichnung
+    title: 
+      label: Technische Bezeichnung
+      
+## DISTRIBUTION ##
+Distribution:
+  properties:
+    format:
+      literals:
+        csv:
+          label: CSV
+        html:
+          label: HTML
+        json:
+          label: JSON
+        GeoJson:
+          label: GeoJson
+        pdf:
+          label: PDF
+        png:
+          label: PNG
+        rdf:
+          label: RDF
+        txt:
+          label: TXT
+        wfs:
+          label: WFS
+        wms:
+          label: WMS
+        wmst:
+          label: WMTS
+        xls:
+          label: XLS
+        xml:
+          label: XML
+        OGCFeatureAPI:
+          label: OGC Feature API
+        STAC:
+          label: STAC
+        GeoPackage:
+          label: GeoPackage
+        FileGeodatabase:
+          label: FileGeodatabase
+        GeoParquet:
+          label: GeoParquet
+        Shapefile:
+          label: Shapefile
+          
+
+#200 - GESCHÄFTSOBJEKTMODELL
+BusinessObject:
+
+  properties:
+    dataProtectionCategory:
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+BusinessAttribute:
+
+  groups:
+    AUFBEW:
+      label: Archivierung
+      order: 30
+      icon: box-archive      
+    DP:
+      label: Datenschutz
+      order: 10
+      icon: field
+    HIST:
+      label: Historisierung
+      order: 40
+      #icon:
+
+  properties:
+    identifying:
+      label: Primärschlüssel
+    dataProtectionCategory:
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+  customProperties:
+    ID:
+      label: Identifikation 
+      baseType: INTEGER
+      order: 10
+    PRIM:
+      label: Primärerhebung
+      baseType: BOOLEAN
+      order: 20
+    HIST:
+      label: Historisierung
+      title: Wird der Datensatz historisiert?
+      baseType: BOOLEAN
+      group: HIST
+      order: 30
+    HISTFROM:
+      label: Historisierung seit wann
+      title: Seit wann liegen historisierte Daten vor?
+      baseType: DATE
+      group: HIST
+      order: 40
+    HISTART:
+      label: Art der Historisierung
+      title: Wir wird historisiert (Snapshots etc.)?
+      baseType: TEXT
+      group: HIST    
+      order: 50
+    Identifikator:
+      label: Identifikator
+      title: tbd
+      baseType: STRING 
+      order: 5   
+    VERTR:
+      label: Vertraulichkeit
+      #title:
+      order: 10
+      group: DP
+      literals:
+        "1":
+          label: Öffentlich
+          order: 1
+        "2":
+          label: Intern  
+          order: 2
+        "3":
+          label: Vertraulich
+          order: 3
+        "4":
+          label: Geheim
+          order: 4
+    SCHUBAN:
+      label: Schutzbedarfsstufen
+      group: DP
+      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
+      order: 11
+      literals:
+        "1":
+          label: Grundschutz (GS)
+          order: 1
+        "2":
+          label: erhöhter Schutzbedarf (ES)  
+          order: 2
+        "3":
+          label: sehr hoher Schutzbedarf (SHS)
+          order: 3
+
+
+#300 - REFERENZDATEN (RDM)
+ReferenceDataModel:
+  properties:
+    stereotype:
+      label: Modelltyp
+      literals:
+        Rechtsgrundlage:
+          label: Rechtsgrundlagen
+          ling: s2p3m
+          icon: section
+        Leistungsverzeichnis:
+          label: Leistungsverzeichnis
+          ling: s2p3m
+          icon: book       
+
+ReferenceObject:
+  label: Element
+  ling: s1p1n
+
+## STEREOPTYPE TYP ##
+  properties:
+    stereotype:   
+      label: Typ
+      literals:
+
+## TYPE RECHTSGRUNDLAGE ##
+        RECHTSGRUNDLAGE:
+          label: Rechtsgrundlage
+          ling: s3p3f
+          icon: section
+
+
+#400 - TECHNISCHE DATENMODEllE
+UmlClass:
+  properties:
+    stereotype:
+      label: File-Format
+      #title: 
+      literals:
+        "1":
+          label: json
+        "2":
+          label: xml
+        "3":
+          label: shape
+        "4":
+          label: csv
+          
+
+#500 - SYSTEMKATALOG
+
+
+#600 - PROJEKTVERZEICHNIS
+ProjectDirectory:
+  properties:
+    stereotype:
+      label: Projektmodell-Typ
+      literals:
+        "1":
+          label: Datenraumverzeichnis
+          icon: cat-space
+
+
+
+
+#000 - ÜBERGREIFENDE ANPASSUNGEN
+
+#010 - SAMMLUNGEN
+Collection:
+
+#PROPERTIES
+  properties:
+
+## STEREOTYP SAMMLUNGSART ##
+    stereotype:
+      label: Sammlungstyp
+      title: Sammlungstypen definieren spezifische Sammlungen zur Strukturierung von Metadatenobjekten.
+      literals:      
+          
+## SAMMLUNGSART DEPARTEMENT##
+        DEPARTEMENT:
+          label: Departement
+          icon: city
+
+## SAMMLUNGSART DIENSTABTEILUNG##
+        DA:
+          label: Dienststelle
+          icon: building
+
+#020 - HERKUNFT
+Derivation:
+  label: Zusatzinformation
+  ling: s3p3f
+  properties:
+    qualifier:
+      # Definition der Ausprägungen von Kennzeichnung
+      literals:
+        SPOT:
+          label: SPOT
+          labelEn: SPOT
+        GOLD:
+          label: Golden Source
+          labelEn: golden record
+        FILTER:
+          # Kennzeichnung eines Filters einer Kennzahl/Referenzwertes
+          label: Filter
+          labelEn: Filter
+        BER:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Berechnungsbasis
+          labelEn: Calculation basis
+        SPEZ2:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Wird verwendet in
+          #labelEn: Calculation basis
+        SPEZ3:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Rechtsgrundlage
+          #labelEn: Calculation basis
+        SPEZ4:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Zweck
+          #labelEn: Calculation basis
+        DERIVED:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: abgeleitet von
+          labelEn: derived from
+        EXKL:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: exkludiert
+          labelEn: excluded
+        SPEZ:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Spezifikation für
+
+
+#030 - ASSET, WORKFLOW, TAG
 Asset:
   properties:
     status:
-      literals:
-      
+      literals:      
 
 ###### Zusatzstatus Workflow ######
 
@@ -1162,7 +1253,7 @@ Asset:
           group: DRAFT
           order: 3
         PREPUBLISHED:
-          label: Durch Data Owner abgenommen, öffentlich
+          label: Kantonsintern sichtbar
           icon: square-check
           group: PUBLIC
           order: 4
@@ -1217,7 +1308,7 @@ Asset:
           group: DRAFT
           order: 14          
         INTERMINATION2:
-          label: Metadaten inaktiv gestellt
+          label: Metadaten archiviert
           icon: trash
           order: 15
           group: NOT_PUBLIC          
@@ -1231,6 +1322,7 @@ Asset:
           icon: solid-trash
           order: 17
           group: NOT_PUBLIC          
+
 ##### Status aus Standard Workflow d. #####
         WORKING:
           label: In Entwurf
@@ -1281,77 +1373,12 @@ Asset:
           icon: thumbs-down
           order: 60
           group: DRAFT     
-     
-     
-
-
-#6 - HERKUNFT
-Derivation:
-  label: Zusatzinformation
-  ling: s3p3f
-  properties:
-    qualifier:
-      # Definition der Ausprägungen von Kennzeichnung
-      literals:
-        SPOT:
-          label: SPOT
-          labelEn: SPOT
-        GOLD:
-          label: Golden Source
-          labelEn: golden record
-        FILTER:
-          # Kennzeichnung eines Filters einer Kennzahl/Referenzwertes
-          label: Filter
-          labelEn: Filter
-        BER:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Berechnungsbasis
-          labelEn: Calculation basis
-        SPEZ2:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Wird verwendet in
-          #labelEn: Calculation basis
-        SPEZ3:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Rechtsgrundlage
-          #labelEn: Calculation basis
-        SPEZ4:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Zweck
-          #labelEn: Calculation basis
-        DERIVED:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: abgeleitet von
-          labelEn: derived from
-        EXKL:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: exkludiert
-          labelEn: excluded
-        SPEZ:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Spezifikation für
-
-          
-          
-#8 - TECHNISCHE DATENMODEllE
-
-
-UmlClass:
-  properties:
-    stereotype:
-      label: File-Format
-      #title: 
-      literals:
-        "1":
-          label: json
-        "2":
-          label: xml
-        "3":
-          label: shape
-        "4":
-          label: csv
   
-#9 - TRANSFORMATIONSREGELN
+  
+#040 - ABHÄNGIGKEIT    
+  
+  
+#050 - TRANSFORMATIONSREGELN
 Rule:
   groups:
     SPECIALS:
@@ -1382,75 +1409,9 @@ Rule:
           label: Filter
           order: 50
           icon: filter  
-  
-#11 - SONSTIGES
-Composition:
-  properties:
-    label:
-      label: Bezeichnung
-    title: 
-      label: Technische Bezeichnung
-
-Distribution:
-  properties:
-
-    format:
-      literals:
-
-        csv:
-          label: CSV
-        html:
-          label: HTML
-        json:
-          label: JSON
-        GeoJson:
-          label: GeoJson
-        pdf:
-          label: PDF
-        png:
-          label: PNG
-        rdf:
-          label: RDF
-        txt:
-          label: TXT
-        wfs:
-          label: WFS
-        wms:
-          label: WMS
-        wmst:
-          label: WMTS
-        xls:
-          label: XLS
-        xml:
-          label: XML
-        OGCFeatureAPI:
-          label: OGC Feature API
-        STAC:
-          label: STAC
-        GeoPackage:
-          label: GeoPackage
-        FileGeodatabase:
-          label: FileGeodatabase
-        GeoParquet:
-          label: GeoParquet
-        Shapefile:
-          label: Shapefile
 
 
-#12 - PROJEKTE
-ProjectDirectory:
-  properties:
-    stereotype:
-      label: Projektmodell-Typ
-      literals:
-        "1":
-          label: Datenraumverzeichnis
-          icon: cat-space
-
-# ------------------------------------------------------------------------------------------
-#   This annotation was copied from "Derivation" as part of the migration to dataspot v4.6
-#   Please verify if this is as intended!
-# ------------------------------------------------------------------------------------------
+#060 - KENNZEICHNUNG VON HERKUNFT
 Deployment:
   properties:
     qualifier:
