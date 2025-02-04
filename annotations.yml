@@ -17,7 +17,11 @@
 
 ############################################################
 
-#100 - DATENKATALOG  
+#100 - DATENKATALOG
+SubDataset:
+  label: Subdatensatz
+  ling: s1p1um
+
 Dataset:
   label: Datensatz
   ling: s1p1um
