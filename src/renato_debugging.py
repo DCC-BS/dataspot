@@ -29,10 +29,24 @@ def main():
             client.teardown_dnk()
             logging.info("Successfully deleted all DNK assets")
 
-        # Test creating new departments
+
+        title_departement = "Test-Departement"
+        title_dienststelle = "Test-Dienststelle"
+        title_sammlung = "Test-Sammlung"
+
+        # Test creating new department
         if True:
-            title = "Test-Departement"
-            client.create_new_department(title)
+            response = client.create_new_department(title_departement)
+
+        # Test creating new dienststelle
+        if False:
+            response = client.create_new_dienststelle(name=title_dienststelle, belongs_to_department=title_departement)
+
+        # Test creating new sammlung
+        if False:
+            response = client.create_new_sammlung(name=title_sammlung, belongs_to_dienststelle=title_dienststelle)
+
+
         
     except Exception as e:
         print(f"Error: {str(e)}")

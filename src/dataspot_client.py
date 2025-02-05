@@ -1,5 +1,7 @@
 import logging
 
+from requests import HTTPError
+
 from dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post
 import json
@@ -108,7 +110,7 @@ class DataspotClient:
             logging.debug(f"Deleting collection: {collection_url}")
             requests_delete(collection_url, headers=headers)
 
-    def create_new_department(self, title: str) -> dict:
+    def create_new_department(self, title: str) -> None:
         """
         Create a new department in the Dataspot API.
 
@@ -131,12 +133,20 @@ class DataspotClient:
             "stereotype": "DEPARTEMENT"
         }
 
-        # TODO: Handle case where the department already exists
-
+        # Check if department already exists; skip if it does.
         try:
-            response = requests_post(endpoint, headers=headers, json=department_data)
-            response.raise_for_status()
-            return response.json()
+            url_to_check = url_join(endpoint, title)
+            requests_get(url_to_check, headers=headers)
+            logging.debug(f"Departement {title} already exists. Skip creation...")
+            return
+        except HTTPError as e:
+            if e.response.status_code != 404:
+                raise e
+
+        # Create new department
+        try:
+            requests_post(endpoint, headers=headers, json=department_data)
+            return
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Failed to decode JSON response from {endpoint}: {str(e)}",
