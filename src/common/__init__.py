@@ -20,7 +20,7 @@ proxies = {
     'https': os.getenv('HTTPS_PROXY')
 }
 
-@retry(http_errors_to_handle, tries=6, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=1, delay=5, backoff=1)
 def requests_get(*args, **kwargs):
     r = requests.get(*args, proxies=proxies, **kwargs)
     r.raise_for_status()
