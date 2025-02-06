@@ -1053,7 +1053,7 @@ BusinessAttribute:
       order: 40
     HISTART:
       label: Art der Historisierung
-      title: Wir wird historisiert (Snapshots etc.)?
+      title: Wie wird historisiert (Snapshots etc.)?
       baseType: TEXT
       group: HIST    
       order: 50
