@@ -38,7 +38,7 @@ Dataset:
     HIST:
       label: Historisierung
       order: 40
-      #icon:
+      icon: bookmark
     GEO:
       label: Geodaten
       order: 50
@@ -1012,11 +1012,11 @@ BusinessAttribute:
     DP:
       label: Datenschutz
       order: 10
-      icon: field
+      icon: shield-keyhole
     HIST:
       label: Historisierung
       order: 40
-      #icon:
+      icon: bookmark
 
   properties:
     identifying:
