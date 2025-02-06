@@ -5,7 +5,7 @@ from dataspot_client import DataspotClient
 import json
 
 def main():
-    load_dotenv('../..')
+    load_dotenv('../../.dataspot.env')
     
     base_url = os.getenv("DATASPOT_API_BASE_URL")
     if not base_url:
