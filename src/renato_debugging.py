@@ -13,43 +13,38 @@ def main():
     
     client = DataspotClient(base_url)
 
-    try:
-        # Test DNK download and save
-        if False:
-            dnk_data = client.download_dnk()
-            print("Successfully downloaded DNK:")
-            print(json.dumps(dnk_data, indent=4)[:500] + "...")
-            
-            output_path = client.save_dnk()
-            print(f"\nSaved DNK to: {output_path}")
+    # Test DNK download and save
+    if False:
+        dnk_data = client.download_dnk()
+        print("Successfully downloaded DNK:")
+        print(json.dumps(dnk_data, indent=4)[:500] + "...")
+
+        output_path = client.save_dnk()
+        print(f"\nSaved DNK to: {output_path}")
 
 
-        name_departement = "Test-Departement"
-        name_dienststelle = "Test-Dienststelle"
-        title_sammlung = "Test-Sammlung"
+    name_departement = "Test-Departement"
+    name_dienststelle = "Test-Dienststelle"
+    title_sammlung = "Test-Sammlung"
 
-        # Test teardown
-        if True:
-            logging.info("\nTearing down DNK assets...")
-            client.teardown_dnk()
-            logging.info("Successfully deleted all DNK assets")
+    # Test teardown
+    if True:
+        logging.info("\nTearing down DNK assets...")
+        client.teardown_dnk()
+        logging.info("Successfully deleted all DNK assets")
 
-        # Test creating new department
-        if True:
-            response = client.create_new_department(name_departement)
+    # Test creating new department
+    if True:
+        client.create_new_department(name=name_departement)
 
-        # Test creating new dienststelle
-        if True:
-            response = client.create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
+    # Test creating new dienststelle
+    if True:
+        client.create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
 
-        # Test creating new sammlung
-        if False:
-            response = client.create_new_sammlung(name=title_sammlung, belongs_to_dienststelle=title_dienststelle)
+    # Test creating new sammlung
+    if True:
+        client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
 
-
-        
-    except Exception as e:
-        print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

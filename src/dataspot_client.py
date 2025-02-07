@@ -213,3 +213,73 @@ class DataspotClient:
                 e.doc,
                 e.pos
             )
+
+    def create_new_sammlung(self, title: str, belongs_to_dienststelle: str) -> None:
+        """
+        Create a new sammlung in Dataspot under a specific dienststelle. If the sammlung already exists, do nothing.
+
+        Args:
+            title (str): The title of the sammlung.
+            belongs_to_dienststelle (str): The name of the parent dienststelle.
+
+        Raises:
+            HTTPError: If the dienststelle doesn't exist or other HTTP errors occur.
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        # Check if parent dienststelle exists
+        dienststelle_path = url_join(
+            self.api_type,
+            self.database_name,
+            'schemes',
+            self.dnk_scheme_name,
+            'collections',
+            belongs_to_dienststelle
+        )
+        dienststelle_endpoint = url_join(self.base_url, dienststelle_path)
+        headers = self.auth.get_headers()
+        
+        try:
+            response = requests_get(dienststelle_endpoint, headers=headers)
+            dienststelle_uuid = response.json().get('id')
+            logging.debug(f"Retrieved Dienststelle UUID: {dienststelle_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                raise HTTPError(f"Dienststelle '{belongs_to_dienststelle}' does not seem to exist") from e
+            raise e
+
+        # Prepare endpoint for creating sammlung
+        relative_path = url_join(
+            self.api_type,
+            self.database_name,
+            'collections',
+            dienststelle_uuid,
+            'collections'
+        )
+        endpoint = url_join(self.base_url, relative_path)
+
+        sammlung_data = {
+            "_type": "Collection",
+            "label": title,
+            "stereotype": "BASISSAMMLUNG"
+        }
+
+        # Check if sammlung already exists
+        try:
+            url_to_check = url_join(endpoint, title)
+            requests_get(url_to_check, headers=headers)
+            logging.info(f"Sammlung '{title}' already exists. Skipping creation...")
+            return
+        except HTTPError as e:
+            if e.response.status_code != 404:
+                raise e
+
+        # Create new sammlung
+        try:
+            requests_post(endpoint, headers=headers, json=sammlung_data)
+            logging.info(f"Sammlung '{title}' created successfully.")
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )
