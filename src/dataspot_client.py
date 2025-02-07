@@ -110,12 +110,12 @@ class DataspotClient:
             logging.info(f"Deleting collection: {collection_url}")
             requests_delete(collection_url, headers=headers)
 
-    def create_new_department(self, title: str) -> None:
+    def create_new_department(self, name: str) -> None:
         """
         Create a new department. If the department already exists, do nothing.
 
         Args:
-            title (str): The title of the department.
+            name (str): The name of the department.
 
         Returns:
             dict: The created department metadata as returned by the API.
@@ -129,15 +129,15 @@ class DataspotClient:
 
         department_data = {
             "_type": "Collection",
-            "label": title,
+            "label": name,
             "stereotype": "DEPARTEMENT"
         }
 
         # Check if department already exists; skip if it does.
         try:
-            url_to_check = url_join(endpoint, title)
+            url_to_check = url_join(endpoint, name)
             requests_get(url_to_check, headers=headers)
-            logging.info(f"Departement {title} already exists. Skip creation...")
+            logging.info(f"Departement {name} already exists. Skip creation...")
             return
         except HTTPError as e:
             if e.response.status_code != 404:
@@ -146,7 +146,7 @@ class DataspotClient:
         # Create new department
         try:
             requests_post(endpoint, headers=headers, json=department_data)
-            logging.info(f"Departement {title} created.")
+            logging.info(f"Departement {name} created.")
             return
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
@@ -155,12 +155,12 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_dienststelle(self, title: str, belongs_to_department: str) -> None:
+    def create_new_dienststelle(self, name: str, belongs_to_department: str) -> None:
         """
         Create a new "dienststelle" in dataspot under a specific department. If the "dienststelle" already exists, do nothing.
 
         Args:
-            title (str): The title of the dienststelle.
+            name (str): The name of the dienststelle.
             belongs_to_department (str): The title of the parent department.
 
         Raises:
@@ -171,7 +171,7 @@ class DataspotClient:
         dept_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections', belongs_to_department)
         dept_endpoint = url_join(self.base_url, dept_path)
         headers = self.auth.get_headers()
-        
+
         try:
             r = requests_get(dept_endpoint, headers=headers)
             belongs_to_department_uuid = r.json().get('id')
@@ -187,15 +187,15 @@ class DataspotClient:
 
         dienststelle_data = {
             "_type": "Collection",
-            "label": title,
+            "label": name,
             "stereotype": "DA"
         }
 
         # Check if dienststelle already exists
         try:
-            url_to_check = url_join(endpoint, title)
+            url_to_check = url_join(endpoint, name)
             requests_get(url_to_check, headers=headers)
-            logging.info(f"Dienststelle {title} already exists. Skip creation...")
+            logging.info(f"Dienststelle {name} already exists. Skip creation...")
             return
         except HTTPError as e:
             # If the error code is 404, then everything is fine.
@@ -205,7 +205,7 @@ class DataspotClient:
         # Create new dienststelle
         try:
             requests_post(endpoint, headers=headers, json=dienststelle_data)
-            logging.info(f"Dienststelle {title} created.")
+            logging.info(f"Dienststelle {name} created.")
             return
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(

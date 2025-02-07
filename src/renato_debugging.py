@@ -24,8 +24,8 @@ def main():
             print(f"\nSaved DNK to: {output_path}")
 
 
-        title_departement = "Test-Departement"
-        title_dienststelle = "Test-Dienststelle"
+        name_departement = "Test-Departement"
+        name_dienststelle = "Test-Dienststelle"
         title_sammlung = "Test-Sammlung"
 
         # Test teardown
@@ -36,11 +36,11 @@ def main():
 
         # Test creating new department
         if True:
-            response = client.create_new_department(title_departement)
+            response = client.create_new_department(name_departement)
 
         # Test creating new dienststelle
         if True:
-            response = client.create_new_dienststelle(title=title_dienststelle, belongs_to_department=title_departement)
+            response = client.create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
 
         # Test creating new sammlung
         if False:
