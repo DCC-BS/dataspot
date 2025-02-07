@@ -155,3 +155,61 @@ class DataspotClient:
                 e.pos
             )
 
+    def create_new_dienststelle(self, title: str, belongs_to_department: str) -> None:
+        """
+        Create a new "dienststelle" in dataspot under a specific department. If the "dienststelle" already exists, do nothing.
+
+        Args:
+            title (str): The title of the dienststelle.
+            belongs_to_department (str): The title of the parent department.
+
+        Raises:
+            HTTPError: If the department doesn't exist or other HTTP errors occur.
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        # Check if parent department exists
+        dept_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections', belongs_to_department)
+        dept_endpoint = url_join(self.base_url, dept_path)
+        headers = self.auth.get_headers()
+        
+        try:
+            r = requests_get(dept_endpoint, headers=headers)
+            belongs_to_department_uuid = r.json().get('id')
+            logging.debug(f"Retrieved Department UUID: {belongs_to_department_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                raise HTTPError(f"Department '{belongs_to_department}' does not seem to exist") from e
+            raise e
+
+        # Prepare endpoint for creating dienststelle
+        relative_path = url_join(self.api_type, self.database_name, 'collections', belongs_to_department_uuid, 'collections')
+        endpoint = url_join(self.base_url, relative_path)
+
+        dienststelle_data = {
+            "_type": "Collection",
+            "label": title,
+            "stereotype": "DA"
+        }
+
+        # Check if dienststelle already exists
+        try:
+            url_to_check = url_join(endpoint, title)
+            requests_get(url_to_check, headers=headers)
+            logging.info(f"Dienststelle {title} already exists. Skip creation...")
+            return
+        except HTTPError as e:
+            # If the error code is 404, then everything is fine.
+            if e.response.status_code != 404:
+                raise e
+
+        # Create new dienststelle
+        try:
+            requests_post(endpoint, headers=headers, json=dienststelle_data)
+            logging.info(f"Dienststelle {title} created.")
+            return
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )

@@ -23,24 +23,24 @@ def main():
             output_path = client.save_dnk()
             print(f"\nSaved DNK to: {output_path}")
 
+
+        title_departement = "Test-Departement"
+        title_dienststelle = "Test-Dienststelle"
+        title_sammlung = "Test-Sammlung"
+
         # Test teardown
         if True:
             logging.info("\nTearing down DNK assets...")
             client.teardown_dnk()
             logging.info("Successfully deleted all DNK assets")
 
-
-        title_departement = "Test-Departement"
-        title_dienststelle = "Test-Dienststelle"
-        title_sammlung = "Test-Sammlung"
-
         # Test creating new department
         if True:
             response = client.create_new_department(title_departement)
 
         # Test creating new dienststelle
-        if False:
-            response = client.create_new_dienststelle(name=title_dienststelle, belongs_to_department=title_departement)
+        if True:
+            response = client.create_new_dienststelle(title=title_dienststelle, belongs_to_department=title_departement)
 
         # Test creating new sammlung
         if False:
