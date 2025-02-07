@@ -38,7 +38,7 @@ Dataset:
     HIST:
       label: Historisierung
       order: 40
-      #icon:
+      icon: bookmark
     GEO:
       label: Geodaten
       order: 50
@@ -895,7 +895,7 @@ Dataset:
        order: 60
      HISTART:
        label: Art der Historisierung
-       title: Wir wird historisiert (Snapshots etc.)?
+       title: Wie wird historisiert (Snapshots etc.)?
        baseType: TEXT
        group: HIST    
        order: 70
@@ -1012,11 +1012,11 @@ BusinessAttribute:
     DP:
       label: Datenschutz
       order: 10
-      icon: field
+      icon: shield-keyhole
     HIST:
       label: Historisierung
       order: 40
-      #icon:
+      icon: bookmark
 
   properties:
     identifying:
@@ -1053,7 +1053,7 @@ BusinessAttribute:
       order: 40
     HISTART:
       label: Art der Historisierung
-      title: Wir wird historisiert (Snapshots etc.)?
+      title: Wie wird historisiert (Snapshots etc.)?
       baseType: TEXT
       group: HIST    
       order: 50
