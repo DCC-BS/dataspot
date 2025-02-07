@@ -52,7 +52,7 @@ def main():
         print(f"Error: {str(e)}")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
     main()
     logging.info('Job successful!')

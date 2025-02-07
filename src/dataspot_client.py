@@ -107,15 +107,15 @@ class DataspotClient:
         # Delete each collection
         for collection_relative_path in collections:
             collection_url = url_join(self.base_url, collection_relative_path)
-            logging.debug(f"Deleting collection: {collection_url}")
+            logging.info(f"Deleting collection: {collection_url}")
             requests_delete(collection_url, headers=headers)
 
     def create_new_department(self, title: str) -> None:
         """
-        Create a new department in the Dataspot API.
+        Create a new department. If the department already exists, do nothing.
 
         Args:
-            title (str): The title of the new department.
+            title (str): The title of the department.
 
         Returns:
             dict: The created department metadata as returned by the API.
@@ -137,7 +137,7 @@ class DataspotClient:
         try:
             url_to_check = url_join(endpoint, title)
             requests_get(url_to_check, headers=headers)
-            logging.debug(f"Departement {title} already exists. Skip creation...")
+            logging.info(f"Departement {title} already exists. Skip creation...")
             return
         except HTTPError as e:
             if e.response.status_code != 404:
@@ -146,6 +146,7 @@ class DataspotClient:
         # Create new department
         try:
             requests_post(endpoint, headers=headers, json=department_data)
+            logging.info(f"Departement {title} created.")
             return
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
