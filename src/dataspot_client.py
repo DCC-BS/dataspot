@@ -283,3 +283,73 @@ class DataspotClient:
                 e.doc,
                 e.pos
             )
+
+    def create_new_dataset(self, title: str, belongs_to_sammlung: str) -> None:
+        """
+        Create a new dataset in Dataspot under a specific sammlung. If the dataset already exists, do nothing.
+
+        Args:
+            title (str): The title of the dataset.
+            belongs_to_sammlung (str): The name of the parent sammlung.
+
+        Raises:
+            HTTPError: If the sammlung doesn't exist or other HTTP errors occur.
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        # Check if parent sammlung exists
+        sammlung_path = url_join(
+            self.api_type,
+            self.database_name,
+            'schemes',
+            self.dnk_scheme_name,
+            'collections',
+            belongs_to_sammlung
+        )
+        sammlung_endpoint = url_join(self.base_url, sammlung_path)
+        headers = self.auth.get_headers()
+
+        try:
+            response = requests_get(sammlung_endpoint, headers=headers)
+            sammlung_uuid = response.json().get('id')
+            logging.debug(f"Retrieved Sammlung UUID: {sammlung_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                raise HTTPError(f"Sammlung '{belongs_to_sammlung}' does not seem to exist") from e
+            raise e
+
+        # Prepare endpoint for creating dataset
+        relative_path = url_join(
+            self.api_type,
+            self.database_name,
+            'collections',
+            sammlung_uuid,
+            'assets'
+        )
+        endpoint = url_join(self.base_url, relative_path)
+
+        dataset_data = {
+            "_type": "Dataset",
+            "label": title,
+            "stereotype": "OGD"
+        }
+
+        # Check if dataset already exists
+        try:
+            url_to_check = url_join(endpoint, title)
+            requests_get(url_to_check, headers=headers)
+            logging.info(f"OGD-Dataset '{title}' already exists. Skipping creation...")
+            return
+        except HTTPError as e:
+            if e.response.status_code != 404:
+                raise e
+
+        # Create new dataset
+        try:
+            requests_post(endpoint, headers=headers, json=dataset_data)
+            logging.info(f"OGD-Dataset '{title}' created successfully.")
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )

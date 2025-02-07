@@ -45,6 +45,12 @@ def main():
     if True:
         client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
 
+    title_dataset = "Test-Dataset"
+
+    # Test uploading an empty dataset
+    if True:
+        client.create_new_dataset(title=title_dataset, belongs_to_sammlung=title_sammlung)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
