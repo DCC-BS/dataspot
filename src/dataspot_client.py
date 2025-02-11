@@ -7,6 +7,9 @@ from src.common import requests_get, requests_delete, requests_post
 import json
 import os
 
+from dataspot_dataset import Dataset
+
+
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
 
@@ -284,12 +287,12 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_dataset(self, title: str, belongs_to_sammlung: str) -> None:
+    def create_new_dataset(self, dataset: Dataset, belongs_to_sammlung: str) -> None:
         """
-        Create a new dataset in Dataspot under a specific sammlung. If the dataset already exists, do nothing.
+        Create a new dataset in Dataspot under a specific sammlung using a Dataset object. If the dataset already exists, do nothing.
 
         Args:
-            title (str): The title of the dataset.
+            dataset (Dataset): The dataset instance to be uploaded.
             belongs_to_sammlung (str): The name of the parent sammlung.
 
         Raises:
@@ -327,17 +330,14 @@ class DataspotClient:
         )
         endpoint = url_join(self.base_url, relative_path)
 
-        dataset_data = {
-            "_type": "Dataset",
-            "label": title,
-            "stereotype": "OGD"
-        }
+        dataset_name = dataset.name
+        dataset_json = dataset.to_json()
 
         # Check if dataset already exists
         try:
-            url_to_check = url_join(endpoint, title)
+            url_to_check = url_join(endpoint, dataset_name)
             requests_get(url_to_check, headers=headers)
-            logging.info(f"OGD-Dataset '{title}' already exists. Skipping creation...")
+            logging.info(f"OGD-Dataset '{dataset_name}' already exists. Skipping creation...")
             return
         except HTTPError as e:
             if e.response.status_code != 404:
@@ -345,8 +345,8 @@ class DataspotClient:
 
         # Create new dataset
         try:
-            requests_post(endpoint, headers=headers, json=dataset_data)
-            logging.info(f"OGD-Dataset '{title}' created successfully.")
+            requests_post(endpoint, headers=headers, json=dataset_json)
+            logging.info(f"OGD-Dataset '{dataset_name}' created successfully.")
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Failed to decode JSON response from {endpoint}: {str(e)}",

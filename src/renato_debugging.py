@@ -2,6 +2,7 @@ import logging
 import os
 from dotenv import load_dotenv
 from dataspot_client import DataspotClient
+from dataspot_dataset import BasicDataset, OGDDataset
 import json
 
 def main():
@@ -28,7 +29,7 @@ def main():
     title_sammlung = "Test-Sammlung"
 
     # Test teardown
-    if True:
+    if False:
         logging.info("\nTearing down DNK assets...")
         client.teardown_dnk()
         logging.info("Successfully deleted all DNK assets")
@@ -48,9 +49,24 @@ def main():
     title_dataset = "Test-Dataset"
 
     # Test uploading an empty dataset
-    if True:
+    if False:
         client.create_new_dataset(title=title_dataset, belongs_to_sammlung=title_sammlung)
 
+    # Test creation and uploading of minimal dataset
+    if True:
+        test_dataset_basic = BasicDataset(
+            name="Basic-Dataset-TEST-API",
+            kurzbeschreibung="Testweise Kurzbeschreibung")
+
+        client.create_new_dataset(dataset=test_dataset_basic, belongs_to_sammlung=title_sammlung)
+
+    # Test creation and uploading of minimal OGD dataset
+    if True:
+        test_dataset_ogd = OGDDataset(
+            name="OGD-Dataset-TEST-API",
+            kurzbeschreibung="Testweise Kurzbeschreibung")
+
+        client.create_new_dataset(dataset=test_dataset_ogd, belongs_to_sammlung=title_sammlung)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
