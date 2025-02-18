@@ -54,13 +54,57 @@ def main():
         client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
 
     # Test creation and uploading of minimal OGD dataset
-    if True:
+    if False:
         test_dataset_ogd = OGDDataset(
             _PATH=f"{name_departement}/{name_dienststelle}/{title_sammlung}",
             name="OGD-Dataset-TEST-API",
             kurzbeschreibung="Testweise Kurzbeschreibung")
 
-        client.create_new_dataset(dataset=test_dataset_ogd, belongs_to_sammlung=title_sammlung)
+        client.create_new_dataset(dataset=test_dataset_ogd)
+
+    # Test creation of actual ods dataset
+    if False:
+        ods_metadata = ods_utils.get_dataset_metadata(dataset_id='100382')
+        dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
+
+        client.create_new_dataset(dataset=dataspot_dataset)
+    
+    # Test whether the path is correctly determined
+    if False:
+        logging.info("Retrieving all public dataset ids...")
+        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
+        logging.info(f"Found {len(ods_ids)} ids.")
+        for index, ods_id in enumerate(ods_ids):
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
+            departement, dienststelle, sammlung, subsammlung = dataspot_dataset.get_departement_dienststelle_sammlung_subsammlung()
+            logging.info(f"({index+1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
+            logging.info(f" {departement=}")
+            logging.info(f" {dienststelle=}")
+            logging.info(f" {sammlung=}")
+            logging.info(f" {subsammlung=}")
+            logging.info("")
+
+            sleep(1)
+
+            if index >= 10:
+                break
+
+    # Test creation of all datasets from ods
+    if True:
+        logging.info("Retrieving all public dataset ids...")
+        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
+        logging.info(f"Found {len(ods_ids)} ids.")
+        for index, ods_id in enumerate(ods_ids):
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
+            
+            logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
+
+            client.create_new_dataset(dataset=dataspot_dataset)
+
+            # Sleep for 1 second to be kind to dataspot servers
+            sleep(1)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
