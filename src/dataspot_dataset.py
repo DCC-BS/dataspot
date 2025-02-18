@@ -2,25 +2,76 @@ from dataclasses import dataclass, field, fields
 from typing import List, Optional, Dict, Any
 from abc import ABC, abstractmethod
 
+# Field types guide:
+# 1. Final (immutable) fields:
+#    _type: str = field(default="Dataset", init=False)
+#
+# 2. Mandatory fields:
+#    name: str = field(metadata={"json_key": "label"})
+#
+# 3. Optional fields:
+#    kurzbeschreibung: Optional[str] = field(default=None, metadata={"json_key": "title"})
+
 @dataclass
 class Dataset(ABC):
     """Base class for all dataset types, serving as a common type annotation for BasicDataset, OGDDataset, and other dataset variants. This class CANNOT be instantiated directly."""
     name: str = field(metadata={"json_key": "label"})
+    _PATH: str = field()
+
+    _type: str = field(default="Dataset", init=False)
 
     @abstractmethod
     def to_json(self) -> Dict[str, Any]:
         """
         Must be implemented by subclasses.
         """
-        pass
+        raise NotImplementedError(f"The method to_json cannot be called from the abstract Dataset class directly!")
+
+    def get_departement_dienststelle_sammlung_subsammlung(self) -> (str, Optional[str], Optional[str], Optional[str]):
+        """
+        Extracts the departement, dienststelle, sammlung, and subsammlung from the _PATH field.
+        
+        Parts are processed sequentially - each part is only considered if all previous parts exist.
+        
+        Returns:
+            tuple: (departement, dienststelle, sammlung, subsammlung) where all except departement may be None.
+            
+        Raises:
+            ValueError: If the department (first part) is empty.
+        """
+        parts = self._PATH.split('/')
+        
+        # Department is always the first part and must not be empty
+        if not parts[0]:
+            raise ValueError("Dienststelle cannot be empty!")
+            
+        departement = parts[0]
+        dienststelle = None
+        sammlung = None
+        subsammlung = None
+        
+        # Check for dienststelle
+        if len(parts) >= 2:
+            dienststelle = parts[1]
+            
+            # Check for sammlung (only if we have dienststelle)
+            if len(parts) >= 3:
+                sammlung = parts[2]
+                
+                # Check for subsammlung (only if we have sammlung)
+                if len(parts) >= 4:
+                    subsammlung = parts[3]
+        
+        return departement, dienststelle, sammlung, subsammlung
 
 @dataclass
 class BasicDataset(Dataset):
     kurzbeschreibung: Optional[str] = field(default=None, metadata={"json_key": "title"})
-    # TODO: Add all other fields
+    beschreibung: Optional[str] = field(default=None, metadata={"json_key": "description"})
+    schluesselwoerter: Optional[List[str]] = field(default=None, metadata={"json_key": "tags"})
+    synonyme: Optional[List[str]] = field(default=None, metadata={"json_key": "synonyms"})
 
-    # Immutable fields
-    _type: str = field(default="Dataset", init=False)
+    # TODO: Add all other fields
 
     def to_json(self) -> Dict[str, Any]:
         """
@@ -31,6 +82,11 @@ class BasicDataset(Dataset):
             value = getattr(self, f.name)
             if value is not None:  # Only include non-None values
                 json_key = f.metadata.get("json_key", f.name)
+
+                # Do not include "_PATH" in the dict
+                if json_key == "_PATH":
+                    continue
+
                 json_dict[json_key] = value
         return json_dict
 

@@ -1,9 +1,16 @@
 import logging
 import os
+from time import sleep
+
 from dotenv import load_dotenv
 from dataspot_client import DataspotClient
 from dataspot_dataset import BasicDataset, OGDDataset
 import json
+
+import ods_utils_py as ods_utils
+
+from metadata_translator import ods_to_dataspot
+
 
 def main():
     load_dotenv('../../.dataspot.env')
@@ -29,40 +36,27 @@ def main():
     title_sammlung = "Test-Sammlung"
 
     # Test teardown
-    if False:
+    if True:
         logging.info("\nTearing down DNK assets...")
         client.teardown_dnk()
         logging.info("Successfully deleted all DNK assets")
 
     # Test creating new department
-    if True:
+    if False:
         client.create_new_department(name=name_departement)
 
     # Test creating new dienststelle
-    if True:
+    if False:
         client.create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
 
     # Test creating new sammlung
-    if True:
-        client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
-
-    title_dataset = "Test-Dataset"
-
-    # Test uploading an empty dataset
     if False:
-        client.create_new_dataset(title=title_dataset, belongs_to_sammlung=title_sammlung)
-
-    # Test creation and uploading of minimal dataset
-    if True:
-        test_dataset_basic = BasicDataset(
-            name="Basic-Dataset-TEST-API",
-            kurzbeschreibung="Testweise Kurzbeschreibung")
-
-        client.create_new_dataset(dataset=test_dataset_basic, belongs_to_sammlung=title_sammlung)
+        client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
 
     # Test creation and uploading of minimal OGD dataset
     if True:
         test_dataset_ogd = OGDDataset(
+            _PATH=f"{name_departement}/{name_dienststelle}/{title_sammlung}",
             name="OGD-Dataset-TEST-API",
             kurzbeschreibung="Testweise Kurzbeschreibung")
 

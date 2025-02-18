@@ -287,69 +287,109 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_dataset(self, dataset: Dataset, belongs_to_sammlung: str) -> None:
+    def create_new_dataset(self, dataset: Dataset) -> None:
         """
-        Create a new dataset in Dataspot under a specific sammlung using a Dataset object. If the dataset already exists, do nothing.
+        Create a new dataset in Dataspot under its parent collection.
+        If the dataset already exists, do nothing.
 
         Args:
             dataset (Dataset): The dataset instance to be uploaded.
-            belongs_to_sammlung (str): The name of the parent sammlung.
 
         Raises:
-            HTTPError: If the sammlung doesn't exist or other HTTP errors occur.
-            json.JSONDecodeError: If the response is not valid JSON.
+            ValueError: If the dataset path is invalid
+            HTTPError: If API requests fail
+            json.JSONDecodeError: If response parsing fails
         """
-        # Check if parent sammlung exists
-        sammlung_path = url_join(
+        departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
+        
+        # Determine the parent collection (last non-empty element in path)
+        parent_path = [p for p in [departement, dienststelle, sammlung, subsammlung] if p]
+        if not parent_path:
+            raise ValueError(f"Invalid path for dataset {dataset.name}: path is empty")
+        
+        parent_collection = parent_path[-1]
+        
+        # Try to get parent collection
+        headers = self.auth.get_headers()
+        parent_path = url_join(
             self.api_type,
             self.database_name,
             'schemes',
             self.dnk_scheme_name,
             'collections',
-            belongs_to_sammlung
+            parent_collection
         )
-        sammlung_endpoint = url_join(self.base_url, sammlung_path)
-        headers = self.auth.get_headers()
-
+        parent_endpoint = url_join(self.base_url, parent_path)
+        
         try:
-            response = requests_get(sammlung_endpoint, headers=headers)
-            sammlung_uuid = response.json().get('id')
-            logging.debug(f"Retrieved Sammlung UUID: {sammlung_uuid}")
+            response = requests_get(parent_endpoint, headers=headers)
+            parent_uuid = response.json().get('id')
         except HTTPError as e:
             if e.response.status_code == 404:
-                raise HTTPError(f"Sammlung '{belongs_to_sammlung}' does not seem to exist") from e
-            raise e
+                # Only create hierarchy if parent doesn't exist
+                self.create_hierarchy_for_dataset(dataset)
+                # Retry getting parent after creation
+                response = requests_get(parent_endpoint, headers=headers)
+                parent_uuid = response.json().get('id')
+            else:
+                raise
 
-        # Prepare endpoint for creating dataset
-        relative_path = url_join(
+        # Construct dataset endpoint
+        dataset_path = url_join(
             self.api_type,
             self.database_name,
             'collections',
-            sammlung_uuid,
+            parent_uuid,
             'assets'
         )
-        endpoint = url_join(self.base_url, relative_path)
+        dataset_endpoint = url_join(self.base_url, dataset_path)
 
-        dataset_name = dataset.name
-        dataset_json = dataset.to_json()
-
-        # Check if dataset already exists
+        # Check if dataset exists
         try:
-            url_to_check = url_join(endpoint, dataset_name)
-            requests_get(url_to_check, headers=headers)
-            logging.info(f"OGD-Dataset '{dataset_name}' already exists. Skipping creation...")
+            requests_get(url_join(dataset_endpoint, dataset.name), headers=headers)
+            logging.info(f"OGD-Dataset '{dataset.name}' already exists. Skipping creation...")
             return
         except HTTPError as e:
             if e.response.status_code != 404:
-                raise e
+                raise
 
-        # Create new dataset
+        # Create dataset
+        dataset_json = dataset.to_json()
+        logging.debug(f"Dataset JSON Payload: {json.dumps(dataset_json, indent=2)}")
+        
         try:
-            requests_post(endpoint, headers=headers, json=dataset_json)
-            logging.info(f"OGD-Dataset '{dataset_name}' created successfully.")
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {endpoint}: {str(e)}",
-                e.doc,
-                e.pos
-            )
+            requests_post(dataset_endpoint, headers=headers, json=dataset_json)
+            logging.info(f"OGD-Dataset '{dataset.name}' created successfully.")
+        except HTTPError as e:
+            logging.error(f"Failed to create dataset: {e.response.status_code} - {e.response.text}")
+            raise
+
+    def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
+        """
+        Creates the complete hierarchy (department/dienststelle/sammlung/subsammlung) for a dataset if it doesn't exist.
+        
+        Args:
+            dataset (Dataset): The dataset containing the path information
+            
+        Raises:
+            ValueError: If the path is invalid
+        """
+        departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
+        
+        if not departement:
+            raise ValueError("Department is required")
+            
+        # Create department if it doesn't exist
+        self.create_new_department(departement)
+        
+        # Create dienststelle if specified and doesn't exist
+        if dienststelle:
+            self.create_new_dienststelle(dienststelle, departement)
+            
+            # Create sammlung if specified and doesn't exist
+            if sammlung:
+                self.create_new_sammlung(sammlung, dienststelle)
+                
+                # Create subsammlung if specified and doesn't exist
+                if subsammlung:
+                    self.create_new_sammlung(subsammlung, sammlung)
