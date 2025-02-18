@@ -39,7 +39,7 @@ class Dataset(ABC):
         Raises:
             ValueError: If the department (first part) is empty.
         """
-        parts = self._PATH.split('/')
+        parts = self._PATH.strip('/').split('/')
         
         # Department is always the first part and must not be empty
         if not parts[0]:
@@ -66,10 +66,28 @@ class Dataset(ABC):
 
 @dataclass
 class BasicDataset(Dataset):
-    kurzbeschreibung: Optional[str] = field(default=None, metadata={"json_key": "title"})
-    beschreibung: Optional[str] = field(default=None, metadata={"json_key": "description"})
-    schluesselwoerter: Optional[List[str]] = field(default=None, metadata={"json_key": "tags"})
-    synonyme: Optional[List[str]] = field(default=None, metadata={"json_key": "synonyms"})
+    kurzbeschreibung: Optional[str] = field(default=None, metadata={'json_key': 'title'})
+    beschreibung: Optional[str] = field(default=None, metadata={'json_key': 'description'})
+    schluesselwoerter: Optional[List[str]] = field(default=None, metadata={'json_key': 'tags'})
+    synonyme: Optional[List[str]] = field(default=None, metadata={'json_key': 'synonyms'})
+    #aktualisierungszyklus
+    #identifikation
+    #zeitliche_dimension_beginn
+    #zeitliche_dimension_ende
+    geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'})
+    #vertraulichkeit
+    #schutzbedarfsstufen
+    #letzte_aktualisierung
+    #publikationsdatum
+    #archivierung
+    archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
+    archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'ARCHBEGR'})
+    nutzungseinschraenkung: Optional[str] = field(default=None, metadata={'json_key': 'NE'})
+    historisierung: bool = field(default=False, metadata={'json_key': 'HIST'})
+    #historisierung_seit_wann
+    art_der_historisierung: Optional[str] = field(default=None, metadata={'json_key': 'HISTART'})
+    aufbewahrungsfrist_jahre: Optional[int] = field(default=None, metadata={'json_key': 'ABF'})
+    begruendung_aufbewahrungsfrist: Optional[str] = field(default=None, metadata={'json_key': 'BEGRABF'})
 
     # TODO: Add all other fields
 
@@ -87,15 +105,21 @@ class BasicDataset(Dataset):
                 if json_key == "_PATH":
                     continue
 
+                # Convert boolean historisierung to lowercase string
+                # TODO: Check if this is really necessary
+                if f.name == "historisierung":
+                    value = str(value).lower()
+
                 json_dict[json_key] = value
         return json_dict
 
     @classmethod
-    def from_json(cls, json_data: Dict[str, Any]) -> 'BasicDataset':
+    def from_json(cls, json_data: Dict[str, Any], _PATH: str) -> 'BasicDataset':
         """
         Deserializes JSON data into a dataset instance.
         """
-        init_data = {}
+        # TODO: Handle the historisierung case, since in dataspot this is lowercase.
+        init_data = {'_PATH': _PATH}
         json_key_to_attr = {f.metadata.get("json_key", f.name): f.name for f in fields(cls)}
         for key, value in json_data.items():
             attr = json_key_to_attr.get(key, key)
