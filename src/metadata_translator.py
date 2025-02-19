@@ -183,9 +183,9 @@ def get_field_value(field: Dict[str, Any]) -> Any:
     Extracts the value for a metadata field based on the 'override_remote_value' flag.
     
     If 'override_remote_value' exists and is True, the local 'value' is returned.
-    If 'override_remote_value' exists and is False, the 'remote_value' is returned (with a fallback to 'value').
+    If 'override_remote_value' exists and is False, the 'remote_value' is returned.
     If 'override_remote_value' does not exist, 'value' is returned directly.
     """
     if 'override_remote_value' in field:
-        return field['value'] if field['override_remote_value'] else field.get('remote_value', field['value'])
-    return field.get('value', '')
+        return field['value'] if field['override_remote_value'] else field.get('remote_value', None)
+    return field['value']
