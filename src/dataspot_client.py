@@ -19,18 +19,19 @@ class DataspotClient:
     def __init__(self, base_url):
         self.base_url = base_url
         self.auth = DataspotAuth()
-        self.api_type = 'rest'
         self.database_name = 'test-api-renato'
         self.dnk_scheme_name = 'Datennutzungskatalog'
     
-    def download(self, relative_path, params: dict[str, str] = None) -> list[dict[str, str]]:
+    def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
         """
         Download data from Dataspot API.
         
         Args:
             relative_path (str): The relative path for the API endpoint
             params (dict[str, str]): The query parameters that should be passed in the url, i.e. everything after the ? in the url
-            
+            endpoint_type (str): The endpoint type that should be used ('rest' or 'api').
+                Use api for bulk downloads in various formats (excel, csv, json, xml, ...).
+                Use rest for individual asset access in json format
         Returns:
             dict: JSON response from the API
             
@@ -38,7 +39,7 @@ class DataspotClient:
             requests.exceptions.RequestException: If the request fails
             json.JSONDecodeError: If the response is not valid JSON
         """
-        endpoint = url_join(self.base_url, 'api', self.database_name, relative_path)
+        endpoint = url_join(self.base_url, endpoint_type, self.database_name, relative_path)
         headers = self.auth.get_headers()
         
         response = requests_get(endpoint, headers=headers, params=params)
@@ -67,8 +68,8 @@ class DataspotClient:
             'language': language,
             'format': 'json'
         }
-        return self.download(relative_path, params)
-    
+        return self.download(relative_path, params, endpoint_type='api')
+
     def save_dnk(self, output_dir: str = "tmp", language: str = "de") -> str:
         """
         Download and save the DNK to a file.
@@ -97,7 +98,7 @@ class DataspotClient:
         Raises:
             requests.exceptions.RequestException: If the request fails
         """
-        relative_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
+        relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
         endpoint = url_join(self.base_url, relative_path)
         headers = self.auth.get_headers()
         
@@ -126,7 +127,7 @@ class DataspotClient:
         Raises:
             json.JSONDecodeError: If the response is not valid JSON.
         """
-        relative_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
+        relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
         endpoint = url_join(self.base_url, relative_path)
         headers = self.auth.get_headers()
 
@@ -171,7 +172,7 @@ class DataspotClient:
             json.JSONDecodeError: If the response is not valid JSON.
         """
         # Check if parent department exists
-        dept_path = url_join(self.api_type, self.database_name, 'schemes', self.dnk_scheme_name, 'collections', belongs_to_department)
+        dept_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', belongs_to_department)
         dept_endpoint = url_join(self.base_url, dept_path)
         headers = self.auth.get_headers()
 
@@ -185,7 +186,7 @@ class DataspotClient:
             raise e
 
         # Prepare endpoint for creating dienststelle
-        relative_path = url_join(self.api_type, self.database_name, 'collections', belongs_to_department_uuid, 'collections')
+        relative_path = url_join('rest', self.database_name, 'collections', belongs_to_department_uuid, 'collections')
         endpoint = url_join(self.base_url, relative_path)
 
         dienststelle_data = {
@@ -231,7 +232,7 @@ class DataspotClient:
         """
         # Check if parent dienststelle exists
         dienststelle_path = url_join(
-            self.api_type,
+            'rest',
             self.database_name,
             'schemes',
             self.dnk_scheme_name,
@@ -252,7 +253,7 @@ class DataspotClient:
 
         # Prepare endpoint for creating sammlung
         relative_path = url_join(
-            self.api_type,
+            'rest',
             self.database_name,
             'collections',
             dienststelle_uuid,
@@ -312,7 +313,7 @@ class DataspotClient:
         # Try to get parent collection
         headers = self.auth.get_headers()
         parent_path = url_join(
-            self.api_type,
+            'rest',
             self.database_name,
             'schemes',
             self.dnk_scheme_name,
@@ -336,7 +337,7 @@ class DataspotClient:
 
         # Construct dataset endpoint
         dataset_path = url_join(
-            self.api_type,
+            'rest',
             self.database_name,
             'collections',
             parent_uuid,
