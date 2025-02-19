@@ -167,15 +167,20 @@ def create_path(json_data: Dict[str, Any]) -> str:
     # Remove unwanted publisher grouping and apply standard special-case transformations.
     departement, dienststelle, sammlung, subsammlung = apply_special_cases(departement, original_dienststelle)
     
-    # Assemble the _PATH string with all four parts.
-    path_fields = [
-        departement if departement is not None else '',
-        dienststelle if dienststelle is not None else '',
-        sammlung if sammlung is not None else '',
-        subsammlung if subsammlung is not None else ''
-    ]
+    path_fields = []
     
-    # Return the path with fields delimited by "/" (this will keep the empty slot for Dienststelle)
+    if departement:
+        path_fields.append(departement)
+        
+        if dienststelle:
+            path_fields.append(dienststelle)
+            
+            if sammlung:
+                path_fields.append(sammlung)
+                
+                if subsammlung:
+                    path_fields.append(subsammlung)
+    
     return "/".join(path_fields)
 
 def get_field_value(field: Dict[str, Any]) -> Any:
