@@ -83,13 +83,11 @@ class BasicDataset(Dataset):
     archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
     archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'ARCHBEGR'})
     nutzungseinschraenkung: Optional[str] = field(default=None, metadata={'json_key': 'NE'})
-    historisierung: bool = field(default=False, metadata={'json_key': 'HIST'})
+    #historisierung: bool = field(default=False, metadata={'json_key': 'HIST'})
     #historisierung_seit_wann
     art_der_historisierung: Optional[str] = field(default=None, metadata={'json_key': 'HISTART'})
     aufbewahrungsfrist_jahre: Optional[int] = field(default=None, metadata={'json_key': 'ABF'})
     begruendung_aufbewahrungsfrist: Optional[str] = field(default=None, metadata={'json_key': 'BEGRABF'})
-
-    # TODO: Add all other fields
 
     def to_json(self) -> Dict[str, Any]:
         """
@@ -104,11 +102,6 @@ class BasicDataset(Dataset):
                 # Do not include "_PATH" in the dict
                 if json_key == "_PATH":
                     continue
-
-                # Convert boolean historisierung to lowercase string
-                # TODO: Check if this is really necessary
-                if f.name == "historisierung":
-                    value = str(value).lower()
 
                 json_dict[json_key] = value
         return json_dict
