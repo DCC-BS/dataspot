@@ -121,8 +121,16 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    ogd_specific_field: Optional[str] = None
-    # TODO: Add all other fields
+    #anhaefungsperiodizität_TMP
+    #lizenz
+    #rechte
+    #themen
+    #herausgeber
+    #referenz
+    #zuschreibungen
+    #publizierende_organisation
+    #datenportal_identifikation
+    #tags
 
     # Immutable fields
     stereotype: str = field(default="OGD", init=False)
