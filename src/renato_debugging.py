@@ -130,7 +130,7 @@ def main_2_rdm():
         logging.info(f"Found {len(ods_ids)} ids.")
         for index, ods_id in enumerate(ods_ids):
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, client)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, ods_id, client)
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 

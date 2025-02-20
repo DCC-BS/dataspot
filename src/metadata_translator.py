@@ -4,7 +4,7 @@ from src.dataspot_client import DataspotClient
 from src.dataspot_dataset import OGDDataset
 
 
-def ods_to_dataspot(ods_metadata: Dict[str, Any], dataspot_client: DataspotClient) -> OGDDataset:
+def ods_to_dataspot(ods_metadata: Dict[str, Any], ods_dataset_id: str, dataspot_client: DataspotClient) -> OGDDataset:
     """
     Translates metadata from OpenDataSoft (ODS) format to Dataspot format.
     
@@ -19,7 +19,6 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any], dataspot_client: DataspotClien
     Returns:
         Dict[str, Any]: A dictionary containing the metadata in Dataspot format.
     """
-    pass
     ogd_dataset = OGDDataset(
         name=get_field_value(ods_metadata['default']['title']),
         _PATH=create_path(ods_metadata),
@@ -30,7 +29,8 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any], dataspot_client: DataspotClien
             get_field_value(
                 ods_metadata['dcat']['accrualperiodicity']
             )
-        )
+        ),
+        identifikation=f"ogd_{ods_dataset_id}"
     )
     return ogd_dataset
 

@@ -71,7 +71,7 @@ class BasicDataset(Dataset):
     schluesselwoerter: Optional[List[str]] = field(default=None, metadata={'json_key': 'tags'})
     synonyme: Optional[List[str]] = field(default=None, metadata={'json_key': 'synonyms'})
     aktualisierungszyklus: Optional[str] = field(default=None, metadata={'json_key': 'accrualPeriodicity'})
-    #identifikation
+    identifikation: Optional[str] = field(default=None, metadata={'json_key': 'identifier'})
     #zeitliche_dimension_beginn
     #zeitliche_dimension_ende
     geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'})
@@ -121,7 +121,7 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    #anhaefungsperiodizität_TMP
+    #anhaefungsperiodizität__TMP
     #lizenz
     #rechte
     #themen
