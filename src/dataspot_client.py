@@ -22,6 +22,7 @@ class DataspotClient:
         self.database_name = 'test-api-renato'
         self.dnk_scheme_name = 'Datennutzungskatalog'
         self.rdm_scheme_name = 'Referenzdatenmodell'
+        self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self._accrual_periodicity_dict = None
     
     def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
@@ -164,6 +165,46 @@ class DataspotClient:
             }
 
         return self._accrual_periodicity_dict[uri]
+
+    def teardown_tdm(self) -> None:
+        """
+        Delete all collections within 'Automatisch generierte ODS-Datenmodelle' from the TDM scheme,
+        but keep the parent collection and scheme intact.
+
+        Raises:
+            requests.exceptions.RequestException: If the request fails
+            json.JSONDecodeError: If the response is not valid JSON
+        """
+        
+        # First, get the UUID of the target collection
+        collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
+        endpoint = url_join(self.base_url, collection_path)
+        headers = self.auth.get_headers()
+        
+        try:
+            response = requests_get(endpoint, headers=headers)
+            collection_uuid = response.json().get('id')
+            logging.debug(f"Found collection UUID: {collection_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                logging.info(f"Collection '{self.tdm_scheme_name}' not found. Nothing to delete.")
+                return
+            raise e
+        
+        # Get all assets within the target collection
+        assets_path = url_join('rest', self.database_name, 'collections', collection_uuid, 'assets')
+        assets_endpoint = url_join(self.base_url, assets_path)
+        
+        response = requests_get(assets_endpoint, headers=headers)
+        response_json = response.json()
+        assets = response_json.get('_embedded', {}).get('assets', [])
+        
+        # Delete each asset
+        for asset in assets:
+            asset_url = asset['_links']['self']['href']
+            asset_label = asset['label']
+            logging.info(f"Deleting asset: {asset_url} - {asset_label}")
+            requests_delete(url_join(self.base_url, asset_url), headers=headers)
 
     def create_new_department(self, name: str) -> None:
         """

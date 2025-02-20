@@ -142,9 +142,26 @@ def main_2_rdm():
             if index >= 9:
                 break
 
+def main_3_tdm():
+    load_dotenv('../../.dataspot.env')
+
+    base_url = os.getenv("DATASPOT_API_BASE_URL")
+    if not base_url:
+        raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
+
+    client = DataspotClient(base_url)
+
+    # Teardown
+    if True:
+        logging.info("\nTearing down TDM assets...")
+        client.teardown_tdm()
+        logging.info("Successfully deleted all TDM assets")
+
+    pass
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logging.info(f'Executing {__file__}...')
-    main_2_rdm()
+    main_3_tdm()
     logging.info('Job successful!')
     
