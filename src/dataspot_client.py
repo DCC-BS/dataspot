@@ -15,12 +15,14 @@ def url_join(*parts: str) -> str:
 
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
-    
+
     def __init__(self, base_url):
         self.base_url = base_url
         self.auth = DataspotAuth()
         self.database_name = 'test-api-renato'
         self.dnk_scheme_name = 'Datennutzungskatalog'
+        self.rdm_scheme_name = 'Referenzdatenmodell'
+        self._accrual_periodicity_dict = None
     
     def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
         """
@@ -113,6 +115,55 @@ class DataspotClient:
             collection_url = url_join(self.base_url, collection_relative_path)
             logging.info(f"Deleting collection: {collection_url}")
             requests_delete(collection_url, headers=headers)
+
+    def download_rdm(self, language: str = "de") -> list[dict[str, str]]:
+        """
+        Download the Referenzdatenmodell (RDM) from Dataspot.
+
+        Args:
+            language (str): Language code for the RDM (default: "de")
+
+        Returns:
+            dict: The RDM data in JSON format
+        """
+        relative_path = url_join('schemes', self.rdm_scheme_name, 'download')
+        params = {
+            'language': language,
+            'format': 'json'
+        }
+        return self.download(relative_path, params, endpoint_type='api')
+
+    def rdm_accrualPeriodicity_uri_to_code(self, uri: str) -> str:
+        """
+        Convert an accrual periodicity URI to its corresponding code based on the Referenzdatenmodell (RDM).
+        
+        Args:
+            uri (str): The URI of the accrual periodicity to convert
+            
+        Returns:
+            str: The corresponding code for the given URI from the RDM as a string of length 3, e.g. '005'
+            
+        Raises:
+            KeyError: If the URI is not found in the periodicity dictionary
+            json.JSONDecodeError: If the response is not valid JSON
+        """
+        # Build dict if it does not exist already
+        if not self._accrual_periodicity_dict:
+            relative_path = url_join('schemes',
+                                     self.rdm_scheme_name,
+                                     'enumerations',
+                                     'Aktualisierungszyklus',
+                                     'literals')
+
+            response = self.download(relative_path)
+            aktualisierungszyklus = response['_embedded']['literals']
+            # Create mapping from URI to code
+            self._accrual_periodicity_dict = {
+                item['longText']: item['code'].zfill(3)
+                for item in aktualisierungszyklus
+            }
+
+        return self._accrual_periodicity_dict[uri]
 
     def create_new_department(self, name: str) -> None:
         """

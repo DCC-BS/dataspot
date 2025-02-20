@@ -70,7 +70,7 @@ class BasicDataset(Dataset):
     beschreibung: Optional[str] = field(default=None, metadata={'json_key': 'description'})
     schluesselwoerter: Optional[List[str]] = field(default=None, metadata={'json_key': 'tags'})
     synonyme: Optional[List[str]] = field(default=None, metadata={'json_key': 'synonyms'})
-    #aktualisierungszyklus
+    aktualisierungszyklus: Optional[str] = field(default=None, metadata={'json_key': 'accrualPeriodicity'})
     #identifikation
     #zeitliche_dimension_beginn
     #zeitliche_dimension_ende

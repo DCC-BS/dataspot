@@ -1,9 +1,10 @@
 from typing import Dict, Any
 
+from src.dataspot_client import DataspotClient
 from src.dataspot_dataset import OGDDataset
 
 
-def ods_to_dataspot(ods_metadata: Dict[str, Any]) -> OGDDataset:
+def ods_to_dataspot(ods_metadata: Dict[str, Any], dataspot_client: DataspotClient) -> OGDDataset:
     """
     Translates metadata from OpenDataSoft (ODS) format to Dataspot format.
     
@@ -24,7 +25,12 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any]) -> OGDDataset:
         _PATH=create_path(ods_metadata),
         beschreibung=ods_metadata['default'].get('description', {}).get('value', None),
         schluesselwoerter=ods_metadata['default'].get('keyword', {}).get('value', None),
-        synonyme=None
+        synonyme=None,
+        aktualisierungszyklus=dataspot_client.rdm_accrualPeriodicity_uri_to_code(
+            get_field_value(
+                ods_metadata['dcat']['accrualperiodicity']
+            )
+        )
     )
     return ogd_dataset
 
@@ -145,7 +151,6 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
         departement = "Sonstige Organisationen und Firmen"
 
     return departement, dienststelle, sammlung, subsammlung
-
 
 def create_path(json_data: Dict[str, Any]) -> str:
     """

@@ -106,7 +106,7 @@ def main():
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
 
-def main_2():
+def main_2_rdm():
     load_dotenv('../../.dataspot.env')
 
     base_url = os.getenv("DATASPOT_API_BASE_URL")
@@ -130,7 +130,7 @@ def main_2():
         logging.info(f"Found {len(ods_ids)} ids.")
         for index, ods_id in enumerate(ods_ids):
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, client)
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
@@ -145,6 +145,6 @@ def main_2():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logging.info(f'Executing {__file__}...')
-    main_2()
+    main_2_rdm()
     logging.info('Job successful!')
     
