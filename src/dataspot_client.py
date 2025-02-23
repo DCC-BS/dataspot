@@ -206,6 +206,64 @@ class DataspotClient:
             logging.info(f"Deleting asset: {asset_url} - {asset_label}")
             requests_delete(url_join(self.base_url, asset_url), headers=headers)
 
+    def tdm_create_new_asset(self, name: str) -> None:
+        """
+        Create a new asset in the 'Automatisch generierte ODS-Datenmodelle' collection.
+
+        Args:
+            name (str): The name of the asset to create.
+
+        Raises:
+            HTTPError: If the collection doesn't exist or other HTTP errors occur
+            json.JSONDecodeError: If the response is not valid JSON
+        """
+        # First, get the UUID of the target collection
+        collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
+        endpoint = url_join(self.base_url, collection_path)
+        headers = self.auth.get_headers()
+
+        try:
+            response = requests_get(endpoint, headers=headers)
+            collection_uuid = response.json().get('id')
+            logging.debug(f"Found collection UUID: {collection_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
+            raise e
+
+        # Prepare endpoint for creating the asset
+        assets_path = url_join('rest', self.database_name, 'collections', collection_uuid, 'assets')
+        assets_endpoint = url_join(self.base_url, assets_path)
+
+        # Check if asset already exists
+        try:
+            url_to_check = url_join(assets_endpoint, name)
+            requests_get(url_to_check, headers=headers)
+            logging.info(f"Asset '{name}' already exists. Skip creation...")
+            return
+        except HTTPError as e:
+            if e.response.status_code != 404:
+                raise e
+
+        # Prepare asset data
+        asset_data = {
+            "_type": "UmlClass",
+            "label": name
+        }
+
+        # Create new asset
+        try:
+            requests_post(assets_endpoint, headers=headers, json=asset_data)
+            logging.info(f"Asset '{name}' created successfully.")
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {assets_endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )
+
+        # TODO: Also create all attributes
+
     def create_new_department(self, name: str) -> None:
         """
         Create a new department. If the department already exists, do nothing.

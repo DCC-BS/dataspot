@@ -151,12 +151,23 @@ def main_3_tdm():
 
     client = DataspotClient(base_url)
 
-    # Teardown
-    if True:
+    # Teardown TDM
+    if False:
         logging.info("\nTearing down TDM assets...")
         client.teardown_tdm()
-        logging.info("Successfully deleted all TDM assets")
+        logging.info("Successfully deleted all TDM assets in the 'Automatisch generierte ODS-Datenmodelle' collection")
 
+    # Add an asset called "Test-Datenobjekt" with example attributes
+    if True:
+        logging.info("\nCreating new asset...")
+        client.tdm_create_new_asset(name="Test-Asset API")
+        logging.info("Successfully created new asset")
+        pass
+
+    # Extract the column names of an ods dataset
+    if True:
+        # TODO: implement me
+        pass
     pass
 
 if __name__ == "__main__":
