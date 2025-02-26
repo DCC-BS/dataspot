@@ -3,6 +3,7 @@ import os
 from time import sleep
 
 from dotenv import load_dotenv
+from ods_client import ODSClient
 from dataspot_client import DataspotClient
 from dataspot_dataset import BasicDataset, OGDDataset
 import json
@@ -150,15 +151,16 @@ def main_3_tdm():
         raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
 
     client = DataspotClient(base_url)
+    ods_client = ODSClient()
 
     # Teardown TDM
-    if False:
+    if True:
         logging.info("\nTearing down TDM assets...")
         client.teardown_tdm()
         logging.info("Successfully deleted all TDM assets in the 'Automatisch generierte ODS-Datenmodelle' collection")
 
     # Add an asset called "Test-Datenobjekt" with example attributes
-    if True:
+    if False:
         logging.info("\nCreating new asset...")
         client.tdm_create_new_asset(name="Test-Asset API")
         logging.info("Successfully created new asset")
@@ -166,9 +168,11 @@ def main_3_tdm():
 
     # Extract the column names of an ods dataset
     if True:
-        # TODO: implement me
-        pass
-    pass
+        dataset_id = '100397'
+        title = ods_utils.get_dataset_title(dataset_id=dataset_id)
+        columns = ods_client.get_dataset_columns(dataset_id=dataset_id)
+        client.tdm_create_new_asset(name=title, columns=columns)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

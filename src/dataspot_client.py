@@ -24,6 +24,7 @@ class DataspotClient:
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self._accrual_periodicity_dict = None
+        self._datatype_uuid_cache = {}
     
     def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
         """
@@ -166,6 +167,68 @@ class DataspotClient:
 
         return self._accrual_periodicity_dict[uri]
 
+    def ods_type_to_dataspot_uuid(self, ods_type: str) -> str:
+        """
+        Convert an ODS data type directly to its corresponding Dataspot UUID.
+
+        Args:
+            ods_type (str): The ODS data type
+
+        Returns:
+            str: The UUID of the corresponding Dataspot type
+
+        Raises:
+            HTTPError: If the type doesn't exist or other HTTP errors occur
+            json.JSONDecodeError: If the response is not valid JSON
+        """
+        # Map ODS types to UML data types
+        type_mapping = {
+            'text': '/Datentypmodell/Zeichenkette',
+            'int': '/Datentypmodell/Ganzzahl',
+            'boolean': '/Datentypmodell/Wahrheitswert',
+            'double': '/Datentypmodell/Dezimalzahl',
+            'datetime': '/Datentypmodell/Zeitpunkt',
+            'date': '/Datentypmodell/Datum',
+            'geo_point_2d': '/Datentypmodell/geo_point_2d',
+            'geo_shape': '/Datentypmodell/geo_shape',
+            'file': '/Datentypmodell/Binärdaten',
+            'json_blob': '/Datentypmodell/Zeichenkette',
+            'identifier': '/Datentypmodell/Identifier'
+        }
+
+        # Map the ODS type to Dataspot type path
+        dataspot_type = type_mapping.get(ods_type.lower(), 'UNKNOWN TYPE')
+
+        # Return from cache if available
+        if dataspot_type in self._datatype_uuid_cache:
+            return self._datatype_uuid_cache[dataspot_type]
+
+        # Split the path to get the type name
+        parts = dataspot_type.split('/')
+        type_name = parts[-1]  # Get the last part of the path
+
+        # Build the path to the Datentypmodell scheme
+        endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes', 'Datentypmodell', 'datatypes', type_name)
+        headers = self.auth.get_headers()
+
+        try:
+            response = requests_get(endpoint, headers=headers)
+            type_uuid = response.json().get('id')
+
+            # Cache the result
+            self._datatype_uuid_cache[dataspot_type] = type_uuid
+            return type_uuid
+
+        except HTTPError as e:
+            logging.error(f"Failed to get UUID for type {dataspot_type}: {str(e)}")
+            raise
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )
+
     def teardown_tdm(self) -> None:
         """
         Delete all collections within 'Automatisch generierte ODS-Datenmodelle' from the TDM scheme,
@@ -206,18 +269,22 @@ class DataspotClient:
             logging.info(f"Deleting asset: {asset_url} - {asset_label}")
             requests_delete(url_join(self.base_url, asset_url), headers=headers)
 
-    def tdm_create_new_asset(self, name: str) -> None:
+    def tdm_create_new_asset(self, name: str, columns: list[dict] = None) -> None:
         """
         Create a new asset in the 'Automatisch generierte ODS-Datenmodelle' collection.
 
         Args:
             name (str): The name of the asset to create.
+            columns (list[dict]): List of column information, each containing:
+                - label: Human-readable label
+                - name: Technical column name
+                - type: Data type of the column
 
         Raises:
             HTTPError: If the collection doesn't exist or other HTTP errors occur
             json.JSONDecodeError: If the response is not valid JSON
         """
-        # First, get the UUID of the target collection
+        # Get the UUID of the target collection
         collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
         endpoint = url_join(self.base_url, collection_path)
         headers = self.auth.get_headers()
@@ -253,8 +320,9 @@ class DataspotClient:
 
         # Create new asset
         try:
-            requests_post(assets_endpoint, headers=headers, json=asset_data)
+            response = requests_post(assets_endpoint, headers=headers, json=asset_data)
             logging.info(f"Asset '{name}' created successfully.")
+            asset_href = response.json()['_links']['self']['href']
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Failed to decode JSON response from {assets_endpoint}: {str(e)}",
@@ -262,7 +330,31 @@ class DataspotClient:
                 e.pos
             )
 
-        # TODO: Also create all attributes
+        # Add all attributes
+        asset_endpoint = url_join(self.base_url, asset_href, 'attributes')
+        attributes = []
+        if columns:
+            for col in columns:
+                attribute = {
+                    "_type": "UmlAttribute",
+                    "title": col['label'],
+                    "label": col['name'],
+                    "hasRange": self.ods_type_to_dataspot_uuid(col['type'])
+                }
+                attributes.append(attribute)
+
+        # Append attributes to asset
+        for attribute in attributes:
+            try:
+                requests_post(asset_endpoint, headers=headers, json=attribute)
+                logging.info(f"Attribute '{attribute["label"]}' created successfully.")
+            except json.JSONDecodeError as e:
+                raise json.JSONDecodeError(
+                    f"Failed to decode JSON response from {asset_endpoint}: {str(e)}",
+                    e.doc,
+                    e.pos
+                )
+
 
     def create_new_department(self, name: str) -> None:
         """
