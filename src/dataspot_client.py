@@ -102,6 +102,7 @@ class DataspotClient:
         Raises:
             requests.exceptions.RequestException: If the request fails
         """
+        # TODO: Create field to only delete datasets of type OGD
         relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
         endpoint = url_join(self.base_url, relative_path)
         headers = self.auth.get_headers()
