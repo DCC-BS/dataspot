@@ -97,10 +97,12 @@ def main():
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         logging.info(f"Found {len(ods_ids)} ids.")
         for index, ods_id in enumerate(ods_ids):
+            logging.info(f"\n({index + 1}/{len(ods_ids)}) {ods_id}")
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
-            
-            logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata=ods_metadata,
+                                                           ods_dataset_id=ods_id,
+                                                           dataspot_client=client)
+            logging.info(f"Title: {dataspot_dataset.name}")
 
             client.create_new_dataset(dataset=dataspot_dataset)
 
@@ -200,6 +202,6 @@ def main_3_tdm():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logging.info(f'Executing {__file__}...')
-    main_3_tdm()
+    main()
     logging.info('Job successful!')
     
