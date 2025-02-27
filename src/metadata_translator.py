@@ -195,7 +195,11 @@ def get_field_value(field: Dict[str, Any]) -> Any:
     If 'override_remote_value' exists and is True, the local 'value' is returned.
     If 'override_remote_value' exists and is False, the 'remote_value' is returned.
     If 'override_remote_value' does not exist, 'value' is returned directly.
+    If field is an empty dict, None is returned.
     """
+    if not field:
+        return None
+        
     if 'override_remote_value' in field:
         return field['value'] if field['override_remote_value'] else field.get('remote_value', None)
     return field['value']
