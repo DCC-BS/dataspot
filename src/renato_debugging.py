@@ -154,7 +154,7 @@ def main_3_tdm():
     ods_client = ODSClient()
 
     # Teardown TDM
-    if True:
+    if False:
         logging.info("\nTearing down TDM assets...")
         client.teardown_tdm()
         logging.info("Successfully deleted all TDM assets in the 'Automatisch generierte ODS-Datenmodelle' collection")
@@ -167,11 +167,34 @@ def main_3_tdm():
         pass
 
     # Extract the column names of an ods dataset
-    if True:
+    if False:
         dataset_id = '100397'
         title = ods_utils.get_dataset_title(dataset_id=dataset_id)
         columns = ods_client.get_dataset_columns(dataset_id=dataset_id)
         client.tdm_create_new_asset(name=title, columns=columns)
+
+    # Teardown and then create 10 datasets in the DNK and the corresponding TDM
+    if True:
+        ods_ids = ['100003', '100004', '100005', '100006', '100007', '100008', '100009', '100010', '100011', '100013']
+        client.teardown_dnk()
+        client.teardown_tdm()
+
+        for index, ods_id in enumerate(ods_ids):
+            # Create entry in DNK
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, ods_id, client)
+
+            logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
+
+            client.create_new_dataset(dataset=dataspot_dataset)
+
+            # Create entry in TDM
+            title = ods_utils.get_dataset_title(dataset_id=ods_id)
+            columns = ods_client.get_dataset_columns(dataset_id=ods_id)
+            client.tdm_create_new_asset(name=title, columns=columns)
+
+            # Sleep for 1 second to be kind to dataspot servers
+            sleep(1)
 
 
 if __name__ == "__main__":
