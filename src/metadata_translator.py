@@ -22,12 +22,12 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any], ods_dataset_id: str, dataspot_
     ogd_dataset = OGDDataset(
         name=get_field_value(ods_metadata['default']['title']),
         _PATH=create_path(ods_metadata),
-        beschreibung=ods_metadata['default'].get('description', {}).get('value', None),
-        schluesselwoerter=ods_metadata['default'].get('keyword', {}).get('value', None),
+        beschreibung=get_field_value(ods_metadata['default'].get('description', {})),
+        schluesselwoerter=get_field_value(ods_metadata['default'].get('keyword', {})),
         synonyme=None,
         aktualisierungszyklus=dataspot_client.rdm_accrualPeriodicity_uri_to_code(
             get_field_value(
-                ods_metadata['dcat']['accrualperiodicity']
+                ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
             )
         ),
         identifikation=f"ogd_{ods_dataset_id}"
