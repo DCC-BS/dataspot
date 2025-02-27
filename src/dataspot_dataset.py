@@ -125,10 +125,10 @@ class OGDDataset(BasicDataset):
     #lizenz
     #rechte
     #themen
-    #herausgeber
+    #herausgeber - GELÖSCHT
     #referenz
     #zuschreibungen
-    #publizierende_organisation
+    #publizierende_organisation - GELÖSCHT
     #datenportal_identifikation
     #tags
 
