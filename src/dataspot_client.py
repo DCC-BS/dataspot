@@ -97,27 +97,106 @@ class DataspotClient:
 
     def teardown_dnk(self) -> None:
         """
-        Delete all collections from the DNK scheme, but keep the empty DNK.
+        Delete all OGD datasets from the DNK scheme and remove empty collections.
+        
+        This method:
+        1. Recursively traverses all collections in the DNK scheme
+        2. Deletes only datasets with stereotype "OGD"
+        3. Removes collections that become empty after deleting their datasets
+        4. Preserves the root DNK scheme even if empty
         
         Raises:
             requests.exceptions.RequestException: If the request fails
+            json.JSONDecodeError: If the response is not valid JSON
         """
-        # TODO: Create field to only delete datasets of type OGD
-        relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
-        endpoint = url_join(self.base_url, relative_path)
+        relative_path = url_join('schemes', self.dnk_scheme_name)
+        endpoint = url_join(self.base_url, 'rest', self.database_name, relative_path)
         headers = self.auth.get_headers()
         
-        # Get all collections
-        response = requests_get(endpoint, headers=headers)
-        response_json = response.json()
-        response_json_collections = response_json.get('_embedded', {}).get('collections', {})
-        collections = [item['_links']['self']['href'] for item in response_json_collections]
-
-        # Delete each collection
-        for collection_relative_path in collections:
-            collection_url = url_join(self.base_url, collection_relative_path)
-            logging.info(f"Deleting collection: {collection_url}")
-            requests_delete(collection_url, headers=headers)
+        def delete_ogd_datasets_and_empty_collections(collection_url, is_root=False):
+            """
+            Recursively delete OGD datasets and empty collections.
+            
+            Args:
+                collection_url (str): URL of the collection to process
+                is_root (bool): Whether this is the root DNK scheme (which should not be deleted)
+                
+            Returns:
+                bool: True if the collection is empty after processing, False otherwise
+            """
+            # Get collection details
+            response = requests_get(collection_url, headers=headers)
+            collection_data = response.json()
+            collection_uuid = collection_data.get('id')
+            
+            # Process datasets in this collection
+            # For the root level, use 'schemes' instead of 'collections' in the URL
+            if is_root:
+                datasets_url = url_join(self.base_url, 'rest', self.database_name, 'schemes', collection_uuid, 'datasets')
+            else:
+                datasets_url = url_join(self.base_url, 'rest', self.database_name, 'collections', collection_uuid, 'datasets')
+            
+            datasets_response = requests_get(datasets_url, headers=headers)
+            datasets_data = datasets_response.json()
+            datasets = datasets_data.get('_embedded', {}).get('datasets', [])
+            
+            # Delete OGD datasets
+            for dataset in datasets:
+                dataset_url = dataset['_links']['self']['href']
+                dataset_label = dataset.get('label', 'Unknown')
+                
+                # Check if dataset has stereotype "OGD"
+                if dataset.get('stereotype') == "OGD":
+                    logging.info(f"Deleting OGD dataset: {dataset_label}")
+                    requests_delete(url_join(self.base_url, dataset_url), headers=headers)
+            
+            # Process sub-collections
+            # For the root level, use 'schemes' instead of 'collections' in the URL
+            if is_root:
+                collections_url = url_join(self.base_url, 'rest', self.database_name, 'schemes', collection_uuid, 'collections')
+            else:
+                collections_url = url_join(self.base_url, 'rest', self.database_name, 'collections', collection_uuid, 'collections')
+            
+            collections_response = requests_get(collections_url, headers=headers)
+            collections_data = collections_response.json()
+            sub_collections = collections_data.get('_embedded', {}).get('collections', [])
+            
+            # Process each sub-collection and track which ones become empty
+            empty_subcollections = []
+            for sub_collection in sub_collections:
+                sub_collection_url = sub_collection['_links']['self']['href']
+                sub_collection_label = sub_collection.get('label', 'Unknown')
+                
+                # Recursively process sub-collection (not root)
+                is_empty = delete_ogd_datasets_and_empty_collections(url_join(self.base_url, sub_collection_url), is_root=False)
+                
+                if is_empty:
+                    empty_subcollections.append((sub_collection_url, sub_collection_label))
+            
+            # Delete empty sub-collections
+            for sub_url, sub_label in empty_subcollections:
+                logging.info(f"Deleting empty collection: {sub_label}")
+                requests_delete(url_join(self.base_url, sub_url), headers=headers)
+            
+            # Check if this collection is now empty
+            # Refresh dataset and collection data after deletions
+            datasets_response = requests_get(datasets_url, headers=headers)
+            datasets_data = datasets_response.json()
+            remaining_datasets = datasets_data.get('_embedded', {}).get('datasets', [])
+            
+            collections_response = requests_get(collections_url, headers=headers)
+            collections_data = collections_response.json()
+            remaining_collections = collections_data.get('_embedded', {}).get('collections', [])
+            
+            # Return True if collection is empty (no datasets and no sub-collections)
+            # But don't actually delete the root schema
+            is_empty = len(remaining_datasets) == 0 and len(remaining_collections) == 0
+            return is_empty and not is_root
+        
+        # Start the recursive deletion process from the root DNK scheme
+        # Pass is_root=True to prevent deletion of the root schema
+        delete_ogd_datasets_and_empty_collections(endpoint, is_root=True)
+        logging.info("Finished cleaning up OGD datasets and empty collections from DNK")
 
     def download_rdm(self, language: str = "de") -> list[dict[str, str]]:
         """
