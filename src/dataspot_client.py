@@ -135,7 +135,7 @@ class DataspotClient:
         }
         return self.download(relative_path, params, endpoint_type='api')
 
-    def rdm_accrualPeriodicity_uri_to_code(self, uri: str) -> str:
+    def rdm_accrualPeriodicity_uri_to_code(self, uri: str) -> str | None:
         """
         Convert an accrual periodicity URI to its corresponding code based on the Referenzdatenmodell (RDM).
         
@@ -143,12 +143,16 @@ class DataspotClient:
             uri (str): The URI of the accrual periodicity to convert
             
         Returns:
-            str: The corresponding code for the given URI from the RDM as a string of length 3, e.g. '005'
+            str or None: The corresponding code for the given URI from the RDM as a string of length 3, e.g. '005',
+                         or None if the URI is empty or None
             
         Raises:
             KeyError: If the URI is not found in the periodicity dictionary
             json.JSONDecodeError: If the response is not valid JSON
         """
+        if not uri:
+            return None
+
         # Build dict if it does not exist already
         if not self._accrual_periodicity_dict:
             relative_path = url_join('schemes',
