@@ -39,7 +39,7 @@ def main():
     # Test teardown
     if True:
         logging.info("\nTearing down DNK assets...")
-        client.teardown_dnk()
+        client.teardown_dnk(delete_empty_collections=True)
         logging.info("Successfully deleted all DNK assets")
 
     # Test creating new department
