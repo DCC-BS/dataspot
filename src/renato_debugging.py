@@ -97,7 +97,7 @@ def main():
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         logging.info(f"Found {len(ods_ids)} ids.")
         for index, ods_id in enumerate(ods_ids):
-            logging.info(f"\n({index + 1}/{len(ods_ids)}) {ods_id}")
+            logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}")
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
             dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata=ods_metadata,
                                                            ods_dataset_id=ods_id,
@@ -163,7 +163,7 @@ def main_3_tdm():
 
     # Add an asset called "Test-Datenobjekt" with example attributes
     if False:
-        logging.info("\nCreating new asset...")
+        logging.info("Creating new asset...")
         client.tdm_create_new_asset(name="Test-Asset API")
         logging.info("Successfully created new asset")
         pass
