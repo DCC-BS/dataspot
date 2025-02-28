@@ -67,6 +67,13 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
            • "Fachstelle für OGD Basel-Stadt" in dienststelle becomes "Statistisches Amt"
            • "Fachstelle für OGD Basel-Stadt" in sammlung becomes "Fachstelle OGD"
       - If dienststelle equals "Stadtreinigung", it is changed to "Tiefbauamt"
+      - Standardizes official names by adding abbreviations:
+           • "Amt für Beistandschaften und Erwachsenenschutz" becomes "Amt für Beistandschaften und Erwachsenenschutz ABES"
+           • "Amt für Sozialbeiträge" becomes "Amt für Sozialbeiträge (ASB)"
+           • "Amt für Umwelt und Energie" becomes "Amt für Umwelt und Energie (AUE)"
+           • "Amt für Wirtschaft und Arbeit" becomes "Amt für Wirtschaft und Arbeit (AWA)"
+           • "Basler Verkehrs-Betriebe" becomes "Basler Verkehrs-Betriebe (BVB)"
+           • "Gebäude- und Wohnungsregister" becomes "Gebäude- und Wohnungsregister (GWR)"
 
     Args:
         departement (str): The originally extracted departement.
@@ -149,6 +156,26 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
         "Nomenklaturkommission"
         }:
         departement = "Sonstige Organisationen und Firmen"
+        
+    # Rule 11: Standardize names with official abbreviations
+    # Department name standardization
+    # None yet.
+    
+    # Dienststelle name standardization
+    if dienststelle == "Amt für Beistandschaften und Erwachsenenschutz":
+        dienststelle = "Amt für Beistandschaften und Erwachsenenschutz ABES"
+    if dienststelle == "Amt für Sozialbeiträge":
+        dienststelle = "Amt für Sozialbeiträge (ASB)"
+    if dienststelle == "Amt für Umwelt und Energie":
+        dienststelle = "Amt für Umwelt und Energie (AUE)"
+    if dienststelle == "Amt für Wirtschaft und Arbeit":
+        dienststelle = "Amt für Wirtschaft und Arbeit (AWA)"
+    if dienststelle == "Basler Verkehrs-Betriebe":
+        dienststelle = "Basler Verkehrs-Betriebe (BVB)"
+        
+    # Sammlung name standardization
+    if sammlung == "Gebäude- und Wohnungsregister":
+        sammlung = "Gebäude- und Wohnungsregister (GWR)"
 
     return departement, dienststelle, sammlung, subsammlung
 
