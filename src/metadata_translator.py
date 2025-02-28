@@ -102,11 +102,7 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
         sammlung = "Immobilienbewirtschaftung"
         dienststelle = "Immobilien Basel-Stadt"
 
-    # Rule 3: "Erziehungsdepartement" case
-    if dienststelle == "Erziehungsdepartement":
-        dienststelle = ""
-
-    # Rule 4: "Parlamentsdienst" case
+    # Rule 3: "Parlamentsdienst" case
     if dienststelle == "Parlamentsdienst des Grossen Rates":
         dienststelle = "Grosser Rat"
     if sammlung == "Parlamentsdienst des Grossen Rates":
@@ -114,11 +110,13 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
     if departement == "Grosser Rat":
         departement = "Parlament"
 
-    # Rule 5: Transformation for öffentlich-rechtliche Organisation
+    # Rule 4: Institutionen mit staatlichen Delegierten
     if departement == "Öffentlich-rechtliche Organisation":
         departement = "Institutionen mit staatlichen Delegierten"
+    if dienststelle == "Flughafen Basel-Mulhouse EuroAirport":
+        departement = "Institutionen mit staatlichen Delegierten"
 
-    # Rule 6: Gemeindebehörden
+    # Rule 5: Gemeindebehörden
     if dienststelle == "Gemeinde Bettingen":
         dienststelle = "Einwohnergemeinde Bettingen"
     if dienststelle == "Gemeinde Riehen":
@@ -128,23 +126,23 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
     if departement in {"Gemeinde Riehen", "Gemeinde Bettingen", "Bürgergemeinde der Stadt Basel"}:
         departement = "Gemeindebehörden"
 
-    # Rule 7: Museum der Kulturen and Staatsarchiv
+    # Rule 6: Museum der Kulturen and Staatsarchiv
     if dienststelle in {"Museum der Kulturen Basel", "Staatsarchiv Basel-Stadt"}:
         dienststelle = "Abteilung Kultur"
     if sammlung == "Staatsarchiv Basel-Stadt":
         sammlung = "Staatsarchiv"
 
-    # Rule 8: OGD
+    # Rule 7: OGD
     if dienststelle == "Fachstelle für OGD Basel-Stadt":
         dienststelle = "Statistisches Amt"
     if sammlung == "Fachstelle für OGD Basel-Stadt":
         sammlung = "Fachstelle OGD"
 
-    # Rule 9: "Stadtreinigung" case
+    # Rule 8: "Stadtreinigung" case
     if dienststelle == "Stadtreinigung":
         dienststelle = "Tiefbauamt"
     
-    # Rule 10: Non-Departement case
+    # Rule 9: Non-Departement case
     if dienststelle in {
         "Bundesamt für Gesundheit BAG",
         "Bundesamt für Strassen ASTRA",
@@ -156,8 +154,8 @@ def apply_special_cases(departement: str, dienststelle: str) -> (str, str, str, 
         "Nomenklaturkommission"
         }:
         departement = "Sonstige Organisationen und Firmen"
-        
-    # Rule 11: Standardize names with official abbreviations
+    
+    # Rule 10: Standardize names with official abbreviations
     # Department name standardization
     # None yet.
     
