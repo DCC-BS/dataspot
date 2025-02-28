@@ -95,15 +95,19 @@ class DataspotClient:
             
         return output_path
 
-    def teardown_dnk(self) -> None:
+    def teardown_dnk(self, delete_empty_collections: bool = False) -> None:
         """
-        Delete all OGD datasets from the DNK scheme and remove empty collections.
+        Delete all OGD datasets from the DNK scheme and optionally remove empty collections.
         
         This method:
         1. Recursively traverses all collections in the DNK scheme
         2. Deletes only datasets with stereotype "OGD"
-        3. Removes collections that become empty after deleting their datasets
+        3. Optionally removes collections that become empty after deleting their datasets
         4. Preserves the root DNK scheme even if empty
+        
+        Args:
+            delete_empty_collections (bool): Whether to delete empty collections after removing datasets.
+                                            Defaults to False.
         
         Raises:
             requests.exceptions.RequestException: If the request fails
@@ -115,7 +119,7 @@ class DataspotClient:
         
         def delete_ogd_datasets_and_empty_collections(collection_url, is_root=False):
             """
-            Recursively delete OGD datasets and empty collections.
+            Recursively delete OGD datasets and optionally empty collections.
             
             Args:
                 collection_url (str): URL of the collection to process
@@ -170,13 +174,14 @@ class DataspotClient:
                 # Recursively process sub-collection (not root)
                 is_empty = delete_ogd_datasets_and_empty_collections(url_join(self.base_url, sub_collection_url), is_root=False)
                 
-                if is_empty:
+                if is_empty and delete_empty_collections:
                     empty_subcollections.append((sub_collection_url, sub_collection_label))
             
-            # Delete empty sub-collections
-            for sub_url, sub_label in empty_subcollections:
-                logging.info(f"Deleting empty collection: {sub_label}")
-                requests_delete(url_join(self.base_url, sub_url), headers=headers)
+            # Delete empty sub-collections if delete_empty_collections is True
+            if delete_empty_collections:
+                for sub_url, sub_label in empty_subcollections:
+                    logging.info(f"Deleting empty collection: {sub_label}")
+                    requests_delete(url_join(self.base_url, sub_url), headers=headers)
             
             # Check if this collection is now empty
             # Refresh dataset and collection data after deletions
@@ -196,7 +201,10 @@ class DataspotClient:
         # Start the recursive deletion process from the root DNK scheme
         # Pass is_root=True to prevent deletion of the root schema
         delete_ogd_datasets_and_empty_collections(endpoint, is_root=True)
-        logging.info("Finished cleaning up OGD datasets and empty collections from DNK")
+        if delete_empty_collections:
+            logging.info("Finished cleaning up OGD datasets and empty collections from DNK")
+        else:
+            logging.info("Finished cleaning up OGD datasets from DNK")
 
     def download_rdm(self, language: str = "de") -> list[dict[str, str]]:
         """
