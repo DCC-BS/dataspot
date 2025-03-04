@@ -18,6 +18,7 @@ class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
     def __init__(self):
+        # TODO: Move all these infos into the env file, as they should not be hardcoded
         load_dotenv('../../.dataspot.env')
 
         base_url = os.getenv("DATASPOT_API_BASE_URL")
