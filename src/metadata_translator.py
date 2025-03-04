@@ -25,11 +25,16 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any], ods_dataset_id: str, dataspot_
         beschreibung=get_field_value(ods_metadata['default'].get('description', {})),
         schluesselwoerter=get_field_value(ods_metadata['default'].get('keyword', {})),
         synonyme=None,
-        aktualisierungszyklus=dataspot_client.rdm_accrualPeriodicity_uri_to_code(
-            get_field_value(
-                ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
-            )
+        aktualisierungszyklus=get_field_value(
+            ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
         ),
+        # TODO: Delete this if accrualPeriodicity works without it for sure
+        # TODO: Also delete the (probably) superfluous method rdm_accrualPeriodicity_uri_to_code
+        # aktualisierungszyklus=dataspot_client.rdm_accrualPeriodicity_uri_to_code(
+        #             get_field_value(
+        #                 ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
+        #             )
+        #         ),
         identifikation=f"ogd_{ods_dataset_id}"
     )
     return ogd_dataset
