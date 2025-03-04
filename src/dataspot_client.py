@@ -232,6 +232,7 @@ class DataspotClient:
         return self.download(relative_path, params, endpoint_type='api')
 
     def rdm_accrualPeriodicity_uri_to_code(self, uri: str) -> str | None:
+        # TODO: remove; probably deprecated
         """
         Convert an accrual periodicity URI to its corresponding code based on the Referenzdatenmodell (RDM).
         
@@ -630,7 +631,12 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_dataset(self, dataset: Dataset) -> None:
+    def create_or_update_dataset(self, dataset: Dataset) -> None:
+        # TODO: Change to perform POST, PUT, and PATCH
+        # possible input parameters:
+        # - create_if_not_exists: bool = False
+        # - update_if_exists: bool = False
+        
         """
         Create a new dataset in Dataspot under its parent collection.
         If the dataset already exists, do nothing.

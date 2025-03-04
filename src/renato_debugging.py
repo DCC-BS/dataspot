@@ -53,14 +53,14 @@ def main():
             name="OGD-Dataset-TEST-API",
             kurzbeschreibung="Testweise Kurzbeschreibung")
 
-        client.create_new_dataset(dataset=test_dataset_ogd)
+        client.create_or_update_dataset(dataset=test_dataset_ogd)
 
     # Test creation of actual ods dataset
     if False:
         ods_metadata = ods_utils.get_dataset_metadata(dataset_id='100382')
         dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
 
-        client.create_new_dataset(dataset=dataspot_dataset)
+        client.create_or_update_dataset(dataset=dataspot_dataset)
     
     # Test whether the path is correctly determined
     if False:
@@ -96,7 +96,7 @@ def main():
                                                            dataspot_client=client)
             logging.info(f"Title: {dataspot_dataset.name}")
 
-            client.create_new_dataset(dataset=dataspot_dataset)
+            client.create_or_update_dataset(dataset=dataspot_dataset)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -123,7 +123,7 @@ def main_2_rdm():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_new_dataset(dataset=dataspot_dataset)
+            client.create_or_update_dataset(dataset=dataspot_dataset)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -168,7 +168,7 @@ def main_3_tdm():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_new_dataset(dataset=dataspot_dataset)
+            client.create_or_update_dataset(dataset=dataspot_dataset)
 
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
@@ -197,7 +197,7 @@ def main_4_dnk_tdm_linked():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_new_dataset(dataset=dataspot_dataset)
+            client.create_or_update_dataset(dataset=dataspot_dataset)
 
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
