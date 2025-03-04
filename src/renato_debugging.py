@@ -1,11 +1,9 @@
 import logging
-import os
 from time import sleep
 
-from dotenv import load_dotenv
 from ods_client import ODSClient
 from dataspot_client import DataspotClient
-from dataspot_dataset import BasicDataset, OGDDataset
+from dataspot_dataset import OGDDataset
 import json
 
 import ods_utils_py as ods_utils
