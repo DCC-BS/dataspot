@@ -1,5 +1,6 @@
 import logging
 
+from dotenv import load_dotenv
 from requests import HTTPError
 
 from dataspot_auth import DataspotAuth
@@ -16,7 +17,13 @@ def url_join(*parts: str) -> str:
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
-    def __init__(self, base_url):
+    def __init__(self):
+        load_dotenv('../../.dataspot.env')
+
+        base_url = os.getenv("DATASPOT_API_BASE_URL")
+        if not base_url:
+            raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
+
         self.base_url = base_url
         self.auth = DataspotAuth()
         self.database_name = 'test-api-renato'

@@ -14,13 +14,7 @@ from metadata_translator import ods_to_dataspot
 
 
 def main():
-    load_dotenv('../../.dataspot.env')
-    
-    base_url = os.getenv("DATASPOT_API_BASE_URL")
-    if not base_url:
-        raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
-    
-    client = DataspotClient(base_url)
+    client = DataspotClient()
 
     # Test DNK download and save
     if False:
@@ -110,13 +104,7 @@ def main():
             sleep(1)
 
 def main_2_rdm():
-    load_dotenv('../../.dataspot.env')
-
-    base_url = os.getenv("DATASPOT_API_BASE_URL")
-    if not base_url:
-        raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
-
-    client = DataspotClient(base_url)
+    client = DataspotClient()
 
     # Teardown
     if True:
@@ -146,13 +134,7 @@ def main_2_rdm():
                 break
 
 def main_3_tdm():
-    load_dotenv('../../.dataspot.env')
-
-    base_url = os.getenv("DATASPOT_API_BASE_URL")
-    if not base_url:
-        raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
-
-    client = DataspotClient(base_url)
+    client = DataspotClient()
     ods_client = ODSClient()
 
     # Teardown TDM
