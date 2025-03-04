@@ -736,3 +736,101 @@ class DataspotClient:
                 # Create subsammlung if specified and doesn't exist
                 if subsammlung:
                     self.create_new_sammlung(subsammlung, sammlung)
+
+    def link_DNK_bestandteile_to_TDM(self, title: str) -> None:
+        """
+        Links DNK dataset to TDM attributes by adding composition objects.
+        For each attribute in the TDM, this creates a "Bestandteil" (composition) 
+        in the DNK element.
+        
+        Args:
+            title (str): The title/name of the dataset
+            
+        Raises:
+            HTTPError: If API requests fail
+            ValueError: If dataset or attributes are not found
+            json.JSONDecodeError: If response parsing fails
+        """
+        logging.info(f"Linking DNK to TDM for dataset: {title}")
+        headers = self.auth.get_headers()
+        
+        # 1. Find the DNK dataset (asset) by title
+        # TODO: BUGFIX - Handle titles containing a '/': Search through all datasets and then filter for titles
+        dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
+        dataset_endpoint = url_join(self.base_url, dataset_path)
+
+        try:
+            response = requests_get(dataset_endpoint, headers=headers)
+            dataset_data = response.json()
+
+            dataset_href = dataset_data['_links']['self']['href']
+            dataset_id = dataset_data['id']
+
+            if not dataset_href:
+                raise ValueError(f"Dataset with title '{title}' not found in DNK")
+            
+            logging.debug(f"Found DNK dataset: {dataset_id}")
+        except HTTPError as e:
+            logging.error(f"Failed to fetch DNK scheme: {str(e)}")
+            raise
+        
+        # 2. Find TDM attributes for this dataset
+        tdm_attributes_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title, 'attributes')
+        tdm_attributes_endpoint = url_join(self.base_url, tdm_attributes_path)
+        
+        try:
+            # Get TDM attributes of asset with matching name
+            response = requests_get(tdm_attributes_endpoint, headers=headers)
+            tdm_attributes_data = response.json()
+
+            tdm_attributes = tdm_attributes_data['_embedded']['attributes']
+            
+            if not tdm_attributes:
+                logging.warning(f"No attributes found for TDM asset '{title}'")
+                return
+            
+            logging.debug(f"Found {len(tdm_attributes)} TDM attributes")
+        except HTTPError as e:
+            logging.error(f"Failed to fetch TDM asset attributes: {str(e)}")
+            raise
+        
+        # 3. Create compositions in DNK for each TDM attribute
+        compositions_endpoint = url_join(self.base_url, dataset_href, 'compositions')
+        
+        try:
+            # Add a composition for each attribute
+            for attribute in tdm_attributes:
+                attribute_label = attribute.get('title')
+                attribute_id = attribute.get('id')
+                
+                if not attribute_label:
+                    logging.warning(f"Skipping attribute with missing label: {attribute}")
+                    continue
+                
+                # Create composition object
+                composition_data = {
+                    "_type": "Composition",
+                    "label": attribute_label,
+                    "composedOf": attribute_id
+                }
+                
+                # Check if composition already exists
+                try:
+                    existing_response = requests_get(
+                        url_join(compositions_endpoint, attribute_label), 
+                        headers=headers
+                    )
+                    logging.info(f"Composition for '{attribute_label}' already exists. Skipping...")
+                    continue
+                except HTTPError as e:
+                    if e.response.status_code != 404:
+                        raise
+                
+                # Add the composition
+                requests_post(compositions_endpoint, headers=headers, json=composition_data)
+                logging.info(f"Created composition for attribute '{attribute_label}'")
+            
+            logging.info(f"Successfully linked DNK dataset '{title}' to TDM attributes")
+        except HTTPError as e:
+            logging.error(f"Failed to create composition: {str(e)}")
+            raise

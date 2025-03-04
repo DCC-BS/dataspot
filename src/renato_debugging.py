@@ -178,10 +178,42 @@ def main_3_tdm():
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
 
+def main_4_dnk_tdm_linked():
+    client = DataspotClient()
+    ods_client = ODSClient()
+
+    # Teardown and then create 10 datasets in the DNK and the corresponding TDM
+    if True:
+        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
+        #ods_ids = ['100003', '100004', '100005']#, '100006', '100007', '100008', '100009', '100010', '100011', '100013']
+        client.teardown_dnk()
+        client.teardown_tdm()
+
+        for index, ods_id in enumerate(ods_ids):
+            # Create entry in DNK
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, ods_id, client)
+
+            logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
+
+            client.create_new_dataset(dataset=dataspot_dataset)
+
+            # Create entry in TDM
+            title = ods_utils.get_dataset_title(dataset_id=ods_id)
+            columns = ods_client.get_dataset_columns(dataset_id=ods_id)
+            client.tdm_create_new_asset(name=title, columns=columns)
+
+            # Link TDM to DNK
+            client.link_DNK_bestandteile_to_TDM(title=dataspot_dataset.name)
+
+            # Sleep for 1 second to be kind to dataspot servers
+            sleep(1)
+
+    pass
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main()
+    main_4_dnk_tdm_linked()
     logging.info('Job successful!')
     
