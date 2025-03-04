@@ -186,6 +186,7 @@ def main_4_dnk_tdm_linked():
     if True:
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         #ods_ids = ['100003', '100004', '100005']#, '100006', '100007', '100008', '100009', '100010', '100011', '100013']
+        ods_ids = ['100034'] # https://data.bs.ch/backoffice/catalog/datasets/100034/#sources FOR '/' BUG TESTING
         client.teardown_dnk()
         client.teardown_tdm()
 

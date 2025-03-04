@@ -755,8 +755,7 @@ class DataspotClient:
         headers = self.auth.get_headers()
         
         # 1. Find the DNK dataset (asset) by title
-        # TODO: BUGFIX - Handle titles containing a '/': Search through all datasets and then filter for titles
-        dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
+        dataset_path = self.find_dataset_path(title)
         dataset_endpoint = url_join(self.base_url, dataset_path)
 
         try:
@@ -775,7 +774,7 @@ class DataspotClient:
             raise
         
         # 2. Find TDM attributes for this dataset
-        tdm_attributes_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title, 'attributes')
+        tdm_attributes_path = self.find_tdm_attributes_path(title)
         tdm_attributes_endpoint = url_join(self.base_url, tdm_attributes_path)
         
         try:
@@ -834,3 +833,63 @@ class DataspotClient:
         except HTTPError as e:
             logging.error(f"Failed to create composition: {str(e)}")
             raise
+
+    def find_dataset_path(self, title):
+        """
+        Find the path to a dataset in the DNK scheme by its title.
+        
+        Args:
+            title (str): The title or name of the dataset
+            
+        Returns:
+            str: The full path to the dataset
+            
+        Raises:
+            ValueError: If the dataset is not found
+        """
+        
+        if '/' not in title:
+            # If no slash, construct the path using the standard format
+            return url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
+        else:
+            # If there is a slash, then we need to find the dataset by title
+            datasets_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets')
+            datasets_endpoint = url_join(self.base_url, datasets_path)
+            response = requests_get(datasets_endpoint, headers=self.auth.get_headers())
+            datasets_data = response.json()
+            datasets = datasets_data.get('_embedded', {}).get('datasets', [])
+            for dataset in datasets:
+                if dataset.get('label') == title:
+                    return dataset['_links']['self']['href']
+            raise ValueError(f"Dataset with title '{title}' not found in DNK")
+
+    def find_tdm_attributes_path(self, title):
+        """
+        Determine the path to TDM attributes for a dataset based on its title.
+        
+        Args:
+            title (str): The title or name of the dataset
+            
+        Returns:
+            str: The full path to the TDM attributes
+            
+        Raises:
+            ValueError: If the TDM asset is not found
+        """
+        if '/' not in title:
+            # If no slash, construct the path using the standard format
+            return url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title, 'attributes')
+        else:
+            # If there is a slash, we need to find the TDM asset by title
+            assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
+            assets_endpoint = url_join(self.base_url, assets_path)
+            response = requests_get(assets_endpoint, headers=self.auth.get_headers())
+            assets_data = response.json()
+            assets = assets_data.get('_embedded', {}).get('assets', [])
+            
+            for asset in assets:
+                if asset.get('label') == title:
+                    return url_join(asset['_links']['self']['href'], 'attributes')
+                    
+            raise ValueError(f"TDM asset with title '{title}' not found")
+
