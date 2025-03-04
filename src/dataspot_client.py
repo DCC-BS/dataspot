@@ -783,7 +783,7 @@ class DataspotClient:
             response = requests_get(tdm_attributes_endpoint, headers=headers)
             tdm_attributes_data = response.json()
 
-            tdm_attributes = tdm_attributes_data['_embedded']['attributes']
+            tdm_attributes = tdm_attributes_data.get('_embedded', {}).get('attributes', {})
             
             if not tdm_attributes:
                 logging.warning(f"No attributes found for TDM asset '{title}'")
