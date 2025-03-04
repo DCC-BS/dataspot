@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from requests import HTTPError
 
 from src.dataspot_auth import DataspotAuth
-from src.common import requests_get, requests_delete, requests_post
+from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 import json
 import os
 
@@ -631,24 +631,32 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_or_update_dataset(self, dataset: Dataset) -> None:
-        # TODO: Change to perform POST, PUT, and PATCH
-        # possible input parameters:
-        # - create_if_not_exists: bool = False
-        # - update_if_exists: bool = False
-        
+    def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
         """
-        Create a new dataset in Dataspot under its parent collection.
-        If the dataset already exists, do nothing.
+        Create a new dataset or update an existing dataset in Dataspot.
+        
+        The method behavior is controlled by the update_strategy parameter:
+        - 'create_only': Only creates a new dataset using POST. Fails if the dataset already exists.
+        - 'update_only': Only updates an existing dataset. Fails if the dataset doesn't exist.
+        - 'create_or_update' (default): Creates a new dataset if it doesn't exist, updates it if it does.
+        
+        The force_replace parameter controls the update behavior:
+        - False (default): Uses PATCH to update only the specified properties, preserving other properties.
+        - True: Uses PUT to completely replace the dataset with the new values.
 
         Args:
             dataset (Dataset): The dataset instance to be uploaded.
-
+            update_strategy (str): Strategy for handling dataset existence ('create_only', 'update_only', 'create_or_update').
+            force_replace (bool): Whether to completely replace an existing dataset (True) or just update properties (False).
+            
         Raises:
-            ValueError: If the dataset path is invalid
+            ValueError: If the dataset path is invalid or if the update_strategy is invalid
             HTTPError: If API requests fail
             json.JSONDecodeError: If response parsing fails
         """
+        if update_strategy not in ['create_only', 'update_only', 'create_or_update']:
+            raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of: 'create_only', 'update_only', 'create_or_update'")
+        
         departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
         
         # Determine the parent collection (last non-empty element in path)
@@ -675,7 +683,10 @@ class DataspotClient:
             parent_uuid = response.json().get('id')
         except HTTPError as e:
             if e.response.status_code == 404:
-                # Only create hierarchy if parent doesn't exist
+                # Only create hierarchy if parent doesn't exist and we're not in update_only mode
+                if update_strategy == 'update_only':
+                    raise ValueError(f"Parent collection '{parent_collection}' doesn't exist and update_strategy is 'update_only'")
+                
                 self.create_hierarchy_for_dataset(dataset)
                 # Retry getting parent after creation
                 response = requests_get(parent_endpoint, headers=headers)
@@ -692,26 +703,55 @@ class DataspotClient:
             'assets'
         )
         dataset_endpoint = url_join(self.base_url, dataset_path)
-
+        
         # Check if dataset exists
+        dataset_exists = False
+        dataset_url = None
+        existing_dataset_data = None
+        
         try:
-            requests_get(url_join(dataset_endpoint, dataset.name), headers=headers)
-            logging.info(f"OGD-Dataset '{dataset.name}' already exists. Skipping creation...")
-            return
+            specific_dataset_url = url_join(dataset_endpoint, dataset.name)
+            response = requests_get(specific_dataset_url, headers=headers)
+            dataset_exists = True
+            dataset_url = specific_dataset_url
+            existing_dataset_data = response.json()
+            logging.debug(f"Dataset '{dataset.name}' exists")
         except HTTPError as e:
             if e.response.status_code != 404:
                 raise
-
-        # Create dataset
+            logging.debug(f"Dataset '{dataset.name}' does not exist")
+        
+        # Prepare dataset JSON
         dataset_json = dataset.to_json()
         logging.debug(f"Dataset JSON Payload: {json.dumps(dataset_json, indent=2)}")
         
-        try:
-            requests_post(dataset_endpoint, headers=headers, json=dataset_json)
-            logging.info(f"OGD-Dataset '{dataset.name}' created successfully.")
-        except HTTPError as e:
-            logging.error(f"Failed to create dataset: {e.response.status_code} - {e.response.text}")
-            raise
+        # Determine which HTTP method to use based on existence and strategy
+        if dataset_exists:
+            if update_strategy == 'create_only':
+                logging.info(f"Dataset '{dataset.name}' already exists and update_strategy is 'create_only'. Skipping.")
+                return
+            
+            # Update existing dataset using PUT (replace) or PATCH (update) based on force_replace
+            if force_replace:
+                # Use PUT to completely replace the dataset
+                logging.info(f"Replacing dataset '{dataset.name}' using PUT")
+                response = requests_put(dataset_url, headers=headers, json=dataset_json)
+            else:
+                # Use PATCH to update only the specified properties
+                logging.info(f"Updating dataset '{dataset.name}' using PATCH")
+                response = requests_patch(dataset_url, headers=headers, json=dataset_json)
+                
+            logging.info(f"Dataset '{dataset.name}' updated successfully")
+        else:
+            if update_strategy == 'update_only':
+                raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
+            
+            # Create new dataset using POST
+            logging.info(f"Creating dataset '{dataset.name}' using POST")
+            response = requests_post(dataset_endpoint, headers=headers, json=dataset_json)
+            logging.info(f"Dataset '{dataset.name}' created successfully")
+        
+        return response.json()
 
     def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
         """
