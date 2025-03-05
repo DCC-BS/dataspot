@@ -820,7 +820,7 @@ class DataspotClient:
             raise
         
         # 2. Find TDM attributes for this dataset
-        tdm_attributes_path = self.find_tdm_attributes_path(title)
+        tdm_attributes_path = url_join(self.find_tdm_dataobject_path(title), 'attributes')
         tdm_attributes_endpoint = url_join(self.base_url, tdm_attributes_path)
         
         try:
@@ -910,7 +910,7 @@ class DataspotClient:
             raise ValueError(f"Dataset with title '{title}' not found in DNK")
 
     # TODO: Apply this method at all instances needed
-    def find_tdm_attributes_path(self, title):
+    def find_tdm_dataobject_path(self, title):
         """
         Determine the path to TDM attributes for a dataset based on its title.
         
@@ -925,7 +925,7 @@ class DataspotClient:
         """
         if '/' not in title:
             # If no slash, construct the path using the standard format
-            return url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title, 'attributes')
+            return url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title)
         else:
             # If there is a slash, we need to find the TDM object by title
             assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
@@ -936,7 +936,7 @@ class DataspotClient:
             
             for asset in assets:
                 if asset.get('label') == title:
-                    return url_join(asset['_links']['self']['href'], 'attributes')
+                    return asset['_links']['self']['href']
                     
             raise ValueError(f"TDM dataobject with title '{title}' not found")
 
@@ -996,18 +996,18 @@ class DataspotClient:
             logging.error(f"Failed to delete dataset '{title}': {str(e)}")
             raise
             
-        # If requested, also delete the TDM dataobjec
+        # If requested, also delete the TDM dataobject
         if delete_tdm_asset:
             try:
-                # Find the TDM dataobjec
-                assets_path = self.find_tdm_attributes_path(title)
-                assets_endpoint = url_join(self.base_url, assets_path)
+                # Find the TDM dataobject
+                dataobject_path = self.find_tdm_dataobject_path(title)
+                dataobject_endpoint = url_join(self.base_url, dataobject_path)
                 
                 # Check if TDM dataobject exists
                 try:
-                    asset_response = requests_get(assets_endpoint, headers=headers)
-                    # Delete the TDM dataobjec
-                    requests_delete(assets_endpoint, headers=headers)
+                    asset_response = requests_get(dataobject_endpoint, headers=headers)
+                    # Delete the TDM dataobject
+                    requests_delete(dataobject_endpoint, headers=headers)
                     logging.info(f"Successfully deleted TDM dataobject '{title}'")
                 except HTTPError as e:
                     if e.response.status_code == 404:
