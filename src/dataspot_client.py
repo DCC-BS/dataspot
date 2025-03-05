@@ -880,6 +880,7 @@ class DataspotClient:
             logging.error(f"Failed to create composition: {str(e)}")
             raise
 
+    # TODO: Apply this method at all instances needed
     def find_dataset_path(self, title):
         """
         Find the path to a dataset in the DNK scheme by its title.
@@ -908,6 +909,7 @@ class DataspotClient:
                     return dataset['_links']['self']['href']
             raise ValueError(f"Dataset with title '{title}' not found in DNK")
 
+    # TODO: Apply this method at all instances needed
     def find_tdm_attributes_path(self, title):
         """
         Determine the path to TDM attributes for a dataset based on its title.
