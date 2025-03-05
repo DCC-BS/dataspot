@@ -61,7 +61,7 @@ Dataset:
     temporalStart:
       title: Datum, an dem der Datensatz ursprünglich erstellt wurde
     accrualPeriodicity: 
-      label: Aktualisierungsfrequenz
+      label: Aktualisierungszyklus
       labelEn: Accrual periodicity
       title: Frequenz der Aktualisierung der Attribute im Datensatz
       titleEn: The frequency at which dataset is published
