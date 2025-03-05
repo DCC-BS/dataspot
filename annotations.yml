@@ -61,104 +61,169 @@ Dataset:
     temporalStart:
       title: Datum, an dem der Datensatz ursprünglich erstellt wurde
     accrualPeriodicity: 
-      title: Frequenz der Aktualisierung der Attribute im Datensatz           
-      literals:        
-        020:
-          label: alle drei Stunden
-          order: 20
-        030:
-          label: alle dreissig Jahre
-          order: 30
-        040:
-          label: alle zehn Jahre
-          order: 40
-        050:
-          label: alle zwanzig Jahre
-          order: 50          
-        060:
-          label: alle zwei Stunden
-          order: 60
-        080:
-          label: anderer
-          order: 80
-        081:
-          label: dreijährlich
-          order: 81          
-        090:
-          label: dreimal im Jahr
-          order: 90
-        100:
-          label: dreimal im Monat
-          order: 100
-        110:
-          label: dreimal pro Woche
-          order: 110
-        111:
-          label: fünfjährlich
-          order: 111
-        112:
-          label: halbjährlich
-          order: 112          
-        113:
-          label: jährlich
-          order: 120
-        130:
+      label: Aktualisierungsfrequenz
+      labelEn: Accrual periodicity
+      title: Frequenz der Aktualisierung der Attribute im Datensatz
+      titleEn: The frequency at which dataset is published
+      cardinality: ONE
+       
+      literals:
+        http://publications.europa.eu/resource/authority/frequency/CONT:
           label: kontinuierlich
-          order: 130
-        140:
-          label: minütlich
-          order: 140
-        150:
-          label: monatlich
-          order: 150
-        160:
-          label: niemals
-          order: 160
-        170:
+          title: Daten werden ohne Unterbrechung laufend aktualisiert
+          order: 1
+        http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT:
           label: ständige Aktualisierung
-          order: 170
-        180:
+          title: Daten werden kontinuierlich nachgeführt, sobald Änderungen verfügbar sind
+          order: 2
+        http://publications.europa.eu/resource/authority/frequency/1MIN:
+          label: minütlich
+          title: Daten werden jede Minute aktualisiert
+          order: 3
+        http://publications.europa.eu/resource/authority/frequency/5MIN:
+          label: alle fünf Minuten
+          title: Daten werden alle fünf Minuten aktualisiert
+          order: 4
+        http://publications.europa.eu/resource/authority/frequency/10MIN:
+          label: alle zehn Minuten
+          title: Daten werden alle zehn Minuten aktualisiert
+          order: 5
+        http://publications.europa.eu/resource/authority/frequency/15MIN:
+          label: viertelstündlich
+          title: Daten werden alle 15 Minuten aktualisiert
+          order: 6
+        http://publications.europa.eu/resource/authority/frequency/30MIN:
+          label: halbstündlich
+          title: Daten werden alle 30 Minuten aktualisiert
+          order: 7
+        http://publications.europa.eu/resource/authority/frequency/HOURLY:
           label: stündlich
-          order: 180
-        190:
+          title: Daten werden jede Stunde aktualisiert
+          order: 8
+        http://publications.europa.eu/resource/authority/frequency/BIHOURLY:
+          label: alle zwei Stunden
+          title: Daten werden alle zwei Stunden aktualisiert
+          order: 9
+        http://publications.europa.eu/resource/authority/frequency/TRIHOURLY:
+          label: alle drei Stunden
+          title: Daten werden alle drei Stunden aktualisiert
+          order: 10
+        http://publications.europa.eu/resource/authority/frequency/12HRS:
+          label: alle zwölf Stunden
+          title: Daten werden zweimal täglich (alle 12 Stunden) aktualisiert
+          order: 11
+        http://publications.europa.eu/resource/authority/frequency/DAILY:
           label: täglich
-          order: 190
-        200:
-          label: unbekannt
-          order: 200
-        210:
-          label: unregelmässig
-          order: 210
-        211:
-          label: vierjährlich
-          order: 211          
-        220:
-          label: vierteljährlich
-          order: 220
-        230:
-          label: vorläufige Daten
-          order: 230
-        240:
-          label: wöchentlich
-          order: 240
-        241:
-          label: zweijährlich
-          order: 241          
-        260:
-          label: zweimal im Monat
-          order: 260
-        270:
-          label: zweimal pro Woche
-          order: 270
-        280:
+          title: Daten werden einmal pro Tag aktualisiert
+          order: 12
+        http://publications.europa.eu/resource/authority/frequency/DAILY_2:
           label: zweimal täglich
-          order: 280
-        290:
-          label: zweimonatlich
-          order: 290
-        300:
+          title: Daten werden zweimal pro Tag aktualisiert
+          order: 13
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY:
+          label: wöchentlich
+          title: Daten werden einmal pro Woche aktualisiert
+          order: 14
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_2:
+          label: zweimal pro Woche
+          title: Daten werden zweimal pro Woche aktualisiert
+          order: 15
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_3:
+          label: dreimal pro Woche
+          title: Daten werden dreimal pro Woche aktualisiert
+          order: 16
+        http://publications.europa.eu/resource/authority/frequency/BIWEEKLY:
           label: zweiwöchentlich
-          order: 300         
+          title: Daten werden alle zwei Wochen aktualisiert
+          order: 17
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY:
+          label: monatlich
+          title: Daten werden einmal pro Monat aktualisiert
+          order: 18
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_2:
+          label: zweimal im Monat
+          title: Daten werden zweimal pro Monat aktualisiert
+          order: 19
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_3:
+          label: dreimal im Monat
+          title: Daten werden dreimal pro Monat aktualisiert
+          order: 20
+        http://publications.europa.eu/resource/authority/frequency/BIMONTHLY:
+          label: zweimonatlich
+          title: Daten werden alle zwei Monate aktualisiert
+          order: 21
+        http://publications.europa.eu/resource/authority/frequency/QUARTERLY:
+          label: vierteljährlich
+          title: Daten werden alle drei Monate (quartalsweise) aktualisiert
+          order: 22
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_2:
+          label: halbjährlich
+          title: Daten werden zweimal pro Jahr aktualisiert
+          order: 23
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_3:
+          label: dreimal im Jahr
+          title: Daten werden dreimal pro Jahr aktualisiert
+          order: 24
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL:
+          label: jährlich
+          title: Daten werden einmal pro Jahr aktualisiert
+          order: 25
+        http://publications.europa.eu/resource/authority/frequency/BIENNIAL:
+          label: zweijährlich
+          title: Daten werden alle zwei Jahre aktualisiert
+          order: 26
+        http://publications.europa.eu/resource/authority/frequency/TRIENNIAL:
+          label: dreijährlich
+          title: Daten werden alle drei Jahre aktualisiert
+          order: 27
+        http://publications.europa.eu/resource/authority/frequency/QUADRENNIAL:
+          label: vierjährlich
+          title: Daten werden alle vier Jahre aktualisiert
+          order: 28
+        http://publications.europa.eu/resource/authority/frequency/QUINQUENNIAL:
+          label: fünfjährlich
+          title: Daten werden alle fünf Jahre aktualisiert
+          order: 29
+        http://publications.europa.eu/resource/authority/frequency/DECENNIAL:
+          label: alle zehn Jahre
+          title: Daten werden alle zehn Jahre aktualisiert
+          order: 30
+        http://publications.europa.eu/resource/authority/frequency/BIDECENNIAL:
+          label: alle zwanzig Jahre
+          title: Daten werden alle zwanzig Jahre aktualisiert
+          order: 31
+        http://publications.europa.eu/resource/authority/frequency/TRIDECENNIAL:
+          label: alle dreissig Jahre
+          title: Daten werden alle dreissig Jahre aktualisiert
+          order: 32
+        http://publications.europa.eu/resource/authority/frequency/AS_NEEDED:
+          label: im Bedarfsfall
+          title: Daten werden bei Bedarf aktualisiert, wenn sie benötigt werden
+          order: 33
+        http://publications.europa.eu/resource/authority/frequency/IRREG:
+          label: unregelmässig
+          title: Daten werden in unregelmässigen Abständen aktualisiert
+          order: 34
+        http://publications.europa.eu/resource/authority/frequency/OP_DATPRO:
+          label: Vorläufige Daten
+          title: Vorläufige Daten, die später durch definitive Daten ersetzt werden
+          order: 35
+        http://publications.europa.eu/resource/authority/frequency/OTHER:
+          label: anderer
+          title: Aktualisierungszyklus entspricht keinem der anderen vordefinierten Werte
+          order: 36
+        http://publications.europa.eu/resource/authority/frequency/UNKNOWN:
+          label: unbekannt
+          title: Der Aktualisierungszyklus ist nicht bekannt
+          order: 37
+        http://publications.europa.eu/resource/authority/frequency/NOT_PLANNED:
+          label: nicht geplant
+          title: Es ist keine Aktualisierung der Daten geplant
+          order: 38
+        http://publications.europa.eu/resource/authority/frequency/NEVER:
+          label: niemals
+          title: Die Daten werden niemals aktualisiert
+          order: 39       
 
 ## DATENSATZ-TYP ##             
     stereotype:
@@ -172,109 +237,6 @@ Dataset:
           icon: globe
 
           customProperties:
-            ACCRUAL_PERIODICITY:
-              label: Anhäufungs-Periodizität
-              title: The frequency at which dataset is published
-              group: OGD
-              cardinality: ONE
-              order: 10
-              literals:
-                "001":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL
-                  order: 1
-                "002":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL_2
-                  order: 2
-                "003":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL_3
-                  order: 3
-                "004":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIDECENNIAL
-                  order: 4
-                "005":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIENNIAL
-                  order: 5
-                "006":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIHOURLY
-                  order: 6
-                "007":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIMONTHLY
-                  order: 7
-                "008":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIWEEKLY
-                  order: 8
-                "009":
-                  label: http://publications.europa.eu/resource/authority/frequency/CONT
-                  order: 9
-                "010":
-                  label: http://publications.europa.eu/resource/authority/frequency/DAILY
-                  order: 10
-                "011":
-                  label: http://publications.europa.eu/resource/authority/frequency/DAILY_2
-                  order: 11
-                "012":
-                  label: http://publications.europa.eu/resource/authority/frequency/DECENNIAL
-                  order: 12
-                "013":
-                  label: http://publications.europa.eu/resource/authority/frequency/HOURLY
-                  order: 13
-                "014":
-                  label: http://publications.europa.eu/resource/authority/frequency/IRREG
-                  order: 14
-                "015":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY
-                  order: 15
-                "016":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY_2
-                  order: 16
-                "017":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY_3
-                  order: 17
-                "018":
-                  label: http://publications.europa.eu/resource/authority/frequency/NEVER
-                  order: 18
-                "019":
-                  label: http://publications.europa.eu/resource/authority/frequency/OP_DATPRO
-                  order: 19
-                "020":
-                  label: http://publications.europa.eu/resource/authority/frequency/OTHER
-                  order: 20
-                "021":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUADRENNIAL
-                  order: 21
-                "022":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUARTERLY
-                  order: 22
-                "023":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUINQUENNIAL
-                  order: 23
-                "024":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIDECENNIAL
-                  order: 24
-                "025":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIENNIAL
-                  order: 25
-                "026":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIHOURLY
-                  order: 26
-                "027":
-                  label: http://publications.europa.eu/resource/authority/frequency/UNKNOWN
-                  order: 27
-                "028":
-                  label: http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT
-                  order: 28
-                "029":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY
-                  order: 29
-                "030":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY_2
-                  order: 30
-                "031":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY_3
-                  order: 31
-                "032":
-                  label: http://publications.europa.eu/resource/authority/frequency/1MIN
-                  order: 32
             LICENSE:
               label: Lizenz
               title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
@@ -483,109 +445,6 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 70
-            ACCRUAL_PERIODICITY:
-              label: Anhäufungs-Periodizität
-              title: The frequency at which dataset is published
-              group: OGD
-              cardinality: ONE
-              order: 10
-              literals:
-                "001":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL
-                  order: 1
-                "002":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL_2
-                  order: 2
-                "003":
-                  label: http://publications.europa.eu/resource/authority/frequency/ANNUAL_3
-                  order: 3
-                "004":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIDECENNIAL
-                  order: 4
-                "005":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIENNIAL
-                  order: 5
-                "006":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIHOURLY
-                  order: 6
-                "007":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIMONTHLY
-                  order: 7
-                "008":
-                  label: http://publications.europa.eu/resource/authority/frequency/BIWEEKLY
-                  order: 8
-                "009":
-                  label: http://publications.europa.eu/resource/authority/frequency/CONT
-                  order: 9
-                "010":
-                  label: http://publications.europa.eu/resource/authority/frequency/DAILY
-                  order: 10
-                "011":
-                  label: http://publications.europa.eu/resource/authority/frequency/DAILY_2
-                  order: 11
-                "012":
-                  label: http://publications.europa.eu/resource/authority/frequency/DECENNIAL
-                  order: 12
-                "013":
-                  label: http://publications.europa.eu/resource/authority/frequency/HOURLY
-                  order: 13
-                "014":
-                  label: http://publications.europa.eu/resource/authority/frequency/IRREG
-                  order: 14
-                "015":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY
-                  order: 15
-                "016":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY_2
-                  order: 16
-                "017":
-                  label: http://publications.europa.eu/resource/authority/frequency/MONTHLY_3
-                  order: 17
-                "018":
-                  label: http://publications.europa.eu/resource/authority/frequency/NEVER
-                  order: 18
-                "019":
-                  label: http://publications.europa.eu/resource/authority/frequency/OP_DATPRO
-                  order: 19
-                "020":
-                  label: http://publications.europa.eu/resource/authority/frequency/OTHER
-                  order: 20
-                "021":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUADRENNIAL
-                  order: 21
-                "022":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUARTERLY
-                  order: 22
-                "023":
-                  label: http://publications.europa.eu/resource/authority/frequency/QUINQUENNIAL
-                  order: 23
-                "024":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIDECENNIAL
-                  order: 24
-                "025":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIENNIAL
-                  order: 25
-                "026":
-                  label: http://publications.europa.eu/resource/authority/frequency/TRIHOURLY
-                  order: 26
-                "027":
-                  label: http://publications.europa.eu/resource/authority/frequency/UNKNOWN
-                  order: 27
-                "028":
-                  label: http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT
-                  order: 28
-                "029":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY
-                  order: 29
-                "030":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY_2
-                  order: 30
-                "031":
-                  label: http://publications.europa.eu/resource/authority/frequency/WEEKLY_3
-                  order: 31
-                "032":
-                  label: http://publications.europa.eu/resource/authority/frequency/1MIN
-                  order: 32
             LICENSE:
               label: Lizenz
               title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
