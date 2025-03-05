@@ -751,7 +751,7 @@ class DataspotClient:
         existing_dataset_data = None
         
         try:
-            specific_dataset_url = url_join(dataset_endpoint, dataset.name)
+            specific_dataset_url = url_join(self.base_url, self.find_dataset_path(dataset.name))
             response = requests_get(specific_dataset_url, headers=headers)
             dataset_exists = True
             dataset_url = specific_dataset_url
@@ -760,6 +760,8 @@ class DataspotClient:
         except HTTPError as e:
             if e.response.status_code != 404:
                 raise
+            logging.debug(f"Dataset '{dataset.name}' does not exist")
+        except ValueError:
             logging.debug(f"Dataset '{dataset.name}' does not exist")
         
         # Prepare dataset JSON
