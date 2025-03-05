@@ -831,12 +831,12 @@ class DataspotClient:
             tdm_attributes = tdm_attributes_data.get('_embedded', {}).get('attributes', {})
             
             if not tdm_attributes:
-                logging.warning(f"No attributes found for TDM asset '{title}'")
+                logging.warning(f"No attributes found for TDM dataobject '{title}'")
                 return
             
             logging.debug(f"Found {len(tdm_attributes)} TDM attributes")
         except HTTPError as e:
-            logging.error(f"Failed to fetch TDM asset attributes: {str(e)}")
+            logging.error(f"Failed to fetch TDM dataobject attributes: {str(e)}")
             raise
         
         # 3. Create compositions in DNK for each TDM attribute
@@ -893,7 +893,6 @@ class DataspotClient:
         Raises:
             ValueError: If the dataset is not found
         """
-        
         if '/' not in title:
             # If no slash, construct the path using the standard format
             return url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
@@ -920,13 +919,13 @@ class DataspotClient:
             str: The full path to the TDM attributes
             
         Raises:
-            ValueError: If the TDM asset is not found
+            ValueError: If the TDM object is not found
         """
         if '/' not in title:
             # If no slash, construct the path using the standard format
             return url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title, 'attributes')
         else:
-            # If there is a slash, we need to find the TDM asset by title
+            # If there is a slash, we need to find the TDM object by title
             assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
             assets_endpoint = url_join(self.base_url, assets_path)
             response = requests_get(assets_endpoint, headers=self.auth.get_headers())
@@ -937,5 +936,86 @@ class DataspotClient:
                 if asset.get('label') == title:
                     return url_join(asset['_links']['self']['href'], 'attributes')
                     
-            raise ValueError(f"TDM asset with title '{title}' not found")
+            raise ValueError(f"TDM dataobject with title '{title}' not found")
+
+    def delete_dataset(self, title: str, fail_if_not_exists: bool = False, delete_tdm_asset: bool = True) -> bool:
+        """
+        Delete a dataset from the DNK scheme.
+        
+        Args:
+            title (str): The title/name of the dataset to be deleted
+            fail_if_not_exists (bool): Whether to raise an error if the dataset doesn't exist
+            delete_tdm_asset (bool): Whether to also delete the corresponding TDM dataobject (if exists)
+            
+        Returns:
+            bool: True if the dataset was deleted, False if it didn't exist and fail_if_not_exists is False
+            
+        Raises:
+            ValueError: If the dataset doesn't exist and fail_if_not_exists is True
+            HTTPError: If API requests fail
+            json.JSONDecodeError: If response parsing fails
+        """
+        headers = self.auth.get_headers()
+        
+        logging.info(f"Deleting dataset: {title}")
+        
+        # Find the dataset path
+        try:
+            dataset_path = self.find_dataset_path(title)
+            dataset_endpoint = url_join(self.base_url, dataset_path)
+            
+            # Verify the dataset exists by fetching it
+            response = requests_get(dataset_endpoint, headers=headers)
+            dataset_data = response.json()
+            dataset_uuid = dataset_data.get('id')
+            
+            if not dataset_uuid:
+                raise ValueError(f"Dataset '{title}' found but has no UUID")
+                
+            logging.debug(f"Found dataset to delete: {dataset_uuid}")
+                
+        except (ValueError, HTTPError) as e:
+            if isinstance(e, HTTPError) and e.response.status_code != 404:
+                # Re-raise if it's an error other than "not found"
+                raise
+                
+            # Handle the case where the dataset doesn't exist
+            if fail_if_not_exists:
+                raise ValueError(f"Dataset '{title}' not found and fail_if_not_exists is True")
+            else:
+                logging.info(f"Dataset '{title}' not found. Nothing to delete.")
+                return False
+        
+        # Delete the dataset
+        try:
+            requests_delete(dataset_endpoint, headers=headers)
+            logging.info(f"Successfully deleted DNK dataset '{title}'")
+        except HTTPError as e:
+            logging.error(f"Failed to delete dataset '{title}': {str(e)}")
+            raise
+            
+        # If requested, also delete the TDM dataobjec
+        if delete_tdm_asset:
+            try:
+                # Find the TDM dataobjec
+                assets_path = self.find_tdm_attributes_path(title)
+                assets_endpoint = url_join(self.base_url, assets_path)
+                
+                # Check if TDM dataobject exists
+                try:
+                    asset_response = requests_get(assets_endpoint, headers=headers)
+                    # Delete the TDM dataobjec
+                    requests_delete(assets_endpoint, headers=headers)
+                    logging.info(f"Successfully deleted TDM dataobject '{title}'")
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        logging.info(f"No TDM dataobject found for '{title}'. Nothing to delete.")
+                    else:
+                        logging.error(f"Failed to delete TDM dataobject for '{title}': {str(e)}")
+                        raise
+            except Exception as e:
+                # Log but don't fail if TDM deletion fails
+                logging.warning(f"Error deleting TDM dataobject for '{title}': {str(e)}")
+                
+        return True
 

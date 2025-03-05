@@ -137,9 +137,9 @@ def main_3_tdm():
 
     # Teardown TDM
     if False:
-        logging.info("\nTearing down TDM assets...")
+        logging.info("\nTearing down TDM dataobjects...")
         client.teardown_tdm()
-        logging.info("Successfully deleted all TDM assets in the 'Automatisch generierte ODS-Datenmodelle' collection")
+        logging.info("Successfully deleted all TDM dataobjects in the 'Automatisch generierte ODS-Datenmodelle' collection")
 
     # Add an asset called "Test-Datenobjekt" with example attributes
     if False:
@@ -184,9 +184,9 @@ def main_4_dnk_tdm_linked():
 
     # Teardown and then create 10 datasets in the DNK and the corresponding TDM
     if True:
-        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
+        #ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         #ods_ids = ['100003', '100004', '100005']#, '100006', '100007', '100008', '100009', '100010', '100011', '100013']
-        ods_ids = ['100034'] # https://data.bs.ch/backoffice/catalog/datasets/100034/#sources FOR '/' BUG TESTING
+        ods_ids = ['100003']
         client.teardown_dnk()
         client.teardown_tdm()
 
@@ -209,6 +209,8 @@ def main_4_dnk_tdm_linked():
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
+
+            client.delete_dataset(dataspot_dataset.name)
 
     pass
 
