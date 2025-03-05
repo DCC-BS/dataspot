@@ -184,9 +184,7 @@ def main_4_dnk_tdm_linked():
 
     # Teardown and then create 10 datasets in the DNK and the corresponding TDM
     if True:
-        #ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
-        #ods_ids = ['100003', '100004', '100005']#, '100006', '100007', '100008', '100009', '100010', '100011', '100013']
-        ods_ids = ['100003']
+        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         client.teardown_dnk()
         client.teardown_tdm()
 
@@ -207,10 +205,6 @@ def main_4_dnk_tdm_linked():
             # Link TDM to DNK
             client.link_DNK_bestandteile_to_TDM(title=dataspot_dataset.name)
 
-            # Sleep for 1 second to be kind to dataspot servers
-            sleep(1)
-
-            client.delete_dataset(dataspot_dataset.name)
 
     pass
 

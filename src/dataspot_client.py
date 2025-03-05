@@ -17,7 +17,14 @@ def url_join(*parts: str) -> str:
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
-    def __init__(self):
+    def __init__(self, request_delay=1.0):
+        """
+        Initialize the DataspotClient with the necessary credentials and configurations.
+        
+        Args:
+            request_delay (float, optional): The delay between API requests in seconds. Default is 1.0 second.
+                                            This helps prevent overloading the server with too many requests.
+        """
         # TODO: Move all these infos into the env file, as they should not be hardcoded
         load_dotenv('../../.dataspot.env')
 
@@ -33,6 +40,7 @@ class DataspotClient:
         self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self._accrual_periodicity_dict = None
         self._datatype_uuid_cache = {}
+        self.request_delay = request_delay
     
     def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
         """
@@ -54,7 +62,7 @@ class DataspotClient:
         endpoint = url_join(self.base_url, endpoint_type, self.database_name, relative_path)
         headers = self.auth.get_headers()
         
-        response = requests_get(endpoint, headers=headers, params=params)
+        response = requests_get(endpoint, headers=headers, params=params, rate_limit_delay=self.request_delay)
         
         try:
             return response.json()
@@ -137,7 +145,7 @@ class DataspotClient:
                 bool: True if the collection is empty after processing, False otherwise
             """
             # Get collection details
-            response = requests_get(collection_url, headers=headers)
+            response = requests_get(collection_url, headers=headers, rate_limit_delay=self.request_delay)
             collection_data = response.json()
             collection_uuid = collection_data.get('id')
             
@@ -148,7 +156,7 @@ class DataspotClient:
             else:
                 datasets_url = url_join(self.base_url, 'rest', self.database_name, 'collections', collection_uuid, 'datasets')
             
-            datasets_response = requests_get(datasets_url, headers=headers)
+            datasets_response = requests_get(datasets_url, headers=headers, rate_limit_delay=self.request_delay)
             datasets_data = datasets_response.json()
             datasets = datasets_data.get('_embedded', {}).get('datasets', [])
             
@@ -160,7 +168,7 @@ class DataspotClient:
                 # Check if dataset has stereotype "OGD"
                 if dataset.get('stereotype') == "OGD":
                     logging.info(f"Deleting OGD dataset: {dataset_label}")
-                    requests_delete(url_join(self.base_url, dataset_url), headers=headers)
+                    requests_delete(url_join(self.base_url, dataset_url), headers=headers, rate_limit_delay=self.request_delay)
             
             # Process sub-collections
             # For the root level, use 'schemes' instead of 'collections' in the URL
@@ -169,7 +177,7 @@ class DataspotClient:
             else:
                 collections_url = url_join(self.base_url, 'rest', self.database_name, 'collections', collection_uuid, 'collections')
             
-            collections_response = requests_get(collections_url, headers=headers)
+            collections_response = requests_get(collections_url, headers=headers, rate_limit_delay=self.request_delay)
             collections_data = collections_response.json()
             sub_collections = collections_data.get('_embedded', {}).get('collections', [])
             
@@ -189,15 +197,15 @@ class DataspotClient:
             if delete_empty_collections:
                 for sub_url, sub_label in empty_subcollections:
                     logging.info(f"Deleting empty collection: {sub_label}")
-                    requests_delete(url_join(self.base_url, sub_url), headers=headers)
+                    requests_delete(url_join(self.base_url, sub_url), headers=headers, rate_limit_delay=self.request_delay)
             
             # Check if this collection is now empty
             # Refresh dataset and collection data after deletions
-            datasets_response = requests_get(datasets_url, headers=headers)
+            datasets_response = requests_get(datasets_url, headers=headers, rate_limit_delay=self.request_delay)
             datasets_data = datasets_response.json()
             remaining_datasets = datasets_data.get('_embedded', {}).get('datasets', [])
             
-            collections_response = requests_get(collections_url, headers=headers)
+            collections_response = requests_get(collections_url, headers=headers, rate_limit_delay=self.request_delay)
             collections_data = collections_response.json()
             remaining_collections = collections_data.get('_embedded', {}).get('collections', [])
             
@@ -990,7 +998,7 @@ class DataspotClient:
         
         # Delete the dataset
         try:
-            requests_delete(dataset_endpoint, headers=headers)
+            requests_delete(dataset_endpoint, headers=headers, rate_limit_delay=self.request_delay)
             logging.info(f"Successfully deleted DNK dataset '{title}'")
         except HTTPError as e:
             logging.error(f"Failed to delete dataset '{title}': {str(e)}")
@@ -1020,4 +1028,3 @@ class DataspotClient:
                 logging.warning(f"Error deleting TDM dataobject for '{title}': {str(e)}")
                 
         return True
-
