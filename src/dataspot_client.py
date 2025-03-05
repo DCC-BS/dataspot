@@ -378,14 +378,14 @@ class DataspotClient:
             logging.info(f"Deleting asset: {asset_url} - {asset_label}")
             requests_delete(url_join(self.base_url, asset_url), headers=headers)
 
-    def tdm_create_new_dataobject(self, name: str, columns: list[dict] = None) -> None:
-        # TODO: Change to and then implement tdm_create_or_update_dataobject; similar to the dnk_create_or_update_dataset method.
+    def tdm_create_or_update_dataobject(self, name: str, columns: list[dict] = None) -> None:
         """
-        Create a new dataobject in the 'Automatisch generierte ODS-Datenmodelle' collection in the 'Technisches Datenmodell' in Dataspot. The assets of this dataobject are determined by the provided dolumns.
+        Create a new dataobject (also called asset) in the 'Automatisch generierte ODS-Datenmodelle' collection in the 'Technisches Datenmodell' in Dataspot or update an existing one.
+        The attributes of this dataobject are determined by the provided columns.
 
         Args:
-            name (str): The name of the dataobject to create.
-            columns (list[dict]): List of column information (one column per asset), each containing:
+            name (str): The name of the dataobject to create or update.
+            columns (list[dict]): List of column information (one column per attribute), each containing:
                 - label: Human-readable label
                 - name: Technical column name
                 - type: Data type of the column
@@ -400,7 +400,7 @@ class DataspotClient:
         headers = self.auth.get_headers()
 
         try:
-            response = requests_get(endpoint, headers=headers)
+            response = requests_get(endpoint, headers=headers, rate_limit_delay=self.request_delay)
             collection_uuid = response.json().get('id')
             logging.debug(f"Found collection UUID: {collection_uuid}")
         except HTTPError as e:
@@ -408,62 +408,94 @@ class DataspotClient:
                 raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
             raise e
 
-        # Prepare endpoint for creating the asset
+        # Prepare endpoint for creating/accessing the asset
         assets_path = url_join('rest', self.database_name, 'collections', collection_uuid, 'assets')
         assets_endpoint = url_join(self.base_url, assets_path)
 
         # Check if asset already exists
+        asset_exists = False
+        asset_href = None
+
         try:
-            url_to_check = url_join(assets_endpoint, name)
-            requests_get(url_to_check, headers=headers)
-            logging.info(f"Asset '{name}' already exists. Skip creation...")
-            return
+            asset_url = url_join(self.base_url, self.find_tdm_dataobject_path(name))
+            response = requests_get(asset_url, headers=headers, rate_limit_delay=self.request_delay)
+            asset_exists = True
+            asset_href = response.json()['_links']['self']['href']
+            logging.info(f"Dataobject '{name}' already exists. Proceeding to update...")
         except HTTPError as e:
             if e.response.status_code != 404:
                 raise e
+            logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
+        except ValueError:
+            logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
 
-        # Prepare asset data
-        asset_data = {
-            "_type": "UmlClass",
-            "label": name
-        }
+        if not asset_exists:
+            # Prepare asset data for new creation
+            asset_data = {
+                "_type": "UmlClass",
+                "label": name
+            }
 
-        # Create new asset
-        try:
-            response = requests_post(assets_endpoint, headers=headers, json=asset_data)
-            logging.info(f"Asset '{name}' created successfully.")
-            asset_href = response.json()['_links']['self']['href']
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {assets_endpoint}: {str(e)}",
-                e.doc,
-                e.pos
-            )
-
-        # Add all attributes
-        asset_endpoint = url_join(self.base_url, asset_href, 'attributes')
-        attributes = []
-        if columns:
-            for col in columns:
-                attribute = {
-                    "_type": "UmlAttribute",
-                    "title": col['label'],
-                    "label": col['name'],
-                    "hasRange": self.ods_type_to_dataspot_uuid(col['type'])
-                }
-                attributes.append(attribute)
-
-        # Append attributes to asset
-        for attribute in attributes:
+            # Create new asset
             try:
-                requests_post(asset_endpoint, headers=headers, json=attribute)
-                logging.info(f"Attribute '{attribute["label"]}' created successfully.")
+                response = requests_post(assets_endpoint, headers=headers, json=asset_data, rate_limit_delay=self.request_delay)
+                logging.info(f"Asset '{name}' created successfully.")
+                asset_href = response.json()['_links']['self']['href']
             except json.JSONDecodeError as e:
                 raise json.JSONDecodeError(
-                    f"Failed to decode JSON response from {asset_endpoint}: {str(e)}",
+                    f"Failed to decode JSON response from {assets_endpoint}: {str(e)}",
                     e.doc,
                     e.pos
                 )
+        
+        # For both create and update: process the attributes
+        if not columns:
+            logging.info("No columns provided. Skipping attribute creation.")
+            return
+            
+        # If updating, first get existing attributes to determine what to add or update
+        existing_attributes = {}
+        if asset_exists:
+            attributes_endpoint = url_join(self.base_url, asset_href, 'attributes')
+            try:
+                response = requests_get(attributes_endpoint, headers=headers, rate_limit_delay=self.request_delay)
+                attrs_data = response.json()
+                if '_embedded' in attrs_data and 'attributes' in attrs_data['_embedded']:
+                    for attr in attrs_data['_embedded']['attributes']:
+                        existing_attributes[attr['label']] = attr
+            except Exception as e:
+                logging.warning(f"Failed to get existing attributes: {str(e)}")
+        
+        # Add or update attributes
+        asset_attributes_endpoint = url_join(self.base_url, asset_href, 'attributes')
+        
+        for col in columns:
+            attribute = {
+                "_type": "UmlAttribute",
+                "title": col['label'],
+                "label": col['name'],
+                "hasRange": self.ods_type_to_dataspot_uuid(col['type'])
+            }
+            
+            # Check if this attribute already exists
+            if col['name'] in existing_attributes:
+                # Update existing attribute
+                attr_href = existing_attributes[col['name']]['_links']['self']['href']
+                attr_endpoint = url_join(self.base_url, attr_href)
+                try:
+                    requests_patch(attr_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
+                    logging.info(f"Attribute '{attribute['label']}' updated successfully.")
+                except Exception as e:
+                    logging.error(f"Failed to update attribute '{attribute['label']}': {str(e)}")
+                    raise
+            else:
+                # Create new attribute
+                try:
+                    requests_post(asset_attributes_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
+                    logging.info(f"Attribute '{attribute['label']}' created successfully.")
+                except Exception as e:
+                    logging.error(f"Failed to create attribute '{attribute['label']}': {str(e)}")
+                    raise
 
 
     def dnk_create_new_department(self, name: str) -> None:

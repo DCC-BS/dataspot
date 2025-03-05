@@ -144,7 +144,7 @@ def main_3_tdm():
     # Add an asset called "Test-Datenobjekt" with example attributes
     if False:
         logging.info("Creating new asset...")
-        client.tdm_create_new_dataobject(name="Test-Asset API")
+        client.tdm_create_or_update_dataobject(name="Test-Asset API")
         logging.info("Successfully created new asset")
         pass
 
@@ -153,7 +153,7 @@ def main_3_tdm():
         dataset_id = '100397'
         title = ods_utils.get_dataset_title(dataset_id=dataset_id)
         columns = ods_client.get_dataset_columns(dataset_id=dataset_id)
-        client.tdm_create_new_dataobject(name=title, columns=columns)
+        client.tdm_create_or_update_dataobject(name=title, columns=columns)
 
     # Teardown and then create 10 datasets in the DNK and the corresponding TDM
     if True:
@@ -173,7 +173,7 @@ def main_3_tdm():
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
             columns = ods_client.get_dataset_columns(dataset_id=ods_id)
-            client.tdm_create_new_dataobject(name=title, columns=columns)
+            client.tdm_create_or_update_dataobject(name=title, columns=columns)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -200,7 +200,7 @@ def main_4_dnk_tdm_linked():
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
             columns = ods_client.get_dataset_columns(dataset_id=ods_id)
-            client.tdm_create_new_dataobject(name=title, columns=columns)
+            client.tdm_create_or_update_dataobject(name=title, columns=columns)
 
             # Link TDM to DNK
             client.link_dnk_bestandteile_to_tdm(title=dataspot_dataset.name)
