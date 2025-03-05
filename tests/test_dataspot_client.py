@@ -472,6 +472,261 @@ class TestDataspotClient(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_delete.call_count, 2)
 
+    @patch('src.dataspot_client.requests_get')
+    @patch('src.dataspot_client.requests_post')
+    def test_tdm_create_dataobject_new(self, mock_post, mock_get):
+        """Test creating a new TDM dataobject when it doesn't exist."""
+        # Setup mock for getting the collection
+        collection_response = self._mock_response(json_data={'id': 'test-collection-uuid'})
+        
+        # Setup mock for checking if asset exists - 404 means it doesn't exist
+        asset_not_found = HTTPError(response=MagicMock(status_code=404))
+        
+        # Setup mock for creating the asset
+        asset_created_response = self._mock_response(json_data={
+            '_links': {'self': {'href': '/rest/test-db/collections/test-collection-uuid/assets/test-dataobject'}}
+        })
+        
+        # Configure mocks
+        mock_get.side_effect = [collection_response, asset_not_found]
+        mock_post.return_value = asset_created_response
+        
+        # Mock find_tdm_dataobject_path to raise ValueError (dataobject not found)
+        self.client.find_tdm_dataobject_path = MagicMock(side_effect=ValueError("Dataobject not found"))
+        
+        # Sample columns for the dataobject
+        columns = [
+            {'label': 'ID', 'name': 'id', 'type': 'integer'},
+            {'label': 'Name', 'name': 'name', 'type': 'string'}
+        ]
+        
+        # Setup mock for ods_type_to_dataspot_uuid
+        self.client.ods_type_to_dataspot_uuid = MagicMock(return_value='uuid-for-type')
+        
+        # Call the method
+        self.client.tdm_create_or_update_dataobject('test-dataobject', columns)
+        
+        # Assertions - check if the collection was retrieved
+        mock_get.assert_any_call(
+            'https://test-dataspot-api.com/rest/test-db/schemes/Test-TDM/collections/Test-Models',
+            headers={'Authorization': 'Bearer fake-token'},
+            rate_limit_delay=1.0
+        )
+        
+        # Check if the dataobject was created
+        mock_post.assert_any_call(
+            'https://test-dataspot-api.com/rest/test-db/collections/test-collection-uuid/assets',
+            headers={'Authorization': 'Bearer fake-token'},
+            json={'_type': 'UmlClass', 'label': 'test-dataobject'},
+            rate_limit_delay=1.0
+        )
+        
+        # Check if attributes were created
+        for col in columns:
+            mock_post.assert_any_call(
+                'https://test-dataspot-api.com/rest/test-db/collections/test-collection-uuid/assets/test-dataobject/attributes',
+                headers={'Authorization': 'Bearer fake-token'},
+                json={
+                    '_type': 'UmlAttribute',
+                    'title': col['label'],
+                    'label': col['name'],
+                    'hasRange': 'uuid-for-type'
+                },
+                rate_limit_delay=1.0
+            )
+    
+    @patch('src.dataspot_client.requests_get')
+    @patch('src.dataspot_client.requests_post')
+    @patch('src.dataspot_client.requests_patch')
+    def test_tdm_update_dataobject_existing(self, mock_patch, mock_post, mock_get):
+        """Test updating an existing TDM dataobject."""
+        # Setup mock for getting the collection
+        collection_response = self._mock_response(json_data={'id': 'test-collection-uuid'})
+        
+        # Setup mock for checking if asset exists
+        asset_exists_response = self._mock_response(json_data={
+            '_links': {'self': {'href': '/rest/test-db/collections/test-collection-uuid/assets/test-dataobject'}}
+        })
+        
+        # Setup mock for getting existing attributes
+        existing_attributes_response = self._mock_response(json_data={
+            '_embedded': {
+                'attributes': [
+                    {
+                        'label': 'id',
+                        '_links': {'self': {'href': '/rest/test-db/attributes/attr-id-uuid'}}
+                    }
+                ]
+            }
+        })
+        
+        # Configure mocks
+        mock_get.side_effect = [collection_response, asset_exists_response, existing_attributes_response]
+        
+        # Sample columns for the dataobject - one existing, one new
+        columns = [
+            {'label': 'ID', 'name': 'id', 'type': 'integer'},  # Existing attribute
+            {'label': 'Name', 'name': 'name', 'type': 'string'}  # New attribute
+        ]
+        
+        # Setup mock for ods_type_to_dataspot_uuid
+        self.client.ods_type_to_dataspot_uuid = MagicMock(return_value='uuid-for-type')
+        
+        # Call the method
+        self.client.tdm_create_or_update_dataobject('test-dataobject', columns)
+        
+        # Assertions - check if the existing attribute was updated
+        mock_patch.assert_called_once_with(
+            'https://test-dataspot-api.com/rest/test-db/attributes/attr-id-uuid',
+            headers={'Authorization': 'Bearer fake-token'},
+            json={
+                '_type': 'UmlAttribute',
+                'title': 'ID',
+                'label': 'id',
+                'hasRange': 'uuid-for-type'
+            },
+            rate_limit_delay=1.0
+        )
+        
+        # Check if the new attribute was created
+        mock_post.assert_called_once_with(
+            'https://test-dataspot-api.com/rest/test-db/collections/test-collection-uuid/assets/test-dataobject/attributes',
+            headers={'Authorization': 'Bearer fake-token'},
+            json={
+                '_type': 'UmlAttribute',
+                'title': 'Name',
+                'label': 'name',
+                'hasRange': 'uuid-for-type'
+            },
+            rate_limit_delay=1.0
+        )
+    
+    @patch('src.dataspot_client.requests_get')
+    def test_tdm_create_dataobject_collection_not_found(self, mock_get):
+        """Test handling of non-existent collection when creating a dataobject."""
+        # Setup mock for collection not found
+        collection_not_found = HTTPError(response=MagicMock(status_code=404))
+        mock_get.side_effect = collection_not_found
+        
+        # Call the method and check if it raises the expected exception
+        with self.assertRaises(HTTPError) as context:
+            self.client.tdm_create_or_update_dataobject('test-dataobject', [{'label': 'ID', 'name': 'id', 'type': 'integer'}])
+        
+        # Verify the error message
+        self.assertIn("Collection 'Test-TDM/collections/Test-Models' does not exist", str(context.exception))
+    
+    @patch('src.dataspot_client.requests_get')
+    def test_tdm_create_dataobject_other_http_error(self, mock_get):
+        """Test handling of other HTTP errors when creating a dataobject."""
+        # Setup mock for other HTTP error (e.g., 500 server error)
+        server_error = HTTPError(response=MagicMock(status_code=500))
+        mock_get.side_effect = server_error
+        
+        # Call the method and check if it raises the expected exception
+        with self.assertRaises(HTTPError):
+            self.client.tdm_create_or_update_dataobject('test-dataobject', [{'label': 'ID', 'name': 'id', 'type': 'integer'}])
+    
+    @patch('src.dataspot_client.requests_get')
+    @patch('src.dataspot_client.requests_post')
+    def test_tdm_create_dataobject_json_decode_error(self, mock_post, mock_get):
+        """Test handling of JSON decode errors when creating a dataobject."""
+        # Setup mock for getting the collection
+        collection_response = self._mock_response(json_data={'id': 'test-collection-uuid'})
+        
+        # Setup mock for checking if asset exists - 404 means it doesn't exist
+        asset_not_found = HTTPError(response=MagicMock(status_code=404))
+        
+        # Setup mock for JSON decode error on post
+        mock_get.side_effect = [collection_response, asset_not_found]
+        mock_post.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
+        
+        # Mock find_tdm_dataobject_path to raise ValueError (dataobject not found)
+        self.client.find_tdm_dataobject_path = MagicMock(side_effect=ValueError("Dataobject not found"))
+        
+        # Call the method and check if it raises the expected exception
+        with self.assertRaises(json.JSONDecodeError):
+            self.client.tdm_create_or_update_dataobject('test-dataobject', [{'label': 'ID', 'name': 'id', 'type': 'integer'}])
+    
+    @patch('src.dataspot_client.requests_get')
+    @patch('src.dataspot_client.requests_post')
+    def test_tdm_create_dataobject_no_columns(self, mock_post, mock_get):
+        """Test creating a dataobject with no columns."""
+        # Setup mock for getting the collection
+        collection_response = self._mock_response(json_data={'id': 'test-collection-uuid'})
+        
+        # Setup mock for checking if asset exists - 404 means it doesn't exist
+        asset_not_found = HTTPError(response=MagicMock(status_code=404))
+        
+        # Setup mock for creating the asset
+        asset_created_response = self._mock_response(json_data={
+            '_links': {'self': {'href': '/rest/test-db/collections/test-collection-uuid/assets/test-dataobject'}}
+        })
+        
+        # Configure mocks
+        mock_get.side_effect = [collection_response, asset_not_found]
+        mock_post.return_value = asset_created_response
+        
+        # Mock find_tdm_dataobject_path to raise ValueError (dataobject not found)
+        self.client.find_tdm_dataobject_path = MagicMock(side_effect=ValueError("Dataobject not found"))
+        
+        # Call the method with no columns
+        self.client.tdm_create_or_update_dataobject('test-dataobject', None)
+        
+        # Verify that the dataobject was created but no attributes were added
+        mock_get.assert_called()
+        # The post should be called exactly once to create the dataobject
+        self.assertEqual(mock_post.call_count, 1)
+        mock_post.assert_called_once_with(
+            'https://test-dataspot-api.com/rest/test-db/collections/test-collection-uuid/assets',
+            headers={'Authorization': 'Bearer fake-token'},
+            json={'_type': 'UmlClass', 'label': 'test-dataobject'},
+            rate_limit_delay=1.0
+        )
+    
+    @patch('src.dataspot_client.requests_get')
+    @patch('src.dataspot_client.requests_post')
+    @patch('src.dataspot_client.requests_patch')
+    def test_tdm_update_dataobject_attribute_error(self, mock_patch, mock_post, mock_get):
+        """Test handling of errors when updating attributes."""
+        # Setup mock for getting the collection
+        collection_response = self._mock_response(json_data={'id': 'test-collection-uuid'})
+        
+        # Setup mock for checking if asset exists
+        asset_exists_response = self._mock_response(json_data={
+            '_links': {'self': {'href': '/rest/test-db/collections/test-collection-uuid/assets/test-dataobject'}}
+        })
+        
+        # Setup mock for getting existing attributes
+        existing_attributes_response = self._mock_response(json_data={
+            '_embedded': {
+                'attributes': [
+                    {
+                        'label': 'id',
+                        '_links': {'self': {'href': '/rest/test-db/attributes/attr-id-uuid'}}
+                    }
+                ]
+            }
+        })
+        
+        # Configure mocks
+        mock_get.side_effect = [collection_response, asset_exists_response, existing_attributes_response]
+        
+        # Setup error for attribute update
+        mock_patch.side_effect = Exception("Failed to update attribute")
+        
+        # Sample columns for the dataobject - one existing that will fail
+        columns = [{'label': 'ID', 'name': 'id', 'type': 'integer'}]
+        
+        # Setup mock for ods_type_to_dataspot_uuid
+        self.client.ods_type_to_dataspot_uuid = MagicMock(return_value='uuid-for-type')
+        
+        # Call the method and check if it raises the expected exception
+        with self.assertRaises(Exception) as context:
+            self.client.tdm_create_or_update_dataobject('test-dataobject', columns)
+        
+        # Verify the error message
+        self.assertEqual(str(context.exception), "Failed to update attribute")
+
 
 if __name__ == '__main__':
     pytest.main() 
