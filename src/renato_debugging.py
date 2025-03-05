@@ -36,15 +36,15 @@ def main():
 
     # Test creating new department
     if False:
-        client.create_new_department(name=name_departement)
+        client.dnk_create_new_department(name=name_departement)
 
     # Test creating new dienststelle
     if False:
-        client.create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
+        client.dnk_create_new_dienststelle(name=name_dienststelle, belongs_to_department=name_departement)
 
     # Test creating new sammlung
     if False:
-        client.create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
+        client.dnk_create_new_sammlung(title=title_sammlung, belongs_to_dienststelle=name_dienststelle)
 
     # Test creation and uploading of minimal OGD dataset
     if False:
@@ -53,14 +53,14 @@ def main():
             name="OGD-Dataset-TEST-API",
             kurzbeschreibung="Testweise Kurzbeschreibung")
 
-        client.create_or_update_dataset(dataset=test_dataset_ogd)
+        client.dnk_create_or_update_dataset(dataset=test_dataset_ogd)
 
     # Test creation of actual ods dataset
     if False:
         ods_metadata = ods_utils.get_dataset_metadata(dataset_id='100382')
         dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
 
-        client.create_or_update_dataset(dataset=dataspot_dataset)
+        client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
     
     # Test whether the path is correctly determined
     if False:
@@ -96,7 +96,7 @@ def main():
                                                            dataspot_client=client)
             logging.info(f"Title: {dataspot_dataset.name}")
 
-            client.create_or_update_dataset(dataset=dataspot_dataset)
+            client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -123,7 +123,7 @@ def main_2_rdm():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_or_update_dataset(dataset=dataspot_dataset)
+            client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -144,7 +144,7 @@ def main_3_tdm():
     # Add an asset called "Test-Datenobjekt" with example attributes
     if False:
         logging.info("Creating new asset...")
-        client.tdm_create_new_asset(name="Test-Asset API")
+        client.tdm_create_new_dataobject(name="Test-Asset API")
         logging.info("Successfully created new asset")
         pass
 
@@ -153,7 +153,7 @@ def main_3_tdm():
         dataset_id = '100397'
         title = ods_utils.get_dataset_title(dataset_id=dataset_id)
         columns = ods_client.get_dataset_columns(dataset_id=dataset_id)
-        client.tdm_create_new_asset(name=title, columns=columns)
+        client.tdm_create_new_dataobject(name=title, columns=columns)
 
     # Teardown and then create 10 datasets in the DNK and the corresponding TDM
     if True:
@@ -168,12 +168,12 @@ def main_3_tdm():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_or_update_dataset(dataset=dataspot_dataset)
+            client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
 
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
             columns = ods_client.get_dataset_columns(dataset_id=ods_id)
-            client.tdm_create_new_asset(name=title, columns=columns)
+            client.tdm_create_new_dataobject(name=title, columns=columns)
 
             # Sleep for 1 second to be kind to dataspot servers
             sleep(1)
@@ -195,15 +195,15 @@ def main_4_dnk_tdm_linked():
 
             logging.info(f"({index + 1}/{len(ods_ids)}) {ods_id}: {dataspot_dataset.name}")
 
-            client.create_or_update_dataset(dataset=dataspot_dataset)
+            client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
 
             # Create entry in TDM
             title = ods_utils.get_dataset_title(dataset_id=ods_id)
             columns = ods_client.get_dataset_columns(dataset_id=ods_id)
-            client.tdm_create_new_asset(name=title, columns=columns)
+            client.tdm_create_new_dataobject(name=title, columns=columns)
 
             # Link TDM to DNK
-            client.link_DNK_bestandteile_to_TDM(title=dataspot_dataset.name)
+            client.link_dnk_bestandteile_to_tdm(title=dataspot_dataset.name)
 
 
     pass

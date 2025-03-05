@@ -378,13 +378,14 @@ class DataspotClient:
             logging.info(f"Deleting asset: {asset_url} - {asset_label}")
             requests_delete(url_join(self.base_url, asset_url), headers=headers)
 
-    def tdm_create_new_asset(self, name: str, columns: list[dict] = None) -> None:
+    def tdm_create_new_dataobject(self, name: str, columns: list[dict] = None) -> None:
+        # TODO: Change to and then implement tdm_create_or_update_dataobject; similar to the dnk_create_or_update_dataset method.
         """
-        Create a new asset in the 'Automatisch generierte ODS-Datenmodelle' collection.
+        Create a new dataobject in the 'Automatisch generierte ODS-Datenmodelle' collection in the 'Technisches Datenmodell' in Dataspot. The assets of this dataobject are determined by the provided dolumns.
 
         Args:
-            name (str): The name of the asset to create.
-            columns (list[dict]): List of column information, each containing:
+            name (str): The name of the dataobject to create.
+            columns (list[dict]): List of column information (one column per asset), each containing:
                 - label: Human-readable label
                 - name: Technical column name
                 - type: Data type of the column
@@ -465,9 +466,9 @@ class DataspotClient:
                 )
 
 
-    def create_new_department(self, name: str) -> None:
+    def dnk_create_new_department(self, name: str) -> None:
         """
-        Create a new department. If the department already exists, do nothing.
+        Create a new department in the 'Datennutzungskatalog' of Dataspot. If the department already exists, do nothing.
 
         Args:
             name (str): The name of the department.
@@ -510,9 +511,9 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_dienststelle(self, name: str, belongs_to_department: str) -> None:
+    def dnk_create_new_dienststelle(self, name: str, belongs_to_department: str) -> None:
         """
-        Create a new "dienststelle" in dataspot under a specific department. If the "dienststelle" already exists, do nothing.
+        Create a new "dienststelle" in the 'Datennutzungskatalog' in Dataspot under a specific department. If the "dienststelle" already exists, do nothing.
 
         Args:
             name (str): The name of the dienststelle.
@@ -569,9 +570,9 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_new_sammlung(self, title: str, belongs_to_dienststelle: str) -> None:
+    def dnk_create_new_sammlung(self, title: str, belongs_to_dienststelle: str) -> None:
         """
-        Create a new sammlung in Dataspot under a specific dienststelle. If the sammlung already exists, do nothing.
+        Create a new sammlung in the 'Datennutzungskatalog' in Dataspot under a specific dienststelle. If the sammlung already exists, do nothing.
 
         Args:
             title (str): The title of the sammlung.
@@ -639,9 +640,9 @@ class DataspotClient:
                 e.pos
             )
 
-    def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
+    def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
         """
-        Create a new dataset or update an existing dataset in Dataspot.
+        Create a new dataset or update an existing dataset in the 'Datennutzungskatalog' in Dataspot.
         
         The method behavior is controlled by the update_strategy parameter:
         - 'create_only': Only creates a new dataset using POST. Fails if the dataset already exists.
@@ -777,21 +778,21 @@ class DataspotClient:
             raise ValueError("Department is required")
             
         # Create department if it doesn't exist
-        self.create_new_department(departement)
+        self.dnk_create_new_department(departement)
         
         # Create dienststelle if specified and doesn't exist
         if dienststelle:
-            self.create_new_dienststelle(dienststelle, departement)
+            self.dnk_create_new_dienststelle(dienststelle, departement)
             
             # Create sammlung if specified and doesn't exist
             if sammlung:
-                self.create_new_sammlung(sammlung, dienststelle)
+                self.dnk_create_new_sammlung(sammlung, dienststelle)
                 
                 # Create subsammlung if specified and doesn't exist
                 if subsammlung:
-                    self.create_new_sammlung(subsammlung, sammlung)
+                    self.dnk_create_new_sammlung(subsammlung, sammlung)
 
-    def link_DNK_bestandteile_to_TDM(self, title: str) -> None:
+    def link_dnk_bestandteile_to_tdm(self, title: str) -> None:
         """
         Links DNK dataset to TDM attributes by adding composition objects.
         For each attribute in the TDM, this creates a "Bestandteil" (composition) 

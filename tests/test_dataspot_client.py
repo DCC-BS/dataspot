@@ -148,7 +148,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_post.return_value = post_response
         
         # Call the method
-        result = self.client.create_or_update_dataset(self.sample_dataset, update_strategy='create_only')
+        result = self.client.dnk_create_or_update_dataset(self.sample_dataset, update_strategy='create_only')
         
         # Assertions
         mock_post.assert_called_once()
@@ -172,7 +172,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_patch.return_value = patch_response
         
         # Call the method
-        result = self.client.create_or_update_dataset(
+        result = self.client.dnk_create_or_update_dataset(
             self.sample_dataset, 
             update_strategy='create_or_update', 
             force_replace=False
@@ -201,7 +201,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_put.return_value = put_response
         
         # Call the method
-        result = self.client.create_or_update_dataset(
+        result = self.client.dnk_create_or_update_dataset(
             self.sample_dataset, 
             update_strategy='create_or_update', 
             force_replace=True
@@ -220,7 +220,7 @@ class TestDataspotClient(unittest.TestCase):
         self._setup_dataset_exists_mock(mock_get, exists=True)
         
         # Call the method
-        result = self.client.create_or_update_dataset(
+        result = self.client.dnk_create_or_update_dataset(
             self.sample_dataset, 
             update_strategy='create_only'
         )
@@ -246,7 +246,7 @@ class TestDataspotClient(unittest.TestCase):
         
         # Call the method and assert it raises ValueError
         with self.assertRaises(ValueError):
-            self.client.create_or_update_dataset(
+            self.client.dnk_create_or_update_dataset(
                 self.sample_dataset, 
                 update_strategy='update_only'
             )
@@ -258,7 +258,7 @@ class TestDataspotClient(unittest.TestCase):
     def test_create_or_update_dataset_invalid_strategy(self, mock_get):
         """Test with an invalid update strategy."""
         with self.assertRaises(ValueError):
-            self.client.create_or_update_dataset(
+            self.client.dnk_create_or_update_dataset(
                 self.sample_dataset, 
                 update_strategy='invalid_strategy'
             )
@@ -302,7 +302,7 @@ class TestDataspotClient(unittest.TestCase):
             mock_post.return_value = post_response
             
             # Call the method
-            result = self.client.create_or_update_dataset(self.sample_dataset)
+            result = self.client.dnk_create_or_update_dataset(self.sample_dataset)
             
             # Assertions
             self.client.create_hierarchy_for_dataset.assert_called_once_with(self.sample_dataset)
