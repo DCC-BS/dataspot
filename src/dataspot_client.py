@@ -18,6 +18,7 @@ class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
     def __init__(self, request_delay=1.0):
+        # TODO: Add also_save_to_csv_path argument that can be None or a path
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
         
