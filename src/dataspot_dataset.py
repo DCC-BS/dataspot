@@ -75,9 +75,9 @@ class BasicDataset(Dataset):
     #zeitliche_dimension_beginn
     #zeitliche_dimension_ende
     geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'})
-    #vertraulichkeit
-    #schutzbedarfsstufen
-    #letzte_aktualisierung
+    #vertraulichkeit -> Immer öffentlich bei OGD
+    #schutzbedarfsstufen -> Offen lassen
+    #letzte_aktualisierung -> ???
     #publikationsdatum
     #archivierung
     archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
@@ -121,7 +121,7 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    #anhaefungsperiodizität__TMP
+    #anhaefungsperiodizität__TMP - GELÖSCHT
     #lizenz
     #rechte
     #themen
