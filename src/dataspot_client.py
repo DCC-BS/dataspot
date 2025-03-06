@@ -17,7 +17,7 @@ def url_join(*parts: str) -> str:
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
-    def __init__(self, request_delay=0.1):
+    def __init__(self, request_delay=1.0):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
         
