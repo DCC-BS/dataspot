@@ -72,14 +72,14 @@ class BasicDataset(Dataset):
     synonyme: Optional[List[str]] = field(default=None, metadata={'json_key': 'synonyms'})
     aktualisierungszyklus: Optional[str] = field(default=None, metadata={'json_key': 'accrualPeriodicity'})
     identifikation: Optional[str] = field(default=None, metadata={'json_key': 'identifier'})
-    #zeitliche_dimension_beginn
-    #zeitliche_dimension_ende
-    geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'})
-    #vertraulichkeit -> Immer öffentlich bei OGD
-    #schutzbedarfsstufen -> Offen lassen
+    # TODO: zeitliche_dimension_beginn
+    # TODO: zeitliche_dimension_ende
+    geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'}) # TODO: Check
+    # TODO: vertraulichkeit -> Immer öffentlich bei OGD
+    #schutzbedarfsstufen -> ???
     #letzte_aktualisierung -> ???
-    #publikationsdatum
-    #archivierung
+    # TODO: publikationsdatum
+    #archivierung -> ???
     archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
     archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'ARCHBEGR'})
     nutzungseinschraenkung: Optional[str] = field(default=None, metadata={'json_key': 'NE'})
@@ -122,15 +122,15 @@ class BasicDataset(Dataset):
 @dataclass
 class OGDDataset(BasicDataset):
     #anhaefungsperiodizität__TMP - GELÖSCHT
-    #lizenz
-    #rechte
-    #themen
+    # TODO: lizenz
+    # TODO: rechte
+    # TODO: themen
     #herausgeber - GELÖSCHT
-    #referenz
-    #zuschreibungen
+    # TODO: referenz
+    # TODO: zuschreibungen
     #publizierende_organisation - GELÖSCHT
-    #datenportal_identifikation
-    #tags
+    # TODO: datenportal_identifikation
+    # TODO: tags
 
     # Immutable fields
     stereotype: str = field(default="OGD", init=False)
