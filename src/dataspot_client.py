@@ -3,12 +3,12 @@ import logging
 from dotenv import load_dotenv
 from requests import HTTPError
 
-from src.dataspot_auth import DataspotAuth
-from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
+from dataspot_auth import DataspotAuth
+from common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 import json
 import os
 
-from src.dataspot_dataset import Dataset
+from dataspot_dataset import Dataset
 
 
 def url_join(*parts: str) -> str:

@@ -1,7 +1,7 @@
 from typing import Dict, Any
 
-from src.dataspot_client import DataspotClient
-from src.dataspot_dataset import OGDDataset
+from dataspot_client import DataspotClient
+from dataspot_dataset import OGDDataset
 
 
 def ods_to_dataspot(ods_metadata: Dict[str, Any], ods_dataset_id: str, dataspot_client: DataspotClient) -> OGDDataset:
