@@ -11,6 +11,9 @@ from abc import ABC, abstractmethod
 #
 # 3. Optional fields:
 #    kurzbeschreibung: Optional[str] = field(default=None, metadata={"json_key": "title"})
+#
+# 4. Optional fields that are Custom Properties:
+#    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
 
 @dataclass
 class Dataset(ABC):
