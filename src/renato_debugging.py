@@ -29,7 +29,7 @@ def main():
     title_sammlung = "Test-Sammlung"
 
     # Test teardown
-    if True:
+    if False:
         logging.info("\nTearing down DNK assets...")
         client.teardown_dnk(delete_empty_collections=True)
         logging.info("Successfully deleted all DNK assets")
@@ -56,10 +56,11 @@ def main():
         client.dnk_create_or_update_dataset(dataset=test_dataset_ogd)
 
     # Test creation of actual ods dataset
-    if False:
+    if True:
         ods_metadata = ods_utils.get_dataset_metadata(dataset_id='100382')
-        dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata)
+        dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, ods_dataset_id='100382', dataspot_client=client)
 
+        client.delete_dataset(title="Solarkataster: Solarpotenzial")
         client.dnk_create_or_update_dataset(dataset=dataspot_dataset)
     
     # Test whether the path is correctly determined
@@ -84,7 +85,7 @@ def main():
                 break
 
     # Test creation of all datasets from ods
-    if True:
+    if False:
         logging.info("Retrieving all public dataset ids...")
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
         logging.info(f"Found {len(ods_ids)} ids.")
@@ -211,6 +212,6 @@ def main_4_dnk_tdm_linked():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_4_dnk_tdm_linked()
+    main()
     logging.info('Job successful!')
     

@@ -94,16 +94,27 @@ class BasicDataset(Dataset):
         Serializes the instance to a JSON-compatible dictionary with correct JSON keys.
         """
         json_dict = {}
+        custom_properties = {}
+        
         for f in fields(self):
             value = getattr(self, f.name)
             if value is not None:  # Only include non-None values
                 json_key = f.metadata.get("json_key", f.name)
+                is_custom_property = f.metadata.get("custom_property", False)
 
                 # Do not include "_PATH" in the dict
                 if json_key == "_PATH":
                     continue
-
-                json_dict[json_key] = value
+                
+                if is_custom_property:
+                    custom_properties[json_key] = value
+                else:
+                    json_dict[json_key] = value
+        
+        # Add custom properties if any exist
+        if custom_properties:
+            json_dict["customProperties"] = custom_properties
+            
         return json_dict
 
     @classmethod
@@ -113,10 +124,35 @@ class BasicDataset(Dataset):
         """
         # TODO: Handle the historisierung case, since in dataspot this is lowercase.
         init_data = {'_PATH': _PATH}
-        json_key_to_attr = {f.metadata.get("json_key", f.name): f.name for f in fields(cls)}
+        
+        # Map JSON keys to attribute names
+        json_key_to_attr = {}
+        custom_property_keys = {}
+        
+        for f in fields(cls):
+            json_key = f.metadata.get("json_key", f.name)
+            is_custom_property = f.metadata.get("custom_property", False)
+            
+            if is_custom_property:
+                custom_property_keys[json_key] = f.name
+            else:
+                json_key_to_attr[json_key] = f.name
+        
+        # Process regular properties
         for key, value in json_data.items():
+            if key == "customProperties":
+                continue  # Handle custom properties separately
             attr = json_key_to_attr.get(key, key)
             init_data[attr] = value
+        
+        # Process custom properties if they exist
+        if "customProperties" in json_data and isinstance(json_data["customProperties"], dict):
+            custom_props = json_data["customProperties"]
+            for key, value in custom_props.items():
+                attr = custom_property_keys.get(key)
+                if attr:
+                    init_data[attr] = value
+        
         return cls(**init_data)
 
 @dataclass
@@ -130,10 +166,9 @@ class OGDDataset(BasicDataset):
     # TODO: zuschreibungen
     #publizierende_organisation - GELÖSCHT
     # TODO: datenportal_identifikation
-    # TODO: tags
+    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
 
     # Immutable fields
     stereotype: str = field(default="OGD", init=False)
-
 
 # TODO: Similarly for GeoDataset and OGDGeoDataset

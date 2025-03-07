@@ -28,7 +28,8 @@ def ods_to_dataspot(ods_metadata: Dict[str, Any], ods_dataset_id: str, dataspot_
         aktualisierungszyklus=get_field_value(
             ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
         ),
-        identifikation=f"ogd_{ods_dataset_id}"
+        identifikation=f"ogd_{ods_dataset_id}",
+        tags=get_field_value(ods_metadata.get('custom', {}).get('tags', {}))
     )
     return ogd_dataset
 
