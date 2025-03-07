@@ -39,7 +39,6 @@ class DataspotClient:
         self.dnk_scheme_name = 'Datennutzungskatalog'
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
-        self._accrual_periodicity_dict = None
         self._datatype_uuid_cache = {}
         self.request_delay = request_delay
     
@@ -239,43 +238,6 @@ class DataspotClient:
             'format': 'json'
         }
         return self.download(relative_path, params, endpoint_type='api')
-
-    def rdm_accrualPeriodicity_uri_to_code(self, uri: str) -> str | None:
-        # TODO: remove; probably deprecated
-        """
-        Convert an accrual periodicity URI to its corresponding code based on the Referenzdatenmodell (RDM).
-        
-        Args:
-            uri (str): The URI of the accrual periodicity to convert
-            
-        Returns:
-            str or None: The corresponding code for the given URI from the RDM as a string of length 3, e.g. '005',
-                         or None if the URI is empty or None
-            
-        Raises:
-            KeyError: If the URI is not found in the periodicity dictionary
-            json.JSONDecodeError: If the response is not valid JSON
-        """
-        if not uri:
-            return None
-
-        # Build dict if it does not exist already
-        if not self._accrual_periodicity_dict:
-            relative_path = url_join('schemes',
-                                     self.rdm_scheme_name,
-                                     'enumerations',
-                                     'Aktualisierungszyklus',
-                                     'literals')
-
-            response = self.download(relative_path)
-            aktualisierungszyklus = response['_embedded']['literals']
-            # Create mapping from URI to code
-            self._accrual_periodicity_dict = {
-                item['longText']: item['code'].zfill(3)
-                for item in aktualisierungszyklus
-            }
-
-        return self._accrual_periodicity_dict[uri]
 
     def ods_type_to_dataspot_uuid(self, ods_type: str) -> str:
         """
