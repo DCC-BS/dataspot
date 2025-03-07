@@ -81,7 +81,7 @@ class BasicDataset(Dataset):
     # TODO: vertraulichkeit -> Immer öffentlich bei OGD
     #schutzbedarfsstufen -> ???
     #letzte_aktualisierung -> ???
-    # TODO: publikationsdatum
+    publikationsdatum: Optional[int] = field(default=None, metadata={'json_key': 'PD', 'custom_property': True})
     #archivierung -> ???
     archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
     archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'ARCHBEGR'})
