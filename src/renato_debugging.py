@@ -182,14 +182,18 @@ def main_3_tdm():
 def main_4_dnk_tdm_linked():
     client = DataspotClient()
     ods_client = ODSClient()
+    start_at = 100046
 
     # Teardown and then create 10 datasets in the DNK and the corresponding TDM
     if True:
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
-        client.teardown_dnk()
-        client.teardown_tdm()
+        #client.teardown_dnk()
+        #client.teardown_tdm()
 
         for index, ods_id in enumerate(ods_ids):
+            if int(ods_id) < start_at:
+                continue
+
             # Create entry in DNK
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
             dataspot_dataset: OGDDataset = ods_to_dataspot(ods_metadata, ods_id, client)
