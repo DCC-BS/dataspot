@@ -2,7 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from common import requests_post
+from src.common import requests_post
 
 
 class DataspotAuth:

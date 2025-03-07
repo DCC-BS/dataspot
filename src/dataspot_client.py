@@ -3,12 +3,12 @@ import logging
 from dotenv import load_dotenv
 from requests import HTTPError
 
-from dataspot_auth import DataspotAuth
-from common import requests_get, requests_delete, requests_post, requests_put, requests_patch
+from src.dataspot_auth import DataspotAuth
+from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 import json
 import os
 
-from dataspot_dataset import Dataset
+from src.dataspot_dataset import Dataset
 
 # TODO: Add better error handling that outputs more information about the error (see dataspot documentation)
 
