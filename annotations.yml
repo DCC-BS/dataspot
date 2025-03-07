@@ -55,7 +55,7 @@ Dataset:
     title:
       label: Kurzbeschreibung
       title: Kurzbeschreibung des Datensatzes. Diese wird in der Übersicht angezeigt und unterstützt die Auffindbarkeit, denn die Suchfunktion sucht auch in diesem Metadatenfeld.
-    keywords:
+    tags:
       label: Schlüsselwörter
       title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
     temporalStart:
