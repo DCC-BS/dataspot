@@ -436,7 +436,7 @@ Dataset:
             GEOID:
               label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
-              baseType: ID
+              baseType: STRING
               group: GEO
               order: 50
             KRZL:
