@@ -10,6 +10,7 @@ import os
 
 from dataspot_dataset import Dataset
 
+# TODO: Add better error handling that outputs more information about the error (see dataspot documentation)
 
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
