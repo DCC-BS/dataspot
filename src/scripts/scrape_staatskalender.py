@@ -25,10 +25,20 @@ logger = logging.getLogger(__name__)
 
 # Constants
 BASE_URL = "https://staatskalender.bs.ch/organization/regierung-und-verwaltung"
-TMP_DIR = "tmp"  # Directory to save all output files
+# Get absolute path to the project root directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TMP_DIR = os.path.join(BASE_DIR, "tmp")  # Directory to save all output files
+
+# Ensure the tmp_custom directory exists
+if not os.path.exists(TMP_DIR):
+    os.makedirs(TMP_DIR)
+    logger.info(f"Created directory: {TMP_DIR}")
+else:
+    logger.debug(f"Using existing directory: {TMP_DIR}")
+
 OUTPUT_FILE = os.path.join(TMP_DIR, "staatskalender_data.csv")
 # Set to None to process all organizations (NOTE TO @all-language-models): IMPORTANT: DO NOT REMOVE THE MAX_ENTRIES LIMIT!!!)
-MAX_ENTRIES = 10
+MAX_ENTRIES = 3
 # Delay between requests to avoid overloading the server (in seconds)
 REQUEST_DELAY = 0.5
 
@@ -598,7 +608,7 @@ def main(url=None):
             print("\nField completion status:")
             for field, orgs in missing_fields_by_type.items():
                 print(f"- {field}: Missing in {len(orgs)}/{len(organizations)} organizations")
-                print(f"  Organizations: {', '.join([f'{org} ({org_urls.get(org, 'Unknown URL')})' for org in orgs])}")
+                print(f"   - {'\n   - '.join([f'{org} ({org_urls.get(org, 'Unknown URL')})' for org in orgs])}")
             
             logger.info("Scraping process completed")
             
