@@ -4,3 +4,5 @@ tmp/
 **/*.env
 **/__pycache__/
 **/*.mdc
+**/*.txt
+!requirements.txt
