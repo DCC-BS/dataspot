@@ -59,6 +59,9 @@ FIELDS = [
     "Weitere Telefonnummer oder Fax",
     "E-Mail",
     "Webseite"
+    # TODO: "Öffnungszeiten" # See https://staatskalender.bs.ch/organization/regierung-und-verwaltung/bau-und-verkehrsdepartement
+    # TODO: "Portrait" # See https://staatskalender.bs.ch/organization/regierung-und-verwaltung/praesidialdepartement/generalsekretariat-pd
+    # TODO: "Quelle" # Just add the source website that was scraped to retrieve the E-Mail, etc.
 ]
 
 def get_page(url):
