@@ -482,7 +482,7 @@ def main(url=None):
                 
                 # Print a summary of the data
                 print("\n=== Organization Information ===")
-                print(f"Name: {organization_data['details']['Bezeichnung']}")
+                print(f"Name: {organization_data['details']['Bezeichnung']} ({url})")
                 print(f"Address: {organization_data['details']['Standortadresse']}, {organization_data['details']['Standort Postleitzahl und Ort']}")
                 
                 if organization_data['people']:
@@ -493,7 +493,7 @@ def main(url=None):
                 if organization_data['suborganizations']:
                     print(f"\nSuborganizations ({len(organization_data['suborganizations'])}):")
                     for suborg in organization_data['suborganizations']:
-                        print(f"- {suborg['name']}")
+                        print(f"- {suborg['name']} ({suborg['url']})")
             else:
                 logger.error("Failed to scrape organization data")
             
@@ -511,6 +511,27 @@ def main(url=None):
             organizations, suborganization_links = scrape_organization_non_recursive(BASE_URL, MAX_ENTRIES)
             logger.info(f"Found {len(organizations)} organizations and {len(suborganization_links)} suborganization links")
             
+            # Map organization names to their URLs
+            org_urls = {}
+            for org in organizations:
+                org_name = org["Bezeichnung"]
+                # Extract the URL from suborganization_links or build it from PATH
+                url_found = False
+                for link in suborganization_links:
+                    if link["name"] == org_name:
+                        org_urls[org_name] = link["url"]
+                        url_found = True
+                        break
+                if not url_found:
+                    # Build URL from BASE_URL and PATH
+                    path_components = org["PATH"].split("/")
+                    url = BASE_URL
+                    if path_components:
+                        for component in path_components:
+                            if component:
+                                url = f"{url}/{component}"
+                    org_urls[org_name] = url
+            
             # Save organizations to CSV
             if save_to_csv(organizations, OUTPUT_FILE):
                 logger.info(f"Organization data saved to {OUTPUT_FILE}")
@@ -523,22 +544,55 @@ def main(url=None):
             else:
                 logger.error("Failed to save suborganization links to JSON")
             
+            # Analyze missing fields by organization
+            missing_fields_by_org = {}
+            for org in organizations:
+                org_name = org["Bezeichnung"]
+                missing = []
+                for field in FIELDS:
+                    if field not in ["ID", "PATH", "Bezeichnung", "Titel", "Beschreibung", "Schlagworte", "Sammlungstyp", "Weitere Telefonnummer oder Fax"]:
+                        if not org.get(field):
+                            missing.append(field)
+                if missing:
+                    missing_fields_by_org[org_name] = missing
+            
+            # Save missing fields to a detailed log file
+            with open("missing_fields_report.txt", "w", encoding="utf-8") as f:
+                f.write("=== MISSING FIELDS REPORT ===\n\n")
+                if missing_fields_by_org:
+                    f.write("Organizations with missing fields:\n\n")
+                    for org_name, fields in missing_fields_by_org.items():
+                        url = org_urls.get(org_name, "Unknown URL")
+                        f.write(f"* {org_name} ({url}):\n")
+                        for field in fields:
+                            f.write(f"  - {field}\n")
+                        f.write("\n")
+                else:
+                    f.write("All organizations have complete data.\n")
+            
+            logger.info("Missing fields report saved to missing_fields_report.txt")
+            
+            # Create a report of missing fields by field type, excluding "Weitere Telefonnummer oder Fax"
+            missing_fields_by_type = {}
+            for field in FIELDS:
+                if field not in ["ID", "PATH", "Bezeichnung", "Titel", "Beschreibung", "Schlagworte", "Sammlungstyp", "Weitere Telefonnummer oder Fax"]:
+                    orgs_missing_field = []
+                    for org in organizations:
+                        if not org.get(field):
+                            orgs_missing_field.append(org["Bezeichnung"])
+                    if orgs_missing_field:
+                        missing_fields_by_type[field] = orgs_missing_field
+            
             # Print a summary of the data
             print(f"\n=== Scraping Summary ===")
             print(f"Processed {len(organizations)} organizations")
             print(f"Collected {len(suborganization_links)} suborganization links for future processing")
             
             # Report on missing fields
-            missing_field_counts = {field: 0 for field in FIELDS}
-            for org in organizations:
-                for field in FIELDS:
-                    if not org.get(field) and field not in ["Titel", "Beschreibung", "Schlagworte"]:
-                        missing_field_counts[field] += 1
-            
             print("\nField completion status:")
-            for field, count in missing_field_counts.items():
-                if count > 0 and field not in ["Titel", "Beschreibung", "Schlagworte"]:
-                    print(f"- {field}: Missing in {count}/{len(organizations)} organizations")
+            for field, orgs in missing_fields_by_type.items():
+                print(f"- {field}: Missing in {len(orgs)}/{len(organizations)} organizations")
+                print(f"  Organizations: {', '.join([f'{org} ({org_urls.get(org, 'Unknown URL')})' for org in orgs])}")
             
             logger.info("Scraping process completed")
             
