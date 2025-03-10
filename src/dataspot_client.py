@@ -39,6 +39,7 @@ class DataspotClient:
         self.database_name = 'test-api-renato'
         self.dnk_scheme_name = 'Datennutzungskatalog'
         self.rdm_scheme_name = 'Referenzdatenmodell'
+        self.datatype_scheme_name = 'Datentypmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self._datatype_uuid_cache = {}
         self.request_delay = request_delay
@@ -280,8 +281,9 @@ class DataspotClient:
         parts = dataspot_type.split('/')
         type_name = parts[-1]  # Get the last part of the path
 
-        # Build the path to the Datentypmodell scheme
-        endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes', 'Datentypmodell', 'datatypes', type_name)
+        # Use find_datatype_path to handle potential slashes in type names
+        datatype_path = self.find_datatype_path(type_name)
+        endpoint = url_join(self.base_url, datatype_path)
         headers = self.auth.get_headers()
 
         try:
@@ -1027,3 +1029,35 @@ class DataspotClient:
                 logging.warning(f"Error deleting TDM dataobject for '{title}': {str(e)}")
                 
         return True
+
+    # TODO: Apply this method at all instances needed
+    # TODO: Test this
+    def find_datatype_path(self, type_name):
+        """
+        Find the path to a datatype in the Datentypmodell scheme by its name.
+        
+        Args:
+            type_name (str): The name of the datatype
+            
+        Returns:
+            str: The full path to the datatype
+            
+        Raises:
+            ValueError: If the datatype is not found
+        """
+        if '/' not in type_name:
+            # If no slash, construct the path using the standard format
+            return url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes', type_name)
+        else:
+            # If there is a slash, we need to find the datatype by name
+            datatypes_path = url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes')
+            datatypes_endpoint = url_join(self.base_url, datatypes_path)
+            response = requests_get(datatypes_endpoint, headers=self.auth.get_headers())
+            datatypes_data = response.json()
+            datatypes = datatypes_data.get('_embedded', {}).get('datatypes', [])
+            
+            for datatype in datatypes:
+                if datatype.get('label') == type_name:
+                    return datatype['_links']['self']['href']
+                    
+            raise ValueError(f"Datatype with name '{type_name}' not found")
