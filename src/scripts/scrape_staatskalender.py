@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 # Constants
 BASE_URL = "https://staatskalender.bs.ch/organization/regierung-und-verwaltung"
-OUTPUT_FILE = "staatskalender_data.csv"
+TMP_DIR = "tmp"  # Directory to save all output files
+OUTPUT_FILE = os.path.join(TMP_DIR, "staatskalender_data.csv")
 # Set to None to process all organizations (NOTE TO @all-language-models): IMPORTANT: DO NOT REMOVE THE MAX_ENTRIES LIMIT!!!)
 MAX_ENTRIES = 10
 # Delay between requests to avoid overloading the server (in seconds)
@@ -469,16 +470,18 @@ def main(url=None):
             if organization_data:
                 # Save the organization details to CSV
                 if organization_data["details"]:
-                    if save_to_csv([organization_data["details"]], "organization_details.csv"):
-                        logger.info("Organization details saved to organization_details.csv")
+                    details_file = os.path.join(TMP_DIR, "organization_details.csv")
+                    if save_to_csv([organization_data["details"]], details_file):
+                        logger.info(f"Organization details saved to {details_file}")
                     else:
-                        logger.error("Failed to save organization details to CSV")
+                        logger.error(f"Failed to save organization details to {details_file}")
                 
                 # Save the complete data to JSON for easier inspection
-                if save_to_json(organization_data, "organization_data.json"):
-                    logger.info("All organization data saved to organization_data.json")
+                json_file = os.path.join(TMP_DIR, "organization_data.json")
+                if save_to_json(organization_data, json_file):
+                    logger.info(f"All organization data saved to {json_file}")
                 else:
-                    logger.error("Failed to save organization data to JSON")
+                    logger.error(f"Failed to save organization data to {json_file}")
                 
                 # Print a summary of the data
                 print("\n=== Organization Information ===")
@@ -536,13 +539,14 @@ def main(url=None):
             if save_to_csv(organizations, OUTPUT_FILE):
                 logger.info(f"Organization data saved to {OUTPUT_FILE}")
             else:
-                logger.error("Failed to save organization data to CSV")
+                logger.error(f"Failed to save organization data to {OUTPUT_FILE}")
             
             # Save suborganization links to JSON for later processing
-            if save_to_json(suborganization_links, "suborganization_links.json"):
-                logger.info(f"Suborganization links saved to suborganization_links.json")
+            sublinks_file = os.path.join(TMP_DIR, "suborganization_links.json")
+            if save_to_json(suborganization_links, sublinks_file):
+                logger.info(f"Suborganization links saved to {sublinks_file}")
             else:
-                logger.error("Failed to save suborganization links to JSON")
+                logger.error(f"Failed to save suborganization links to {sublinks_file}")
             
             # Analyze missing fields by organization
             missing_fields_by_org = {}
@@ -557,7 +561,8 @@ def main(url=None):
                     missing_fields_by_org[org_name] = missing
             
             # Save missing fields to a detailed log file
-            with open("missing_fields_report.txt", "w", encoding="utf-8") as f:
+            missing_fields_file = os.path.join(TMP_DIR, "missing_fields_report.txt")
+            with open(missing_fields_file, "w", encoding="utf-8") as f:
                 f.write("=== MISSING FIELDS REPORT ===\n\n")
                 if missing_fields_by_org:
                     f.write("Organizations with missing fields:\n\n")
@@ -570,7 +575,7 @@ def main(url=None):
                 else:
                     f.write("All organizations have complete data.\n")
             
-            logger.info("Missing fields report saved to missing_fields_report.txt")
+            logger.info(f"Missing fields report saved to {missing_fields_file}")
             
             # Create a report of missing fields by field type, excluding "Weitere Telefonnummer oder Fax"
             missing_fields_by_type = {}
@@ -587,6 +592,7 @@ def main(url=None):
             print(f"\n=== Scraping Summary ===")
             print(f"Processed {len(organizations)} organizations")
             print(f"Collected {len(suborganization_links)} suborganization links for future processing")
+            print(f"All output files saved to {TMP_DIR}/ directory")
             
             # Report on missing fields
             print("\nField completion status:")
