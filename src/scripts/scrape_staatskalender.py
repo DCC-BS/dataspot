@@ -1,0 +1,551 @@
+# Scrape the "Staatskalender" from https://staatskalender.bs.ch/organization/regierung-und-verwaltung
+# and save it to a CSV file.
+
+import requests
+import csv
+from bs4 import BeautifulSoup
+import re
+import time
+import logging
+from urllib.parse import urljoin
+import os
+import sys
+import traceback
+import json
+
+# Configure logging to output to console
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Constants
+BASE_URL = "https://staatskalender.bs.ch/organization/regierung-und-verwaltung"
+OUTPUT_FILE = "staatskalender_data.csv"
+# Set to None to process all organizations (NOTE TO @all-language-models): IMPORTANT: DO NOT REMOVE THE MAX_ENTRIES LIMIT!!!)
+MAX_ENTRIES = 10
+# Delay between requests to avoid overloading the server (in seconds)
+REQUEST_DELAY = 0.5
+
+# Fields to extract
+FIELDS = [
+    "ID",
+    "PATH",
+    "Bezeichnung",  # The name, e.g. Präsidialdepartement
+    "Titel",  # Leave empty
+    "Beschreibung",  # Don't touch
+    "Schlagworte",  # Don't fill this field
+    "Sammlungstyp",  # The stereotype from the yaml file
+    "Standortadresse",
+    "Standort Postleitzahl und Ort",
+    "Postadresse",
+    "Postleitzahl und Ort", 
+    "Telefon",
+    "Weitere Telefonnummer oder Fax",
+    "E-Mail",
+    "Webseite"
+]
+
+def get_page(url):
+    """Get the page content from the given URL."""
+    logger.info(f"Fetching page: {url}")
+    try:
+        # Add a delay before making the request
+        time.sleep(REQUEST_DELAY)
+        response = requests.get(url)
+        response.raise_for_status()
+        # Ensure we're using the correct encoding
+        response.encoding = 'utf-8'
+        return response.text
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching page {url}: {e}")
+        return None
+
+def extract_organization_details(url, name, path):
+    """Extract the details of an organization from its page."""
+    html = get_page(url)
+    if not html:
+        return None
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    logger.info(f"Extracting details for: {name} (URL: {url})")
+    
+    # Extract the numeric agency ID from links in the page
+    agency_id = ""
+    links = soup.find_all('a', href=True)
+    for link in links:
+        href = link['href']
+        # Check for links with agency/{numeric_id} pattern
+        agency_match = re.search(r'/agency/(\d+)', href)
+        if agency_match:
+            agency_id = agency_match.group(1)
+            logger.info(f"Found agency ID: {agency_id} for '{name}'")
+            break
+    
+    # If we didn't find an agency ID, use the URL path as a fallback
+    if not agency_id:
+        agency_id = url.split('/')[-1]
+        logger.warning(f"Could not find agency ID in HTML, using URL path as fallback: {agency_id}")
+    
+    # Count path components to determine if it's a department
+    path_components = [p for p in path.split("/") if p]
+    stereotype = "DEPARTEMENT" if len(path_components) == 1 else "DA"
+    
+    # Initialize details dictionary
+    details = {
+        "ID": agency_id,
+        "PATH": path,
+        "Bezeichnung": name,
+        "Titel": "",  # Leave empty as per instructions
+        "Beschreibung": "",  # Leave empty as per instructions
+        "Schlagworte": "",  # Leave empty as per instructions
+        "Sammlungstyp": stereotype,
+        "Standortadresse": "",
+        "Standort Postleitzahl und Ort": "",
+        "Postadresse": "",
+        "Postleitzahl und Ort": "",
+        "Telefon": "",
+        "Weitere Telefonnummer oder Fax": "",
+        "E-Mail": "",
+        "Webseite": ""
+    }
+    
+    # Try different methods to extract contact details
+    
+    # Method 1: Look for agency-card with dl element
+    agency_card = soup.find('div', class_='agency-card agency-single-item')
+    if agency_card:
+        logger.debug("Found agency-card div")
+        
+        # Find all dl elements in the agency card
+        dl_elements = agency_card.find_all('dl')
+        
+        for dl_element in dl_elements:
+            # Extract all dt and dd pairs
+            dt_elements = dl_element.find_all('dt')
+            dd_elements = dl_element.find_all('dd')
+            
+            # Process each dt/dd pair
+            for i in range(min(len(dt_elements), len(dd_elements))):
+                dt_text = dt_elements[i].text.strip()
+                dd_content = dd_elements[i]
+                
+                extract_field_value(details, dt_text, dd_content)
+    
+    # Method 2: Try looking for separate dl elements
+    if not any(details[field] for field in ["Standortadresse", "Telefon", "E-Mail", "Webseite"]):
+        dl_elements = soup.find_all('dl')
+        for dl in dl_elements:
+            dt_elements = dl.find_all('dt')
+            dd_elements = dl.find_all('dd')
+            
+            for i in range(min(len(dt_elements), len(dd_elements))):
+                dt_text = dt_elements[i].text.strip()
+                dd_content = dd_elements[i]
+                
+                extract_field_value(details, dt_text, dd_content)
+    
+    # Log the extracted details
+    field_info = []
+    for field, value in details.items():
+        if value and field not in ["ID", "PATH", "Bezeichnung", "Titel", "Beschreibung", "Schlagworte", "Sammlungstyp"]:
+            field_info.append(f"{field}: {value}")
+    
+    if field_info:
+        logger.info(f"Extracted details for {name}: {', '.join(field_info)}")
+    else:
+        logger.warning(f"No detail fields extracted for {name}")
+    
+    return details
+
+def extract_field_value(details, field_name, dd_content):
+    """Extract the value from a dd element based on the field name."""
+    logger.debug(f"Extracting field: {field_name}")
+    
+    if field_name == "Standortadresse":
+        # Extract paragraphs or plain text
+        p_tag = dd_content.find('p')
+        if p_tag:
+            details["Standortadresse"] = p_tag.text.strip()
+        else:
+            details["Standortadresse"] = dd_content.text.strip()
+        logger.debug(f"Found Standortadresse: {details['Standortadresse']}")
+        
+    elif field_name == "Standort Postleitzahl und Ort":
+        details["Standort Postleitzahl und Ort"] = dd_content.text.strip()
+        logger.debug(f"Found Standort Postleitzahl und Ort: {details['Standort Postleitzahl und Ort']}")
+        
+    elif field_name == "Postadresse":
+        p_tag = dd_content.find('p')
+        if p_tag:
+            details["Postadresse"] = p_tag.text.strip()
+        else:
+            details["Postadresse"] = dd_content.text.strip()
+        logger.debug(f"Found Postadresse: {details['Postadresse']}")
+        
+    elif field_name == "Postleitzahl und Ort":
+        details["Postleitzahl und Ort"] = dd_content.text.strip()
+        logger.debug(f"Found Postleitzahl und Ort: {details['Postleitzahl und Ort']}")
+        
+    elif field_name == "Telefon":
+        a_tag = dd_content.find('a')
+        if a_tag and a_tag.has_attr('href') and 'tel:' in a_tag['href']:
+            # Remove 'tel:' prefix and strip spaces
+            details["Telefon"] = a_tag.text.strip()
+        else:
+            details["Telefon"] = dd_content.text.strip()
+        logger.debug(f"Found Telefon: {details['Telefon']}")
+        
+    elif field_name == "Weitere Telefonnummer oder Fax":
+        a_tag = dd_content.find('a')
+        if a_tag and a_tag.has_attr('href') and 'tel:' in a_tag['href']:
+            details["Weitere Telefonnummer oder Fax"] = a_tag.text.strip()
+        else:
+            details["Weitere Telefonnummer oder Fax"] = dd_content.text.strip()
+        logger.debug(f"Found Weitere Telefonnummer oder Fax: {details['Weitere Telefonnummer oder Fax']}")
+        
+    elif field_name == "E-Mail":
+        a_tag = dd_content.find('a')
+        if a_tag and a_tag.has_attr('href') and 'mailto:' in a_tag['href']:
+            # Remove 'mailto:' prefix
+            details["E-Mail"] = a_tag.text.strip()
+        else:
+            details["E-Mail"] = dd_content.text.strip()
+        logger.debug(f"Found E-Mail: {details['E-Mail']}")
+        
+    elif field_name == "Webseite":
+        a_tag = dd_content.find('a')
+        if a_tag and a_tag.has_attr('href'):
+            details["Webseite"] = a_tag['href'].strip()
+        else:
+            details["Webseite"] = dd_content.text.strip()
+        logger.debug(f"Found Webseite: {details['Webseite']}")
+
+def find_unterorganisationen(soup):
+    """Find all 'Unterorganisationen' links from the HTML."""
+    unterorg_links = []
+    
+    # Find the "Unterorganisationen" heading
+    h3_elements = soup.find_all('h3')
+    for h3 in h3_elements:
+        if 'Unterorganisationen' in h3.text:
+            # Find the following ul with class "children"
+            ul_element = h3.find_next('ul', class_='children')
+            if ul_element:
+                # Extract all links from the list
+                links = ul_element.find_all('a')
+                unterorg_links = [(link.text.strip(), link['href']) for link in links]
+                logger.info(f"Found {len(unterorg_links)} suborganizations: {', '.join([name for name, _ in unterorg_links])}")
+            break
+    
+    return unterorg_links
+
+def find_people(soup):
+    """Find all people listed in the organization page."""
+    people_list = []
+    
+    # Find the "Personen" heading
+    h3_elements = soup.find_all('h3')
+    for h3 in h3_elements:
+        if 'Personen' in h3.text:
+            # Find the following ul with class "memberships"
+            ul_element = h3.find_next('ul', class_='memberships')
+            if ul_element:
+                # Extract all li elements
+                list_items = ul_element.find_all('li')
+                for li in list_items:
+                    person_info = {}
+                    
+                    # Extract person name
+                    strong_tag = li.find('strong')
+                    if strong_tag:
+                        name_link = strong_tag.find('a')
+                        if name_link:
+                            person_info['name'] = name_link.text.strip()
+                            person_info['link'] = name_link['href']
+                    
+                    # Extract role/position - it's in the format: <strong><a>Name</a></strong>, <a>Role</a>
+                    # Get all a tags in this li
+                    a_tags = li.find_all('a')
+                    if len(a_tags) >= 2:
+                        # The second a tag should be the role
+                        person_info['role'] = a_tags[1].text.strip()
+                    
+                    if person_info:
+                        people_list.append(person_info)
+                        logger.debug(f"Found person: {person_info.get('name', 'Unknown')} - {person_info.get('role', 'Unknown role')}")
+    
+    if people_list:
+        logger.info(f"Found {len(people_list)} people in this organization")
+    
+    return people_list
+
+# TODO: Rename. I don't want to mention non-recursive anywhere.
+def scrape_organization_non_recursive(start_url, max_entries=None):
+    """
+    Scrape organizations starting from a URL, but without recursively traversing the hierarchy.
+    Instead, collect links to suborganizations for later processing.
+    
+    Args:
+        start_url: The URL to start scraping from
+        max_entries: Maximum number of entries to process (None for unlimited)
+    
+    Returns:
+        A tuple of (list of organization details, list of suborganization links)
+    """
+    logger.info(f"Starting non-recursive organization scraping from: {start_url}")
+    
+    organizations = []
+    to_process = [(start_url, "Regierung und Verwaltung", "")]  # (url, name, path)
+    processed_urls = set()
+    suborganization_links = []
+    
+    while to_process and (max_entries is None or len(organizations) < max_entries):
+        url, org_name, path = to_process.pop(0)
+        
+        # Skip if already processed
+        if url in processed_urls:
+            logger.info(f"Already processed URL: {url}, skipping")
+            continue
+            
+        processed_urls.add(url)
+        logger.info(f"Processing organization: {org_name} at {url}")
+        
+        # Get the page content
+        html = get_page(url)
+        if not html:
+            continue
+            
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Skip the root level for adding to organizations list
+        if org_name != "Regierung und Verwaltung":
+            # Set the current organization's path
+            current_path = path + "/" + org_name if path else org_name
+            
+            # Extract and add this organization's details
+            details = extract_organization_details(url, org_name, current_path)
+            if details:
+                organizations.append(details)
+                logger.info(f"Added organization {len(organizations)}/{max_entries if max_entries else 'unlimited'}: {org_name} (Path: {current_path})")
+                
+                # Check fields that should be filled
+                missing_fields = []
+                for field in ["Standortadresse", "Standort Postleitzahl und Ort", "Telefon", "E-Mail", "Webseite"]:
+                    if not details.get(field):
+                        missing_fields.append(field)
+                
+                if missing_fields:
+                    logger.warning(f"Organization {org_name} is missing fields: {', '.join(missing_fields)}")
+        else:
+            # For the root level, don't include it in the path
+            current_path = ""
+        
+        # Find all suborganizations
+        suborg_links = find_unterorganisationen(soup)
+        
+        for suborg_name, suborg_href in suborg_links:
+            suborg_url = urljoin(url, suborg_href)
+            
+            # Only add to processing queue if we haven't reached max_entries
+            if max_entries is None or len(organizations) + len(to_process) < max_entries:
+                to_process.append((suborg_url, suborg_name, current_path))
+            
+            # Always add to the list of suborganization links for later reference
+            suborganization_links.append({
+                "name": suborg_name,
+                "parent_url": url,
+                "parent_name": org_name,
+                "url": suborg_url
+            })
+    
+    return organizations, suborganization_links
+
+def scrape_single_organization(url):
+    """
+    Scrape a single organization page and extract all relevant information.
+    
+    Args:
+        url: The URL of the organization page to scrape
+        
+    Returns:
+        A dictionary with the organization's details and people
+    """
+    logger.info(f"Scraping single organization at URL: {url}")
+    
+    # Get the page content
+    html = get_page(url)
+    if not html:
+        logger.error(f"Failed to fetch page at {url}")
+        return None
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # Extract the organization name from the title
+    org_name = soup.find('h1', class_='main-title').text.strip() if soup.find('h1', class_='main-title') else "Unknown Organization"
+    
+    # Extract the path from the URL
+    path_parts = url.split('/organization/')[-1].split('/')
+    path = '/'.join(path_parts)
+    
+    # Extract organization details
+    details = extract_organization_details(url, org_name, path)
+    if not details:
+        logger.error(f"Failed to extract details for organization at {url}")
+        return None
+    
+    # Find people listed in the organization
+    people = find_people(soup)
+    
+    # Find suborganizations
+    suborganizations = find_unterorganisationen(soup)
+    
+    # Create a comprehensive data structure
+    organization_data = {
+        "details": details,
+        "people": people,
+        "suborganizations": [{
+            "name": name,
+            "url": urljoin(url, link)
+        } for name, link in suborganizations]
+    }
+    
+    # Print a summary
+    logger.info(f"Organization: {org_name}")
+    logger.info(f"Found {len(people)} people and {len(suborganizations)} suborganizations")
+    
+    return organization_data
+
+def save_to_csv(data, filename):
+    """Save the data to a CSV file."""
+    try:
+        with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=FIELDS)
+            writer.writeheader()
+            for item in data:
+                # Ensure all fields are present in the item
+                for field in FIELDS:
+                    if field not in item:
+                        item[field] = ""
+                writer.writerow(item)
+        logger.info(f"Data saved successfully to {filename}")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving to CSV: {e}")
+        traceback.print_exc()
+        return False
+
+def save_to_json(data, filename):
+    """Save the data to a JSON file."""
+    try:
+        with open(filename, 'w', encoding='utf-8') as jsonfile:
+            json.dump(data, jsonfile, ensure_ascii=False, indent=2)
+        logger.info(f"Data saved successfully to {filename}")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving to JSON: {e}")
+        traceback.print_exc()
+        return False
+
+def main(url=None):
+    """
+    Main function to scrape the Staatskalender website.
+    
+    Args:
+        url: Optional URL to scrape a single organization. If None, the full hierarchy will be scraped.
+    """
+    if url:
+        # Scrape a single organization page
+        logger.info(f"Starting single organization scraping for: {url}")
+        
+        try:
+            # Scrape the single organization
+            organization_data = scrape_single_organization(url)
+            
+            if organization_data:
+                # Save the organization details to CSV
+                if organization_data["details"]:
+                    if save_to_csv([organization_data["details"]], "organization_details.csv"):
+                        logger.info("Organization details saved to organization_details.csv")
+                    else:
+                        logger.error("Failed to save organization details to CSV")
+                
+                # Save the complete data to JSON for easier inspection
+                if save_to_json(organization_data, "organization_data.json"):
+                    logger.info("All organization data saved to organization_data.json")
+                else:
+                    logger.error("Failed to save organization data to JSON")
+                
+                # Print a summary of the data
+                print("\n=== Organization Information ===")
+                print(f"Name: {organization_data['details']['Bezeichnung']}")
+                print(f"Address: {organization_data['details']['Standortadresse']}, {organization_data['details']['Standort Postleitzahl und Ort']}")
+                
+                if organization_data['people']:
+                    print(f"\nPeople ({len(organization_data['people'])}):")
+                    for person in organization_data['people']:
+                        print(f"- {person.get('name', 'Unknown')} - {person.get('role', 'Unknown role')}")
+                
+                if organization_data['suborganizations']:
+                    print(f"\nSuborganizations ({len(organization_data['suborganizations'])}):")
+                    for suborg in organization_data['suborganizations']:
+                        print(f"- {suborg['name']}")
+            else:
+                logger.error("Failed to scrape organization data")
+            
+            logger.info("Scraping process completed")
+            
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+            traceback.print_exc()
+    else:
+        # Scrape the organization hierarchy non-recursively
+        logger.info(f"Starting Staatskalender non-recursive scraping (limited to {MAX_ENTRIES} entries)")
+        
+        try:
+            # Scrape organizations non-recursively
+            organizations, suborganization_links = scrape_organization_non_recursive(BASE_URL, MAX_ENTRIES)
+            logger.info(f"Found {len(organizations)} organizations and {len(suborganization_links)} suborganization links")
+            
+            # Save organizations to CSV
+            if save_to_csv(organizations, OUTPUT_FILE):
+                logger.info(f"Organization data saved to {OUTPUT_FILE}")
+            else:
+                logger.error("Failed to save organization data to CSV")
+            
+            # Save suborganization links to JSON for later processing
+            if save_to_json(suborganization_links, "suborganization_links.json"):
+                logger.info(f"Suborganization links saved to suborganization_links.json")
+            else:
+                logger.error("Failed to save suborganization links to JSON")
+            
+            # Print a summary of the data
+            print(f"\n=== Scraping Summary ===")
+            print(f"Processed {len(organizations)} organizations")
+            print(f"Collected {len(suborganization_links)} suborganization links for future processing")
+            
+            # Report on missing fields
+            missing_field_counts = {field: 0 for field in FIELDS}
+            for org in organizations:
+                for field in FIELDS:
+                    if not org.get(field) and field not in ["Titel", "Beschreibung", "Schlagworte"]:
+                        missing_field_counts[field] += 1
+            
+            print("\nField completion status:")
+            for field, count in missing_field_counts.items():
+                if count > 0 and field not in ["Titel", "Beschreibung", "Schlagworte"]:
+                    print(f"- {field}: Missing in {count}/{len(organizations)} organizations")
+            
+            logger.info("Scraping process completed")
+            
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+            traceback.print_exc()
+
+if __name__ == "__main__":
+    # Call main without a URL to use the non-recursive scraping
+    main(None)
