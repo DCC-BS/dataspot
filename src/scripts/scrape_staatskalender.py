@@ -58,10 +58,10 @@ FIELDS = [
     "Telefon",
     "Weitere Telefonnummer oder Fax",
     "E-Mail",
-    "Webseite"
-    # TODO: "Öffnungszeiten" # See https://staatskalender.bs.ch/organization/regierung-und-verwaltung/bau-und-verkehrsdepartement
-    # TODO: "Portrait" # See https://staatskalender.bs.ch/organization/regierung-und-verwaltung/praesidialdepartement/generalsekretariat-pd
-    # TODO: "Quelle" # Just add the source website that was scraped to retrieve the E-Mail, etc.
+    "Webseite",
+    "Öffnungszeiten",
+    "Portrait",
+    "Quelle"
 ]
 
 def get_page(url):
@@ -84,6 +84,10 @@ def extract_organization_details(url, name, path):
     html = get_page(url)
     if not html:
         return None
+    
+    # The HTML contains <br> tags which need to be preserved as newlines
+    # Replace <br> and <br/> tags with a placeholder that won't be affected by BeautifulSoup
+    html = html.replace('<br>', 'NEWLINE_PLACEHOLDER').replace('<br/>', 'NEWLINE_PLACEHOLDER')
     
     soup = BeautifulSoup(html, 'html.parser')
     logger.info(f"Extracting details for: {name} (URL: {url})")
@@ -125,8 +129,44 @@ def extract_organization_details(url, name, path):
         "Telefon": "",
         "Weitere Telefonnummer oder Fax": "",
         "E-Mail": "",
-        "Webseite": ""
+        "Webseite": "",
+        "Öffnungszeiten": "",
+        "Portrait": "",
+        "Quelle": url
     }
+    
+    # Helper function to process text with newlines and convert links to markdown
+    def process_text_with_links(element):
+        if not element:
+            return ""
+        
+        # Create a copy to avoid modifying the original
+        element_copy = BeautifulSoup(str(element), 'html.parser')
+        
+        # Find all links and convert them to markdown
+        for a_tag in element_copy.find_all('a', href=True):
+            href = a_tag['href']
+            text = a_tag.get_text().strip()
+            
+            # Skip empty links
+            if not text:
+                continue
+                
+            # Clean href for tel and mailto links
+            if href.startswith('tel:'):
+                href = href.replace('tel:', '').strip()
+            elif href.startswith('mailto:'):
+                href = href.replace('mailto:', '').strip()
+                
+            # Create markdown link
+            markdown_link = f"[{text}]({href})"
+            
+            # Replace the a tag with the markdown link
+            a_tag.replace_with(markdown_link)
+        
+        # Get the processed text
+        processed_text = element_copy.get_text().strip()
+        return processed_text.replace('NEWLINE_PLACEHOLDER', '\n')
     
     # Try different methods to extract contact details
     
@@ -134,6 +174,15 @@ def extract_organization_details(url, name, path):
     agency_card = soup.find('div', class_='agency-card agency-single-item')
     if agency_card:
         logger.debug("Found agency-card div")
+        
+        # Extract Portrait if available (before dl elements)
+        portrait_h3 = agency_card.find('h3', string='Portrait')
+        if portrait_h3:
+            portrait_div = portrait_h3.find_next('div')
+            if portrait_div:
+                # Process the portrait text with links converted to markdown
+                details["Portrait"] = process_text_with_links(portrait_div)
+                logger.debug(f"Found Portrait: {details['Portrait'][:100]}...")
         
         # Find all dl elements in the agency card
         dl_elements = agency_card.find_all('dl')
@@ -180,13 +229,50 @@ def extract_field_value(details, field_name, dd_content):
     """Extract the value from a dd element based on the field name."""
     logger.debug(f"Extracting field: {field_name}")
     
+    # Helper function to process text with newlines
+    def process_newlines(text):
+        return text.replace('NEWLINE_PLACEHOLDER', '\n').strip()
+    
+    # Helper function to convert links to markdown format
+    def convert_links_to_markdown(element):
+        if not element:
+            return ""
+        
+        # Create a copy to avoid modifying the original
+        element_copy = BeautifulSoup(str(element), 'html.parser')
+        
+        # Find all links and convert them to markdown
+        for a_tag in element_copy.find_all('a', href=True):
+            href = a_tag['href']
+            text = a_tag.get_text().strip()
+            
+            # Skip empty links
+            if not text:
+                continue
+                
+            # Clean href for tel and mailto links
+            if href.startswith('tel:'):
+                href = href.replace('tel:', '').strip()
+            elif href.startswith('mailto:'):
+                href = href.replace('mailto:', '').strip()
+                
+            # Create markdown link
+            markdown_link = f"[{text}]({href})"
+            
+            # Replace the a tag with the markdown link
+            a_tag.replace_with(markdown_link)
+        
+        # Get the processed text
+        processed_text = element_copy.get_text().strip()
+        return process_newlines(processed_text)
+    
     if field_name == "Standortadresse":
         # Extract paragraphs or plain text
         p_tag = dd_content.find('p')
         if p_tag:
-            details["Standortadresse"] = p_tag.text.strip()
+            details["Standortadresse"] = convert_links_to_markdown(p_tag)
         else:
-            details["Standortadresse"] = dd_content.text.strip()
+            details["Standortadresse"] = convert_links_to_markdown(dd_content)
         logger.debug(f"Found Standortadresse: {details['Standortadresse']}")
         
     elif field_name == "Standort Postleitzahl und Ort":
@@ -196,9 +282,9 @@ def extract_field_value(details, field_name, dd_content):
     elif field_name == "Postadresse":
         p_tag = dd_content.find('p')
         if p_tag:
-            details["Postadresse"] = p_tag.text.strip()
+            details["Postadresse"] = convert_links_to_markdown(p_tag)
         else:
-            details["Postadresse"] = dd_content.text.strip()
+            details["Postadresse"] = convert_links_to_markdown(dd_content)
         logger.debug(f"Found Postadresse: {details['Postadresse']}")
         
     elif field_name == "Postleitzahl und Ort":
@@ -208,25 +294,25 @@ def extract_field_value(details, field_name, dd_content):
     elif field_name == "Telefon":
         a_tag = dd_content.find('a')
         if a_tag and a_tag.has_attr('href') and 'tel:' in a_tag['href']:
-            # Remove 'tel:' prefix and strip spaces
-            details["Telefon"] = a_tag.text.strip()
+            # Format as markdown link
+            phone_number = a_tag.text.strip()
+            phone_link = a_tag['href'].replace('tel:', '').strip()
+            details["Telefon"] = f"[{phone_number}]({phone_link})"
         else:
             details["Telefon"] = dd_content.text.strip()
         logger.debug(f"Found Telefon: {details['Telefon']}")
         
     elif field_name == "Weitere Telefonnummer oder Fax":
-        a_tag = dd_content.find('a')
-        if a_tag and a_tag.has_attr('href') and 'tel:' in a_tag['href']:
-            details["Weitere Telefonnummer oder Fax"] = a_tag.text.strip()
-        else:
-            details["Weitere Telefonnummer oder Fax"] = dd_content.text.strip()
+        details["Weitere Telefonnummer oder Fax"] = convert_links_to_markdown(dd_content)
         logger.debug(f"Found Weitere Telefonnummer oder Fax: {details['Weitere Telefonnummer oder Fax']}")
         
     elif field_name == "E-Mail":
         a_tag = dd_content.find('a')
         if a_tag and a_tag.has_attr('href') and 'mailto:' in a_tag['href']:
-            # Remove 'mailto:' prefix
-            details["E-Mail"] = a_tag.text.strip()
+            # Format as markdown link
+            email = a_tag.text.strip()
+            email_link = a_tag['href'].replace('mailto:', '').strip()
+            details["E-Mail"] = f"[{email}]({email_link})"
         else:
             details["E-Mail"] = dd_content.text.strip()
         logger.debug(f"Found E-Mail: {details['E-Mail']}")
@@ -234,10 +320,21 @@ def extract_field_value(details, field_name, dd_content):
     elif field_name == "Webseite":
         a_tag = dd_content.find('a')
         if a_tag and a_tag.has_attr('href'):
-            details["Webseite"] = a_tag['href'].strip()
+            # Format as markdown link
+            website_text = a_tag.text.strip() or a_tag['href'].strip()
+            website_link = a_tag['href'].strip()
+            details["Webseite"] = f"[{website_text}]({website_link})"
         else:
             details["Webseite"] = dd_content.text.strip()
         logger.debug(f"Found Webseite: {details['Webseite']}")
+        
+    elif field_name == "Öffnungszeiten":
+        p_tag = dd_content.find('p')
+        if p_tag:
+            details["Öffnungszeiten"] = convert_links_to_markdown(p_tag)
+        else:
+            details["Öffnungszeiten"] = convert_links_to_markdown(dd_content)
+        logger.debug(f"Found Öffnungszeiten: {details['Öffnungszeiten']}")
 
 def find_unterorganisationen(soup):
     """Find all 'Unterorganisationen' links from the HTML."""
@@ -435,17 +532,15 @@ def scrape_single_organization(url):
     return organization_data
 
 def save_to_csv(data, filename):
-    """Save the data to a CSV file."""
+    """Save the given data to a CSV file."""
     try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+        
         with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=FIELDS)
             writer.writeheader()
-            for item in data:
-                # Ensure all fields are present in the item
-                for field in FIELDS:
-                    if field not in item:
-                        item[field] = ""
-                writer.writerow(item)
+            writer.writerows(data)
         logger.info(f"Data saved successfully to {filename}")
         return True
     except Exception as e:
@@ -454,10 +549,13 @@ def save_to_csv(data, filename):
         return False
 
 def save_to_json(data, filename):
-    """Save the data to a JSON file."""
+    """Save the given data to a JSON file."""
     try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(os.path.abspath(filename)), exist_ok=True)
+        
         with open(filename, 'w', encoding='utf-8') as jsonfile:
-            json.dump(data, jsonfile, ensure_ascii=False, indent=2)
+            json.dump(data, jsonfile, indent=2, ensure_ascii=False)
         logger.info(f"Data saved successfully to {filename}")
         return True
     except Exception as e:
@@ -573,22 +671,28 @@ def main(url=None):
                 if missing:
                     missing_fields_by_org[org_name] = missing
             
-            # Save missing fields to a detailed log file
+            # Create a detailed report of missing fields
             missing_fields_file = os.path.join(TMP_DIR, "missing_fields_report.txt")
-            with open(missing_fields_file, "w", encoding="utf-8") as f:
-                f.write("=== MISSING FIELDS REPORT ===\n\n")
-                if missing_fields_by_org:
-                    f.write("Organizations with missing fields:\n\n")
-                    for org_name, fields in missing_fields_by_org.items():
-                        url = org_urls.get(org_name, "Unknown URL")
-                        f.write(f"* {org_name} ({url}):\n")
-                        for field in fields:
-                            f.write(f"  - {field}\n")
-                        f.write("\n")
-                else:
-                    f.write("All organizations have complete data.\n")
-            
-            logger.info(f"Missing fields report saved to {missing_fields_file}")
+            try:
+                # Ensure the directory exists
+                os.makedirs(os.path.dirname(os.path.abspath(missing_fields_file)), exist_ok=True)
+                
+                with open(missing_fields_file, "w", encoding="utf-8") as f:
+                    f.write("=== MISSING FIELDS REPORT ===\n\n")
+                    if missing_fields_by_org:
+                        f.write("Organizations with missing fields:\n\n")
+                        for org_name, fields in missing_fields_by_org.items():
+                            url = org_urls.get(org_name, "Unknown URL")
+                            f.write(f"* {org_name} ({url}):\n")
+                            for field in fields:
+                                f.write(f"  - {field}\n")
+                            f.write("\n")
+                    else:
+                        f.write("All organizations have complete data.\n")
+                logger.info(f"Missing fields report saved to {missing_fields_file}")
+            except Exception as e:
+                logger.error(f"An unexpected error occurred: {e}")
+                traceback.print_exc()
             
             # Create a report of missing fields by field type, excluding "Weitere Telefonnummer oder Fax"
             missing_fields_by_type = {}
