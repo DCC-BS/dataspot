@@ -1,3 +1,5 @@
+# DEPRECATED: Staatskalender exists as ogd-dataset (not public yet). Take the information from there.
+
 # Scrape the "Staatskalender" from https://staatskalender.bs.ch/organization/regierung-und-verwaltung
 # and save it to a CSV file.
 
