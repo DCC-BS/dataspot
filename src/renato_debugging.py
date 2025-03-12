@@ -277,8 +277,7 @@ def main_5_build_organization_structure_in_dnk():
         logging.info("Building organization hierarchy in Dataspot...")
         try:
             dataspot_client.build_organization_hierarchy_from_ods(
-                all_organizations, 
-                root_id="255",
+                all_organizations,
                 cooldown_delay=cooldown_delay
             )
             logging.info("Organization structure build completed successfully")
