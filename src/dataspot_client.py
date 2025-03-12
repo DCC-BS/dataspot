@@ -1116,7 +1116,7 @@ class DataspotClient:
                     
             raise ValueError(f"Datatype with name '{type_name}' not found")
 
-    def build_organization_hierarchy_from_ods(self, org_data: dict, root_id: str = "255", cooldown_delay: float = 1.0):
+    def build_organization_hierarchy_from_ods(self, org_data: dict, cooldown_delay: float = 1.0):
         """
         Build organization hierarchy in Dataspot based on organization data from ODS API.
         
@@ -1126,7 +1126,6 @@ class DataspotClient:
         
         Args:
             org_data (dict): Dictionary containing organization data from ODS API
-            root_id (str): ID of the root organization to start building from (default: "255")
             cooldown_delay (float): Delay in seconds between API calls to prevent overloading the server (default: 1.0)
             
         Returns:
