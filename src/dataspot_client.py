@@ -1159,6 +1159,10 @@ class DataspotClient:
                 
             depth_groups[path_depth].append(org_id)
         
+        # Calculate total number of organizations to process
+        total_orgs = sum(len(depth_groups[depth]) for depth in depth_groups)
+        current_org = 0
+        
         # Process organizations level by level (starting from the shallowest)
         for depth in sorted(depth_groups.keys()):
             logging.info(f"Processing organizations at depth level {depth}")
@@ -1187,6 +1191,9 @@ class DataspotClient:
                 title_full = org.get('title_full', '')
                 children_ids = org.get('children_id', []) or []
                 url_website = create_url_to_website(title_full)
+
+                # Increment the counter
+                current_org += 1
 
                 # Check if url is valid
                 try:
@@ -1217,7 +1224,7 @@ class DataspotClient:
                 # Extract the path components from title_full
                 path_components = title_full.split('/')
                 
-                logging.info(f"Processing organization: {title} (ID: {org_id}, Path: {title_full})")
+                logging.info(f"[{current_org}/{total_orgs}] Processing organization: {title} (ID: {org_id}, Path: {title_full})")
                 
                 try:
                     # Add cooldown delay before making API calls to create/update the organization
@@ -1249,9 +1256,9 @@ class DataspotClient:
                             
                             # Try a simplified approach - create a top-level department regardless of depth
                             try:
-                                logging.info(f"Attempting to create '{title}' as a top-level department as fallback")
+                                logging.info(f"[{current_org}/{total_orgs}] Attempting to create '{title}' as a top-level department as fallback")
                                 self.dnk_create_new_department(title, custom_properties=custom_properties)
-                                logging.info(f"Successfully created '{title}' as a top-level department")
+                                logging.info(f"[{current_org}/{total_orgs}] Successfully created '{title}' as a top-level department")
                             except Exception as fallback_e:
                                 logging.error(f"Fallback creation also failed: {str(fallback_e)}")
                                 raise
