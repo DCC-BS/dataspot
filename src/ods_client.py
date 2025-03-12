@@ -67,7 +67,7 @@ class ODSClient:
         
         params = {
             "select": "id,title,title_full,url_website,children_id",
-            "where": 'startswith(title_full,"Regierung und Verwaltung")',
+            #"where": 'startswith(title_full,"Regierung und Verwaltung")',
             "order_by": "id",
             "limit": limit,
             "offset": offset
