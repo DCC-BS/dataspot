@@ -649,7 +649,7 @@ class DataspotClient:
         sammlung_data = {
             "_type": "Collection",
             "label": title,
-            "stereotype": "Organisation"
+            "stereotype": "ORGANISATION"
         }
 
         # Add custom properties to sammlung data
