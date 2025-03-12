@@ -16,6 +16,23 @@ from src.dataspot_dataset import Dataset
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
 
+
+# TODO: After the link in ods dataset is fixed, we create it ourselves. Revert after that bugfix.
+def create_url_to_website(path: str) -> str:
+    # It was this before:  url_website = org.get('url_website', '')
+    # Make path string lowercase, and replace ö -> oe, ä -> ae, ü -> ue, space -> '-', and remove trailing slashes
+    new_path = path.lower()
+    new_path = new_path.replace(' ', '-')
+    new_path = new_path.replace('ö', 'oe')
+    new_path = new_path.replace('ä', 'ae')
+    new_path = new_path.replace('ü', 'ue')
+    # Keep only letters a-z and hyphens, remove all other characters
+    new_path = ''.join(c for c in new_path if c.isalpha() or c in '-/')
+    new_path = new_path.replace('--', '-')
+    new_path = new_path.rstrip('/')
+    return f"https://staatskalender.bs.ch/organization/{new_path}"
+
+
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
@@ -1164,13 +1181,27 @@ class DataspotClient:
                     continue
                 
                 org = org_lookup[org_id]
-                
+
                 # Extract organization details
                 title = org.get('title')
                 title_full = org.get('title_full', '')
                 children_ids = org.get('children_id', []) or []
-                url_website = org.get('url_website', '')
-                
+                url_website = create_url_to_website(title_full)
+
+                # Check if url is valid
+                try:
+                    response = requests_get(url_website)
+                    if not response.status_code == 200:
+                        logging.warning(f"Invalid URL for organization '{title}': {url_website}.")
+                        url_website = org.get('url_website', '')
+                        logging.info(f"Invalid URL for organization '{title}', falling back to {url_website}")
+                except Exception as e:
+                    logging.warning(f"Invalid URL for organization '{title}': {url_website}")
+
+                    # Note: We don't check whether the fallback url is valid, because we assume it is.
+                    url_website = org.get('url_website', '')
+                    logging.info(f"Invalid URL for organization '{title}', falling back to {url_website}")
+
                 # Create custom properties for the organization
                 custom_properties = {
                     "ID": org_id,
