@@ -2,6 +2,7 @@ import logging
 
 from dotenv import load_dotenv
 from requests import HTTPError
+from time import sleep
 
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
@@ -464,12 +465,13 @@ class DataspotClient:
                     raise
 
 
-    def dnk_create_new_department(self, name: str) -> None:
+    def dnk_create_new_department(self, name: str, custom_properties: dict = None) -> None:
         """
         Create a new department in the 'Datennutzungskatalog' of Dataspot. If the department already exists, do nothing.
 
         Args:
             name (str): The name of the department.
+            custom_properties (dict): Custom properties to be added to the department.
 
         Returns:
             dict: The created department metadata as returned by the API.
@@ -486,6 +488,10 @@ class DataspotClient:
             "label": name,
             "stereotype": "DEPARTEMENT"
         }
+
+        # Add custom properties to department data
+        if custom_properties:
+            department_data["customProperties"] = custom_properties
 
         # Check if department already exists; skip if it does.
         try:
@@ -509,13 +515,14 @@ class DataspotClient:
                 e.pos
             )
 
-    def dnk_create_new_dienststelle(self, name: str, belongs_to_department: str) -> None:
+    def dnk_create_new_dienststelle(self, name: str, belongs_to_department: str, custom_properties: dict = None) -> None:
         """
         Create a new "dienststelle" in the 'Datennutzungskatalog' in Dataspot under a specific department. If the "dienststelle" already exists, do nothing.
 
         Args:
             name (str): The name of the dienststelle.
             belongs_to_department (str): The title of the parent department.
+            custom_properties (dict): Custom properties to be added to the dienststelle.
 
         Raises:
             HTTPError: If the department doesn't exist or other HTTP errors occur.
@@ -545,6 +552,10 @@ class DataspotClient:
             "stereotype": "DA"
         }
 
+        # Add custom properties to dienststelle data
+        if custom_properties:
+            dienststelle_data["customProperties"] = custom_properties
+
         # Check if dienststelle already exists
         try:
             url_to_check = url_join(endpoint, name)
@@ -568,18 +579,24 @@ class DataspotClient:
                 e.pos
             )
 
-    def dnk_create_new_sammlung(self, title: str, belongs_to_dienststelle: str) -> None:
+    def dnk_create_new_sammlung(self, title: str, belongs_to_dienststelle: str, custom_properties: dict = None) -> None:
         """
         Create a new sammlung in the 'Datennutzungskatalog' in Dataspot under a specific dienststelle. If the sammlung already exists, do nothing.
 
         Args:
             title (str): The title of the sammlung.
             belongs_to_dienststelle (str): The name of the parent dienststelle.
+            custom_properties (dict): Custom properties to be added to the sammlung.
 
         Raises:
             HTTPError: If the dienststelle doesn't exist or other HTTP errors occur.
             json.JSONDecodeError: If the response is not valid JSON.
         """
+        # Sanitize title and parent name - some titles may contain characters that cause issues
+        # with the API endpoint construction
+        title = title.strip()
+        belongs_to_dienststelle = belongs_to_dienststelle.strip()
+        
         # Check if parent dienststelle exists
         dienststelle_path = url_join(
             'rest',
@@ -598,6 +615,7 @@ class DataspotClient:
             logging.debug(f"Retrieved Dienststelle UUID: {dienststelle_uuid}")
         except HTTPError as e:
             if e.response.status_code == 404:
+                logging.error(f"Dienststelle '{belongs_to_dienststelle}' does not exist")
                 raise HTTPError(f"Dienststelle '{belongs_to_dienststelle}' does not seem to exist") from e
             raise e
 
@@ -614,8 +632,12 @@ class DataspotClient:
         sammlung_data = {
             "_type": "Collection",
             "label": title,
-            "stereotype": "BASISSAMMLUNG"
+            "stereotype": "Organisation"
         }
+
+        # Add custom properties to sammlung data
+        if custom_properties:
+            sammlung_data["customProperties"] = custom_properties
 
         # Check if sammlung already exists
         try:
@@ -631,6 +653,21 @@ class DataspotClient:
         try:
             requests_post(endpoint, headers=headers, json=sammlung_data)
             logging.info(f"Sammlung '{title}' created successfully.")
+        except HTTPError as e:
+            logging.error(f"HTTP error creating sammlung '{title}': {str(e)}")
+            if e.response.status_code == 400:
+                # Try to create with a simplified/sanitized title if there's a Bad Request
+                simplified_title = ''.join(c for c in title if c.isalnum() or c.isspace()).strip()
+                if simplified_title and simplified_title != title:
+                    logging.info(f"Attempting to create with simplified title: '{simplified_title}'")
+                    sammlung_data["label"] = simplified_title
+                    try:
+                        requests_post(endpoint, headers=headers, json=sammlung_data)
+                        logging.info(f"Sammlung created with simplified title '{simplified_title}'")
+                        return
+                    except Exception as e2:
+                        logging.error(f"Failed with simplified title too: {str(e2)}")
+            raise
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Failed to decode JSON response from {endpoint}: {str(e)}",
@@ -1061,3 +1098,143 @@ class DataspotClient:
                     return datatype['_links']['self']['href']
                     
             raise ValueError(f"Datatype with name '{type_name}' not found")
+
+    def build_organization_hierarchy_from_ods(self, org_data: dict, root_id: str = "255", cooldown_delay: float = 1.0):
+        """
+        Build organization hierarchy in Dataspot based on organization data from ODS API.
+        
+        This method processes organizations by their path depth (from title_full) to ensure
+        that parent organizations are always created before their children. Within each depth
+        level, it follows a breadth-first approach to process organizations.
+        
+        Args:
+            org_data (dict): Dictionary containing organization data from ODS API
+            root_id (str): ID of the root organization to start building from (default: "255")
+            cooldown_delay (float): Delay in seconds between API calls to prevent overloading the server (default: 1.0)
+            
+        Returns:
+            None
+        
+        Raises:
+            ValueError: If organization data is missing or invalid
+        """
+        if not org_data or 'results' not in org_data:
+            raise ValueError("Invalid organization data format")
+            
+        # Build a lookup dictionary for quick access to organization by ID
+        org_lookup = {org['id']: org for org in org_data['results']}
+        
+        # Keep track of processed organizations to avoid duplicates
+        processed_orgs = set()
+        failed_orgs = set()
+        
+        # Group organizations by their path depth
+        depth_groups = {}
+        for org_id, org in org_lookup.items():
+            title_full = org.get('title_full', '')
+            if not title_full:
+                continue
+                
+            # Determine path depth (number of segments in title_full)
+            path_depth = len(title_full.split('/'))
+            if path_depth not in depth_groups:
+                depth_groups[path_depth] = []
+                
+            depth_groups[path_depth].append(org_id)
+        
+        # Process organizations level by level (starting from the shallowest)
+        for depth in sorted(depth_groups.keys()):
+            logging.info(f"Processing organizations at depth level {depth}")
+            
+            # Use a queue for processing organizations at this depth level
+            from collections import deque
+            queue = deque(depth_groups[depth])
+            
+            while queue:
+                org_id = queue.popleft()
+                
+                # Skip if already processed or failed before
+                if org_id in processed_orgs or org_id in failed_orgs:
+                    continue
+                
+                # Skip if not found in lookup
+                if org_id not in org_lookup:
+                    logging.warning(f"Organization with ID {org_id} not found in data, skipping")
+                    failed_orgs.add(org_id)
+                    continue
+                
+                org = org_lookup[org_id]
+                
+                # Extract organization details
+                title = org.get('title')
+                title_full = org.get('title_full', '')
+                children_ids = org.get('children_id', []) or []
+                url_website = org.get('url_website', '')
+                
+                # Create custom properties for the organization
+                custom_properties = {
+                    "ID": org_id,
+                    "Link_zum_Staatskalender": url_website
+                }
+                
+                # Skip if organization is missing critical data
+                if not title or not title_full:
+                    logging.warning(f"Organization with ID {org_id} has missing data, skipping")
+                    failed_orgs.add(org_id)
+                    continue
+                
+                # Extract the path components from title_full
+                path_components = title_full.split('/')
+                
+                logging.info(f"Processing organization: {title} (ID: {org_id}, Path: {title_full})")
+                
+                try:
+                    # Add cooldown delay before making API calls to create/update the organization
+                    if cooldown_delay > 0:
+                        sleep(cooldown_delay)
+                    
+                    # Determine the type of organization based on its level in the hierarchy
+                    # and create it in Dataspot accordingly
+                    try:
+                        if len(path_components) == 1:
+                            # Top level department
+                            self.dnk_create_new_department(title, custom_properties=custom_properties)
+                        elif len(path_components) == 2:
+                            # Dienststelle (second level)
+                            parent_title = path_components[0]
+                            self.dnk_create_new_dienststelle(title, belongs_to_department=parent_title, custom_properties=custom_properties)
+                        elif len(path_components) == 3:
+                            # Sammlung (third level)
+                            parent_title = path_components[1]
+                            logging.debug(f"Creating sammlung '{title}' under dienststelle '{parent_title}'")
+                            self.dnk_create_new_sammlung(title, belongs_to_dienststelle=parent_title, custom_properties=custom_properties)
+                        elif len(path_components) >= 4:
+                            # Subsammlung (fourth level and beyond)
+                            parent_title = path_components[2]
+                            self.dnk_create_new_sammlung(title, belongs_to_dienststelle=parent_title, custom_properties=custom_properties)
+                    except HTTPError as e:
+                        if e.response.status_code == 400:
+                            logging.error(f"Bad request error creating organization '{title}': {str(e)}")
+                            
+                            # Try a simplified approach - create a top-level department regardless of depth
+                            try:
+                                logging.info(f"Attempting to create '{title}' as a top-level department as fallback")
+                                self.dnk_create_new_department(title, custom_properties=custom_properties)
+                                logging.info(f"Successfully created '{title}' as a top-level department")
+                            except Exception as fallback_e:
+                                logging.error(f"Fallback creation also failed: {str(fallback_e)}")
+                                raise
+                        else:
+                            raise
+                    
+                    # Mark as processed
+                    processed_orgs.add(org_id)
+                    
+                except Exception as e:
+                    logging.error(f"Error processing organization {org_id}: {str(e)}")
+                    failed_orgs.add(org_id)
+        
+        # Log summary statistics
+        logging.info(f"Processed {len(processed_orgs)} organizations successfully")
+        if failed_orgs:
+            logging.warning(f"Failed to process {len(failed_orgs)} organizations")

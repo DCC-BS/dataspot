@@ -46,6 +46,36 @@ class ODSClient:
                 column_data['type'] = 'identifier'
             column_info.append(column_data)
 
-
-
         return column_info
+
+    def get_organization_data(self, limit: int = 100, offset: int = 0) -> dict:
+        """
+        Get organization data from a specific dataset using the Explore API.
+        
+        Args:
+            limit (int): Maximum number of records to return. Defaults to 100.
+            offset (int): Offset to start from. Defaults to 0.
+            
+        Returns:
+            dict: JSON response containing organization data
+            
+        Raises:
+            HTTPError: If the API request fails
+        """
+        # Construct the API URL with query parameters
+        url = f"https://data.bs.ch/api/explore/{self.explore_api_version}/catalog/datasets/100349/records"
+        
+        params = {
+            "select": "id,title,title_full,url_website,children_id",
+            "where": 'startswith(title_full,"Regierung und Verwaltung")',
+            "order_by": "id",
+            "limit": limit,
+            "offset": offset
+        }
+        
+        # Make the request
+        response = ods_utils.requests_get(url=url, params=params)
+        response.raise_for_status()
+        
+        # Return the JSON response
+        return response.json()
