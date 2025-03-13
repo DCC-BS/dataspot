@@ -68,6 +68,90 @@ Dataset:
       cardinality: ONE
        
       literals:
+        001:
+          label: deprecated
+        002:
+          label: deprecated
+        003:
+          label: deprecated
+        004:
+          label: deprecated
+        005:
+          label: deprecated
+        006:
+          label: deprecated
+        007:
+          label: deprecated
+        008:
+          label: deprecated
+        009:
+          label: deprecated
+        010:
+          label: deprecated
+        011:
+          label: deprecated
+        012:
+          label: deprecated
+        013:
+          label: deprecated
+        014:
+          label: deprecated
+        015:
+          label: deprecated
+        016:
+          label: deprecated
+        017:
+          label: deprecated
+        018:
+          label: deprecated
+        019:
+          label: deprecated
+        020:
+          label: deprecated
+        021:
+          label: deprecated
+        022:
+          label: deprecated
+        023:
+          label: deprecated
+        024:
+          label: deprecated
+        025:
+          label: deprecated
+        026:
+          label: deprecated
+        027:
+          label: deprecated
+        028:
+          label: deprecated
+        029:
+          label: deprecated
+        030:
+          label: deprecated
+        031:
+          label: deprecated
+        032:
+          label: deprecated
+        033:
+          label: deprecated
+        034:
+          label: deprecated
+        035:
+          label: deprecated
+        036:
+          label: deprecated
+        037:
+          label: deprecated
+        038:
+          label: deprecated
+        039:
+          label: deprecated
+        040:
+          label: deprecated
+        170:
+          label: deprecated
+        240:
+          label: deprecated
         http://publications.europa.eu/resource/authority/frequency/CONT:
           label: kontinuierlich
           title: Daten werden ohne Unterbrechung laufend aktualisiert
@@ -1044,6 +1128,9 @@ Collection:
         DA:
           label: Dienststelle
           icon: building
+          
+        BASISSAMMLUNG:
+          label: deprecated
 
 #020 - HERKUNFT
 Derivation:
