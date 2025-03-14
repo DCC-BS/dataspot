@@ -529,6 +529,21 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 70
+            LASTPUB:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            PRODFILENAME:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            LAYERNAME:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
             LICENSE:
               label: Lizenz
               title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
@@ -750,6 +765,21 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 70
+            LASTPUB:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            PRODFILENAME:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            LAYERNAME:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
 
 ## CUSTOM PROPERTIES ##
 
@@ -814,6 +844,11 @@ Dataset:
        order: 30
        baseType: DATE
      PD:
+       label: Publikationsdatum
+       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
+       order: 40
+       baseType: DATE
+     PD2:
        label: Publikationsdatum
        title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
        order: 40
