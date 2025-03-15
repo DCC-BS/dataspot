@@ -1166,6 +1166,24 @@ Collection:
           
         BASISSAMMLUNG:
           label: deprecated-BASISSAMMLUNG
+        
+        Organisationseinheit:
+          label: Organisationseinheit
+          icon: building
+          order: 1
+          customProperties:
+            Link_zum_Staatskalender:
+              label: Link zum Staatskalender
+              baseType: STRING
+              title: Link zur Quelle im Staatskalender
+              width: 1
+              order: 1
+            ID:
+              label: ID im Staatskalender
+              baseType: INTEGER
+              title: Die interne ID im Staatskalender
+              width: 1
+              order: 2
 
 #020 - HERKUNFT
 Derivation:
