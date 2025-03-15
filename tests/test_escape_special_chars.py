@@ -37,17 +37,14 @@ class TestEscapeSpecialChars:
         assert escape_special_chars('Projekt "Zeus"') == '"Projekt ""Zeus"""'
         assert escape_special_chars('Codename "Kronos"') == '"Codename ""Kronos"""'
     
-    # Test combined cases from documentation
-    def test_combined_cases(self):
-        assert escape_special_chars('Technische Objekte.ABTEILUNG') == '"Technische Objekte.ABTEILUNG"'
-        assert escape_special_chars('Datei bzw. Schnittstelle.Zeiterfassung') == '"Datei bzw. Schnittstelle.Zeiterfassung"'
-        assert escape_special_chars('Datei bzw. Schnittstelle.Mitarbeiter.csv') == '"Datei bzw. Schnittstelle.Mitarbeiter.csv"'
+    def test_names_from_our_ods(self):
+        assert escape_special_chars('Verkehrsreiche Strassen (50 km/h oder mehr)') == '"Verkehrsreiche Strassen (50 km/h oder mehr)"'
     
     # Test edge cases
     def test_edge_cases(self):
         assert escape_special_chars("") == ""
-        assert escape_special_chars(None) == None
-    
+        assert escape_special_chars(None) is None
+
 
 # This allows running the test file directly
 if __name__ == "__main__":

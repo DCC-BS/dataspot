@@ -64,6 +64,10 @@ def escape_special_chars(name: str) -> str:
     Returns:
         str: The escaped name suitable for use in Dataspot API business keys
     '''
+    
+    if name is None:
+        logging.warning(f"Trying to escape special characters for None")
+
     if not name:
         return name
     
