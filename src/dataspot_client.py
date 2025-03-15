@@ -54,11 +54,11 @@ class DataspotClient:
 
         self.base_url = base_url
         self.auth = DataspotAuth()
-        self.database_name = 'test-api-renato'
+        self.database_name = 'test-staatskalender-struktur'
         self.dnk_scheme_name = 'Datennutzungskatalog'
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.datatype_scheme_name = 'Datentypmodell'
-        self.tdm_scheme_name = url_join('Technische Datenmodelle -  AUFRÄUMEN', 'collections', 'Automatisch generierte ODS-Datenmodelle')
+        self.tdm_scheme_name = url_join('Technische Datenmodelle', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self._datatype_uuid_cache = {}
         self.request_delay = request_delay
     
