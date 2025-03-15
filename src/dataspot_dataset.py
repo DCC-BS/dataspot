@@ -2,7 +2,7 @@ from dataclasses import dataclass, field, fields
 from typing import List, Optional, Dict, Any
 from abc import ABC, abstractmethod
 
-# TODO: Denote somewhere in datasoft that we have timestamps in UTC
+# TODO: Denote somewhere in dataspot that we have timestamps in UTC
 # Field types guide:
 # 1. Final (immutable) fields:
 #    _type: str = field(default="Dataset", init=False)
