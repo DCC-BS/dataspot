@@ -1,0 +1,1 @@
+the _basic_annotations.yml is applied everywhere. The different projects all have their own yml, which is applied after the base annotations. They complement and update the base annotations.

@@ -1,0 +1,4015 @@
+#
+# This file is subject to the terms and conditions defined in
+# file 'LICENSE.txt', which is part of this source code package.
+#
+# !! THIS IS A GENERATED FILE - DO NOT EDIT OR BEAR THE CONSEQUENCES !!
+#
+
+AccessRule:
+  label: Zugriffsregel
+  labelEn: Access rule
+  title: Die zusätzlichen Regeln für den Zugriff auf den Mandanten werden ausgewertet, wenn ein extern authentifizierter Benutzer nicht der Benutzerkennung eines vorhandenen Benutzers zugeordnet werden kann. Die Regeln werden von oben nach unten abgearbeitet. Für jede Regel wird die Bedingung ausgewertet und, falls sie zutrifft, die entsprechende Aktion ausgeführt. Falls nicht, wird mit der Auswertung der nächsten Regel fortgefahren. Falls keine Regel zutrifft, wird der Zugriff abgelehnt.
+  titleEn: The additional rules for the access to the tenant are evaluated if an externally authenticated user cannot be assigned to the login ID of an existing user. The rules are processed from top to bottom. For each rule, if the condition applies, the corresponding action is taken. If not, evaluation continues with the next rule. If no rule applies, the access is denied.
+  ling: s3p3f
+  icon: solid-person-to-door
+  properties:
+    action:
+      label: Aktion
+      labelEn: Action
+      title: Die Aktion, die ausgeführt wird, wenn die Bedingung zutrifft
+      titleEn: The action that is taken if the condition applies
+      literals:
+        DENY:
+          label: Zugriff ablehnen
+          labelEn: Deny access
+          title: Zugriff auf den Mandanten ablehnen
+          titleEn: Deny access to the tenant
+          order: 0
+        ALLOW:
+          label: Gast anmelden
+          labelEn: Guest login
+          title: Als Gast (nur lesend) ohne Benutzer anmelden
+          titleEn: Login as a guest (read-only) without a user
+          order: 1
+        ADMINISTRATOR:
+          label: Administrator
+          labelEn: Administrator
+          title: Benutzer mit Zugriffsstufe *Administrator* anlegen (und zusätzlich eine dazugehörige Person anlegen)
+          titleEn: Create user with access level *Administrator* (and also create an associated person)
+          order: 2
+        EDITOR:
+          label: Editor
+          labelEn: Editor
+          title: Benutzer mit Zugriffsstufe *Editor* anlegen (und zusätzlich eine dazugehörige Person anlegen)
+          titleEn: Create user with access level *Editor* (and also create an associated person)
+          order: 3
+        READ_ONLY:
+          label: Nur lesend
+          labelEn: Read-only
+          title: Benutzer mit Zugriffsstufe *Nur lesend* anlegen (ohne eine dazugehörige Person anzulegen)
+          titleEn: Create user with access level *Read Only* (without creating an associated person)
+          order: 4
+    property:
+      label: Bedingung
+      labelEn: Condition
+      title: Die Bedingung die zutreffen muss, um die Aktion der Regel auszuführen
+      titleEn: The condition that must apply in order to take the action of the rule
+      literals:
+        LOGIN_ID:
+          label: Benutzerkennung
+          labelEn: Login ID
+          title: Die eindeutige Benutzerkennung des Benutzers
+          titleEn: The unique login ID of the user
+          order: 0
+        GROUP_ID:
+          label: Gruppen-ID
+          labelEn: Group ID
+          title: Die Gruppen-ID des Benutzers (wenn der Benutzer mehreren Gruppen zugeordnet ist, werden die Gruppen-IDs einzeln ausgewertet)
+          titleEn: The group ID of the user (if the user is assigned to several groups, the group IDs are evaluated one by one)
+          order: 1
+    operator:
+      label: Operator
+      labelEn: Operator
+      title: Der Operator, der angewendet wird, um die gewählte Eigenschaft zu prüfen
+      titleEn: The operator that is applied to evaluate the selected property
+      literals:
+        IS:
+          label: ist
+          labelEn: is
+          title: Prüft, ob die gewählte Eigenschaft gleich dem definierten Wert ist
+          titleEn: Evaluates if the selected property is equal to the specified value
+          order: 0
+        IS_NOT:
+          label: ist nicht
+          labelEn: is not
+          title: Prüft, ob die gewählte Eigenschaft nicht gleich dem definierten Wert ist
+          titleEn: Evaluates if the selected property is not equal to the specified value
+          order: 1
+        MATCHES:
+          label: entspricht
+          labelEn: matches
+          title: Prüft, ob die gewählte Eigenschaft dem definierten Muster (regulärer Ausdruck) entspricht
+          titleEn: Evaluates if the selected property matches the specified pattern (regular expression)
+          order: 2
+        DOES_NOT_MATCH:
+          label: entspricht nicht
+          labelEn: does not match
+          title: Prüft, ob die gewählte Eigenschaft dem definierten Muster (regulärer Ausdruck) nicht entspricht
+          titleEn: Evaluates if the selected property does not match the specified pattern (regular expression)
+          order: 3
+        CONTAINS:
+          label: enthält
+          labelEn: contains
+          title: Prüft, ob die gewählte Eigenschaft den definierten Wert enthält
+          titleEn: Evaluates if the selected property contains the specified value
+          order: 4
+        DOES_NOT_CONTAIN:
+          label: enthält nicht
+          labelEn: does not contain
+          title: Prüft, ob die gewählte Eigenschaft den definierten Wert nicht enthält
+          titleEn: Evaluates if the selected property does not contain the specified value
+          order: 5
+    value:
+      label: Wert
+      labelEn: Value
+      title: Der Wert oder das Muster mit dem die gewählte Eigenschaft verglichen wird
+      titleEn: The value or pattern with which the selected property is compared
+    comment:
+      label: Kommentar
+      labelEn: Comment
+      title: Die Beschreibung der Zugriffsregel
+      titleEn: The description of the access rule
+
+Activity:
+  extends: Asset
+  label: Aktivität
+  labelEn: Activity
+  title: Eine Aktivität tritt über einen bestimmten Zeitraum auf und verwendet in dieser Zeitspanne andere Assets.
+  titleEn: An activity occurs over a period of time and uses other assets during that time span.
+  ling: s3p3f
+  icon: gear
+
+Agent:
+  extends: Asset
+  label: Agent
+  labelEn: Agent
+  title: Ein Agent ist eine Person, ein Posten, eine Gruppe oder eine Rolle innerhalb einer Organisation.
+  titleEn: An agent is a person, post, group, or role within an organization.
+  ling: s1p3m
+  properties:
+    email:
+      label: E-Mail
+      labelEn: Email
+      title: Die E-Mail-Adresse, unter der die Person, der Posten oder die Gruppe kontaktiert werden kann
+      titleEn: The email address where the person, post, or group can be contacted
+    telephone:
+      label: Telefon
+      labelEn: Telephone
+      title: Die Telefonnummer, unter der die Person, der Posten oder die Gruppe kontaktiert werden kann
+      titleEn: The telephone number where the person, post, or group can be contacted
+    streetAddress:
+      label: Straße
+      labelEn: Street address
+      title: Die Straße und Hausnummer der Adresse von der Person
+      titleEn: The street and street number of the person's address
+    postalCode:
+      label: Postleitzahl
+      labelEn: Postal code
+      title: Die Postleitzahl der Adresse von der Person
+      titleEn: The postal code of the person's address
+    locality:
+      label: Ort
+      labelEn: Locality
+      title: Der Ort der Adresse von der Person
+      titleEn: The locality of the person's address
+    countryName:
+      label: Land
+      labelEn: Country name
+      title: Das Land der Adresse von der Person
+      titleEn: The country of the person's address
+    url:
+      label: Kontaktseite
+      labelEn: Contact page
+      title: Die URL, unter der die Person, der Posten oder die Gruppe kontaktiert werden kann
+      titleEn: The URL where the person, post, or group can be contacted
+    reportsTo:
+      label: berichtet an
+      labelEn: Reports to
+      title: Die Personen, Posten, Gruppen oder Rollen, denen der Agent berichtet
+      titleEn: The persons, posts, groups, or roles to which the agent reports
+      cardinality: MANY
+      baseType: ID
+    holdsPost:
+      label: hat Posten
+      labelEn: Holds post
+      title: Die Posten, die von der Person oder Gruppe gehalten werden
+      titleEn: The posts which are held by the person or group
+      cardinality: MANY
+      baseType: ID
+    agentOf:
+      label: Organisation
+      labelEn: Agent of
+      title: Die Organisation der Person, des Postens, der Gruppe oder der Rolle
+      titleEn: The organization of the person, post, group or role
+      baseType: ID
+    memberOf:
+      label: Mitglied von
+      labelEn: Member of
+      title: Die Gruppen, denen die Person, die Gruppe, der Posten oder die Rolle angehört
+      titleEn: The groups of which the person, group, post, or role is a member
+      cardinality: MANY
+      baseType: ID
+    hasRole:
+      label: hat Rolle
+      labelEn: Has role
+      title: Die Rolle des Postens
+      titleEn: The role of the post
+      baseType: ID
+
+Annotation:
+  label: Annotation
+  labelEn: Annotation
+  title: Mittels Annotationen kann die Applikation konfiguriert und kundenspezifisch angepasst werden. Insbesondere ist es möglich, bestehende Elementtypen und Properties zu verändern sowie beliebig viele neue, kundenspezifische Properties zu definieren.
+  titleEn: Using annotations, the application can be configured and adapted to customer requirements. Existing element types and their properties can be modified and new, customer-specific properties can be added.
+  ling: s3p3f
+  icon: file-code
+  properties:
+    extends:
+      title: Der Name der Annotation, die diese Annotation erweitert
+      titleEn: The name of the annotation that this annotation extends
+    label:
+      title: Der Schlüssel 'label' definiert die Bezeichnung eines Elementtyps, einer Property oder des Wertes einer Liste (literals). Die Bezeichnungen werden in der Benutzeroberfläche (z.B. neben den entsprechenden Eingabefeldern oder als Werte einer Dropdown-Liste) angezeigt sowie beim Upload/Download in Excel und in Reports berücksichtigt.
+      titleEn: The key 'label' defines the label of an element type, a property or the value of a list (literals). The labels are displayed in the user interface (e.g. next to the corresponding input fields or as values in a dropdown list) as well as in the upload/download in Excel and in reports.
+    order:
+      title: Der Schlüssel 'order' definiert die Reihenfolge von Properties oder von Werten einer Liste (literals). Die Reihenfolge wird in der Benutzeroberfläche (z.B. die Anordnung der entsprechenden Eingabefeldern oder der Werte einer Dropdown-Liste) sowie beim Upload/Download in Excel und in Reports berücksichtigt.
+      titleEn: The key 'order' defines the order of properties or values of a list (literals). The order is taken into account in the user interface (e.g. the order of the corresponding input fields or the values in a dropdown list) as well as in the upload/download in Excel and in reports.
+      baseType: INTEGER
+    width:
+      title: Der Schlüssel 'width' definiert die Breite einer Property. Die Breite wird in der Benutzeroberfläche bei der Anordnung der entsprechenden Eingabefelder berücksichtigt.
+      titleEn: The key 'width' defines the width of a property. In the user interface, the width is taken into account when arranging the corresponding input fields.
+      baseType: INTEGER
+    ling:
+      title: Der Schlüssel 'ling' definiert die Deklinationsklasse einer Bezeichnung. Die Deklinationsklasse legt die Bildung des Plurals und die Einordnung in grammatikalische Fälle fest.
+      titleEn: The key 'ling' defines the declension class of a label. The declension determines the formation of the plural and the classification in grammatical cases.
+    icon:
+      title: Der Schlüssel 'icon' definiert das Symbol eines Elementtyps, einer Property oder des Wertes einer Liste (literals). Die Symbole werden in der Benutzeroberfläche (z.B. neben den entsprechenden Eingabefeldern oder neben den Werten einer Dropdown-Liste) angezeigt.
+      titleEn: The key 'icon' defines the icon of an element type, a property or the value of a list (literals). The icons are displayed in the user interface (e.g. next to the corresponding input fields or next to the values in a dropdown list).
+    favorite:
+      title: Der Schlüssel 'favorite' definiert, ob die Annotation als Favorit markiert werden soll
+      titleEn: The key 'favorite' defines if the annotation should be marked as favorite
+      baseType: BOOLEAN
+    mandatory:
+      title: Der Schlüssel 'mandatory' definiert, ob eine kundenspezifische Property verpflichtend ist. Das entsprechende Eingabefeld wird in der Benutzeroberfläche als Pflichtfeld angezeigt, d.h. das Element darf nicht gespeichert werden, solange es leere Pflichtfelder gibt.
+      titleEn: The key 'mandatory' defines whether a customer-specific property is mandatory. In the user interface, the corresponding input field is displayed as a mandatory field, i.e. the element may not be saved as long as there are empty mandatory fields.
+      baseType: BOOLEAN
+    baseType:
+      title: Der Schlüssel 'baseType' definiert den Datentyp einer Property. Der Datentyp legt fest, welche Werte im entsprechenden Eingabefeld in der Benutzeroberfläche eingegeben werden können.
+      titleEn: The key 'baseType' defines the datatype of a property. In the user interface, the datatype determines which values can be entered in the corresponding input field.
+      literals:
+        STRING:
+          label: Zeichenkette
+          labelEn: String
+          order: 0
+        DECIMAL:
+          label: Dezimalzahl
+          labelEn: Decimal
+          order: 1
+        BOOLEAN:
+          label: Wahrheitswert
+          labelEn: Boolean
+          order: 2
+        DATE:
+          label: Datum
+          labelEn: Date
+          order: 3
+        TIME:
+          label: Uhrzeit
+          labelEn: Time
+          order: 4
+        DATETIME:
+          label: Zeitpunkt
+          labelEn: Datetime
+          order: 5
+        DURATION:
+          label: Zeitdauer
+          labelEn: Duration
+          order: 6
+        CODE:
+          label: Code
+          labelEn: Code
+          order: 7
+        INTEGER:
+          label: Ganzzahl
+          labelEn: Integer
+          order: 8
+        TEXT:
+          label: Text
+          labelEn: Text
+          order: 9
+        ID:
+          label: Identifier
+          labelEn: Id
+          order: 10
+        BINARY:
+          label: Binärdaten
+          labelEn: Binary
+          order: 11
+    cardinality:
+      title: Der Schlüssel 'cardinality' definiert die Kardinalität einer Property. Die Kardinalität legt fest, ob die Property einen oder mehrere Werte fassen kann.
+      titleEn: The key 'cardinality' defines the cardinality of a property. The cardinality determines whether a property can hold a single or multiple values.
+      literals:
+        ONE:
+          label: Ein/e
+          labelEn: One
+          order: 0
+        MANY:
+          label: Mehrere
+          labelEn: Many
+          order: 1
+    literals:
+      title: Der Schlüssel 'literals' definiert die Liste von gültigen Werten einer Property. Das entsprechende Eingabefeld wird in der Benutzeroberfläche als Dropdown-Liste angezeigt.
+      titleEn: The key 'literals' defines the list of valid values of a property. In the user interface, the corresponding input field is displayed as a dropdown list.
+      cardinality: MANY
+    properties:
+      title: Der Schlüssel 'properties' definiert eine Liste von geänderten, bestehenden Properties eines Elementtyps. Jede bestehende Property wird mit dem technischen Namen (laut Metamodell) angegeben.
+      titleEn: The key 'properties' defines a list of modified, existing properties of an element type. Each existing property is specified using the technical name (according to the metamodel).
+      cardinality: MANY
+    customProperties:
+      title: Der Schlüssel 'customProperties' definiert eine Liste von neuen, kundenspezifischen Properties eines Elementtyps. Jede neue Property wird mit einem technischen Namen angegeben. Dieser technische Name muss die Property eindeutig identifizieren und darf nicht mit anderen, vorhandenen Properties des Elementtyps kollidieren.
+      titleEn: The key 'customProperties' defines a list of new, customer-specific properties of an element type. Each new property is specified using a technical name. This technical name must uniquely identify the property and may not conflict with other existing properties of the element type.
+      cardinality: MANY
+    customFunctions:
+      title: Der Schlüssel 'customFunctions' definiert eine Liste von kundenspezifischen Funktionen eines Elementtyps. Jede neue Funktion wird mit einem technischen Namen und einem HTTP-Link, auf den verzweigt werden kann, angegeben.
+      titleEn: The key 'customFunctions' defines a list of customer-specific functions of an element type. Each new property is specified using a technical name and an HTTP href that can be linked to.
+      cardinality: MANY
+    labelEn:
+      title: Der Schlüssel 'labelEn' definiert die Bezeichnung auf Englisch.
+      titleEn: The key 'labelEn' defines the label in English.
+    defaultValue:
+      title: Der Schlüssel 'defaultValue' definiert einen Default-Wert für eine Property. Das entsprechende Eingabefeld in der Benutzeroberfläche wird mit dem Default-Wert automatisch befüllt, falls kein Wert eingegeben wird.
+      titleEn: The key 'defaultValue' defines the default value of a property. In the user interface, the corresponding input field is automatically set to the default value, if no value is entered.
+    multiLingual:
+      title: Der Schlüssel 'multiLingual' definiert, ob der Wert in eine andere Sprache übersetzt werden kann.
+      titleEn: The key 'multiLingual' defines if the value can be translated into another language.
+      baseType: BOOLEAN
+    hidden:
+      title: Der Schlüssel 'hidden' definiert die Sichtbarkeit einer Property. Das entsprechende Eingabefeld wird in der Benutzeroberfläche nicht angezeigt. Die Property wird allerdings in den Schnittstellen berücksichtigt.
+      titleEn: The key 'hidden' defines the visibility of a property. In the user interface, the corresponding input field is not displayed. However, the property is read and written in the interfaces.
+      baseType: BOOLEAN
+    readOnly:
+      title: Der Schlüssel 'readOnly' definiert den Schreibschutz einer kundenspezifischen Property. Das entsprechende Eingabefeld wird in der Benutzeroberfläche zwar angezeigt aber es kann nur von einem Benutzer mit der Zugriffsstufe Administrator bearbeitet werden.
+      titleEn: The key 'readOnly' defines whether a customer-specific property is read-only. In the user interface, the corresponding input field is displayed but may only be edited by a user with the access level Administrator.
+      baseType: BOOLEAN
+    groups:
+      title: Die möglichen Gruppen werden zunächst mit dem Schlüssel 'groups' beim Elementtyp definiert. Anschließend können kundenspezifische Properties angelegt werden, die mit dem Schlüssel 'group' auf die zuvor definierten Gruppen verweisen.
+      titleEn: The available groups are first defined with the key 'groups' in the element type. Customer-specific properties can then be specified, referencing the previously defined groups with the key 'group'.
+      cardinality: MANY
+    group:
+      title: Der Schlüssel 'group' definiert die Gruppe einer kundenspezifischen Property. In der Benutzeroberfläche werden die entsprechenden Eingabefelder anhand dieser Gruppen angeordnet.
+      titleEn: The key 'group' defines the group of a customer-specific property. In the user interface, the corresponding input fields are arranged according to these groups.
+    title:
+      title: Der Schlüssel 'title' definiert die Beschreibung eines Elementtyps, einer Property oder des Wertes einer Liste (literals). Die Beschreibungen werden als Tooltipps in der Benutzeroberfläche (z.B. als Mouseover über die entsprechenden Eingabefelder oder Werte einer Dropdown-Liste) eingeblendet.
+      titleEn: The key 'title' defines the description of an element type, a property or the value of a list (literals). The descriptions are displayed as tooltips in the user interface (e.g. mouse over the corresponding input fields or values in a dropdown list).
+    titleEn:
+      title: Der Schlüssel 'titleEn' definiert die Beschreibung auf Englisch.
+      titleEn: The key 'titleEn' defines the description in English.
+    inactive:
+      title: Der Schlüssel 'inactive' definiert, ob die Annotation inaktiv ist.
+      titleEn: The key 'inactive' defines if the annotation is inactive.
+      baseType: BOOLEAN
+    instances:
+      title: Unter dem Schlüssel 'instances' können Instanzen des Metadatenobjekts definiert werden.
+      titleEn: The 'instances' key can be used to define instances of the metadata object.
+      cardinality: MANY
+    href:
+      title: Der Schlüssel 'href' definiert den HTTP-Link für eine benutzerspezifische Funktion, der geöffnet werden soll, wenn die Funktion am UI ausgelöst wird (z.B. durch Klick auf den Menüeintrag).
+      titleEn: The key 'href' defines the HTTP link for a customer-specific function that should be opened when the function is triggered on the UI (e.g. by clicking on the menu item).
+
+Application:
+  extends: Link
+  label: Zuordnung
+  labelEn: Assignment
+  title: Eine Zuordnung ist die Verknüpfung einer Qualitätsmetrik zu einem Asset.
+  titleEn: An assignment is the link of a quality metric to an asset.
+  ling: s3p3f
+  icon: memo-circle-check
+  properties:
+    appliedBy:
+      label: Hat Indikator
+      labelEn: Has Indicator
+      title: Die Metriken, die dem Asset zugeordnet werden können
+      titleEn: The metrics that can be assigned to the asset
+      baseType: ID
+    appliesTo:
+      label: Indikator auf
+      labelEn: Indicator on
+      title: Die Assets, denen die Metrik zugeordnet werden kann
+      titleEn: The assets to which the metric can be assigned
+      baseType: ID
+
+Approval:
+  extends: Ticket
+  label: Freigabe
+  labelEn: Approval
+  title: Ein Freigabe-Ticket mit einer Abstimmung wird automatisch erstellt, wenn für ein Element ein Statusübergang ausgelöst wird und im dahinterliegenden Workflow eine Freigabe für diesen Übergang vorgesehen ist.
+  titleEn: An approval ticket with a vote is automatically created, when a status transition is triggered for an element and the underlying workflow requires an approval for this transition.
+  ling: s3p3f
+  icon: user-check
+  properties:
+    fromStatus:
+      label: Ursprünglicher Status
+      labelEn: Former Status
+      title: Der Status des Assets vor der Freigabe
+      titleEn: The status of the asset before approval
+    toStatus:
+      label: Freigabe für Status
+      labelEn: Approval for Status
+      title: Der Status, auf den das Asset gesetzt werden soll
+      titleEn: The status to which the asset should be set
+    minVotingDate:
+      label: Abstimmung läuft bis
+      labelEn: Voting runs until
+      title: Die Abstimmung läuft mindestens bis zu diesem Zeitpunkt
+      titleEn: The vote runs at least until this point in time
+      baseType: DATETIME
+    maxVotingDate:
+      label: Automatische Freigabe/Ablehnung
+      labelEn: Rejection
+      title: Die Abstimmung endet zu diesem Zeitpunkt
+      titleEn: The vote ends at this point in time
+      baseType: DATETIME
+    approveIfPercent:
+      label: Freigabe bei
+      labelEn: Approve if
+      title: Der Prozentsatz der Personen, die für den Statusübergang stimmen müssen, um ihn freizugeben
+      titleEn: The percentage of persons that are required to vote for the status transition, in order to approve it
+      baseType: DECIMAL
+    approveIfAmount:
+      label: Freigabe wenn
+      labelEn: Approve when
+      title: Die Anzahl der Personen, die für den Statusübergang stimmen müssen, um ihn freizugeben
+      titleEn: The number of persons that are required to vote for the status transition, in order to approve it
+      baseType: INTEGER
+    approveIfOperator:
+      label: Freigabe Operator
+      labelEn: Approval operator
+      title: Der Operator für die Freigabe
+      titleEn: The operator for the approval
+      literals:
+        AND:
+          label: und
+          labelEn: and
+          order: 0
+        OR:
+          label: oder
+          labelEn: or
+          order: 1
+    rejectIfPercent:
+      label: Ablehnung bei
+      labelEn: Reject if
+      title: Der Prozentsatz der Personen, die gegen den Statusübergang stimmen müssen, um ihn abzulehnen
+      titleEn: The percentage of persons that are required to vote against the status transition, in order to reject it
+      baseType: DECIMAL
+    rejectIfAmount:
+      label: Ablehnung wenn
+      labelEn: Reject when
+      title: Die Anzahl der Personen, die gegen den Statusübergang stimmen müssen, um ihn abzulehnen
+      titleEn: The number of persons that are required to vote against the status transition, in order to reject it
+      baseType: INTEGER
+    rejectIfOperator:
+      label: Ablehnung Operator
+      labelEn: Rejection operator
+      title: Der Operator für die Ablehnung
+      titleEn: The operator for the rejection
+      literals:
+        AND:
+          label: und
+          labelEn: and
+          order: 0
+        OR:
+          label: oder
+          labelEn: or
+          order: 1
+    defaultAction:
+      label: Automatische Aktion
+      labelEn: Automatic Action
+      title: Die Aktion, die ausgeführt werden soll, wenn die Abstimmung ohne eindeutiges Ergebnis endet
+      titleEn: The default action to be taken, if the vote ends without an unambiguous result
+      literals:
+        YES:
+          label: Ja
+          labelEn: Yes
+          icon: solid-thumbs-up
+          order: 0
+        NO:
+          label: Nein
+          labelEn: No
+          icon: solid-thumbs-down
+          order: 1
+        APPROVE:
+          label: Sofort freigeben
+          labelEn: Approve Instantly
+          icon: solid-circle-check
+          order: 2
+        REJECT:
+          label: Sofort ablehnen
+          labelEn: Reject Instantly
+          icon: solid-circle-x
+          order: 3
+
+Asset:
+  extends: Resource
+  label: Asset
+  labelEn: Asset
+  title: Ein Asset ist ein Metadatenobjekt.
+  titleEn: An asset is a metadata object.
+  ling: s1p5n
+  icon: money-check-dollar
+  properties:
+    href:
+      label: Link
+      labelEn: Href
+      title: Der Link in der Benutzeroberfläche zum Asset
+      titleEn: The link in the user interface to the asset
+    description:
+      label: Beschreibung
+      labelEn: Description
+      title: Die detaillierte, formatierte Beschreibung
+      titleEn: The detailed, formatted description
+      baseType: TEXT
+    synonyms:
+      label: Synonyme
+      labelEn: Synonyms
+      title: Die Liste von Synonymen und alternativen Bezeichnungen
+      titleEn: The list of synonyms and alternative labels
+      cardinality: MANY
+    examples:
+      label: Beispiele
+      labelEn: Examples
+      title: Die Liste von Beispielen und Mustern
+      titleEn: The list of examples and patterns
+      cardinality: MANY
+    label:
+      label: Bezeichnung
+      labelEn: Label
+      title: Der fachliche Schlüssel
+      titleEn: The business key
+    title:
+      label: Titel
+      labelEn: Title
+      title: Die kurze Beschreibung
+      titleEn: The brief description
+    favorite:
+      label: Favorit
+      labelEn: Favorite
+      title: Das Kennzeichen, das angibt, ob das Asset als Favorit markiert ist
+      titleEn: The flag that indicates if the asset is marked as favorite
+      baseType: BOOLEAN
+    status:
+      label: Status
+      labelEn: Status
+      title: Der Status des Workflows
+      titleEn: The workflow status
+    identifier:
+      label: Identifikation
+      labelEn: Identifier
+      title: Der externe Bezeichner des Assets
+      titleEn: The external identifier of the asset
+    order:
+      label: Nr
+      labelEn: Nr
+      title: Die Ordnungszahl, die für die sortierte Anzeige von Assets innerhalb ihrer übergeordneten Assets verwendet wird
+      titleEn: The ordinal number used for the sorted display of assets within their parent assets
+      baseType: INTEGER
+    validFrom:
+      label: Gültig von
+      labelEn: Valid from
+      title: Der Beginn des gültigen Zeitraums
+      titleEn: The start of the validity period
+      baseType: DATE
+    validTo:
+      label: Gültig bis
+      labelEn: Valid to
+      title: Das Ende des gültigen Zeitraums
+      titleEn: The end of the validity period
+      baseType: DATE
+    locked:
+      label: Gesperrt
+      labelEn: Locked
+      title: Das Kennzeichen, das angibt, ob das Asset gesperrt ist, d.h. der fachliche Schlüssel kann nicht mehr geändert werden
+      titleEn: The flag that indicates if the asset is locked, i.e the business key cannot be modified
+      baseType: BOOLEAN
+    tags:
+      label: Schlagworte
+      labelEn: Tags
+      title: Die Liste von Schlagwörtern
+      titleEn: The list of tags
+      cardinality: MANY
+    stereotype:
+      title: Der Stereotyp in den kundenspezifischen Annotationen
+      titleEn: The stereotype defined in the customer-specific annotations
+    physicalName:
+      label: Physischer Name
+      labelEn: Physical name
+      title: Der physische oder technische Name
+      titleEn: The physical or technical name
+    readOnly:
+      label: Schreibgeschützt
+      labelEn: Read-only
+      title: Das Kennzeichen, das angibt, ob das Asset schreibgeschützt ist, d.h. weder das Asset noch seine untergeordneten Assets können bearbeitet werden
+      titleEn: The flag that indicates if the asset is write-protected, i.e. neither the asset nor its subordinate assets can be modified
+      baseType: BOOLEAN
+    modelId:
+      label: Modell
+      labelEn: Model
+      title: Der technische Schlüssel des Modells
+      titleEn: The unique identifier of the model
+      baseType: ID
+    customProperties:
+      label: Weitere Eigenschaften
+      labelEn: More properties
+      title: Die kundenspezifischen Eigenschaften
+      titleEn: The customer-specific properties
+    timeSeries:
+      label: Zeitreihe
+      labelEn: Time series
+      title: Die Zeitreihe die angibt, welche Werte zu welchen Zeitpunkten gültig sind
+      titleEn: The time series that determines which values are valid at which points in time
+    publicState:
+      label: Veröffentlichkeitsstatus
+      labelEn: Publication state
+      title: Der Veröffentlichkeitsstatus des Assets
+      titleEn: The publication state of the asset
+      literals:
+        DRAFT:
+          label: Entwurf
+          labelEn: Draft
+          order: 0
+        NOT_PUBLIC:
+          label: Nicht öffentlich
+          labelEn: Not Public
+          order: 1
+        PUBLIC:
+          label: Öffentlich
+          labelEn: Public
+          order: 2
+        DRAFT_PUBLIC:
+          label: Öffentlich
+          labelEn: Draft Public
+          order: 3
+    inCollection:
+      label: Sammlung
+      labelEn: Collection
+      title: Die Sammlung, die dieses Asset enthält
+      titleEn: The collection that contains this asset
+      baseType: ID
+
+Association:
+  extends: Feature
+  label: Assoziation
+  labelEn: Association
+  title: Eine Beziehung ist eine Verknüpfung zwischen zwei Objekten (bzw. deren jeweiligen Attributen).
+  titleEn: A relationship is a link between two objects (or their respective attributes).
+  ling: s3p3f
+  icon: circle-location-arrow
+  properties:
+    name:
+      label: Name
+      labelEn: Name
+      title: Der Name der Beziehung in Richtung der Beziehung
+      titleEn: The name of the relationship in the direction of the association
+    onDelete:
+      label: Beim Löschen eines Objekts
+      labelEn: On delete of an object
+      title: Die referenzielle Aktion, die beim Löschen eines Objekts ausgelöst werden soll
+      titleEn: The referential action to be taken if the an object is deleted
+      literals:
+        CASCADE:
+          label: Anderes Objekt ebenfalls löschen/ändern
+          labelEn: Delete/update the other object
+          title: Die Objekte am anderen Ende sollen ebenfalls gelöscht bzw. geändert werden
+          titleEn: The objects at the other end should also be deleted or updated
+          order: 0
+        RESTRICT:
+          label: Löschung/Änderung verhindern
+          labelEn: Prevent delete/update
+          title: Löschen soll verhindert werden, wenn noch Objekte am anderen Ende existieren
+          titleEn: Deletion should be prevented if objects still exist at the other end
+          order: 1
+        SET_NULL:
+          label: Beziehung auflösen
+          labelEn: Remove relationship
+          title: Die Beziehung zwischen den Objekten soll aufgelöst werden
+          titleEn: The relationship between the objects should be removed
+          order: 2
+    onUpdate:
+      label: Beim Ändern eines Objekts
+      labelEn: On update of an object
+      title: Die referenzielle Aktion, die beim Ändern des Schlüssels des anderen Objekts ausgelöst wird
+      titleEn: The referential action to be taken if the primary key of an object is updated
+      literals:
+        CASCADE:
+          label: Anderes Objekt ebenfalls löschen/ändern
+          labelEn: Delete/update the other object
+          title: Die Objekte am anderen Ende sollen ebenfalls gelöscht bzw. geändert werden
+          titleEn: The objects at the other end should also be deleted or updated
+          order: 0
+        RESTRICT:
+          label: Löschung/Änderung verhindern
+          labelEn: Prevent delete/update
+          title: Löschen soll verhindert werden, wenn noch Objekte am anderen Ende existieren
+          titleEn: Deletion should be prevented if objects still exist at the other end
+          order: 1
+        SET_NULL:
+          label: Beziehung auflösen
+          labelEn: Remove relationship
+          title: Die Beziehung zwischen den Objekten soll aufgelöst werden
+          titleEn: The relationship between the objects should be removed
+          order: 2
+    domainMultiplicity:
+      label: Kardinalität 1. Objekt
+      labelEn: Cardinality 1st object
+      title: Die Kardinalität am Beziehungsende des ersten Objekts, die die zulässige Anzahl an Instanzen festlegt
+      titleEn: The cardinality of the first object that indicates the number of allowed instances
+      literals:
+        0..1:
+          label: Kein oder ein [0..1]
+          labelEn: Zero or one [0..1]
+          title: Es kann entweder keine oder eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There can be either one instance or no instance at the end of the association
+          order: 0
+        1:
+          label: Genau ein [1]
+          labelEn: Exactly one [1]
+          title: Es muss genau eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There is exactly one instance at the end of the association
+          order: 1
+        0..*:
+          label: Kein oder mehrere [*]
+          labelEn: Zero or many [*]
+          title: Es kann entweder keine oder mehrere Instanzen des Objekts am Ende der Beziehung geben
+          titleEn: There can be zero or many instances at the end of the association
+          order: 2
+        1..*:
+          label: Ein oder mehrere [1..*]
+          labelEn: One or many [1..*]
+          title: Es muss mindestens eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There must be at least one instance at the end of the association
+          order: 3
+    rangeMultiplicity:
+      label: Kardinalität 2. Objekt
+      labelEn: Cardinality 2nd object
+      title: Die Kardinalität am Beziehungsende des zweiten Objekts, die die zulässige Anzahl an Instanzen festlegt
+      titleEn: The cardinality of the second object that indicates the number of allowed instances
+      literals:
+        0..1:
+          label: Kein oder ein [0..1]
+          labelEn: Zero or one [0..1]
+          title: Es kann entweder keine oder eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There can be either one instance or no instance at the end of the association
+          order: 0
+        1:
+          label: Genau ein [1]
+          labelEn: Exactly one [1]
+          title: Es muss genau eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There is exactly one instance at the end of the association
+          order: 1
+        0..*:
+          label: Kein oder mehrere [*]
+          labelEn: Zero or many [*]
+          title: Es kann entweder keine oder mehrere Instanzen des Objekts am Ende der Beziehung geben
+          titleEn: There can be zero or many instances at the end of the association
+          order: 2
+        1..*:
+          label: Ein oder mehrere [1..*]
+          labelEn: One or many [1..*]
+          title: Es muss mindestens eine Instanz des Objekts am Ende der Beziehung geben
+          titleEn: There must be at least one instance at the end of the association
+          order: 3
+    domainAggregation:
+      label: Aggregation 1. Objekt
+      labelEn: Aggregation 1st object
+      title: Die Aggregation der Beziehungsverbindung am ersten Ende
+      titleEn: The kind of the aggregation on the first end of the relationship
+      literals:
+        SHARED:
+          label: Geteilte Aggregation
+          labelEn: Shared Aggregation
+          title: Gibt an, dass das Objekt am anderen Ende ein Teil dieses Objekts ist, aber unabhängig von diesem Objekt existieren kann
+          titleEn: Indicates that the object on the other end is a part of this object but can exist independently of this object
+          order: 0
+        COMPOSITE:
+          label: Komposition (Bestandteil)
+          labelEn: Composition
+          title: Gibt an, dass das Objekt am anderen Ende ein Teil dieses Objekts ist, dessen Lebenszyklus aber an die Existenz von diesem Objekt gebunden ist
+          titleEn: Indicates that the object on the other end is a part of this object and its lifecycle is tied to this object
+          order: 1
+    rangeAggregation:
+      label: Aggregation 2. Objekt
+      labelEn: Aggregation 2nd object
+      title: Die Aggregation der Beziehungsverbindung am zweiten Ende
+      titleEn: The kind of the aggregation on the second end of the relationship
+      literals:
+        SHARED:
+          label: Geteilte Aggregation
+          labelEn: Shared Aggregation
+          title: Gibt an, dass das Objekt am anderen Ende ein Teil dieses Objekts ist, aber unabhängig von diesem Objekt existieren kann
+          titleEn: Indicates that the object on the other end is a part of this object but can exist independently of this object
+          order: 0
+        COMPOSITE:
+          label: Komposition (Bestandteil)
+          labelEn: Composition
+          title: Gibt an, dass das Objekt am anderen Ende ein Teil dieses Objekts ist, dessen Lebenszyklus aber an die Existenz von diesem Objekt gebunden ist
+          titleEn: Indicates that the object on the other end is a part of this object and its lifecycle is tied to this object
+          order: 1
+    domainRole:
+      label: Rolle 1. Objekt
+      labelEn: Role 1st object
+      title: Ein beschreibender Name für die Rolle, die das erste Objekt in der Beziehung spielt
+      titleEn: A descriptive name for the role that the first object plays in the relationship
+    rangeRole:
+      label: Rolle 2. Objekt
+      labelEn: Role 2nd object
+      title: Ein beschreibender Name für die Rolle, die das zweite Objekt in der Beziehung spielt
+      titleEn: A descriptive name for the role that the second object plays in the relationship
+    required:
+      label: Muss/Kann
+      labelEn: Required
+      title: Gibt an, ob die Beziehung erforderlich ist
+      titleEn: Indicates if the relationship is required
+      deprecated: true
+      literals:
+        OPTIONAL:
+          label: Kann
+          labelEn: Optional
+          order: 0
+        MANDATORY:
+          label: Muss
+          labelEn: Mandatory
+          order: 1
+    cardinality:
+      label: Kardinalität
+      labelEn: Cardinality
+      title: Die Kardinalität der Beziehung
+      titleEn: The cardinality of the relationship
+      deprecated: true
+      literals:
+        ONE:
+          label: Ein/e
+          labelEn: One
+          order: 0
+        MANY:
+          label: Mehrere
+          labelEn: Many
+          order: 1
+    navigable:
+      label: Beziehungsrichtung
+      labelEn: Association direction
+      title: Legt die Richtung der Navigation der Beziehung zwischen den beiden Objekten fest
+      titleEn: Defines the direction of navigation of the association between the two objects
+      literals:
+        RANGE:
+          label: 1. Objekt zu 2. Objekt
+          labelEn: 1st object to 2nd object
+          title: Die Beziehung ist navigierbar vom ersten zum zweiten Objekt
+          titleEn: The association is navigable from the first to the second object
+          order: 0
+        DOMAIN:
+          label: 2. Objekt zu 1.Objekt
+          labelEn: 2nd object to 1st object
+          title: Die Beziehung ist navigierbar vom zweiten zum ersten Objekt
+          titleEn: The association is navigable from the second to the first object
+          order: 1
+        BOTH:
+          label: Wechselseitig
+          labelEn: Bidirectional
+          title: Die Beziehung verläuft sowohl vom ersten zum zweiten Objekt als auch umgekehrt
+          titleEn: The association direction is defined both from the first to the second object and vice versa
+          order: 2
+        NONE:
+          label: Ohne Beziehungsrichtung
+          labelEn: Undirected
+          title: Die Beziehungsrichtung zwischen den beiden Objekten ist nicht definiert
+          titleEn: The association direction between the two objects is not defined
+          order: 3
+    inverseName:
+      label: Umgekehrter Name
+      labelEn: Reversed name
+      title: Der Name der Beziehung gegen die Beziehungsrichtung
+      titleEn: The name of the relationship in the opposite association direction
+    linksDomain:
+      label: Attribute 1. Objekt
+      labelEn: Attributes 1st object
+      title: Die optionale Liste an Attributen des ersten Objekts, die das andere Objekt identifizieren
+      titleEn: The optional list of attributes of the first object that can be used to identify the other object
+      cardinality: MANY
+      baseType: ID
+    linksRange:
+      label: Attribute 2. Objekt
+      labelEn: Attributes 2nd object
+      title: Die optionale Liste an Attributen des zweiten Objekts, die das andere Objekt identifizieren
+      titleEn: The optional list of attributes of the second object that can be used to identify the other object
+      cardinality: MANY
+      baseType: ID
+
+Attribute:
+  extends: Feature
+  label: Attribut
+  labelEn: Attribute
+  title: Ein Attribut ist eine Eigenschaft eines Objekts und kann durch einen Wertebereich eingeschränkt werden.
+  titleEn: An attribute represents a property of an object and may be restricted by a range.
+  ling: s1p1n
+  icon: tag
+  properties:
+    required:
+      label: Muss/Kann
+      labelEn: Required
+      title: Gibt an, ob das Attribut erforderlich ist
+      titleEn: Indicates if the attribute is required
+      literals:
+        OPTIONAL:
+          label: Kann
+          labelEn: Optional
+          order: 0
+        MANDATORY:
+          label: Muss
+          labelEn: Mandatory
+          order: 1
+    cardinality:
+      label: Kardinalität
+      labelEn: Cardinality
+      title: Die Kardinalität des Attributs
+      titleEn: The cardinality of the attribute
+      literals:
+        ONE:
+          label: Ein/e
+          labelEn: One
+          order: 0
+        MANY:
+          label: Mehrere
+          labelEn: Many
+          order: 1
+
+Attribution:
+  extends: Link
+  label: Verantwortung
+  labelEn: Attribution
+  title: Personen, Gruppen und Posten in bestimmten Rollen können für ein Asset sowie für alle untergeordneten Assets verantwortlich sein.
+  titleEn: Persons, groups, and posts in specific roles can be responsible for an asset as well as all subordinate assets.
+  ling: s3p3f
+  icon: address-card
+  properties:
+    attributedAs:
+      label: Rolle
+      labelEn: Role
+      title: Die Rolle, in der die Person, die Gruppe oder der Posten für das Asset verantwortlich ist
+      titleEn: The role in which the person, group, or post is responsible for the asset
+      baseType: ID
+    attributionFor:
+      label: Verantwortlich für
+      labelEn: Responsible for
+      title: Die Assets, für die die Person, die Gruppe oder der Posten verantwortlich ist
+      titleEn: The assets for which the person, group, or post is responsible
+      baseType: ID
+    attributedTo:
+      label: Verantwortlich
+      labelEn: Responsible
+      title: Die Personen, Gruppen und Posten, die für das Asset verantwortlich sind
+      titleEn: The persons, groups, and posts responsible for the asset
+      baseType: ID
+
+BusinessAttribute:
+  extends: Attribute
+  label: Attribut
+  labelEn: Business attribute
+  title: Ein Attribut ist eine Eigenschaft eines Geschäftsobjekts und kann durch einen Wertebereich (als Referenzobjekt, fachlicher Datentyp oder Geschäftsobjekt) eingeschränkt werden.
+  titleEn: An attribute represents a property of a business object and may be restricted by a range (in terms of a reference object, a data domain, or a business object).
+  ling: s1p1n
+  properties:
+    dataProtectionCategory:
+      label: Datenschutzkategorie
+      labelEn: Data protection category
+      title: Die Kategorie, die sensible personenbezogene Daten beschreibt
+      titleEn: The category describing sensitive personal data
+      icon: user-secret
+
+BusinessConstraint:
+  extends: Constraint
+  label: Fachliche Bedingung
+  labelEn: Business constraint
+  title: Fachliche Bedingungen sind Konditionen und Einschränkungen für die Anlage oder Nutzung von fachlichen Metadaten.
+  titleEn: Business constraints are conditions and restrictions on the creation or use of business metadata.
+  ling: s3p3f
+
+BusinessDataModel:
+  extends: Scheme
+  label: Geschäftsobjektmodell
+  labelEn: Business data model
+  title: Das Geschäftsobjektmodell (Fachdatenmodell) bildet die fachliche Ansicht der Daten ab.
+  titleEn: The business data model represents the business view of data.
+  ling: s1p1n
+  icon: database
+
+BusinessObject:
+  extends: Classifier
+  label: Geschäftsobjekt
+  labelEn: Business object
+  title: Relevante Unternehmensdaten werden fachlich als Geschäftsobjekte beschrieben und in Geschäftsobjektmodellen (auch bekannt als Fachdatenmodelle) abgebildet. Geschäftsobjekte enthalten Attribute sowie Beziehungen zu anderen Geschäftsobjekten.
+  titleEn: Relevant enterprise data is described in terms of business objects and is organized in business data models. Business objects contain attributes as well as relationships to other business objects.
+  ling: s1p1n
+  properties:
+    ling:
+      label: Deklinationsklasse
+      labelEn: Ling
+      title: Die deutsche Deklinationsklasse
+      titleEn: The german declension class
+    dataProtectionCategory:
+      label: Datenschutzkategorie
+      labelEn: Data protection category
+      title: Die Kategorie, die sensible personenbezogene Daten beschreibt
+      titleEn: The category describing sensitive personal data
+      icon: user-secret
+
+Classifier:
+  extends: Type
+  label: Klasse
+  labelEn: Classifier
+  title: Klassen sind Assets, die Attribute sowie Beziehungen zu anderen Assets enthalten.
+  titleEn: Classifiers are assets that contain attributes as well as relationships to other assets.
+  ling: s3p3f
+  icon: hockey-puck
+
+Collection:
+  extends: Asset
+  label: Sammlung
+  labelEn: Collection
+  title: Sammlungen dienen der Strukturierung von Elementen innerhalb der Modelle und können als mehrstufige Hierarchien von Sammlungen und Subsammlungen angelegt werden.
+  titleEn: Collections are used to structure the elements within the models and can be created as multi-level hierarchies of collections and subcollections.
+  ling: s3p3f
+  icon: box-archive
+  properties:
+    inScheme:
+      label: Modell
+      labelEn: Model
+      title: Das Modell, das diese Sammlung enthält
+      titleEn: The model that contains this collection
+      baseType: ID
+
+Comment:
+  extends: Resource
+  label: Kommentar
+  labelEn: Comment
+  title: Benutzer können Kommentare zu Tickets erfassen oder auf bestehende Kommentare antworten.
+  titleEn: Users can comment on tickets or reply to existing comments.
+  ling: s1p1m
+  icon: comments
+  properties:
+    message:
+      label: Nachricht
+      labelEn: Message
+      title: Die Nachricht des Kommentars
+      titleEn: The message of the comment
+    commentType:
+      label: Kommentartyp
+      labelEn: Comment type
+      title: Der Typ des Kommentars
+      titleEn: The type of the comment
+      literals:
+        COMMENT:
+          label: Kommentar
+          labelEn: Comment
+          order: 0
+        REACTION:
+          label: Reaktion
+          labelEn: Reaction
+          order: 1
+    replyTo:
+      label: Antwort auf
+      labelEn: Reply to
+      title: Der Kommentar, auf den dieser Kommentar eine Antwort ist
+      titleEn: The comment to which this comment is a reply
+      baseType: ID
+    commentOn:
+      label: Kommentar zu
+      labelEn: Comment on
+      title: Das Ticket, das den Kommentar enthält
+      titleEn: The ticket that contains the comment
+      baseType: ID
+
+Composition:
+  extends: Entity
+  label: Bestandteil
+  labelEn: Component
+  title: Datensets bestehen aus Bestandteilen wie Attributen, Beziehungen, Kennzahlen, Dimensionen und Indikatoren.
+  titleEn: Datasets are composed of components such as attributes, relationships, measures, dimensions, and indicators.
+  ling: s1p1m
+  icon: game-board-simple
+  properties:
+    name:
+      label: Name
+      labelEn: Name
+      title: Der alternative Name für den Bestandteil
+      titleEn: The alternative name for the component
+      deprecated: true
+    qualifier:
+      label: Kennzeichnung
+      labelEn: Qualifier
+      title: Die zusätzliche Kennzeichnung, die den Bestandteil charakterisiert
+      titleEn: The additional qualifier characterizing the component
+    componentOf:
+      label: Bestandteil von
+      labelEn: Component of
+      title: Die Datensets, die den Bestandteil enthalten
+      titleEn: The datasets that contain the component
+      baseType: ID
+    composedOf:
+      label: Besteht aus
+      labelEn: Composed of
+      title: Die Bestandteile des Datensets
+      titleEn: The components of the dataset
+      baseType: ID
+
+Configuration:
+  extends: Resource
+  label: Konfiguration
+  labelEn: Configuration
+  title: Die Konfiguration enthält systemweite Eigenschaften der Datenbank.
+  titleEn: The configuration contains system-wide properties of the database.
+  ling: s3p3f
+  icon: solid-screwdriver-wrench
+  properties:
+    version:
+      label: Datenbank-Version
+      labelEn: Version
+      title: Die fortlaufende Versionsnummer
+      titleEn: The sequential version number
+      baseType: INTEGER
+    description:
+      label: Kommentar
+      labelEn: Description
+      title: Die kurze Beschreibung der Datenbank
+      titleEn: The brief description of the database
+
+Constraint:
+  extends: Metric
+  label: Bedingung
+  labelEn: Constraint
+  title: Bedingungen sind Konditionen und Einschränkungen für die Anlage oder Nutzung von Metadaten.
+  titleEn: Constraints are conditions and restrictions on the creation or use of metadata.
+  ling: s3p3f
+  icon: rectangle-code
+  properties:
+    constraintOn:
+      label: Bedingung auf
+      labelEn: Constraint on
+      title: Das Asset, das durch die Bedingung eingeschränkt wird
+      titleEn: The asset that is restricted by the constraint
+      baseType: ID
+
+DataAttribute:
+  extends: Attribute
+  label: Attribut
+  labelEn: Attribute
+  title: Ein Datenattribut ist eine Eigenschaft eines Datentyps und kann durch einen Wertebereich (als Referenzobjekt oder fachlicher Datentyp) eingeschränkt werden.
+  titleEn: A data attribute represents a property of a data domain and may be restricted by a range (in terms of a reference object or a data domain).
+  ling: s1p1n
+  icon: diamond-half-stroke
+
+DataCatalog:
+  extends: Scheme
+  label: Datenkatalog
+  labelEn: Data catalog
+  title: Der Datenkatalog beschreibt die Nutzung und Verteilung der Daten.
+  titleEn: The data catalog describes the usage and distribution of data.
+  ling: s1p1m
+  icon: gem
+
+DataDomain:
+  extends: Datatype
+  label: Datentyp
+  labelEn: Data domain
+  title: Fachliche Datentypen definieren die gültigen Wertebereiche und Typen der fachlichen Elemente.
+  titleEn: Data domains define the valid ranges and types of business elements.
+  ling: s1p3m
+
+DataDomainModel:
+  extends: Scheme
+  label: Datentypmodell
+  labelEn: Data domain model
+  title: Das Datentypmodell beschreibt die fachlichen Datentypen, die in den Geschäftsobjektmodellen verwendet werden.
+  titleEn: The data domain model describes the domain-specific data types used in the business data models.
+  ling: s1p1n
+  icon: cubes
+
+Dataset:
+  extends: Entity
+  label: Datenset
+  labelEn: Dataset
+  title: Datensets stellen die Nutzungen der Daten im Unternehmen dar und zeigen den Inhalt und Zweck einer spezifischen Datennutzung auf. Datennutzungen können im Rahmen von Schnittstellen, Reports, Dashboards, Data Marts usw. zur Anwendung kommen.
+  titleEn: Datasets represent the uses of data in the enterprise and show the content and purpose of a specific data use. Data uses can be applied in the context of interfaces, reports, dashboards, data marts, etc.
+  ling: s1p5n
+  icon: table-list
+  properties:
+    accrualPeriodicity:
+      label: Aktualisierungszyklus
+      labelEn: Accrual periodicity
+      title: Die Häufigkeit, mit der das Datenset veröffentlicht wird
+      titleEn: The frequency at which the dataset is published
+    spatial:
+      label: Geographische Dimension
+      labelEn: Spatial
+      title: Das abgedeckte geographische Gebiet
+      titleEn: The geographical area covered
+    temporalStart:
+      label: Zeitliche Dimension - Beginn
+      labelEn: Temporal start
+      title: Der Beginn der zeitlichen Periode
+      titleEn: The start of the temporal period
+      baseType: DATE
+    temporalEnd:
+      label: Zeitliche Dimension - Ende
+      labelEn: Temporal end
+      title: Das Ende der zeitlichen Periode
+      titleEn: The end of the temporal period
+      baseType: DATE
+    subsetOf:
+      label: Subset von
+      labelEn: Subset of
+      title: Das Datenset, von dem dieses Datenset ein Subdatenset ist
+      titleEn: The dataset of which this dataset is a subdataset
+      baseType: ID
+
+Datatype:
+  extends: Type
+  label: Datentyp
+  labelEn: Datatype
+  title: Datentypen definieren die gültigen Wertebereiche und Typen der Elemente.
+  titleEn: Datatypes define the valid ranges and types of elements.
+  ling: s1p3m
+  icon: dice-d6
+  properties:
+    baseType:
+      label: Basisdatentyp
+      labelEn: Base type
+      title: Der zugrunde liegende Basisdatentyp
+      titleEn: The underlying base data type
+      literals:
+        STRING:
+          label: Zeichenkette
+          labelEn: String
+          order: 0
+        DECIMAL:
+          label: Dezimalzahl
+          labelEn: Decimal
+          order: 1
+        BOOLEAN:
+          label: Wahrheitswert
+          labelEn: Boolean
+          order: 2
+        DATE:
+          label: Datum
+          labelEn: Date
+          order: 3
+        TIME:
+          label: Uhrzeit
+          labelEn: Time
+          order: 4
+        DATETIME:
+          label: Zeitpunkt
+          labelEn: Datetime
+          order: 5
+        DURATION:
+          label: Zeitdauer
+          labelEn: Duration
+          order: 6
+        CODE:
+          label: Code
+          labelEn: Code
+          order: 7
+        INTEGER:
+          label: Ganzzahl
+          labelEn: Integer
+          order: 8
+        TEXT:
+          label: Text
+          labelEn: Text
+          order: 9
+        ID:
+          label: Identifier
+          labelEn: Id
+          order: 10
+        BINARY:
+          label: Binärdaten
+          labelEn: Binary
+          order: 11
+    minInclusive:
+      label: Minimalwert (inkl.)
+      labelEn: Min inclusive
+      title: Der minimale Wert (inklusiv) des Datentyps
+      titleEn: The minimum value (inclusive) of the datatype
+      baseType: DECIMAL
+    maxInclusive:
+      label: Maximalwert (inkl.)
+      labelEn: Max inclusive
+      title: Der maximale Wert (inklusiv) des Datentyps
+      titleEn: The maximum value (inclusive) of the datatype
+      baseType: DECIMAL
+    minExclusive:
+      label: Minimalwert (exkl.)
+      labelEn: Min exclusive
+      title: Der minimale Wert (exklusiv) des Datentyps
+      titleEn: The minimum value (exclusive) of the datatype
+      baseType: DECIMAL
+    maxExclusive:
+      label: Maximalwert (exkl.)
+      labelEn: Max exclusive
+      title: Der maximale Wert (exklusiv) des Datentyps
+      titleEn: The maximum value (exclusive) of the datatype
+      baseType: DECIMAL
+    integerDigits:
+      label: Ganzzahlige Stellen
+      labelEn: Integer Places
+      title: Die Anzahl der ganzzahligen Stellen des Datentyps
+      titleEn: The number of integer places of the datatype
+      baseType: INTEGER
+    fractionDigits:
+      label: Dezimalstellen
+      labelEn: Decimal Places
+      title: Die Anzahl der Dezimalstellen des Datentyps
+      titleEn: The number of decimal places of the datatype
+      baseType: INTEGER
+    minLength:
+      label: Mindestens Zeichen
+      labelEn: Min length
+      title: Die minimale Anzahl von Zeichen des Datentyps
+      titleEn: The minimum number of characters of the datatype
+      baseType: INTEGER
+    maxLength:
+      label: Maximal Zeichen
+      labelEn: Max length
+      title: Die maximale Anzahl von Zeichen des Datentyps
+      titleEn: The maximum number of characters of the datatype
+      baseType: INTEGER
+    pattern:
+      label: Eingabemuster
+      labelEn: Pattern
+      title: Das erlaubte Zeichenmuster des Datentyps
+      titleEn: The acceptable character pattern of the datatype
+    length:
+      label: Anzahl Zeichen
+      labelEn: Length
+      title: Die erlaubte Anzahl von Zeichen des Datentyps
+      titleEn: The number of characters allowed by the datatype
+
+Dependency:
+  extends: Link
+  label: Abhängigkeit
+  labelEn: Dependency
+  title: Ein Asset kann eine Abhängigkeit von bzw. eine Abhängigkeit zu anderen Assets des Modells haben.
+  titleEn: An asset can be dependent of or depend on other assets from the model.
+  ling: s3p3f
+  icon: code-merge
+  properties:
+    stereotype:
+      label: Abhängigkeitstyp
+      labelEn: Dependency Type
+      title: Der Abhängigkeitstyp, der die Abhängigkeit klassifiziert
+      titleEn: The dependency type that classifies the dependency
+    dependentOf:
+      label: Abhängigkeit von
+      labelEn: Dependent of
+      title: Die Assets, die von diesem Asset abhängig sind
+      titleEn: The assets that depend on this asset
+      baseType: ID
+    dependsOn:
+      label: Abhängigkeit zu
+      labelEn: Depends on
+      title: Die Assets, von denen dieses Asset abhängig ist
+      titleEn: The assets on which this asset depends
+      baseType: ID
+
+Deployment:
+  extends: Link
+  label: Bereitstellung
+  labelEn: Deployment
+  title: Ein Asset kann in einem System zur Ausführung oder Speicherung bereitgestellt werden.
+  titleEn: An asset can be deployed in a system for execution or storage purposes.
+  ling: s3p3f
+  icon: flux-capacitor
+  properties:
+    qualifier:
+      label: Kennzeichnung
+      labelEn: Qualifier
+      title: Die zusätzliche Kennzeichnung, die die Bereitstellung charakterisiert
+      titleEn: The additional qualifier characterizing the deployment
+    favorite:
+      label: Favorit
+      labelEn: Favorite
+      title: Das Kennzeichen, das angibt, ob die Bereitstellung als Favorit markiert werden soll
+      titleEn: The flag that indicates if the deployment should be marked as favorite
+      baseType: BOOLEAN
+    order:
+      label: Nr
+      labelEn: Nr
+      title: Die Ordnungszahl, die zum Sortieren der Bereitstellungen verwendet wird
+      titleEn: The ordinal number used for sorting the deployments
+      baseType: INTEGER
+    deploymentOf:
+      label: Bereitstellung von
+      labelEn: Deployment of
+      title: Die Assets, die das System zur Ausführung oder Speicherung bereitstellt
+      titleEn: The assets that the system deploys for execution or storage
+      baseType: ID
+    deployedIn:
+      label: Bereitstellung in
+      labelEn: Deployed in
+      title: Die Systeme, in denen das Asset zur Ausführung oder Speicherung bereitgestellt wird
+      titleEn: The systems in which the asset is deployed for execution or storage purposes
+      baseType: ID
+
+Derivation:
+  extends: Link
+  label: Herkunft
+  labelEn: Derivation
+  title: Ein Element kann eine Herkunft von bzw. eine Herkunft zu anderen Elementen haben. Herkünfte werden in der Lineage berücksichtigt.
+  titleEn: An element can be derived from or derived to other elements. Derivations are taken into account in the lineage.
+  ling: s3p1uf
+  icon: code-fork
+  properties:
+    qualifier:
+      label: Kennzeichnung
+      labelEn: Qualifier
+      title: Die zusätzliche Kennzeichnung, die die Herkunft charakterisiert
+      titleEn: The additional qualifier characterizing the derivation
+    favorite:
+      label: Favorit
+      labelEn: Favorite
+      title: Das Kennzeichen, das angibt, ob die Herkunft als Favorit markiert werden soll
+      titleEn: The flag that indicates if the derivation should be marked as favorite
+      baseType: BOOLEAN
+    order:
+      label: Nr
+      labelEn: Nr
+      title: Die Ordnungszahl, die zum Sortieren der Herkünfte verwendet wird
+      titleEn: The ordinal number used for sorting the derivations
+      baseType: INTEGER
+    derivedTo:
+      label: Herkunft zu
+      labelEn: Derived to
+      title: Die Assets, die eine Herkunft von diesem Asset haben
+      titleEn: The assets that can be derived from this asset
+      baseType: ID
+    derivedFrom:
+      label: Herkunft von
+      labelEn: Derived from
+      title: Die Assets, von denen dieses Asset eine Herkunft hat
+      titleEn: The assets from which this asset can be derived
+      baseType: ID
+
+Dimension:
+  extends: Property
+  label: Dimension
+  labelEn: Dimension
+  title: Eine Dimension beschreibt eine Gruppierung (bzw. Kategorisierung) von Kennzahlen. Dabei wird ein Wertebereich (als Referenzobjekt oder als fachlicher Datentyp) definiert, der die Basis für die Gruppierung darstellt.
+  titleEn: A dimension describes a grouping (or categorization) of measures. A range (in terms of a reference object or a data domain) is specified as the basis for the grouping.
+  ling: s3p3f
+  icon: dice-d8
+
+Dimensioning:
+  extends: Link
+  label: Dimensionierung
+  labelEn: Dimensioning
+  title: Eine Dimensionierung ist die Zuordnung einer Dimension zu einer Kennzahl.
+  titleEn: A dimensioning is the assignment of a dimension to a measure.
+  ling: s3p3f
+  properties:
+    dimensionOf:
+      label: Dimensionierung von
+      labelEn: Dimension of
+      title: Die Kennzahlen, die entsprechend dieser Dimension dimensioniert werden können
+      titleEn: The measures that can be dimensioned according to this dimension
+      baseType: ID
+    dimensionedBy:
+      label: Dimensioniert durch
+      labelEn: Dimensioned by
+      title: Die Dimensionen, mit denen die Kennzahl dimensioniert werden kann
+      titleEn: The dimensions by which the measure can be dimensioned
+      baseType: ID
+
+Discussion:
+  extends: Ticket
+  label: Diskussion
+  labelEn: Discussion
+  title: Benutzer können öffentliche Kommentare zu Assets erfassen oder auf bestehende Kommentare antworten.
+  titleEn: Users can publicly comment on assets or reply to existing comments.
+  ling: s3p3f
+  icon: comments
+
+Distribution:
+  extends: Asset
+  label: Distribution
+  labelEn: Distribution
+  title: Distributionen definieren einzelne Datenveröffentlichungen. Sie dokumentieren, wie oft und in welchen Formaten die Datennutzung publiziert wurde, und stellen die Verteilung von Datensets im Unternehmen dar.
+  titleEn: Distributions represent individual data publications. They document how often and in what formats data usage was published, and illustrate the distribution of datasets across the enterprise.
+  ling: s3p3f
+  icon: arrow-up-right-from-square
+  properties:
+    accessURL:
+      label: URL
+      labelEn: URL
+      title: Die URL, unter der auf die Distribution zugegriffen werden kann
+      titleEn: The URL at which the distribution can be accessed
+    format:
+      label: Format
+      labelEn: Format
+      title: Das Format der Distribution
+      titleEn: The format of the distribution
+    byteSize:
+      label: Größe
+      labelEn: Byte size
+      title: Die Größe der Distribution
+      titleEn: The size of the distribution
+      baseType: INTEGER
+    distributionOf:
+      label: Distribution von
+      labelEn: Distribution of
+      title: Das Datenset der Distribution
+      titleEn: The dataset of the distribution
+      baseType: ID
+
+DxOrganization:
+  extends: Organization
+  label: Organisation
+  labelEn: Organization
+  title: Die DX Organisation ist ein Konzept zur Verwaltung von Verantwortlichkeiten und definiert die Personen, Gruppen, Posten und Rollen für Data Excellence (DX). Mittels dieser Agenten können Verantwortlichkeiten bei den einzelnen Elementen hinterlegt sowie Hierarchien und Zugehörigkeiten definiert werden.
+  titleEn: The DX organization is a concept for managing responsibilities and defines the persons, groups, posts, and roles necessary for data excellence (DX). By means of these agents, responsibilities for the individual metadata elements can be declared and hierarchies and affiliations can be defined.
+  ling: s3p3f
+  icon: sitemap
+
+Entity:
+  extends: Asset
+  label: Datenelement
+  labelEn: Entity
+  title: Eine Datenelement ist ein Asset, das in Transformationen, Herkünften, Zuordnungen und Bedingungen verwendet werden kann.
+  titleEn: An entity is an asset that can be used in transformations, derivations, assignments, and constraints.
+  ling: s1p1n
+  icon: shapes
+
+Enumeration:
+  extends: Type
+  label: Aufzählungstyp
+  labelEn: Enumeration
+  title: Eine Enumeration ist eine Aufzählung von gültigen Literalen.
+  titleEn: An enumeration is a list of valid literals.
+  ling: s1p3m
+  icon: rectangle-list
+  properties:
+    stringType:
+      label: Wertebereich Code
+      labelEn: Code type
+      title: Der Typ der Literale
+      titleEn: The type of the literals
+      literals:
+        ALPHABETIC:
+          label: alphabetisch
+          labelEn: Alphabetic
+          order: 0
+        NUMERIC:
+          label: numerisch
+          labelEn: Numeric
+          order: 1
+        ALPHANUMERIC:
+          label: alphanumerisch
+          labelEn: Alphanumeric
+          order: 2
+    hierarchicalUnique:
+      label: Hierarchisch eindeutig
+      labelEn: Hierarchically unique
+      title: Das Kennzeichen, das angibt, ob die Codes nur in Verbindung mit dem übergeordneten Referenzwert eindeutig sein müssen
+      titleEn: The flag that indicates whether the codes must be unique only in combination with the superordinate reference value
+      baseType: BOOLEAN
+    subordinateOf:
+      label: Übergeordnetes Referenzobjekt
+      labelEn: Superordinate Reference Object
+      title: Das übergeordnete Referenzobjekt, dem dieses Referenzobjekt untergeordnet ist
+      titleEn: The superordinate reference object of which this reference object is a subordinate
+      baseType: ID
+
+Feature:
+  extends: Property
+  label: Feature
+  labelEn: Feature
+  title: Objekte können Attribute und Beziehungen enthalten.
+  titleEn: Objects may contain attributes and relationships.
+  ling: s1p1n
+  icon: shapes
+  properties:
+    mutable:
+      label: Veränderbar
+      labelEn: Mutable
+      title: Das Kennzeichen, das angibt, ob das Attribut oder die Beziehung veränderbar ist
+      titleEn: The flag that indicates if the attribute or relationship is mutable
+      baseType: BOOLEAN
+    temporal:
+      label: Fachlich historisiert
+      labelEn: Temporal
+      title: Definiert, ob der Wert des Attribut bzw. die Beziehung sich über die Zeit ändern kann
+      titleEn: Indicates if the value of the attribute or the relationship can change over time
+      baseType: BOOLEAN
+    derived:
+      label: Abgeleitet
+      labelEn: Derived
+      title: Definiert, ob der Wert des Attributs oder die Beziehung aus anderen Attributen oder Beziehungen abgeleitet werden kann
+      titleEn: Defines whether the value of the attribute or relationship can be derived from other attributes or relationships
+      baseType: BOOLEAN
+    identifying:
+      label: Identifikation
+      labelEn: Identifying
+      title: Das Kennzeichen, das angibt, ob das Attribut oder die Beziehung in einer Identifikation vorkommt
+      titleEn: The flag that indicates if the attribute or relationship is part of an identifier
+      baseType: BOOLEAN
+    hasDomain:
+      label: Objekt
+      labelEn: Object
+      title: Das Asset, das das Attribut oder die Beziehung enthält
+      titleEn: The asset that owns the attribute or relationship
+      baseType: ID
+
+Group:
+  extends: Agent
+  label: Gruppe
+  labelEn: Group
+  title: Eine Gruppe ist ein Agent in einer DX Organisation und stellt einen Zusammenschluss von Personen, Gruppen, Posten und Rollen mit einer gemeinsamen Zielsetzung dar.
+  titleEn: A group is an agent in a DX organization and represents a collaboration of persons, groups, posts, and roles with a common objective.
+  ling: s3p3f
+  icon: solid-users
+
+Indicator:
+  extends: Metric
+  label: DQI
+  labelEn: Indicator
+  title: Ein DQI (Datenqualitätsindikator) erfasst die fachlichen Qualitätsanforderungen an Daten. DQIs enthalten tatsächliche Messungen der Datenqualität. Die Zuordnungen zu den gemessenen Elementen sind im DQI definiert.
+  titleEn: A data quality indicator (DQI) determines the quality requirements for data. Indicators contains actual data quality measurements. The assignments to the measured elements are defined in the indicator.
+  ling: s1p5m
+  icon: thermometer
+  properties:
+    excellentAt:
+      label: Exzellent ab
+      labelEn: Excellent at
+      title: Der Wert, ab dem die Messung als exzellent eingestuft wird
+      titleEn: The value at which the measurement is considered excellent
+      baseType: DECIMAL
+    goodAt:
+      label: Gut ab
+      labelEn: Good at
+      title: Der Wert, ab dem die Messung als gut eingestuft wird
+      titleEn: The value at which the measurement is considered good
+      baseType: DECIMAL
+    fairAt:
+      label: Schlecht bis
+      labelEn: Fair at
+      title: Der Wert, ab dem die Messung als mittelmäßig eingestuft wird
+      titleEn: The value at which the measurement is considered fair
+      baseType: DECIMAL
+    poorAt:
+      label: Mangelhaft ab
+      labelEn: Poor at
+      title: Der Wert, ab dem die Messung als mangelhaft eingestuft wird
+      titleEn: The value at which the measurement is considered poor
+      baseType: DECIMAL
+
+Issue:
+  extends: Ticket
+  label: Issue
+  labelEn: Issue
+  title: Fachliche Anforderungen (Change-Requests, Verbesserungen, Fehler, usw.) an Assets werden als Issue-Tickets erfasst.
+  titleEn: Business requirements on assets (change requests, improvements, bugs, etc.) are represented as issue tickets.
+  ling: s1p5n
+  icon: clipboard
+  properties:
+    stereotype:
+      label: Issue-Typ
+      labelEn: Issue type
+      title: Der Typ der Anforderung
+      titleEn: The type of the issue
+    description:
+      label: Beschreibung
+      labelEn: Description
+      title: Die detaillierte, formatierte Beschreibung der Anforderung
+      titleEn: The detailed, formatted description of the issue
+      baseType: TEXT
+    priority:
+      label: Priorität
+      labelEn: Priority
+      title: Die Priorität oder Dringlichkeit der Anforderung
+      titleEn: The priority or urgency of the issue
+    severity:
+      label: Schweregrad
+      labelEn: Severity
+      title: Der Schweregrad oder die Auswirkungen der Anforderung
+      titleEn: The severity or impact of the issue
+    customProperties:
+      label: Weitere Eigenschaften
+      labelEn: More properties
+      title: Die kundenspezifischen Properties für das Issue-Ticket
+      titleEn: The custom properties for the issue ticket
+
+Job:
+  extends: Resource
+  label: Job
+  labelEn: Job
+  title: Informationen über einen Job, der als Hintergrundprozess auf dem Server durchgeführt wird
+  titleEn: Information about a job that runs as a background process on the server
+  ling: s1p5m
+  icon: user-gear
+  properties:
+    className:
+      label: Klasse
+      labelEn: Class name
+      title: Der technische Name des Programms, der die Funktionalität des Jobs implementiert
+      titleEn: The technical name of the program that implements the functionality of the job
+    identifier:
+      label: Kennzeichnung
+      labelEn: Identifier
+      title: The identifier (sequential number or date) of the job, which is unique together with the name
+      titleEn: The identifier (sequential number or date) of the job, which is unique together with the name
+    status:
+      label: Status
+      labelEn: Status
+      title: Der aktuelle Status des Jobs
+      titleEn: The current status of the job
+      literals:
+        ENQUEUED:
+          label: In Warteschlange
+          labelEn: Enqueued
+          title: Der Job befindet sich in der Warteschlange, um ausgeführt zu werden
+          titleEn: The job is waiting to be picked for execution
+          icon: spin-clock-twelve
+          order: 0
+        STARTED:
+          label: Gestartet
+          labelEn: Started
+          title: Der Job wird gerade ausgeführt
+          titleEn: The job is currently running
+          icon: spin-loader
+          order: 1
+        COMPLETED:
+          label: Beendet
+          labelEn: Completed
+          title: Der Job wurde erfolgreich durchgeführt
+          titleEn: The job was completed successfully
+          icon: solid-circle-check
+          order: 2
+        FAILED:
+          label: Fehlgeschlagen
+          labelEn: Failed
+          title: Der Job wurde aufgrund eines Fehlers abgebrochen
+          titleEn: The job was canceled due to an error
+          icon: solid-circle-xmark
+          order: 3
+        STOPPING:
+          label: Wird gestoppt
+          labelEn: Stopping
+          title: Der Job ist gerade dabei gestoppt zu werden
+          titleEn: The job is about to be stopped
+          icon: spin-circle-stop
+          order: 4
+        STOPPED:
+          label: Gestoppt
+          labelEn: Stopped
+          title: Der Job wurde vom User gestoppt
+          titleEn: The job was stopped by the user
+          icon: solid-circle-stop
+          order: 5
+    pid:
+      label: Prozess-Id
+      labelEn: Process ID
+      title: Die Nummer, die den laufenden Prozess, unter dem der Job ausgeführt wird, identifiziert
+      titleEn: The number that identifies the running process under which the job is running
+      baseType: INTEGER
+    dateStarted:
+      label: Startzeitpunkt
+      labelEn: Date started
+      title: Der Zeitpunkt, zu dem der Job gestartet wurde
+      titleEn: The time the job was started
+      baseType: DATETIME
+    dateEnded:
+      label: Endzeitpunkt
+      labelEn: Date ended
+      title: Der Zeitpunkt, zu dem der Job beendet wurde
+      titleEn: The time the job ended
+      baseType: DATETIME
+    dataspotVersion:
+      label: dataspot. Version
+      labelEn: dataspot. version
+      title: Die dataspot. Version, in der der Job erzeugt wurde
+      titleEn: The dataspot. version in which the job was created
+    payload:
+      label: Nutzdaten
+      labelEn: Payload
+      title: Die Daten, die der Job entweder als Parameter (Input) benötigt oder als Ergebnis (Ouput) erzeugt.
+      titleEn: The data that the job either requires as a parameter (input) or produces as a result (output).
+
+Journal:
+  extends: Resource
+  label: Historie
+  labelEn: History
+  title: Die Historie dokumentiert die Änderungen an einem Ticket oder Workflow.
+  titleEn: The history documents the changes to a ticket or workflow.
+  icon: clock-rotate-left
+  properties:
+    forTicket:
+      label: Für Ticket
+      labelEn: For ticket
+      baseType: ID
+    forWorkflow:
+      label: Für Workflow
+      labelEn: For workflow
+      baseType: ID
+
+JournalMessage:
+  extends: MlsMessage
+  label: Journal Nachricht
+  labelEn: Journal message
+  properties:
+    oldValue:
+      label: Alter Wert
+      labelEn: Old value
+    newValue:
+      label: Neuer Wert
+      labelEn: New value
+
+Language:
+  extends: Resource
+  label: Sprache
+  labelEn: Language
+  title: Inhalte können in mehreren Sprachen erfasst werden.
+  titleEn: Content may be captured in multiple languages.
+  ling: s3p3f
+  icon: language
+  properties:
+    code:
+      label: Sprachcode
+      labelEn: Language Code
+      title: Der ISO-Code der Sprache
+      titleEn: The ISO code of the language
+    label:
+      label: Sprache
+      labelEn: Language
+      title: Die Bezeichnung der Sprache
+      titleEn: The label of the language
+
+Link:
+  label: Verbindung
+  labelEn: Link
+  title: Eine Verknüpfung verbindet zwei Assets.
+  titleEn: A link connects two assets.
+  ling: s3p3f
+  properties:
+    id:
+      label: Id
+      labelEn: Id
+      title: Der technische Schlüssel der Verknüpfung
+      titleEn: The unique identifier of the link
+      baseType: ID
+    tenantId:
+      label: Mandant
+      labelEn: Tenant id
+      title: Der technische Schlüssel des Mandanten
+      titleEn: The unique identifier of the tenant
+      baseType: ID
+
+Literal:
+  extends: Entity
+  label: Aufzählungswert
+  labelEn: Literal
+  title: Einträge in Wertelisten werden als Literale beschrieben und in Enumerationen abgebildet.
+  titleEn: Entries in value lists are described as literals and are organized in enumerations.
+  ling: s1p1m
+  icon: circle-dot
+  properties:
+    literalOf:
+      label: Aufzählungswert von
+      labelEn: Literal of
+      title: Die Enumeration, zu der das Literal gehört
+      titleEn: The enumeration to which the literal belongs to
+      baseType: ID
+    subordinateOf:
+      label: Übergeordneter Referenzwert
+      labelEn: Superordinate Reference Value
+      title: Der übergeordnete Referenzwert, dem dieser Referenzwert untergeordnet ist
+      titleEn: The superordinate reference value of which this reference value is a subordinate
+      baseType: ID
+
+Mapping:
+  extends: Entity
+  label: Überleitungstabelle
+  labelEn: Mapping
+  title: Eine Überleitungstabelle verbindet zwei Referenzobjekte und definiert Überleitungen zwischen deren Referenzwerten. Die Überleitungen können dabei sowohl einen hierarchischen als auch einen fachlichen Zusammenhang darstellen.
+  titleEn: A mapping connects two reference objects and defines translations between their respective reference values. The translations may represent both a hierarchical and a functional context.
+  ling: s3p3f
+  icon: arrows-left-right-to-line
+  properties:
+    mapsTo:
+      label: überleitet zu
+      labelEn: Maps to
+      title: Das Referenzobjekt, das das Ziel der Überleitungstabelle ist
+      titleEn: The reference object that is the target of the mapping
+      icon: arrow-down-from-line
+      baseType: ID
+    mapsFrom:
+      label: überleitet von
+      labelEn: Maps from
+      title: Das Referenzobjekt, das die Quelle der Überleitungstabelle ist
+      titleEn: The reference object that is the source of the mapping
+      icon: arrow-down-to-line
+      baseType: ID
+
+Measure:
+  extends: Property
+  label: Kennzahl
+  labelEn: Measure
+  title: Kennzahlen sind Maßzahlen und verdichten fachliche Elemente und deren Zusammenhänge mit Hilfe von absoluten Zahlen, Größen oder Indexwerten. Sie werden zu einem Stichtag berechnet und sind zu diesem gültig.
+  titleEn: Measures represent quantitative and qualitative ratings or key figures of business elements and their relationships in terms of absolute numbers or index values. They are calculated on a valuation date and are valid on that date.
+  ling: s3p3f
+  icon: gauge-simple-high
+  properties:
+    unitMeasure:
+      label: Maßeinheit
+      labelEn: Unit of measure
+      title: Die Einheit der Kennzahl
+      titleEn: The unit of the measure
+    unitMultiplier:
+      label: Multiplikator
+      labelEn: Unit multiplier
+      title: Der Faktor, mit der der Wert multipliziert werden muss
+      titleEn: The factor by which the value must be multiplied
+      literals:
+        2:
+          label: Hundert
+          labelEn: Hundreds
+          order: 0
+        3:
+          label: Tausend
+          labelEn: Thousands
+          order: 1
+        6:
+          label: Millionen
+          labelEn: Millions
+          order: 2
+        9:
+          label: Milliarden
+          labelEn: Billions (short scale)
+          order: 3
+    frequency:
+      label: Frequenz
+      labelEn: Frequency
+      title: Die Häufigkeit, mit der die Werte gemessen werden
+      titleEn: The frequency at which the values are measured
+      literals:
+        A:
+          label: Jährlich
+          labelEn: Annual
+          order: 0
+        S:
+          label: Halbjährlich
+          labelEn: Half-yearly
+          order: 1
+        Q:
+          label: Vierteljährlich
+          labelEn: Quarterly
+          order: 2
+        M:
+          label: Monatlich
+          labelEn: Monthly
+          order: 3
+        W:
+          label: Wöchentlich
+          labelEn: Weekly
+          order: 4
+        D:
+          label: Täglich
+          labelEn: Daily
+          order: 5
+        B:
+          label: Täglich (nur Werktage)
+          labelEn: Daily - business week
+          order: 6
+        H:
+          label: Stündlich
+          labelEn: Hourly
+          order: 7
+        N:
+          label: Minütlich
+          labelEn: Minutely
+          order: 8
+    calculationDate:
+      label: Berechnungszeitpunkt
+      labelEn: Calculation date
+      title: Der Stichtag, zu dem der Wert ermittelt wird
+      titleEn: The valuation date at which the value is calculated
+
+Measurement:
+  extends: Observation
+  label: Messung
+  labelEn: Measurement
+  title: Eine Messung ist eine tatsächlich durchgeführte Überprüfung eines DQI. Die Messung richtet sich dabei nach dem Messtyp des DQI und wird direkt beim jeweiligen DQI vermerkt. Die Messung wird an einem bestimmten Messdatum und System bzw. Datenset durchgeführt.
+  titleEn: A measurement is an actually performed verification of an indicator. The measurement is based on the measurement type of the indicator and is stored directly with the respective indicator. The measurement is performed on a specific measurement date and system or dataset.
+  ling: s3p3f
+  properties:
+    qualityScore:
+      label: Qualitätsscore
+      labelEn: Quality score
+      title: Der berechnete Qualitätsscore in Prozent (0-100)
+      titleEn: The calculated quality score as a percentage (0-100)
+      baseType: DECIMAL
+    qualityRating:
+      label: Qualitätsrating
+      labelEn: Quality rating
+      title: Das berechnete Qualitätsrating
+      titleEn: The calculated quality rating
+      literals:
+        EXCELLENT:
+          label: Exzellent
+          labelEn: Excellent
+          icon: traffic-light-go
+          order: 0
+        GOOD:
+          label: Gut
+          labelEn: Good
+          icon: traffic-light-go
+          order: 1
+        FAIR:
+          label: Mittelmäßig
+          labelEn: Fair
+          icon: traffic-light-slow
+          order: 2
+        POOR:
+          label: Mangelhaft
+          labelEn: Poor
+          icon: traffic-light-stop
+          order: 3
+        BAD:
+          label: Schlecht
+          labelEn: Bad
+          icon: traffic-light-stop
+          order: 4
+
+MeasuresCatalog:
+  extends: Scheme
+  label: Kennzahlenkatalog
+  labelEn: Measures catalog
+  title: Der Kennzahlenkatalog stellt die berechneten Kennzahlen aus den vorhandenen Daten dar.
+  titleEn: The measures catalog describes the calculated key figures based on the available data.
+  ling: s1p1m
+  icon: heart-pulse
+
+Message:
+  label: Nachricht
+  labelEn: Message
+  ling: s3p3f
+  properties:
+    level:
+      label: Level
+      labelEn: Level
+      title: Der Schweregrad der Nachricht
+      titleEn: The severity level of the message
+      literals:
+        ERROR:
+          label: Fehler
+          labelEn: Error
+          title: Eine Nachricht, die möglicherweise die weitere Ausführung der Anwendung verhindert
+          titleEn: A message that may prevent the application from continuing to run
+          icon: solid-circle-xmark
+          order: 0
+        WARNING:
+          label: Warnung
+          labelEn: Warning
+          title: Eine Nachricht, die potentiell die Ausführung der Applikation beeinträchtigt
+          titleEn: A message that potentially affects the execution of the application
+          icon: solid-circle-exclamation
+          order: 1
+        INFO:
+          label: Information
+          labelEn: Info
+          title: Eine Nachricht, die Hinweis auf mögliche Fehlerquellen oder Inkonsistenzen gibt
+          titleEn: A message that indicates possible sources of error or inconsistencies
+          icon: solid-circle-info
+          order: 2
+        DEBUG:
+          label: Hinweis
+          labelEn: Debug
+          title: Eine Nachricht, die Hinweise auf den Fortschritt der Applikation gibt
+          titleEn: A message that highlights the progress of the application
+          icon: circle-info
+          order: 3
+        TRACE:
+          label: Protokoll
+          labelEn: Trace
+          title: Eine Nachricht, die Hinweise für die Behebung eines Fehlers geben kann
+          titleEn: A message that can provide hints for correcting an error
+          icon: ban-bug
+          order: 4
+    message:
+      label: Nachricht
+      labelEn: Message
+      title: Die eigentliche Nachricht als Text
+      titleEn: The actual text message
+    icon:
+      label: Icon
+      labelEn: Icon
+      title: Ein optionales Icon, das für die Anzeige der Nachricht verwendet werden soll
+      titleEn: An optional icon to be used to display the message
+    dateGenerated:
+      label: Zeitpunkt
+      labelEn: Date generated
+      title: Der Zeitpunkt, an dem die Nachricht erzeugt wurde
+      titleEn: The timestamp the message was generated
+      baseType: DATETIME
+    path:
+      label: Nachricht
+      labelEn: Path
+      title: Die eigentliche Nachricht als Text
+      titleEn: The actual text message
+
+MessageParam:
+  label: Nachrichten-Parameter
+  labelEn: Message Parameter
+
+Metric:
+  extends: Property
+  label: Qualitätsanforderung
+  labelEn: Quality requirement
+  title: Eine Metrik ist eine Anforderung, um die Qualität von Metadaten zu ermitteln.
+  titleEn: A metric is a requirement to determine the quality of metadata.
+  ling: s3p3f
+  icon: award
+  properties:
+    qualityDimension:
+      label: Qualitätsdimensionen
+      labelEn: Quality dimension
+      title: Die Kategorie der Qualitätsmessung
+      titleEn: The category of the quality measurement
+      cardinality: MANY
+    expectedType:
+      label: Messtyp
+      labelEn: Measurement type
+      title: Der erwartete Typ des Messergebnisses
+      titleEn: The expected type of the measurement result
+      literals:
+        PERCENT:
+          label: Prozentwert
+          labelEn: Percentage
+          order: 0
+        BOOLEAN:
+          label: Ja/Nein
+          labelEn: Yes/No
+          order: 1
+        AMOUNT:
+          label: Anzahl/Gesamt
+          labelEn: Amount/Total
+          order: 2
+
+MlsMessage:
+  extends: Message
+  label: Mehrsprachige Nachricht
+  labelEn: Mls message
+
+Notification:
+  extends: Resource
+  label: Benachrichtigung
+  labelEn: Notification
+  ling: s3p3f
+  icon: bell
+  properties:
+    recipient:
+      label: Empfänger
+      labelEn: Recipient
+    event:
+      label: Ereignis
+      labelEn: Event
+      literals:
+        VOTE_ADDED:
+          label: Stimmrecht erteilt
+          labelEn: Voting rights granted
+          group: APPROVAL
+          order: 0
+        VOTE_CHANGED:
+          label: Stimme geändert
+          labelEn: Vote changed
+          group: APPROVAL
+          order: 1
+        VOTE_DELETED:
+          label: Stimmrecht entzogen
+          labelEn: Voting rights revoked
+          group: APPROVAL
+          order: 2
+        COMMENT_ADDED:
+          label: Kommentar hinzugefügt
+          labelEn: Comment added
+          group: DISCUSSION
+          order: 3
+        COMMENT_CHANGED:
+          label: Kommentar geändert
+          labelEn: Comment updated
+          group: DISCUSSION
+          order: 4
+        COMMENT_DELETED:
+          label: Kommentar gelöscht
+          labelEn: Comment deleted
+          group: DISCUSSION
+          order: 5
+        ISSUE_ADDED:
+          label: Issue erstellt
+          labelEn: Issue created
+          group: ISSUE
+          order: 6
+        ISSUE_STATUS_CHANGED:
+          label: Issue-Status geändert
+          labelEn: Issue status changed
+          group: ISSUE
+          order: 7
+        ISSUE_CHANGED:
+          label: Issue geändert
+          labelEn: Issue updated
+          group: ISSUE
+          order: 8
+        APPROVAL_APPROVED:
+          label: Freigabe erteilt
+          labelEn: Approval granted
+          group: APPROVAL
+          order: 9
+        APPROVAL_REJECTED:
+          label: Freigabe abgelehnt
+          labelEn: Approval rejected
+          group: APPROVAL
+          order: 10
+        ASSET_ADDED:
+          label: Asset angelegt
+          labelEn: Asset created
+          group: ASSET
+          order: 11
+        ASSET_STATUS_CHANGED:
+          label: Asset-Status geändert
+          labelEn: Asset status changed
+          group: ASSET
+          order: 12
+        ASSET_CHANGED:
+          label: Asset geändert
+          labelEn: Asset updated
+          group: ASSET
+          order: 13
+        ASSET_DELETED:
+          label: Asset gelöscht
+          labelEn: Asset deleted
+          group: ASSET
+          order: 14
+        LINK_ADDED:
+          label: Verknüpfung hinzugefügt
+          labelEn: Link added
+          group: ASSET
+          order: 15
+        LINK_CHANGED:
+          label: Verknüpfung geändert
+          labelEn: Link updated
+          group: ASSET
+          order: 16
+        LINK_DELETED:
+          label: Verknüpfung gelöscht
+          labelEn: Link deleted
+          group: ASSET
+          order: 17
+        COMMENT_REACTION_ADDED:
+          label: Reaktion hinzugefügt
+          labelEn: Reaction added
+          group: DISCUSSION
+          order: 18
+    message:
+      label: Nachricht
+      labelEn: Message
+    relatedType:
+      label: Verknüpfter Typ
+      labelEn: Related type
+    relatedId:
+      label: Bezieht sich auf
+      labelEn: Related to
+      baseType: ID
+    read:
+      label: Gelesen
+      labelEn: Read
+      baseType: BOOLEAN
+
+Observation:
+  extends: Resource
+  label: Beobachtung
+  labelEn: Observation
+  title: Eine Beobachtung ist eine tatsächlich durchgeführte Überprüfung einer Metrik. Die Beobachtung wird an einem bestimmten Datum durchgeführt.
+  titleEn: An observation is an actually performed verification of a metric. The observation is performed on a specific date.
+  ling: s3p3f
+  icon: temperature-low
+  properties:
+    booleanValue:
+      label: Ist erfüllt
+      labelEn: Boolean value
+      title: Das Kennzeichen, das angibt, ob die boolesche Metrik erfüllt wurde
+      titleEn: The flag that indicates if the boolean metric was fulfilled
+      baseType: BOOLEAN
+    percentValue:
+      label: Prozent erfüllt
+      labelEn: Percent value
+      title: Der gemessene Wert für die Metrik als Prozentsatz
+      titleEn: The value measured for the metric as a percentage
+      baseType: DECIMAL
+    amountValue:
+      label: Anzahl erfüllt
+      labelEn: Amount value
+      title: Der gemessene Wert für die Metrik als Anzahl
+      titleEn: The value measured for the metric as an amount
+      baseType: INTEGER
+    totalCount:
+      label: Anzahl gesamt
+      labelEn: Total count
+      title: Die Gesamtzahl der gemessenen Objekte
+      titleEn: The total number of measured objects
+      baseType: INTEGER
+    estimate:
+      label: Ist geschätzt
+      labelEn: Estimate
+      title: Das Kennzeichen, das angibt, ob die Messung geschätzt wurde
+      titleEn: The flag that indicates if the measurement was estimated
+      baseType: BOOLEAN
+    dateObserved:
+      label: Messdatum
+      labelEn: Measuring date
+      title: Das Datum, an dem die Messung durchgeführt wurde
+      titleEn: The date on which the measurement was performed
+      baseType: DATE
+    comment:
+      label: Kommentar
+      labelEn: Comment
+      title: Der Kommentar mit zusätzlichen Informationen zur Messung
+      titleEn: The comment with additional information about the measurement
+    observationOf:
+      label: Messung von
+      labelEn: Observation of
+      title: Die Metrik, für die diese Beobachtung gemessen wurde
+      titleEn: The metric for which this observation was measured
+      baseType: ID
+    computedOn:
+      label: Gemessen auf
+      labelEn: Computed on
+      title: Die Systeme oder Datensets, die gemessen wurden
+      titleEn: The systems or datasets that were measured
+      baseType: ID
+
+Organization:
+  extends: Agent
+  label: Organisation
+  labelEn: Organization
+  title: Eine Organisation definiert Agenten (Personen, Posten, Gruppen und Rollen) und Aufgaben.
+  titleEn: An organization defines agents (persons, posts, groups, and roles) and tasks.
+  ling: s3p3f
+  icon: sitemap
+
+Permissions:
+  properties:
+    canEdit:
+      title: Die Berechtigung zum Bearbeiten
+      titleEn: The privilege to edit
+    canDelete:
+      title: Die Berechtigung zum Löschen
+      titleEn: The privilege to delete
+    canAddResource:
+      title: Die Berechtigung zum Hinzufügen von Ressourcen
+      titleEn: The privilege to add resources
+      cardinality: MANY
+    canAddLink:
+      title: Die Berechtigung zum Hinzufügen von Links
+      titleEn: The privilege to add links
+      cardinality: MANY
+    parent:
+      title: Die Berechtigungen des übergeordneten Assets
+      titleEn: The permissions of the parent asset
+    canTrigger:
+      title: Die Berechtigung zum Auslösen von Statusübergängen
+      titleEn: The privilege to trigger status transitions
+      cardinality: MANY
+    canImport:
+      title: Die Berechtigung zum Importieren
+      titleEn: The privilege to import
+
+Person:
+  extends: Agent
+  label: Person
+  labelEn: Person
+  title: Eine Person ist ein Agent in einer DX Organisation und stellt ein Individuum dar.
+  titleEn: A person is an agent in a DX organization and represents a single individual.
+  ling: s3p3f
+  icon: solid-user-large
+  properties:
+    givenName:
+      label: Vorname
+      labelEn: Given name
+      title: Der Vorname der Person
+      titleEn: The given name of the person
+    familyName:
+      label: Nachname
+      labelEn: Family name
+      title: Der Nachname der Person
+      titleEn: The family name of the person
+    gender:
+      label: Geschlecht
+      labelEn: Gender
+      title: Das Geschlecht der Person
+      titleEn: The gender of the person
+      literals:
+        0:
+          label: unbekannt
+          labelEn: not known
+          icon: solid-user-vneck
+          order: 0
+        1:
+          label: männlich
+          labelEn: male
+          icon: solid-user-vneck-hair
+          order: 1
+        2:
+          label: weiblich
+          labelEn: female
+          icon: solid-user-vneck-hair-long
+          order: 2
+        9:
+          label: nicht anwendbar
+          labelEn: not applicable
+          icon: solid-user-vneck
+          order: 3
+    honorificPrefix:
+      label: Titel (vorangestellt)
+      labelEn: Honorific prefix
+      title: Der Titel, der dem Namen vorangestellt wird
+      titleEn: The honorific prefix of the person's name
+    honorificSuffix:
+      label: Titel (nachgestellt)
+      labelEn: Honorific suffix
+      title: Der Titel, der dem Namen nachgestellt wird
+      titleEn: The honorific suffix of the person's name
+    additionalName:
+      label: Zwischenname
+      labelEn: Additional name
+      title: Der zusätzliche Name der Person
+      titleEn: The additional name of the person
+
+Post:
+  extends: Agent
+  label: Posten
+  labelEn: Post
+  title: Ein Posten ist eine bestimmte Position in einer DX Organisation und kann von Personen und Gruppen bekleidet werden.
+  titleEn: A post is a specific position in a DX organization and can be held by persons and groups.
+  ling: s1p2m
+  icon: user-large
+
+Privilege:
+  properties:
+    granted:
+      title: Das Kennzeichen, das angibt, ob dem Benutzer die Berechtigung erteilt wurde
+      titleEn: The flag that indicates if the user is granted the privilege
+      baseType: BOOLEAN
+    message:
+      title: Die angezeigte Meldung, falls dem Benutzer die Berechtigung nicht erteilt wurde
+      titleEn: The message displayed, if the user is not granted the privilege
+
+Processing:
+  extends: Activity
+  label: Verarbeitung
+  labelEn: Processing
+  title: Verarbeitungen veranschaulichen die fachliche Nutzung und Bearbeitung von Daten und definieren, welche Daten in welchen Prozessen verwendet werden. Die Verwendungen von anderen Elementen sind in der Verarbeitung definiert.
+  titleEn: Processings describe the usage and processing of business data and define which data is used in which processes. The usages of other elements are defined in the processing.
+  ling: s3p3f
+  properties:
+    purpose:
+      label: Verarbeitungszweck
+      labelEn: Purpose
+      title: Der Zweck, für den personenbezogene Daten verarbeitet werden
+      titleEn: The purpose for which personal data is processed
+    dataSubjects:
+      label: Betroffene Personengruppen
+      labelEn: Data subjects
+      title: Die identifizierten oder identifizierbaren Personengruppen
+      titleEn: The identified or identifiable person groups
+      cardinality: MANY
+    lawfulBasis:
+      label: Rechtsgrundlage
+      labelEn: Lawful basis
+      title: Die Rechtsgrundlage für die Verarbeitung personenbezogener Daten
+      titleEn: The lawful basis for processing personal data
+      cardinality: MANY
+    lawfulBasisText:
+      label: Rechtsgrundlage Zusatztext
+      labelEn: Lawful basis text
+      title: Die detaillierte Beschreibung der Rechtsgrundlage
+      titleEn: The detailed description of the lawful basis
+    recipients:
+      label: Empfänger
+      labelEn: Recipients
+      title: Die Empfänger, gegenüber denen die personenbezogenen Daten offengelegt werden
+      titleEn: The recipients to whom the personal data is disclosed
+      cardinality: MANY
+    recipientsText:
+      label: Empfänger Zusatztext
+      labelEn: Recipients text
+      title: Die detaillierte Beschreibung der Empfänger
+      titleEn: The detailed description of the recipients
+    erasureTimeLimit:
+      label: Löschfrist
+      labelEn: Erasure time limit
+      title: Die Frist für die Löschung der personenbezogenen Daten
+      titleEn: The deadline to delete the personal data
+    technicalMeasures:
+      label: Technische Maßnahmen
+      labelEn: Technical measures
+      title: Technische Sicherheitsmaßnahmen zum Schutz personenbezogener Daten
+      titleEn: Technical security measures to protect personal data
+    organizationalMeasures:
+      label: Organisatorische Maßnahmen
+      labelEn: Organizational measures
+      title: Organisatorische Sicherheitsmaßnahmen zum Schutz personenbezogener Daten
+      titleEn: Organizational security measures to protect personal data
+    dataProcessor:
+      label: Auftragsverarbeiter
+      labelEn: Data processor
+      title: Der Datenverarbeiter, der im Auftrag eines Controllers handelt
+      titleEn: The data processor who acts on behalf of a controller
+    dataProcessorText:
+      label: Auftragsverarbeiter Zusatztext
+      labelEn: Data processor text
+      title: Die detaillierte Beschreibung der Datenverarbeiter
+      titleEn: The detailed description of the data processors
+    privacyImpactAssessment:
+      label: Datenschutz-Folgenabschätzung
+      labelEn: Privacy impact assessment
+      title: Der Prozess zur Identifizierung, Bewertung und Bewältigung von Datenschutzrisiken
+      titleEn: The process to identify, assess and manage privacy risks
+
+ProcessingRecords:
+  extends: Scheme
+  label: Verarbeitungsverzeichnis
+  labelEn: Processing directory
+  title: Das Verarbeitungsverzeichnis dokumentiert die Verarbeitungen und Prozesse und deren Verwendung von Daten.
+  titleEn: The processing directory documents the processings and processes and their usage of data.
+  icon: gears
+  properties:
+    technicalMeasures:
+      label: Technische Maßnahmen
+      labelEn: Technical measures
+      title: Technische Sicherheitsmaßnahmen zum Schutz personenbezogener Daten
+      titleEn: Technical security measures to protect personal data
+    organizationalMeasures:
+      label: Organisatorische Maßnahmen
+      labelEn: Organizational measures
+      title: Organisatorische Sicherheitsmaßnahmen zum Schutz personenbezogener Daten
+      titleEn: Organizational security measures to protect personal data
+
+Project:
+  extends: Activity
+  label: Projekt
+  labelEn: Project
+  title: Projekte werden aus dem Bedarfsmanagement abgeleitet und definieren, welche Daten in welchen Projekten erzeugt, verändert oder verwendet werden. Die Verwendungen von anderen Elementen sind im Projekt definiert.
+  titleEn: Projects are derived from demand management and define which data is created, modified or used in which projects. The usages of other elements are defined in the project.
+  ling: s1p1n
+  icon: calendar
+  properties:
+    subprojectOf:
+      label: Subprojekt von
+      labelEn: Subproject of
+      title: Das Projekt, von dem dieses Projekt ein Subprojekt ist
+      titleEn: The project of which this project is a subproject
+      baseType: ID
+
+ProjectDirectory:
+  extends: Scheme
+  label: Projektverzeichnis
+  labelEn: Project directory
+  title: Das Projektverzeichnis dokumentiert die Projekte und deren Verwendung von Daten.
+  titleEn: The project directory documents the projects and their usage of data.
+  ling: s1p1n
+  icon: calendars
+
+Property:
+  extends: Entity
+  label: Eigenschaft
+  labelEn: Property
+  title: Der Wertebereich eines Assets kann durch einen Datentyp, ein Objekt oder eine Enumeration eingeschränkt werden.
+  titleEn: The value range of an asset can be constrained by a datatype, object, or enumeration.
+  ling: s3p3f
+  properties:
+    computation:
+      label: Berechnung
+      labelEn: Computation
+      title: Die Formel zum Berechnen des Werts
+      titleEn: The formula to calculate the value
+      icon: calculator-simple
+      baseType: TEXT
+    minInclusive:
+      label: Minimalwert (inkl.)
+      labelEn: Min inclusive
+      title: Der minimale Wert (inklusiv) des Attributs
+      titleEn: The minimum value (inclusive) of the attribute
+      baseType: DECIMAL
+    maxInclusive:
+      label: Maximalwert (inkl.)
+      labelEn: Max inclusive
+      title: Der maximale Wert (inklusiv) des Attributs
+      titleEn: The maximum value (inclusive) of the attribute
+      baseType: DECIMAL
+    minExclusive:
+      label: Minimalwert (exkl.)
+      labelEn: Min exclusive
+      title: Der minimale Wert (exklusiv) des Attributs
+      titleEn: The minimum value (exclusive) of the attribute
+      baseType: DECIMAL
+    maxExclusive:
+      label: Maximalwert (exkl.)
+      labelEn: Max exclusive
+      title: Der maximale Wert (exklusiv) des Attributs
+      titleEn: The maximum value (exclusive) of the attribute
+      baseType: DECIMAL
+    integerDigits:
+      label: Ganzzahlige Stellen
+      labelEn: Integer Places
+      title: Die Anzahl der ganzzahligen Stellen des Attributs
+      titleEn: The number of integer places of the attribute
+      baseType: INTEGER
+    fractionDigits:
+      label: Dezimalstellen
+      labelEn: Decimal Places
+      title: Die Anzahl der Dezimalstellen des Attributs
+      titleEn: The number of decimal places of the attribute
+      baseType: INTEGER
+    minLength:
+      label: Mindestens Zeichen
+      labelEn: Min length
+      title: Die minimale Anzahl von Zeichen des Attributs
+      titleEn: The minimum number of characters of the attribute
+      baseType: INTEGER
+    maxLength:
+      label: Maximal Zeichen
+      labelEn: Max length
+      title: Die maximale Anzahl von Zeichen des Attributs
+      titleEn: The maximum number of characters of the attribute
+      baseType: INTEGER
+    pattern:
+      label: Eingabemuster
+      labelEn: Pattern
+      title: Das erlaubte Zeichenmuster des Attributs
+      titleEn: The acceptable character pattern of the attribute
+    length:
+      label: Anzahl Zeichen
+      labelEn: Length
+      title: Die erlaubte Anzahl von Zeichen des Attributs
+      titleEn: The number of characters allowed by the attribute
+    hasRange:
+      label: Wertebereich
+      labelEn: Range
+      title: Der Typ, der den Wertebereich einschränkt
+      titleEn: The type that constrains the value range
+      baseType: ID
+
+QualityModel:
+  extends: Scheme
+  label: Qualitätsmodell
+  labelEn: Quality model
+  title: Das Qualitätsmodell dokumentiert die DQIs (Datenqualitätsindikatoren) und die zugehörigen Messungen.
+  titleEn: The quality model documents the data quality indicators (DQIs) and their associated measurements.
+  ling: s1p1n
+  icon: trophy-star
+
+QueryColumn:
+  label: Datenbankspalte
+  labelEn: Database column
+  title: Eine Datenbankspalte stellt ein Attribut oder eine Eigenschaft in einer Datenbanktabelle dar.
+  titleEn: A database column represents an attribute or property in a database table.
+  properties:
+    name:
+      label: Name
+      labelEn: Name
+      title: Der Name der Datenbankspalte
+      titleEn: The name of the database column
+    typeName:
+      label: Typname
+      labelEn: Type name
+      title: Der Name des Datentyps der Datenbankspalte
+      titleEn: The name of the database column's data type
+    comment:
+      label: Kommentar
+      labelEn: Comment
+      title: Die Beschreibung der Datenbankspalte
+      titleEn: The description of the database column
+
+QueryRow:
+  label: Datensatz
+  labelEn: Data record
+  title: Ein Datensatz ist eine Zeile im Ergebnis einer Datenbankabfrage.
+  titleEn: A data record is a row in the result of a database query.
+  properties:
+    data:
+      label: Daten
+      labelEn: Data
+      title: Eine Map von Datenbankspalten zu Werten
+      titleEn: A map of database columns to values
+      cardinality: MANY
+
+QueryStatement:
+  label: Datenbankabfrage
+  labelEn: Database query
+  title: Eine Datenbankabfrage ist ein Prozess zum Abruf von Daten aus einer Datenbank. Es handelt sich um einen Befehl, der in einem Datenbankmanagementsystem abgesetzt wird, um Daten auf der Grundlage bestimmter Kriterien zu bearbeiten oder abzurufen.
+  titleEn: A database query is a request for data retrieval from a database. It is a command issued to a database management system to manipulate or retrieve data based on certain criteria.
+  properties:
+    sql:
+      label: SQL-Anweisung
+      labelEn: SQL statement
+      title: Die SQL-Anweisung zum Bearbeiten oder Abrufen von Daten aus der Datenbank
+      titleEn: The SQL statement to manipulate or retrieve data from the database
+
+QueryTable:
+  label: Datenbanktabelle
+  labelEn: Database table
+  title: Eine Datenbanktabelle ist eine strukturierte Sammlung von Daten in einer Datenbank. Eine Datenbanktabelle besteht aus Zeilen und Spalten, wobei jede Zeile einen Datensatz repräsentiert und jede Spalte ein Attribut oder eine Eigenschaft darstellt.
+  titleEn: A database table is a structured collection of data in a database. A database table consists of rows and columns, where each row represents a data record and each column represents an attribute or property.
+  properties:
+    name:
+      label: Name
+      labelEn: Name
+      title: Der Name der Datenbanktabelle
+      titleEn: The name of the database table
+    type:
+      label: Typ
+      labelEn: Type
+      title: Der Typ der Datenbanktabelle (TABLE, VIEW, usw.)
+      titleEn: The type of the database table (TABLE, VIEW, etc.)
+    schemaName:
+      label: Datenbankschema
+      labelEn: Database schema
+      title: Der Name des Datenbankschemas
+      titleEn: The name of the database schema
+    comment:
+      label: Kommentar
+      labelEn: Comment
+      title: Die Beschreibung der Datenbanktabelle
+      titleEn: The description of the database table
+    columns:
+      label: Spalten
+      labelEn: Columns
+      title: Die Spalten der Datenbanktabelle
+      titleEn: The columns of the database table
+      cardinality: MANY
+      baseType: ID
+
+ReferenceDataModel:
+  extends: Scheme
+  label: Referenzdatenmodell
+  labelEn: Reference data model
+  title: Das Referenzdatenmodell definiert die Referenzobjekte und Referenzwerte, die in den Geschäftsobjektmodellen verwendet werden.
+  titleEn: The reference data model defines the reference objects and reference values used in the business data models.
+  ling: s1p1n
+  icon: recycle
+
+ReferenceObject:
+  extends: Enumeration
+  label: Referenzobjekt
+  labelEn: Reference object
+  title: Ein Referenzobjekt ist eine Aufzählung von gültigen Referenzwerten. Diese Wertelisten sind unternehmensweit etabliert und dienen der Klassifizierung von bestimmten Eigenschaften.
+  titleEn: A reference object is an enumeration of valid reference values. These value lists are adopted throughout the organization and are used to classify certain properties.
+  ling: s1p1n
+
+ReferenceValue:
+  extends: Literal
+  label: Referenzwert
+  labelEn: Reference value
+  title: Referenzwerte sind stabile Werte, die sich selten verändern und von Prozessen, die sie verwenden, nicht geändert werden. Referenzwerte werden in Referenzobjekten zusammengefasst.
+  titleEn: Reference values are stable values that rarely change and are not modified by processes that use them. Reference values are organized in reference objects.
+  ling: s1p1m
+  properties:
+    code:
+      label: Code
+      labelEn: Code
+      title: Der Code des Referenzwerts
+      titleEn: The code of the reference value
+    shortText:
+      label: Kurztext
+      labelEn: Short form
+      title: Der Kurztext des Referenzwerts
+      titleEn: The short text of the reference value
+    longText:
+      label: Langtext
+      labelEn: Long form
+      title: Der Langtext des Referenzwerts
+      titleEn: The long text of the reference value
+
+Relationship:
+  extends: Association
+  label: Beziehung
+  labelEn: Relationship
+  title: Eine Verknüpfung zwischen zwei fachlichen Objekten
+  titleEn: A link between two business objects
+  ling: s3p3f
+  properties:
+    dataProtectionCategory:
+      label: Datenschutzkategorie
+      labelEn: Data protection category
+      title: Die Kategorie, die sensible personenbezogene Daten beschreibt
+      titleEn: The category describing sensitive personal data
+      icon: user-secret
+    casus:
+      label: Fall
+      labelEn: Casus
+      title: Der grammatikalische Fall
+      titleEn: The grammatical case
+      baseType: INTEGER
+
+Report:
+  extends: Resource
+  label: Report
+  labelEn: Report
+  title: Ein Report stellt Metadaten in verschiedenen Formaten (PDF, CSV, usw.) dar. Im Gegensatz zu einem normalen Metadaten-Export werden die Metadaten in einem Report üblicherweise nach bestimmten Kriterien und Filtern leserlich aufbereitet.
+  titleEn: A report displays metadata in various formats (PDF, CSV, etc.). In contrast to a regular metadata export, the metadata in a report is typically presented in a readable form based on specific criteria and filters.
+  ling: s1p5m
+  icon: file-chart-column
+  properties:
+    fileName:
+      label: Dateiname
+      labelEn: File name
+      title: Der Dateiname des Reports (i.e. die XSL-Transformation), in der die Transformation implementiert ist
+      titleEn: The file name of the report (i.e. the XSL transformation) in which the transformation is implemented
+
+Resource:
+  label: Objekt
+  labelEn: Object
+  title: Ein Objekt wird in einer Datenbank gespeichert und gehört einem Mandanten.
+  titleEn: An object is stored in a database and is owned by a tenant.
+  ling: s1p1n
+  properties:
+    id:
+      label: Id
+      labelEn: Id
+      title: Der technische Schlüssel des Objekts
+      titleEn: The unique identifier of the object
+      baseType: ID
+    dateCreated:
+      label: Erstellt am
+      labelEn: Created at
+      title: Das Datum, an dem das Objekt erstellt wurde
+      titleEn: The date on which the object was created
+      baseType: DATETIME
+    dateModified:
+      label: Geändert am
+      labelEn: Modified at
+      title: Das Datum, an dem das Objekt zuletzt geändert wurde
+      titleEn: The date on which the object was last modified
+      baseType: DATETIME
+    createdBy:
+      label: Erstellt von
+      labelEn: Created by
+      title: Der Benutzer, der das Objekt erstellt hat
+      titleEn: The user who created the object
+    modifiedBy:
+      label: Geändert von
+      labelEn: Modified by
+      title: Der Benutzer, der das Objekt zuletzt geändert hat
+      titleEn: The user who last modified the object
+    db:
+      label: Datenbank
+      labelEn: Db
+      title: Der Name der Datenbank, in der das Objekt gespeichert ist
+      titleEn: The name of the database in which the object is stored
+    tenantId:
+      label: Mandant
+      labelEn: Tenant Id
+      title: Der technische Schlüssel des Mandanten, der das Objekt besitzt
+      titleEn: The unique identifier of the tenant that owns the object
+      baseType: ID
+    _version:
+      label: Versionsnummer
+      labelEn: Version number
+      title: Die fortlaufende Versionsnummer
+      titleEn: The sequential version number
+      baseType: INTEGER
+    parentId:
+      label: Übergeordnetes Objekt
+      labelEn: Superordinate object
+      title: Der technische Schlüssel des übergeordneten Objekts
+      titleEn: The unique identifier of the superordinate object
+      baseType: ID
+
+Role:
+  extends: Agent
+  label: Rolle
+  labelEn: Role
+  title: Eine Rolle ist eine abstrakte Funktion in einer DX Organisation und wird beschrieben durch Aufgaben und Befugnisse. Personen, Gruppen und Posten können in unterschiedlichen Rollen in einer DX Organisation tätig sein.
+  titleEn: A role is an abstract function in a DX organization and is described by tasks and empowerment. Persons, groups, and posts can operate in a DX Organisation by taking on different roles.
+  ling: s3p3f
+  icon: user-tag
+  properties:
+    roleType:
+      label: Rollentyp
+      labelEn: Role type
+      title: Der zugrunde liegende Typ der Rolle
+      titleEn: The underlying type of the role
+      literals:
+        DATA_STEWARD:
+          label: Data Steward
+          labelEn: Data Steward
+          icon: user-graduate
+          order: 0
+        DATA_EXPERT:
+          label: Business Expert
+          labelEn: Data Expert
+          icon: user-tie
+          order: 1
+        DATA_OWNER:
+          label: Data Owner
+          labelEn: Data Owner
+          icon: user-pen
+          order: 2
+        DATA_CONTROLLER:
+          label: Verarbeitungsverantwortliche/r
+          labelEn: Data Controller
+          icon: user-gear
+          order: 3
+        DATA_PROTECTION_OFFICER:
+          label: Datenschutzbeauftragte/r
+          labelEn: Data Protection Officer
+          icon: user-shield
+          order: 4
+        PROJECT_MANAGER:
+          label: ProjektleiterIn
+          labelEn: Project Manager
+          icon: chart-user
+          order: 5
+        QUALITY_MANAGER:
+          label: QualitätsmanagerIn
+          labelEn: Quality Manager
+          icon: user-doctor
+          order: 6
+
+Rule:
+  extends: Asset
+  label: Transformationsregel
+  labelEn: Rule
+  title: Transformationsregeln definieren die genauen Zusammenhänge und Verbindungen von Transformationen.
+  titleEn: Transformation rules define the specifics and detailed connections of transformations.
+  ling: s3p3f
+  icon: solid-fan
+  properties:
+    transformsFrom:
+      label: Transformation von
+      labelEn: Transforms from
+      title: Die Assets, die die Quelle der Transformation sind
+      titleEn: The assets that are the source of the transformation
+      cardinality: MANY
+      baseType: ID
+    transformsTo:
+      label: Transformation zu
+      labelEn: Transforms to
+      title: Die Attribute oder Beziehungen des Ziels der Transformation
+      titleEn: The attributes or relationships of the target of the transformation
+      cardinality: MANY
+      baseType: ID
+    ruleOf:
+      label: Transformation
+      labelEn: Transformation
+      title: Die Transformation, die diese Transformationsregel enthält
+      titleEn: The transformation that contains this rule
+      baseType: ID
+
+Scheme:
+  extends: Asset
+  label: Modell
+  labelEn: Model
+  title: Metadatenobjekte werden innerhalb von Modellen organisiert und verwaltet. Modelle enthalten Sammlungen sowie weitere Elemente, abhängig vom festgelegten Modell-Typ.
+  titleEn: Metadata objects are organized and managed within models. Models contain collections as well as other elements, depending on the specific model type.
+  ling: s1p1n
+  icon: box-open
+
+StatusDefinition:
+  label: Statusdefinition
+  labelEn: Status definition
+  title: Die Statusdefinitionen beschreiben die verfügbaren Status und die möglichen Statusübergänge des Workflows, insbesondere welche Übergänge einen Freigabeprozess erfordern.
+  titleEn: The status definitions  describe the available status and possible status transitions of the workflow, in particular which transitions require an approval process.
+  ling: s3p3f
+  icon: table-pivot
+  properties:
+    status:
+      label: Status
+      labelEn: Status
+      title: Der Code des Status
+      titleEn: The status code
+    initial:
+      label: Anfangsstatus
+      labelEn: Initial Status
+      title: Das Kennzeichen, das angibt, ob der Status der Anfangsstatus ist
+      titleEn: The flag that indicates if the status is the initial status
+      baseType: BOOLEAN
+    final:
+      label: Endstatus
+      labelEn: Final
+      title: Das Kennzeichen, das angibt, ob der Status der Endstatus ist
+      titleEn: The flag that indicates if the status is the final status
+      baseType: BOOLEAN
+    canEdit:
+      label: Kann Assets in diesem Status bearbeiten
+      labelEn: Can edit assets in this status
+      title: Die Rollen, die Assets in diesem Status bearbeiten können
+      titleEn: The roles that can edit assets in this status
+      cardinality: MANY
+      baseType: ID
+    canDelete:
+      label: Kann Assets in diesem Status löschen
+      labelEn: Can delete assets in this status
+      title: Die Rollen, die Assets in diesem Status löschen können
+      titleEn: The roles that can delete assets in this status
+      cardinality: MANY
+      baseType: ID
+    canAdd:
+      label: Kann zu einem Asset in diesem Status hinzufügen
+      labelEn: Can add to an asset in this status
+      title: Die Rollen, die zu Assets in diesem Status hinzufügen können
+      titleEn: The roles that can add to assets in this status
+      cardinality: MANY
+      baseType: ID
+    notifyAdd:
+      label: Beim Hinzufügen neuer Assets in diesem Status benachrichtigen
+      labelEn: Notify on add of a new asset in this status
+      title: Die Rollen, die benachrichtigt werden, wenn Assets in diesem Status hinzugefügt werden
+      titleEn: The roles that are notified when assets in this status are added
+      cardinality: MANY
+      baseType: ID
+    notifyChange:
+      label: Bei Änderung von Assets in diesem Status benachrichtigen
+      labelEn: Notify on change of assets in this status
+      title: Die Rollen, die benachrichtigt werden, wenn Assets in diesem Status geändert werden
+      titleEn: The roles that are notified when assets in this status are changed
+      cardinality: MANY
+      baseType: ID
+    notifyDelete:
+      label: Beim Löschen von Assets in diesem Status benachrichtigen
+      labelEn: Notify on delete of assets in this status
+      title: Die Rollen, die benachrichtigt werden, wenn Assets in diesem Status gelöscht werden
+      titleEn: The roles that are notified when assets in this status are deleted
+      cardinality: MANY
+      baseType: ID
+    transitions:
+      label: Statusübergänge
+      labelEn: Status Transitions
+      title: Die Statusübergänge
+      titleEn: The status transitions
+      cardinality: MANY
+      baseType: ID
+
+StatusTransition:
+  label: Statusübergang
+  labelEn: Status transition
+  title: Ein Statusübergang beschreibt die Bedingungen für den Wechsel von einem Status in einen anderen, insbesondere welche Rollen den Übergang auslösen können und ob ein Freigabeprozess erforderlich ist.
+  titleEn: A status transition describes the conditions for moving from one status to another, in particular which roles may trigger the transition and whether an approval process is required.
+  ling: s1p1um
+  properties:
+    to:
+      label: Auf Status
+      labelEn: To Status
+      title: Der Zielstatus des Übergangs
+      titleEn: The target status of the transition
+    minVotingPeriod:
+      label: Abstimmungszeitraum
+      labelEn: Voting Period
+      title: Die Mindestdauer für die Abstimmung
+      titleEn: The minimum voting period
+    maxVotingPeriod:
+      label: Abstimmung beenden nach
+      labelEn: End of Voting Period
+      title: Der Zeitraum, nach dem die Abstimmung beendet wird
+      titleEn: The period after which the vote is ended
+    approveIfPercent:
+      label: Freigabe bei
+      labelEn: Approve if
+      title: Der Prozentsatz der Personen, die für den Statusübergang stimmen müssen, um ihn freizugeben
+      titleEn: The percentage of persons that are required to vote for the status transition, in order to approve it
+      baseType: DECIMAL
+    approveIfAmount:
+      label: Freigabe wenn
+      labelEn: Approve when
+      title: Die Anzahl der Personen, die für den Statusübergang stimmen müssen, um ihn freizugeben
+      titleEn: The number of persons that are required to vote for the status transition, in order to approve it
+      baseType: INTEGER
+    approveIfOperator:
+      label: Freigabe Operator
+      labelEn: Approval operator
+      title: Der Operator für die Freigabe
+      titleEn: The operator for the approval
+      literals:
+        AND:
+          label: und
+          labelEn: and
+          order: 0
+        OR:
+          label: oder
+          labelEn: or
+          order: 1
+    rejectIfPercent:
+      label: Ablehnung bei
+      labelEn: Reject if
+      title: Der Prozentsatz der Personen, die gegen den Statusübergang stimmen müssen, um ihn abzulehnen
+      titleEn: The percentage of persons that are required to vote against the status transition, in order to reject it
+      baseType: DECIMAL
+    rejectIfAmount:
+      label: Ablehnung wenn
+      labelEn: Reject when
+      title: Die Anzahl der Personen, die gegen den Statusübergang stimmen müssen, um ihn abzulehnen
+      titleEn: The number of persons that are required to vote against the status transition, in order to reject it
+      baseType: INTEGER
+    rejectIfOperator:
+      label: Ablehnung Operator
+      labelEn: Rejection operator
+      title: Der Operator für die Ablehnung
+      titleEn: The operator for the rejection
+      literals:
+        AND:
+          label: und
+          labelEn: and
+          order: 0
+        OR:
+          label: oder
+          labelEn: or
+          order: 1
+    defaultAction:
+      label: Automatische Aktion
+      labelEn: Automatic Action
+      title: Die Aktion, die ausgeführt werden soll, wenn die Abstimmung ohne eindeutiges Ergebnis endet
+      titleEn: The default action to be taken, if the vote ends without an unambiguous result
+      literals:
+        YES:
+          label: Ja
+          labelEn: Yes
+          icon: solid-thumbs-up
+          order: 0
+        NO:
+          label: Nein
+          labelEn: No
+          icon: solid-thumbs-down
+          order: 1
+        APPROVE:
+          label: Sofort freigeben
+          labelEn: Approve Instantly
+          icon: solid-circle-check
+          order: 2
+        REJECT:
+          label: Sofort ablehnen
+          labelEn: Reject Instantly
+          icon: solid-circle-x
+          order: 3
+    canVote:
+      label: Kann abstimmen
+      labelEn: Can vote
+      title: Die Rollen, die den Statusübergang freigeben oder ablehnen können
+      titleEn: The roles that can approve or reject the status transition
+      cardinality: MANY
+      baseType: ID
+    canApprove:
+      label: Kann sofort freigeben
+      labelEn: Can approve instantly
+      title: Die Rollen, die den Statusübergang sofort freigeben können
+      titleEn: The roles that can approve the status transition instantly
+      cardinality: MANY
+      baseType: ID
+    canTrigger:
+      label: Kann auslösen
+      labelEn: Can trigger
+      title: Die Rollen, die den Statusübergang auslösen können
+      titleEn: The roles that can trigger the status transition
+      cardinality: MANY
+      baseType: ID
+    canReject:
+      label: Kann sofort ablehnen
+      labelEn: Can reject instantly
+      title: Die Rollen, die den Statusübergang sofort ablehnen können
+      titleEn: The roles that can reject the status transition instantly
+      cardinality: MANY
+      baseType: ID
+    notifyStatusChange:
+      label: Bei Statusänderung benachrichtigen
+      labelEn: Notify on status changed
+      title: Die Rollen, die bei diesem Statusübergang benachrichtigt werden
+      titleEn: The roles that are notified on this status transition
+      cardinality: MANY
+      baseType: ID
+
+System:
+  extends: Entity
+  label: System
+  labelEn: System
+  title: Ein System beschreibt eine Software oder eine Umgebung auf welcher Daten gespeichert, verarbeitet oder analysiert werden.
+  titleEn: A system describes a software or an environment where data is stored, processed or analyzed.
+  ling: s1p1n
+  icon: server
+  properties:
+    subsystemOf:
+      label: Subsystem von
+      labelEn: Subsystem of
+      title: Das System, von dem dieses System ein Subsystem ist
+      titleEn: The system of which this system is a subsystem
+      baseType: ID
+
+SystemCatalog:
+  extends: Scheme
+  label: Systemkatalog
+  labelEn: System catalog
+  title: Der Systemkatalog dokumentiert die Systeme, die relevant für die Datenerstellung und Datenverarbeitung sind.
+  titleEn: The system catalog documents the systems relevant to data creation and data processing.
+  ling: s1p1m
+  icon: server
+
+Tag:
+  extends: Resource
+  label: Schlagwort
+  labelEn: Tag
+  title: Ein Schlagwort ist ein Schlüsselwort oder ein Begriff, der einem Asset zugewiesen ist.
+  titleEn: A tag is a keyword or term assigned to an asset.
+  ling: s1p4um
+  icon: hashtag
+  properties:
+    name:
+      label: Name
+      labelEn: Name
+      title: Der Name des Schlagworts
+      titleEn: The name of the tag
+
+Task:
+  extends: Asset
+  label: Aufgabe
+  labelEn: Task
+  title: Eine Aufgabe beschreibt eine Tätigkeit oder eine Pflicht in der DX Organisation und wird Personen, Gruppen, Posten und Rollen zugeteilt.
+  titleEn: A task describes an activity or a duty in the DX organization and is assigned to persons, groups, posts and roles.
+  ling: s3p3f
+  icon: clipboard-list-check
+  properties:
+    taskOf:
+      label: Aufgabe von
+      labelEn: Task of
+      title: Die Personen, Posten, Gruppen oder Rollen, denen die Aufgabe zugewiesen ist
+      titleEn: The persons, posts, groups, or roles to which the task is assigned
+      cardinality: MANY
+      baseType: ID
+    taskIn:
+      label: Organisation
+      labelEn: Organization
+      title: Die Organisation, die diese Aufgabe enthält
+      titleEn: The organization that contains this task
+      baseType: ID
+
+TemporalProperties:
+  label: Zeitreihe
+  labelEn: Time series
+  title: Ein Referenzwert kann zu unterschiedlichen Zeitpunkten unterschiedliche Werte haben. Die Zeitreihe des Referenzwerts gibt an, welche Werte zu welchen Zeitpunkten gültig sind.
+  titleEn: A reference value can have different values at different points in time. The time series of the reference value determines which values are valid at which points in time.
+  ling: s3p3f
+  icon: clock
+  properties:
+    validFrom:
+      label: Gültig von
+      labelEn: Valid from
+      title: Der Beginn des gültigen Zeitraums
+      titleEn: The start of the validity period
+      baseType: DATE
+    validTo:
+      label: Gültig bis
+      labelEn: Valid to
+      title: Das Ende des gültigen Zeitraums
+      titleEn: The end of the validity period
+      baseType: DATE
+    code:
+      label: Code
+      labelEn: Code
+      title: Der Code des Referenzwerts
+      titleEn: The code of the reference value
+    shortText:
+      label: Kurztext
+      labelEn: Short text
+      title: Der Kurztext des Referenzwerts
+      titleEn: The short text of the reference value
+    longText:
+      label: Langtext
+      labelEn: Long text
+      title: Der Langtext des Referenzwerts
+      titleEn: The long text of the reference value
+
+Tenant:
+  extends: Resource
+  label: Mandant
+  labelEn: Tenant
+  title: Ein Mandant stellt eine geschäftliche Organisation (z.B. ein Unternehmen, ein Subunternehmen oder eine sonstige geschäftliche Einheit) dar. Die Mandantenfähigkeit stellt sicher, dass die Elemente der einzelnen Mandanten voneinander getrennt und unabhängig sind. Ein Basismandant kann seine Metadaten mit anderen Mandanten teilen.
+  titleEn: A tenant represents a business organization (e.g. a company, a subsidiary or other business unit). Multi-tenancy ensures that the elements of each tenant are separate and independent. A base tenant can share its metadata with other tenants.
+  ling: s1p3m
+  icon: house-user
+  properties:
+    tenantName:
+      label: Name
+      labelEn: Tenant name
+      title: Der Name des Mandanten
+      titleEn: The name of the tenant
+    organizationName:
+      label: Titel
+      labelEn: Title
+      title: Der Name der Organisation des Mandanten
+      titleEn: The name of the tenant's organization
+    organizationalUnitName:
+      label: Abteilung
+      labelEn: Organizational unit name
+      title: Der Name der Organisationseinheit
+      titleEn: The name of the organizational unit
+    url:
+      label: Kontaktseite
+      labelEn: Contact page
+      title: Die URL, unter der der Mandant kontaktiert werden kann
+      titleEn: The URL where the tenant can be contacted
+    email:
+      label: E-Mail
+      labelEn: Email
+      title: Die E-Mail-Adresse, unter der der Mandant kontaktiert werden kann
+      titleEn: The email address where the tenant can be contacted
+    telephone:
+      label: Telefon
+      labelEn: Telephone
+      title: Die Telefonnummer, unter der der Mandant kontaktiert werden kann
+      titleEn: The telephone number where the tenant can be contacted
+    streetAddress:
+      label: Straße
+      labelEn: Street address
+      title: Die Straße und Hausnummer der Adresse des Mandanten
+      titleEn: The street and street number of the tenant's address
+    postalCode:
+      label: Postleitzahl
+      labelEn: Postal code
+      title: Die Postleitzahl der Adresse des Mandanten
+      titleEn: The postal code of the tenant's address
+    locality:
+      label: Ort
+      labelEn: Locality
+      title: Der Ort der Adresse des Mandanten
+      titleEn: The locality of the tenant's address
+    countryName:
+      label: Land
+      labelEn: Country name
+      title: Das Land der Adresse des Mandanten
+      titleEn: The country of the tenant's address
+    href:
+      label: Link
+      labelEn: Href
+      title: Der Link in der Benutzeroberfläche zum Mandanten
+      titleEn: The link in the user interface to the tenant
+    default:
+      label: Default-Mandant
+      labelEn: Default tenant
+      title: Das Kennzeichen, das angibt, ob der Mandant der Default-Mandant in der Datenbank ist
+      titleEn: The flag that indicates if the tenant is the default tenant in the database
+      baseType: BOOLEAN
+    stereotype:
+      label: Stereotyp
+      labelEn: Stereotype
+      title: Der Stereotyp, der in den kundenspezifischen Annotationen definiert ist
+      titleEn: The stereotype that is defined in the customer-specific annotations
+    hasBase:
+      label: hat als Basis
+      labelEn: Has base
+      title: Der Basismandant des Mandanten
+      titleEn: The base tenant of the tenant
+      cardinality: MANY
+      baseType: ID
+
+Theme:
+  label: Thema
+  labelEn: Theme
+  title: Eine Reihe von Designelementen, Stilen und Farben, die verwendet werden, um das Aussehen der Applikation zu definieren
+  titleEn: A set of design elements, styles and colors used to define the look and feel of the application
+  properties:
+    label:
+      label: Name
+      labelEn: Name
+      title: Der Name des Themas
+      titleEn: The name of the theme
+    labelEn:
+      label: Name (englisch)
+      labelEn: Name (english)
+      title: Der englische Name des Themas
+      titleEn: The english name for the theme
+    icon:
+      label: Icon
+      labelEn: Icon
+      title: Das Icon für das Thema
+      titleEn: The icon for the theme
+    order:
+      label: Order Nr.
+      labelEn: Order Nr.
+      title: Die Ordnungszahl, die zum Sortieren der Themas im Menüleiste verwendet wird
+      titleEn: The ordinal number used for sorting the theme in the menubar
+      baseType: INTEGER
+    appFont:
+      label: Schriftart
+      labelEn: Font Name
+      title: Die Schriftart, die für die Applikation verwendet werden soll
+      titleEn: The font to use for the application
+    appBarBackgroundColor:
+      label: Hintergrundfarbe der Applikationsleiste
+      labelEn: Application bar background color
+      title: Die Hintergrundfarbe, die für die Darstellung der Applikationsleiste verwendet werden soll
+      titleEn: The background color to use for the application bar
+    appBarColor:
+      label: Schriftfarbe der Applikationsleiste
+      labelEn: Application bar font color
+      title: Die Schriftfarbe, die für die Darstellung der Applikationsleiste verwendet werden soll
+      titleEn: The font color to use for the application bar
+    statusDraftColor:
+      label: Farbe für "Entwurf"
+      labelEn: Draft Color
+      title: Die Schriftfarbe, die für Assets verwendet werden soll, die sich im Veröffentlichungsstatus "Entwurf" befinden
+      titleEn: The color to use for assets in publication state "draft"
+    statusPublicColor:
+      label: Farbe für "Öffentlich"
+      labelEn: Public Color
+      title: Die Schriftfarbe, die für Assets verwendet werden soll, die sich im Veröffentlichungsstatus "Öffentlich" befinden
+      titleEn: The color to use for assets in publication state "public"
+    statusNotPublicColor:
+      label: Farbe für "Nicht öffentlich"
+      labelEn: Not Public Color
+      title: Die Schriftfarbe, die für Assets verwendet werden soll, die sich im Veröffentlichungsstatus "Nicht öffentlich" befinden
+      titleEn: The color to use for assets in publication state "not public"
+    statusInactiveColor:
+      label: Farbe für "Inaktiv"
+      labelEn: Inactive Color
+      title: Die Schriftfarbe, die für Assets verwendet werden soll, die sich in einem inaktiven Status befinden
+      titleEn: The color to use for assets in an inactive status
+    statusNoneColor:
+      label: Farbe für "Kein Status"
+      labelEn: Statusless Color
+      title: Die Schriftfarbe, die für Elemente verwendet werden soll, die keine Status zugewiesen haben
+      titleEn: The color to use for elements without a status
+    colorScheme:
+      label: Farbpalette
+      labelEn: Color Palette
+      title: Die Farbpalette (hell oder dunkel), die verwendet werden soll
+      titleEn: The color palette (light or dark) to use for the theme
+
+Ticket:
+  extends: Resource
+  label: Ticket
+  labelEn: Ticket
+  title: Benutzer können Tickets für Assets erstellen (z. B. Issue-Tickets, Diskussionen). Freigabe-Ticktets werden automatisch vom Workflowprozess erstellt.
+  titleEn: Users can create tickets for assets (e.g. issue tickets, discussions). Approval ticket are created automatically by the workflow process.
+  ling: s1p5n
+  icon: ticket
+  properties:
+    label:
+      label: Bezeichnung
+      labelEn: Label
+      title: Die Nummer des Tickets
+      titleEn: The number of the ticket
+    title:
+      label: Titel
+      labelEn: Title
+      title: Die kurze Beschreibung des Tickets
+      titleEn: The brief description of the ticket
+    status:
+      label: Status
+      labelEn: Status
+      title: Der Status des Tickets
+      titleEn: The status of the ticket
+    ticketNr:
+      label: Ticketnummer
+      labelEn: Ticket number
+      title: Der eindeutige numerische Schlüssel des Tickets
+      titleEn: The unique numerical key of the ticket
+      baseType: INTEGER
+    href:
+      label: Link
+      labelEn: Href
+      title: Der Link in der Benutzeroberfläche zum Ticket
+      titleEn: The link in the user interface to the ticket
+    closed:
+      label: Geschlossen
+      labelEn: Closed
+      title: Das Kennzeichen, das angibt, ob das Ticket geschlossen ist
+      titleEn: The flag that indicates if the ticket is closed
+      baseType: BOOLEAN
+    ticketFor:
+      label: Ticket für
+      labelEn: Ticket for
+      title: Das Asset für das Ticket
+      titleEn: The asset for the ticket
+      baseType: ID
+
+Transformation:
+  extends: Asset
+  label: Transformation
+  labelEn: Transformation
+  title: Transformationen stellen die Verbindungen und die genauen Zusammenhänge der Daten sowohl innerhalb der Modelle als auch modellübergreifend dar.
+  titleEn: Transformations represent the connections and the exact correlations of the data both within the models and across models.
+  ling: s3p3f
+  icon: solid-shuffle
+  properties:
+    transformationOf:
+      label: Datenelement
+      labelEn: Transformation of
+      title: Das Asset, das das Ziel der Transformation ist
+      titleEn: The asset that is the target of the transformation
+      baseType: ID
+
+Translation:
+  extends: Entity
+  label: Überleitung
+  labelEn: Translation
+  title: Eine Überleitung übersetzt einen Referenzwert auf einen anderen Referenzwert. Überleitungen werden in Überleitungstabellen zusammengefasst. Einem Referenzwert aus einer Quelle können mehrere Referenzwerte aus einem Ziel zugeordnet werden.
+  titleEn: A translation assigns a source reference value to target reference value. Translations are organized in mappings. A reference value from a source reference object may be translated to multiple reference values from a target reference object.
+  ling: s3p3f
+  icon: arrow-right-to-line
+  properties:
+    translatesTo:
+      label: übersetzt auf
+      labelEn: Translates to
+      title: Der Referenzwert, der das Ziel der Überleitung ist
+      titleEn: The reference value that is the target of the translation
+      baseType: ID
+    translatesFrom:
+      label: übersetzt von
+      labelEn: Translates from
+      title: Der Referenzwert, der die Quelle der Überleitung ist
+      titleEn: The reference value that is the source of the translation
+      baseType: ID
+    translationIn:
+      label: Überleitungstabelle
+      labelEn: Mapping
+      title: Die Überleitungstabelle, die diese Überleitung definiert
+      titleEn: The mapping that defines this translation
+      baseType: ID
+
+Type:
+  extends: Entity
+  label: Typ
+  labelEn: Type
+  title: Ein abstrakter Typ
+  titleEn: An abstract type
+  ling: s1p3m
+  properties:
+    subtypeOf:
+      label: ist ein
+      labelEn: is a
+      title: Das übergeordnete Objekt, dessen Attribute und Beziehungen geerbt werden
+      titleEn: The superordinate object, whose attributes and relationships are inherited
+      baseType: ID
+
+UmlAssociation:
+  extends: Association
+  label: Beziehung
+  labelEn: Relationship
+  title: Eine Beziehung zwischen zwei technischen Objekten
+  titleEn: A link between two technical objects
+  ling: s3p3f
+  icon: solid-circle-location-arrow
+
+UmlAttribute:
+  extends: Attribute
+  label: Attribut
+  labelEn: Attribute
+  title: Ein technisches Attribut ist eine Eigenschaft eines technischen Datenobjekts und kann durch einen technischen Wertebereich (als Enumeration, technischer Datentyp oder technisches Datenobjekt) oder durch einen fachlichen Wertebereich (als Referenzobjekt oder als fachlicher Datentyp) eingeschränkt werden.
+  titleEn: A technical attribute represents a property of a technical data object and may be restricted by a technical range (in terms of an enumeration, a data type, or a technical data object) or by a business range (in terms of a reference object or a data domain).
+  ling: s1p1n
+  icon: solid-tag
+
+UmlClass:
+  extends: Classifier
+  label: Datenobjekt
+  labelEn: Data object
+  title: Datenbanken oder andere strukturierte, physische Daten (z.B. Schnittstellen) werden als technische Datenobjekte beschrieben und in technischen Datenmodellen abgebildet. Technische Datenobjekte enthalten technische Attribute sowie technische Beziehungen zu anderen technischen Datenobjekten.
+  titleEn: Databases or other structured, physical data (e.g. interfaces) are described as technical data objects and are organized in technical data models. Technical data objects contain technical attributes as well as technical relationships to other technical data objects.
+  ling: s1p1n
+  icon: solid-hockey-puck
+
+UmlConstraint:
+  extends: Constraint
+  label: Constraint
+  labelEn: Constraint
+  title: Technische Bedingungen sind Konditionen und Einschränkungen für die Anlage oder Nutzung von technischen Metadaten.
+  titleEn: Technical constraints are conditions and restrictions on the creation or use of technical metadata.
+  ling: s1p5n
+
+UmlDatatype:
+  extends: Datatype
+  label: Datentyp
+  labelEn: Data type
+  title: Technische Datentypen definieren die gültigen Wertebereiche und Typen der technischen Elemente.
+  titleEn: Data types define the valid ranges and types of technical elements.
+  ling: s1p3m
+  icon: solid-dice-d6
+
+UmlEnumeration:
+  extends: Enumeration
+  label: Enumeration
+  labelEn: Enumeration
+  title: Wertelisten aus Datenbanken oder aus anderen technischen Quellen werden als Enumerationen beschrieben und in technischen Datenmodellen abgebildet. Über Transformationen können diese Enumerationen mit den entsprechenden fachlichen Referenzobjekten verknüpft werden.
+  titleEn: Value lists from databases or other technical sources are described as enumerations and are organized in technical data models. Transformations can be used to connect these enumerations with the corresponding reference objects.
+  ling: s3p3f
+  icon: solid-rectangle-list
+
+UmlLiteral:
+  extends: Literal
+  label: Literal
+  labelEn: Literal
+  title: Einträge in Wertelisten aus Datenbanken oder aus anderen technischen Quellen werden als Literale beschrieben und in Enumerationen abgebildet. Über Transformationen können diese Literale mit den entsprechenden fachlichen Referenzwerten verknüpft werden.
+  titleEn: Entries in value lists from databases or other technical sources are described as literals and are organized in enumerations. Transformations can be used to connect these literals with the corresponding reference values.
+  ling: s1p1n
+  icon: solid-scrubber
+
+UmlModel:
+  extends: Scheme
+  label: Datenmodell
+  labelEn: Data model
+  title: Das technische Datenmodell bildet die technische Ansicht der Daten ab.
+  titleEn: The technical data model represents the technical view of data.
+  ling: s1p1n
+  icon: solid-database
+
+Usage:
+  extends: Link
+  label: Verwendung
+  labelEn: Usage
+  title: Assets werden in Projekten und Verarbeitungen verwendet.
+  titleEn: Assets are used in projects and processings.
+  ling: s3p3f
+  icon: arrows-turn-right
+  properties:
+    qualifier:
+      label: Kennzeichnung
+      labelEn: Qualifier
+      title: Die zusätzliche Kennzeichnung, die die Verwendung charakterisiert
+      titleEn: The additional qualifier characterizing the usage
+    usedBy:
+      label: Verwendet von
+      labelEn: Used by
+      title: Die Projekte oder Verarbeitungen, die dieses Asset verwenden
+      titleEn: The projects or processings that use this asset
+      baseType: ID
+    usageOf:
+      label: Verwendet
+      labelEn: Usage of
+      title: Die Assets, die vom Projekt oder der Verarbeitung verwendet werden
+      titleEn: The assets that are used by the project or processing
+      baseType: ID
+
+User:
+  extends: Resource
+  label: Benutzer
+  labelEn: User
+  title: Ein Benutzer definiert die Benutzerkennung und das Passwort sowie die Zugriffsrechte eines Anwenders. Üblicherweise wird der Benutzer einer zuvor angelegten Person zugewiesen.
+  titleEn: A user defines the login ID and the password as well as the access level required to sign into the application. Typically, the user is associated with a previously created person.
+  ling: s1p2m
+  icon: solid-user
+  properties:
+    loginId:
+      label: Benutzerkennung
+      labelEn: Login id
+      title: Die eindeutige Benutzerkennung des Benutzers
+      titleEn: The unique login ID of the user
+    subId:
+      label: Subject Identifier
+      labelEn: Subject Identifier
+      title: OpenID Connect Subject Identifier
+      titleEn: OpenID Connect Subject Identifier
+    clientId:
+      label: Client Identifier
+      labelEn: Client Identifier
+      title: OpenID Connect Client Identifier
+      titleEn: OpenID Connect Client Identifier
+    name:
+      label: Benutzername
+      labelEn: Name
+      title: Der Name des Benutzers
+      titleEn: The name of the user
+    password:
+      label: Passwort
+      labelEn: Password
+      title: Das Kennwort des Benutzers (mind. 8 Zeichen)
+      titleEn: The password of the user (min. 8 characters)
+    accessLevel:
+      label: Zugriffsstufe
+      labelEn: Access level
+      title: Die Zugriffsstufe des Benutzers
+      titleEn: The access level of the user
+      literals:
+        READ_ONLY:
+          label: Nur lesend
+          labelEn: Read Only
+          title: Der Benutzer kann keine Änderungen an den Metadaten vornehmen
+          titleEn: The user cannot make any changes to the metadata
+          icon: solid-user-large
+          order: 0
+        EDITOR:
+          label: Editor
+          labelEn: Editor
+          title: Der Benutzer kann Änderungen an den Metadaten vornehmen, für die er verantwortlich ist
+          titleEn: The user can make changes to the metadata they are attributed to
+          icon: solid-user-graduate
+          order: 1
+        ADMINISTRATOR:
+          label: Administrator
+          labelEn: Administrator
+          title: Der Benutzer hat volle Berechtigungen, um alle Arten von Metadaten zu ändern, unabhängig davon, ob er verantwortlich ist oder nicht
+          titleEn: The user is granted full permissions, which means that the user can change all types of metadata, regardless of whether he is attributed to the metadata or not
+          icon: solid-user-crown
+          order: 2
+    default:
+      label: Default-Mandant
+      labelEn: Default tenant
+      title: Das Kennzeichen, das angibt, ob der Benutzer standardmäßig im aktuellen Mandanten angemeldet wird
+      titleEn: The flag that indicates if the user is logged into the current tenant by default
+      baseType: BOOLEAN
+    isPerson:
+      label: Ist Person
+      labelEn: Is person
+      title: Die Person, die dem Benutzer zugewiesen ist
+      titleEn: The person that is associated with the user
+      baseType: ID
+
+UserNotification:
+  label: Benachrichtigung
+  labelEn: Notification
+  title: Die eingerichteten Benachrichtigungen des Benutzers
+  titleEn: The user's notification setup
+  icon: bell
+  properties:
+    event:
+      label: Ereignis
+      labelEn: Event
+      literals:
+        VOTE_ADDED:
+          label: Stimmrecht erteilt
+          labelEn: Voting rights granted
+          group: APPROVAL
+          order: 0
+        VOTE_CHANGED:
+          label: Stimme geändert
+          labelEn: Vote changed
+          group: APPROVAL
+          order: 1
+        VOTE_DELETED:
+          label: Stimmrecht entzogen
+          labelEn: Voting rights revoked
+          group: APPROVAL
+          order: 2
+        COMMENT_ADDED:
+          label: Kommentar hinzugefügt
+          labelEn: Comment added
+          group: DISCUSSION
+          order: 3
+        COMMENT_CHANGED:
+          label: Kommentar geändert
+          labelEn: Comment updated
+          group: DISCUSSION
+          order: 4
+        COMMENT_DELETED:
+          label: Kommentar gelöscht
+          labelEn: Comment deleted
+          group: DISCUSSION
+          order: 5
+        ISSUE_ADDED:
+          label: Issue erstellt
+          labelEn: Issue created
+          group: ISSUE
+          order: 6
+        ISSUE_STATUS_CHANGED:
+          label: Issue-Status geändert
+          labelEn: Issue status changed
+          group: ISSUE
+          order: 7
+        ISSUE_CHANGED:
+          label: Issue geändert
+          labelEn: Issue updated
+          group: ISSUE
+          order: 8
+        APPROVAL_APPROVED:
+          label: Freigabe erteilt
+          labelEn: Approval granted
+          group: APPROVAL
+          order: 9
+        APPROVAL_REJECTED:
+          label: Freigabe abgelehnt
+          labelEn: Approval rejected
+          group: APPROVAL
+          order: 10
+        ASSET_ADDED:
+          label: Asset angelegt
+          labelEn: Asset created
+          group: ASSET
+          order: 11
+        ASSET_STATUS_CHANGED:
+          label: Asset-Status geändert
+          labelEn: Asset status changed
+          group: ASSET
+          order: 12
+        ASSET_CHANGED:
+          label: Asset geändert
+          labelEn: Asset updated
+          group: ASSET
+          order: 13
+        ASSET_DELETED:
+          label: Asset gelöscht
+          labelEn: Asset deleted
+          group: ASSET
+          order: 14
+        LINK_ADDED:
+          label: Verknüpfung hinzugefügt
+          labelEn: Link added
+          group: ASSET
+          order: 15
+        LINK_CHANGED:
+          label: Verknüpfung geändert
+          labelEn: Link updated
+          group: ASSET
+          order: 16
+        LINK_DELETED:
+          label: Verknüpfung gelöscht
+          labelEn: Link deleted
+          group: ASSET
+          order: 17
+        COMMENT_REACTION_ADDED:
+          label: Reaktion hinzugefügt
+          labelEn: Reaction added
+          group: DISCUSSION
+          order: 18
+    activated:
+      label: Aktiviert
+      labelEn: Activated
+      baseType: BOOLEAN
+    sendAsEmail:
+      label: Als E-Mail senden
+      labelEn: Send as Email
+      baseType: BOOLEAN
+
+UserPreferences:
+  label: Benutzereinstellungen
+  labelEn: User preferences
+  title: Die Benutzereinstellungen speichern die Standard-Sprache und die eingerichteten Benachrichtigungen des Benutzers.
+  titleEn: The user settings store the user's default language and their notification setup.
+  icon: user-gear
+  properties:
+    defaultLanguage:
+      label: Standard-Sprache
+      labelEn: Default Language
+      title: Die Standard-Sprache des Benutzers
+      titleEn: The default language of the user
+    defaultTheme:
+      label: Standard-Thema
+      labelEn: Default Theme
+      title: Die Standard-Thema, das für das Design der Applikation verwendet werden soll
+      titleEn: The default theme of the user for the look and feel of the application
+
+Violation:
+  extends: Resource
+  label: Regelverletzung
+  labelEn: Rule violation
+  title: Die Verletzung einer Prüfregel für ein Asset
+  titleEn: The violation of a check rule on an asset
+  ling: s3p3f
+  icon: solid-bug
+  properties:
+    violationFor:
+      label: Asset
+      labelEn: Asset
+      title: Das Asset, das die Regel verletzt hat
+      titleEn: The asset that violated the rule
+      baseType: ID
+    message:
+      label: Verletzungsmeldung
+      labelEn: Violation message
+      title: Eine oder mehrere Meldungen, die die Verletzung beschreiben
+      titleEn: One or more rule violation messages
+      baseType: ID
+
+Vote:
+  extends: Resource
+  label: Stimme
+  labelEn: Vote
+  title: Die abgegebene Stimme der Person
+  titleEn: The actual vote of the person
+  ling: s3p3f
+  icon: poll-people
+  properties:
+    votingActions:
+      label: Mögliche Stimmen
+      labelEn: Voting actions
+      title: Die möglichen Stimmen, die von der Person abgegeben werden können
+      titleEn: The possible voting actions that the person can take
+      cardinality: MANY
+      literals:
+        YES:
+          label: Ja
+          labelEn: Yes
+          icon: solid-thumbs-up
+          order: 0
+        NO:
+          label: Nein
+          labelEn: No
+          icon: solid-thumbs-down
+          order: 1
+        APPROVE:
+          label: Sofort freigeben
+          labelEn: Approve Instantly
+          icon: solid-circle-check
+          order: 2
+        REJECT:
+          label: Sofort ablehnen
+          labelEn: Reject Instantly
+          icon: solid-circle-x
+          order: 3
+    actionTaken:
+      label: Abgegebene Stimme
+      labelEn: Vote
+      title: Die abgegebene Stimme der Person
+      titleEn: The actual vote of the person
+      literals:
+        YES:
+          label: Ja
+          labelEn: Yes
+          icon: solid-thumbs-up
+          order: 0
+        NO:
+          label: Nein
+          labelEn: No
+          icon: solid-thumbs-down
+          order: 1
+        APPROVE:
+          label: Sofort freigeben
+          labelEn: Approve Instantly
+          icon: solid-circle-check
+          order: 2
+        REJECT:
+          label: Sofort ablehnen
+          labelEn: Reject Instantly
+          icon: solid-circle-x
+          order: 3
+    voteFor:
+      label: Stimme für
+      labelEn: Vote for
+      title: Das Freigabe-Ticket der Abstimmung
+      titleEn: The approval ticket of the vote
+      baseType: ID
+    voteOf:
+      label: Stimme von
+      labelEn: Vote of
+      title: Die Person, die abstimmt
+      titleEn: The person that votes
+      baseType: ID
+
+Workflow:
+  extends: Resource
+  label: Workflow
+  labelEn: Workflow
+  title: Ein Workflow definiert die möglichen Status und Statusübergänge der Elemente, die in den zugeordneten Modellen enthalten sind. Entsprechend des rollenbasierten Verantwortungs- und Berechtigungskonzepts legt ein Workflow sowohl fest, welche Rollen im Modell Verantwortungen vergeben dürfen oder Statusübergänge einleiten können, sowie welche Rollen an einem gegebenenfalls erforderlichen Freigabe- und Abstimmprozess beteiligt sind.
+  titleEn: A workflow defines the possible status and status transitions of elements contained in the assigned models. In compliance with the role-based attribution and authorization concept, a workflow determines which roles may assign attributions or trigger status transitions, as well as which roles participate in any required approval and voting process.
+  ling: s1p5m
+  icon: arrows-spin
+  properties:
+    label:
+      label: Bezeichnung
+      labelEn: Label
+      title: Die Bezeichnung des Workflows
+      titleEn: The label of the workflow
+    title:
+      label: Titel
+      labelEn: Title
+      title: Die kurze Beschreibung des Workflows
+      titleEn: The brief description of the workflow
+    description:
+      label: Beschreibung
+      labelEn: Description
+      title: Die detaillierte, formatierte Beschreibung des Workflows
+      titleEn: The detailed, formatted description of the workflow
+      baseType: TEXT
+    href:
+      label: Link
+      labelEn: Href
+      title: Der Link in der Benutzeroberfläche zum Workflow
+      titleEn: The link in the user interface to the workflow
+    default:
+      label: Default-Workflow
+      labelEn: Default workflow
+      title: Das Kennzeichen, das angibt, ob der Workflow der Default-Workflow in der Datenbank ist
+      titleEn: The flag that indicates if the workflow is the default workflow in the database
+      baseType: BOOLEAN
+    definition:
+      label: Workflow-Definition
+      labelEn: Workflow Definition
+      title: Die Definition des Workflows
+      titleEn: The definition of the workflow
+      baseType: ID
+
+WorkflowDefinition:
+  label: Workflow Definition
+  labelEn: Workflow definition
+  properties:
+    canAttribute:
+      label: Kann Verantwortungen zuweisen
+      labelEn: Can attribute assets
+      title: Die Rollen, die Verantwortungen zu einem Asset hinzufügen können
+      titleEn: The roles that can add attributions to an asset
+      cardinality: MANY
+      baseType: ID
+    canImport:
+      label: Kann Assets importieren
+      labelEn: Can import assets
+      title: Die Rollen, die Assets importieren können
+      titleEn: The roles that can import to the asset
+      cardinality: MANY
+      baseType: ID
+    statuses:
+      label: Status-Definitionen
+      labelEn: Status Definitions
+      title: Die Statusdefinitionen des Workflows
+      titleEn: The status definitions of the workflow
+      cardinality: MANY
+      baseType: ID

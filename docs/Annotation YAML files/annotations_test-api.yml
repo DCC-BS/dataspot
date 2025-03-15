@@ -1,0 +1,1621 @@
+# annotations.yml
+
+##INHALTSVERZEICHNIS##
+#1 - COLLECTION
+#2 - GESCHÄFTSOBJEKTMODELL
+#3 - RDM
+#4 - DATENKATALOG
+#5 - WORKFLOW
+#6 - HERKUNFT 
+#7 - DEPENDENCY
+#8 - TECHNISCHE DATENMODEllE
+#9 - TRANSFORMATIONSREGELN
+#10 - SYSTEMKATALOG
+#11 - SONSTIGES
+#12 - PROJEKTE
+
+#1 - COLLECTION
+Collection:
+  #label: Sammlungstyp
+
+#PROPERTIES
+  properties:
+
+
+#STEREOTYP SAMMLUNGSART
+    stereotype:
+      label: Sammlungstyp
+      title: Sammlungstypen definieren spezifische Sammlungen zur Strukturierung von Metadatenobjekten.
+      literals:
+      
+#SAMMLUNGSART SAMMLUNG
+        BASISSAMMLUNG:
+          label: Sammlung
+          icon: box-archive
+          
+#SAMMLUNGSART DEPARTEMENT
+        DEPARTEMENT:
+          label: Departement
+          icon: city
+          order: 1
+          customProperties:
+            ID:
+              hidden: True
+              label: ID
+              baseType: INTEGER
+              title: The internal id in the staatskalender
+              width: 2
+              order: 1
+            Link_zum_Staatskalender:
+              label: Link zum Staatskalender
+              baseType: STRING
+              title: Link zur Quelle im Staatskalender
+              width: 2
+              order: 2
+#            ID:
+#              hidden: True
+#              label: ID
+#              baseType: INTEGER
+#              title: The internal id in the staatskalender
+#              width: 2
+#              order: 0
+#            Porträt:
+#              label: Porträt
+#              baseType: TEXT
+#              title: Short description from the website
+#              width: 2
+#              order: 1
+#            Standortadresse:
+#              label: Standortadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 2
+#            Standort_Postleitzahl_und_Ort:
+#              label: Standort Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 3
+#            Postadresse:
+#              label: Postadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 4
+#            Postleitzahl_und_Ort:
+#              label: Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 5
+#            Telefon:
+#              label: Telefon
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 6
+#            Weitere_Telefonnummer_oder_Fax:
+#              label: Weitere Telefonnummer oder Fax
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 7
+#            E-Mail:
+#              label: E-Mail
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 8
+#            Webseite:
+#              label: Webseite
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 9
+#            Öffnungszeiten:
+#              label: Öffnungszeiten
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 10
+#            Quelle:
+#              label: Quelle
+#              baseType: STRING
+#              title: Link zur Quelle im Staatskalender
+#              width: 2
+#              order: 11
+              
+              
+
+#SAMMLUNGSART DIENSTABTEILUNG
+        DA:
+          label: Dienststelle
+          icon: building
+          order: 2
+          customProperties:
+            ID:
+              hidden: True
+              label: ID
+              baseType: INTEGER
+              title: The internal id in the staatskalender
+              width: 2
+              order: 1
+            Link_zum_Staatskalender:
+              label: Link zum Staatskalender
+              baseType: STRING
+              title: Link zur Quelle im Staatskalender
+              width: 2
+              order: 2
+#            ID:
+#              hidden: True
+#              label: ID
+#              baseType: INTEGER
+#              title: The internal id in the staatskalender
+#              width: 2
+#              order: 0
+#            Porträt:
+#              label: Porträt
+#              baseType: TEXT
+#              title: Short description from the website
+#              width: 2
+#              order: 1
+#            Standortadresse:
+#              label: Standortadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 2
+#            Standort_Postleitzahl_und_Ort:
+#              label: Standort Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 3
+#            Postadresse:
+#              label: Postadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 4
+#            Postleitzahl_und_Ort:
+#              label: Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 5
+#            Telefon:
+#              label: Telefon
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 6
+#            Weitere_Telefonnummer_oder_Fax:
+#              label: Weitere Telefonnummer oder Fax
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 7
+#            E-Mail:
+#              label: E-Mail
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 8
+#            Webseite:
+#              label: Webseite
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 9
+#            Öffnungszeiten:
+#              label: Öffnungszeiten
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 10
+#            Quelle:
+#              label: Quelle
+#              baseType: STRING
+#              title: Link zur Quelle im Staatskalender
+#              width: 2
+#              order: 11
+              
+
+#SAMMLUNGSART DEPARTEMENT
+        ORGANISATION:
+          label: Organisation
+          icon: house
+          order: 3
+          customProperties:
+            ID:
+              hidden: True
+              label: ID
+              baseType: INTEGER
+              title: The internal id in the staatskalender
+              width: 2
+              order: 1
+            Link_zum_Staatskalender:
+              label: Link zum Staatskalender
+              baseType: STRING
+              title: Link zur Quelle im Staatskalender
+              width: 2
+              order: 2
+#            ID:
+#              hidden: True
+#              label: ID
+#              baseType: INTEGER
+#              title: The internal id in the staatskalender
+#              width: 2
+#              order: 0
+#            Porträt:
+#              label: Porträt
+#              baseType: TEXT
+#              title: Short description from the website
+#              width: 2
+#              order: 1
+#            Standortadresse:
+#              label: Standortadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 2
+#            Standort_Postleitzahl_und_Ort:
+#              label: Standort Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 3
+#            Postadresse:
+#              label: Postadresse
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 4
+#            Postleitzahl_und_Ort:
+#              label: Postleitzahl und Ort
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 5
+#            Telefon:
+#              label: Telefon
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 6
+#            Weitere_Telefonnummer_oder_Fax:
+#              label: Weitere Telefonnummer oder Fax
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 7
+#            E-Mail:
+#              label: E-Mail
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 8
+#            Webseite:
+#              label: Webseite
+#              baseType: STRING
+#              # title: TODO
+#              width: 2
+#              order: 9
+#            Öffnungszeiten:
+#              label: Öffnungszeiten
+#              baseType: TEXT
+#              # title: TODO
+#              width: 2
+#              order: 10
+#            Quelle:
+#              label: Quelle
+#              baseType: STRING
+#              title: Link zur Quelle im Staatskalender
+#              width: 2
+#              order: 11
+              
+        
+#KONFIGURATION SAMMLUNGSART DATENBESTAND
+        #DATENBESTAND:
+          #label: Datenbestand
+          #icon: rectangle-history
+
+
+
+#2 - GESCHÄFTSOBJEKTMODELL
+BusinessObject:
+
+  properties:
+    dataProtectionCategory:
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+BusinessAttribute:
+
+  groups:
+    AUFBEW:
+      label: Archivierung
+      order: 30
+      icon: box-archive      
+    DP:
+      label: Datenschutz
+      order: 10
+      icon: field
+    HIST:
+      label: Historisierung
+      order: 40
+      #icon:
+
+
+      
+  properties:
+    identifying:
+      label: Primärschlüssel
+    dataProtectionCategory:
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+
+  customProperties:
+    ID:
+      label: Identifikation 
+      baseType: INTEGER
+      order: 10
+    PRIM:
+      label: Primärerhebung
+      baseType: BOOLEAN
+      order: 20
+    HIST:
+      label: Historisierung
+      title: Wird der Datensatz historisiert?
+      baseType: BOOLEAN
+      group: HIST
+      order: 30
+    HISTFROM:
+      label: Historisierung seit wann
+      title: Seit wann liegen historisierte Daten vor?
+      baseType: DATE
+      group: HIST
+      order: 40
+    HISTART:
+      label: Art der Historisierung
+      title: Wir wird historisiert (Snapshots etc.)?
+      baseType: TEXT
+      group: HIST    
+      order: 50
+    Identifikator:
+      label: Identifikator
+      title: tbd
+      baseType: STRING 
+      order: 5   
+
+    VERTR:
+      label: Vertraulichkeit
+      #title:
+      order: 10
+      group: DP
+      literals:
+        "1":
+          label: Öffentlich
+          order: 1
+        "2":
+          label: Intern  
+          order: 2
+        "3":
+          label: Vertraulich
+          order: 3
+        "4":
+          label: Geheim
+          order: 4
+    SCHUBAN:
+      label: Schutzbedarfsstufen
+      group: DP
+      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
+      order: 11
+      literals:
+        "1":
+          label: Grundschutz (GS)
+          order: 1
+        "2":
+          label: erhöhter Schutzbedarf (ES)  
+          order: 2
+        "3":
+          label: sehr hoher Schutzbedarf (SHS)
+          order: 3
+
+#3 - RDM
+ReferenceDataModel:
+
+#PROPERTIES
+  properties:
+    stereotype:
+      label: Modelltyp
+      literals:
+        Rechtsgrundlage:
+          label: Rechtsgrundlagen
+          ling: s2p3m
+          icon: section
+        Leistungsverzeichnis:
+          label: Leistungsverzeichnis
+          ling: s2p3m
+          icon: book       
+#REFERENZLISTE/ REFERENCE OBJECT
+ReferenceObject:
+  label: Element
+  ling: s1p1n
+
+#STEREOPTYPE TYP
+  properties:
+    stereotype:   
+      label: Typ
+      literals:
+
+#TYPE RECHTSGRUNDLAGE 
+        RECHTSGRUNDLAGE:
+          label: Rechtsgrundlage
+          ling: s3p3f
+          icon: section
+
+
+#4 - DATENKATALOG
+#DataCatalog:
+
+Dataset:
+  label: Datensatz
+  ling: s1p1um
+
+  groups:
+    AUFBEW:
+      label: Archivierung
+      order: 30
+      icon: box-archive
+    HIST:
+      label: Historisierung
+      order: 40
+      #icon:
+    GEO:
+      label: Geodaten
+      order: 50
+      icon: location-dot
+    OGD:
+      label: OGD
+      order: 60
+      icon: globe
+
+  properties:
+    label:
+      label: Name
+      title: Name des mit den Metadaten beschriebenen Datensatzes.
+    title:
+      label: Kurzbeschreibung
+      title: Kurzbeschreibung des Datensatzes. Diese wird in der Übersicht angezeigt und unterstützt die Auffindbarkeit, denn die Suchfunktion sucht auch in diesem Metadatenfeld.
+    tags:
+      label: Schlüsselwörter
+      title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
+    temporalStart:
+      title: Datum, an dem der Datensatz ursprünglich erstellt wurde
+    accrualPeriodicity: 
+      label: Aktualisierungsfrequenz
+      labelEn: Accrual periodicity
+      title: Frequenz der Aktualisierung der Attribute im Datensatz
+      titleEn: The frequency at which dataset is published
+      cardinality: ONE
+       
+      literals:
+        http://publications.europa.eu/resource/authority/frequency/CONT:
+          label: kontinuierlich
+          title: Daten werden ohne Unterbrechung laufend aktualisiert
+          order: 1
+        http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT:
+          label: ständige Aktualisierung
+          title: Daten werden kontinuierlich nachgeführt, sobald Änderungen verfügbar sind
+          order: 2
+        http://publications.europa.eu/resource/authority/frequency/1MIN:
+          label: minütlich
+          title: Daten werden jede Minute aktualisiert
+          order: 3
+        http://publications.europa.eu/resource/authority/frequency/5MIN:
+          label: alle fünf Minuten
+          title: Daten werden alle fünf Minuten aktualisiert
+          order: 4
+        http://publications.europa.eu/resource/authority/frequency/10MIN:
+          label: alle zehn Minuten
+          title: Daten werden alle zehn Minuten aktualisiert
+          order: 5
+        http://publications.europa.eu/resource/authority/frequency/15MIN:
+          label: viertelstündlich
+          title: Daten werden alle 15 Minuten aktualisiert
+          order: 6
+        http://publications.europa.eu/resource/authority/frequency/30MIN:
+          label: halbstündlich
+          title: Daten werden alle 30 Minuten aktualisiert
+          order: 7
+        http://publications.europa.eu/resource/authority/frequency/HOURLY:
+          label: stündlich
+          title: Daten werden jede Stunde aktualisiert
+          order: 8
+        http://publications.europa.eu/resource/authority/frequency/BIHOURLY:
+          label: alle zwei Stunden
+          title: Daten werden alle zwei Stunden aktualisiert
+          order: 9
+        http://publications.europa.eu/resource/authority/frequency/TRIHOURLY:
+          label: alle drei Stunden
+          title: Daten werden alle drei Stunden aktualisiert
+          order: 10
+        http://publications.europa.eu/resource/authority/frequency/12HRS:
+          label: alle zwölf Stunden
+          title: Daten werden zweimal täglich (alle 12 Stunden) aktualisiert
+          order: 11
+        http://publications.europa.eu/resource/authority/frequency/DAILY:
+          label: täglich
+          title: Daten werden einmal pro Tag aktualisiert
+          order: 12
+        http://publications.europa.eu/resource/authority/frequency/DAILY_2:
+          label: zweimal täglich
+          title: Daten werden zweimal pro Tag aktualisiert
+          order: 13
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY:
+          label: wöchentlich
+          title: Daten werden einmal pro Woche aktualisiert
+          order: 14
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_2:
+          label: zweimal pro Woche
+          title: Daten werden zweimal pro Woche aktualisiert
+          order: 15
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_3:
+          label: dreimal pro Woche
+          title: Daten werden dreimal pro Woche aktualisiert
+          order: 16
+        http://publications.europa.eu/resource/authority/frequency/BIWEEKLY:
+          label: zweiwöchentlich
+          title: Daten werden alle zwei Wochen aktualisiert
+          order: 17
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY:
+          label: monatlich
+          title: Daten werden einmal pro Monat aktualisiert
+          order: 18
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_2:
+          label: zweimal im Monat
+          title: Daten werden zweimal pro Monat aktualisiert
+          order: 19
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_3:
+          label: dreimal im Monat
+          title: Daten werden dreimal pro Monat aktualisiert
+          order: 20
+        http://publications.europa.eu/resource/authority/frequency/BIMONTHLY:
+          label: zweimonatlich
+          title: Daten werden alle zwei Monate aktualisiert
+          order: 21
+        http://publications.europa.eu/resource/authority/frequency/QUARTERLY:
+          label: vierteljährlich
+          title: Daten werden alle drei Monate (quartalsweise) aktualisiert
+          order: 22
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_2:
+          label: halbjährlich
+          title: Daten werden zweimal pro Jahr aktualisiert
+          order: 23
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_3:
+          label: dreimal im Jahr
+          title: Daten werden dreimal pro Jahr aktualisiert
+          order: 24
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL:
+          label: jährlich
+          title: Daten werden einmal pro Jahr aktualisiert
+          order: 25
+        http://publications.europa.eu/resource/authority/frequency/BIENNIAL:
+          label: zweijährlich
+          title: Daten werden alle zwei Jahre aktualisiert
+          order: 26
+        http://publications.europa.eu/resource/authority/frequency/TRIENNIAL:
+          label: dreijährlich
+          title: Daten werden alle drei Jahre aktualisiert
+          order: 27
+        http://publications.europa.eu/resource/authority/frequency/QUADRENNIAL:
+          label: vierjährlich
+          title: Daten werden alle vier Jahre aktualisiert
+          order: 28
+        http://publications.europa.eu/resource/authority/frequency/QUINQUENNIAL:
+          label: fünfjährlich
+          title: Daten werden alle fünf Jahre aktualisiert
+          order: 29
+        http://publications.europa.eu/resource/authority/frequency/DECENNIAL:
+          label: alle zehn Jahre
+          title: Daten werden alle zehn Jahre aktualisiert
+          order: 30
+        http://publications.europa.eu/resource/authority/frequency/BIDECENNIAL:
+          label: alle zwanzig Jahre
+          title: Daten werden alle zwanzig Jahre aktualisiert
+          order: 31
+        http://publications.europa.eu/resource/authority/frequency/TRIDECENNIAL:
+          label: alle dreissig Jahre
+          title: Daten werden alle dreissig Jahre aktualisiert
+          order: 32
+        http://publications.europa.eu/resource/authority/frequency/AS_NEEDED:
+          label: im Bedarfsfall
+          title: Daten werden bei Bedarf aktualisiert, wenn sie benötigt werden
+          order: 33
+        http://publications.europa.eu/resource/authority/frequency/IRREG:
+          label: unregelmässig
+          title: Daten werden in unregelmässigen Abständen aktualisiert
+          order: 34
+        http://publications.europa.eu/resource/authority/frequency/OP_DATPRO:
+          label: Vorläufige Daten
+          title: Vorläufige Daten, die später durch definitive Daten ersetzt werden
+          order: 35
+        http://publications.europa.eu/resource/authority/frequency/OTHER:
+          label: anderer
+          title: Aktualisierungszyklus entspricht keinem der anderen vordefinierten Werte
+          order: 36
+        http://publications.europa.eu/resource/authority/frequency/UNKNOWN:
+          label: unbekannt
+          title: Der Aktualisierungszyklus ist nicht bekannt
+          order: 37
+        http://publications.europa.eu/resource/authority/frequency/NOT_PLANNED:
+          label: nicht geplant
+          title: Es ist keine Aktualisierung der Daten geplant
+          order: 38
+        http://publications.europa.eu/resource/authority/frequency/NEVER:
+          label: niemals
+          title: Die Daten werden niemals aktualisiert
+          order: 39  
+
+    stereotype:
+      label: Datensatztyp
+      title: Der Datensatztyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
+      literals:
+
+        OGD:
+          label: OGD-Datensatz
+          icon: globe
+
+          customProperties:
+            LICENSE:
+              label: Lizenz
+              title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              group: OGD
+              order: 20
+              literals:
+                "001":
+                  label: CC0 1.0
+                "002":
+                  label: CC BY                  
+                "003":
+                  label: CC BY 3.0 CH
+                "004":
+                  label: CC BY 3.0 CH + OpenStreetMap
+                "005":
+                  label: CC BY 4.0
+                "006":
+                  label: CC BY 4.0 + OpenStreetMap                  
+            RECHT:
+              label: Rechte
+              title: 
+              group: OGD
+              order: 30
+              literals:
+                "001":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_open
+                "002":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by
+                "003":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                "004":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+            THEMA:
+              label: Themen
+              title: 
+              group: OGD
+              order: 40
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft 
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            HGEBER:
+              label: Herausgeber
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 50
+            REF:
+              label: Referenz
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 60
+            ZUSCH:
+              label: Zuschreibungen
+              title: 
+              baseType: TEXT
+              group: OGD
+              order: 70
+            PORG:
+              label: Publizierende Organisation
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 80
+            ID:
+              label: Datenportal-Identifikation
+              title: 
+              baseType: INTEGER
+              group: OGD
+              order: 100
+            TAG:
+              label: Tags
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 110
+              cardinality: MANY
+
+        GEOUNDOGD:
+          label: Geo- und OGD-Datensatz
+          icon: earth-europe
+          
+          customProperties:
+            GEOCAT:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: MANY              
+              literals:
+                "001":
+                  label: Basiskarten
+                "002":
+                  label: Bodenbedeckung, Bodennutzung
+                "003":
+                  label: Luft-, Satellitenbilder
+                "004":
+                  label: Ortsangaben, Referenzsysteme
+                "005":
+                  label: Höhen
+                "006":
+                  label: Politische und Administrative Grenzen
+                "007":
+                  label: Raumplanung, Raumentwicklung
+                "008":
+                  label: Grundstückkataster
+                "009":
+                  label: Geologie
+                "010":
+                  label: Boden
+                "011":
+                  label: Naturbedingte Risiken
+                "012":
+                  label: Wald, Flora, Fauna
+                "013":
+                  label: Gewässer
+                "014":
+                  label: Atmosphäre, Luft, Klima
+                "015":
+                  label: Umweltschutz, Lärm
+                "016":
+                  label: Natur- und Landschaftsschutz
+                "017":
+                  label: Bevölkerung, Gesellschaft, Kultur
+                "018":
+                  label: Gesundheit
+                "019":
+                  label: Gebäude, Anlagen
+                "020":
+                  label: Verkehr
+                "021":
+                  label: Energie
+                "022":
+                  label: Wasser- und Abfallsysteme
+                "023":
+                  label: Kommunikation
+                "024":
+                  label: Militär, Sicherheit
+                "025":
+                  label: Landwirtschaft
+                "026":
+                  label: Wirtschaftliche Aktivitäten
+            #ZGB:
+              #label: Zugangsberechtigungsstufe 
+              #title: Zugangsberechtigungsstufe der Daten
+              #group: GEO
+              #order: 20
+              #literals:
+                #"001":
+                  #label: A - öffentlich 
+                #"002":
+                  #label: B1 - beschränkt öffentlich (intern)
+                #"003":
+                  #label: B2 - beschränkt öffentlich (nur einzelne Dienststellen)
+                #"004":
+                  #label: B3 - beschränkt öffentlich (nur einzelne Personen)
+                #"005":
+                  #label: C - geheim
+            AUSDBESCHR:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            GEOID:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: ID
+              group: GEO
+              order: 50
+            KRZL:
+              label: Kürzel
+              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
+              baseType: STRING
+              group: GEO
+              order: 70
+            LICENSE:
+              label: Lizenz
+              title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              group: OGD
+              order: 20
+              literals:
+                "001":
+                  label: CC0 1.0
+                "002":
+                  label: CC BY                  
+                "003":
+                  label: CC BY 3.0 CH
+                "004":
+                  label: CC BY 3.0 CH + OpenStreetMap
+                "005":
+                  label: CC BY 4.0
+                "006":
+                  label: CC BY 4.0 + OpenStreetMap
+            RECHT:
+              label: Rechte
+              title: 
+              group: OGD
+              order: 30
+              literals:
+                "001":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_open
+                "002":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by
+                "003":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                "004":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+            THEMA:
+              label: Themen
+              title: 
+              group: OGD
+              order: 40
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft 
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            HGEBER:
+              label: Herausgeber
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 50
+            REF:
+              label: Referenz
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 60
+            ZUSCH:
+              label: Zuschreibungen
+              title: 
+              baseType: TEXT
+              group: OGD
+              order: 70
+            PORG:
+              label: Publizierende Organisation
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 80
+            ID:
+              label: Datenportal-Identifikation
+              title: 
+              baseType: INTEGER
+              group: OGD
+              order: 100
+            TAG:
+              label: Tags
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 110
+              cardinality: MANY
+              
+        GEO:
+          label: Geo-Datensatz
+          icon: solid-location-dot
+
+          customProperties:
+          #GROUP WEITERE GEO INFOS
+            GEOCAT:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Basiskarten
+                "002":
+                  label: Bodenbedeckung, Bodennutzung
+                "003":
+                  label: Luft-, Satellitenbilder
+                "004":
+                  label: Ortsangaben, Referenzsysteme
+                "005":
+                  label: Höhen
+                "006":
+                  label: Politische und Administrative Grenzen
+                "007":
+                  label: Raumplanung, Raumentwicklung
+                "008":
+                  label: Grundstückkataster
+                "009":
+                  label: Geologie
+                "010":
+                  label: Boden
+                "011":
+                  label: Naturbedingte Risiken
+                "012":
+                  label: Wald, Flora, Fauna
+                "013":
+                  label: Gewässer
+                "014":
+                  label: Atmosphäre, Luft, Klima
+                "015":
+                  label: Umweltschutz, Lärm
+                "016":
+                  label: Natur- und Landschaftsschutz
+                "017":
+                  label: Bevölkerung, Gesellschaft, Kultur
+                "018":
+                  label: Gesundheit
+                "019":
+                  label: Gebäude, Anlagen
+                "020":
+                  label: Verkehr
+                "021":
+                  label: Energie
+                "022":
+                  label: Wasser- und Abfallsysteme
+                "023":
+                  label: Kommunikation
+                "024":
+                  label: Militär, Sicherheit
+                "025":
+                  label: Landwirtschaft
+                "026":
+                  label: Wirtschaftliche Aktivitäten
+            #ZGB:
+              #label: Zugangsberechtigungsstufe 
+              #title: Zugangsberechtigungsstufe der Daten
+              #group: GEO
+              #order: 20
+              #literals:
+                #"001":
+                  #label: A - öffentlich 
+                #"002":
+                  #label: B1 - beschränkt öffentlich (intern)
+                #"003":
+                  #label: B2 - beschränkt öffentlich (nur einzelne Dienststellen)
+                #"004":
+                  #label: B3 - beschränkt öffentlich (nur einzelne Personen)
+                #"005":
+                  #label: C - geheim
+            AUSDBESCHR:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            GEOID:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: ID
+              group: GEO
+              order: 50
+            KRZL:
+              label: Kürzel
+              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
+              baseType: STRING
+              group: GEO
+              order: 70
+
+###CUSTUM PROPERTIES###
+
+  customProperties:
+     #DATASPACE:
+       #label: Datenraum
+       #order: 5
+       #cardinality: MANY
+       #literals:
+         #"1":
+           #label: Gebäude    
+         #"2":
+           #label: Geo     
+     VERTR:
+       label: Vertraulichkeit
+       #title:
+       order: 10
+       literals:
+         "1":
+           label: Öffentlich
+           order: 1
+         "2":
+           label: Intern  
+           order: 2
+         "3":
+           label: Vertraulich
+           order: 3
+         "4":
+           label: Geheim
+           order: 4
+     SCHUBAN:
+       label: Schutzbedarfsstufen
+       #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
+       order: 11
+       literals:
+         "1":
+           label: Grundschutz (GS)
+           order: 1
+         "2":
+           label: erhöhter Schutzbedarf (ES)  
+           order: 2
+         "3":
+           label: sehr hoher Schutzbedarf (SHS)
+           order: 3
+     #ZWECK:
+      # label: Zweck
+       #title:
+       #order: 20
+       #literals:
+         #"1":
+           #label: xx
+         #"2":
+           #label: xx        
+         #"3":
+           #label: xx    
+         #"4":
+           #label: xx
+           
+     LASTACTl:
+       label: Letzte Aktualisierung
+       title: Letzte Aktualisierung des Datensatzes
+       #title:
+       order: 30
+       baseType: DATE
+     PD:
+       label: Publikationsdatum
+       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
+       order: 40
+       baseType: DATE      
+     HIST:
+       label: Historisierung
+       title: Wird der Datensatz historisiert?
+       baseType: BOOLEAN
+       group: HIST
+       order: 50
+     HISTFROM:
+       label: Historisierung seit wann
+       title: Seit wann liegen historisierte Daten vor?
+       baseType: DATE
+       group: HIST
+       order: 60
+     HISTART:
+       label: Art der Historisierung
+       title: Wir wird historisiert (Snapshots etc.)?
+       baseType: TEXT
+       group: HIST    
+       order: 70
+     ABF:
+       label: Aufbewahrungsfrist (Jahre)
+       title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
+       group: HIST
+       baseType: INTEGER
+       order: 80
+     BEGRABF:
+       label: Begründung Aufbewahrungsfrist
+       title: Begründung und Bemerkung zur Aufbewahrunsgfrist
+       group: HIST
+       baseType: TEXT
+       order: 90
+     ARCH:
+       label: Archivierung
+       title: Wird der Datensatz archiviert (Staatsarchiv?)
+       group: AUFBEW
+       baseType: BOOLEAN
+       order: 100
+     ARCHDET:
+       label: Archivierung Details
+       title: Nach welchen Kriterien wird der Datensatz archiviert?
+       group: AUFBEW
+       baseType: TEXT
+       order: 110
+     ARCHBEGR:
+       label: Archivierung Begründung
+       title: Begründung der Archivwürdigkeit
+       group: AUFBEW
+       baseType: TEXT
+       order: 120
+     NE:
+       label: Nutzungseinschränkung
+       title: Beschreibung von Einschränkungen, welche für die Nutzung der Daten besteht (z.B. aufgrund der Qualität der Daten)
+       group: AUFBEW
+       baseType: TEXT
+       order: 130
+       
+       
+       
+#5 - WORKFLOW
+Asset:
+  properties:
+    status:
+      literals:
+      
+
+###### Zusatzstatus Workflow ######
+
+        REVIEW:
+          label: Entwurfs-Prüfung Data Steward Datenraum
+          icon: arrows-rotate
+          group: DRAFT
+          order: 1
+        REVIEWDCC:
+          label: Entwurfs-Prüfung DCC
+          icon: arrows-rotate
+          group: DRAFT
+          order: 2
+        FADO:
+          label: Finale Abnahme Data Owner
+          icon: user-check
+          group: DRAFT
+          order: 3
+        PREPUBLISHED:
+          label: Durch Data Owner abgenommen, öffentlich
+          icon: square-check
+          group: PUBLIC
+          order: 4
+        TB:
+          label: Technische Datenbereitstellung
+          icon: screwdriver-wrench
+          group: PUBLIC
+          order: 5
+        OGDCHECK:
+          label: OGD Prüfung
+          icon: user-group
+          group: PUBLIC
+          order: 6
+        KORREKTUR:
+          label: Korrektur
+          icon: circle-exclamation
+          order: 7
+          group: DRAFT
+        MUTATION:
+          label: Mutation unter Beachtung der Abhängigkeiten
+          icon: circle-exclamation
+          order: 8
+          group: DRAFT
+        MUTATION_NV:
+          label: Mutation
+          icon: circle-exclamation
+          order: 9
+          group: DRAFT
+        INTERMINATION:
+          label: Antrag auf Löschung
+          icon: trash
+          order: 10
+          group: PUBLIC
+        REVIEW2:
+          label: Lösch-Prüfung Data Steward Datenraum
+          icon: arrows-rotate
+          group: PUBLIC
+          order: 11
+        REVIEWDCC2:
+          label: Lösch-Prüfung DCC 
+          icon: arrows-rotate
+          group: PUBLIC
+          order: 13
+        REVIEW3:
+          label: Finale Abnahme DCC
+          icon: arrows-rotate
+          group: PUBLIC
+          order: 202
+        FADO2:
+          label: Finale Abnahme DO
+          icon: user-check
+          group: DRAFT
+          order: 14          
+        INTERMINATION2:
+          label: Metadaten inaktiv gestellt
+          icon: trash
+          order: 15
+          group: NOT_PUBLIC          
+        DELETE:
+          label: Metadaten löschen
+          icon: solid-trash
+          order: 16
+          group: NOT_PUBLIC
+        DELETE2:
+          label: Metadaten gelöscht
+          icon: solid-trash
+          order: 17
+          group: NOT_PUBLIC          
+##### Status aus Standard Workflow d. #####
+        WORKING:
+          label: In Entwurf
+          labelEn: Working
+          icon: wrench
+          order: 0
+          group: DRAFT
+        SUBMITTED:
+          label: Abgestimmt
+          labelEn: Submitted
+          icon: scale-balanced
+          order: 12
+          group: DRAFT
+        ACCEPTED:
+          label: Abgenommen
+          labelEn: Accepted
+          icon: gavel
+          order: 20
+          group: DRAFT
+        FINAL:
+          label: Finalisiert
+          labelEn: Final
+          icon: badge-check
+          order: 30
+          group: NOT_PUBLIC
+        PUBLISHED:
+          label: Veröffentlicht
+          labelEn: Published
+          icon: globe
+          order: 40
+          group: PUBLIC
+        PUBLISHEDDCC:
+          label: Veröffentlicht und von DCC abgenommen
+          labelEn: Published
+          icon: globe
+          order: 45
+          group: PUBLIC
+        INACTIVE:
+          label: Inaktiv
+          labelEn: Inactive
+          icon: solid-do-not-enter
+          order: 50
+          group: NOT_PUBLIC
+          inactive: true
+        REJECTED:
+          label: Abgelehnt
+          labelEn: Rejected
+          icon: thumbs-down
+          order: 60
+          group: DRAFT     
+     
+     
+
+
+#6 - HERKUNFT
+Derivation:
+  label: Zusatzinformation
+  ling: s3p3f
+  properties:
+    qualifier:
+      # Definition der Ausprägungen von Kennzeichnung
+      literals:
+        SPOT:
+          label: SPOT
+          labelEn: SPOT
+        GOLD:
+          label: Golden Source
+          labelEn: golden record
+        FILTER:
+          # Kennzeichnung eines Filters einer Kennzahl/Referenzwertes
+          label: Filter
+          labelEn: Filter
+        BER:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Berechnungsbasis
+          labelEn: Calculation basis
+        SPEZ2:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Wird verwendet in
+          #labelEn: Calculation basis
+        SPEZ3:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Rechtsgrundlage
+          #labelEn: Calculation basis
+        SPEZ4:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Zweck
+          #labelEn: Calculation basis
+        DERIVED:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: abgeleitet von
+          labelEn: derived from
+        EXKL:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: exkludiert
+          labelEn: excluded
+        SPEZ:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Spezifikation für
+
+          
+          
+#8 - TECHNISCHE DATENMODEllE
+
+
+UmlClass:
+  properties:
+    stereotype:
+      label: File-Format
+      #title: 
+      literals:
+        "1":
+          label: json
+        "2":
+          label: xml
+        "3":
+          label: shape
+        "4":
+          label: csv
+  
+#9 - TRANSFORMATIONSREGELN
+Rule:
+  groups:
+    SPECIALS:
+      label: Weitere Informationen
+      icon: memo-pad
+      order: 10
+  properties:
+    stereotype:
+      label: Transformationstyp
+      literals:
+        ONE2ONE:
+          label: 1:1-Mapping
+          order: 10
+          icon: clone
+        FIX:
+          label: Fixwert
+          order: 20
+          icon: lock
+        DESCRIBED:
+          label: wie beschrieben
+          order: 30
+          icon: angry
+        JOIN:
+          label: Join
+          order: 40
+          icon: comments
+        FILTER:
+          label: Filter
+          order: 50
+          icon: filter  
+  
+#11 - SONSTIGES
+Composition:
+  properties:
+    label:
+      label: Bezeichnung
+    title: 
+      label: Technische Bezeichnung
+
+Distribution:
+  properties:
+
+    format:
+      literals:
+
+        csv:
+          label: CSV
+        html:
+          label: HTML
+        json:
+          label: JSON
+        GeoJson:
+          label: GeoJson
+        pdf:
+          label: PDF
+        png:
+          label: PNG
+        rdf:
+          label: RDF
+        txt:
+          label: TXT
+        wfs:
+          label: WFS
+        wms:
+          label: WMS
+        wmst:
+          label: WMTS
+        xls:
+          label: XLS
+        xml:
+          label: XML
+        OGCFeatureAPI:
+          label: OGC Feature API
+        STAC:
+          label: STAC
+        GeoPackage:
+          label: GeoPackage
+        FileGeodatabase:
+          label: FileGeodatabase
+        GeoParquet:
+          label: GeoParquet
+        Shapefile:
+          label: Shapefile
+
+
+#12 - PROJEKTE
+ProjectDirectory:
+  properties:
+    stereotype:
+      label: Projektmodell-Typ
+      literals:
+        "1":
+          label: Datenraumverzeichnis
+          icon: cat-space
+
+# ------------------------------------------------------------------------------------------
+#   This annotation was copied from "Derivation" as part of the migration to dataspot v4.6
+#   Please verify if this is as intended!
+# ------------------------------------------------------------------------------------------
+Deployment:
+  properties:
+    qualifier:
+      literals:
+        SPOT:
+          label: SPOT
+          labelEn: SPOT
+        GOLD:
+          label: Golden Source
+          labelEn: golden record
+        FILTER:
+          label: Filter
+          labelEn: Filter
+        BER:
+          label: Berechnungsbasis
+          labelEn: Calculation basis
+        SPEZ2:
+          label: Wird verwendet in
+        SPEZ3:
+          label: Rechtsgrundlage
+        SPEZ4:
+          label: Zweck
+        DERIVED:
+          label: abgeleitet von
+          labelEn: derived from
+        EXKL:
+          label: exkludiert
+          labelEn: excluded

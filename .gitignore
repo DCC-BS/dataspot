@@ -6,3 +6,4 @@ tmp/
 **/*.mdc
 **/*.txt
 !requirements.txt
+!**/README.txt
