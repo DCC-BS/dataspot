@@ -6,6 +6,7 @@ from time import sleep
 
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
+from src.dataspot_uuid_cache import DataspotUUIDCache
 import json
 import os
 
@@ -36,7 +37,7 @@ def create_url_to_website(path: str) -> str:
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
 
-    def __init__(self, request_delay=1.0):
+    def __init__(self, request_delay=1.0, uuid_cache_path="dataspot_uuids.csv"):
         # TODO: Add also_save_to_csv_path argument that can be None or a path
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
@@ -44,6 +45,8 @@ class DataspotClient:
         Args:
             request_delay (float, optional): The delay between API requests in seconds. Default is 1.0 second.
                                             This helps prevent overloading the server with too many requests.
+            uuid_cache_path (str, optional): Path to the CSV file used to cache UUIDs. Default is "dataspot_uuids.csv".
+                                            Set to None to disable UUID caching.
         """
         # TODO: Move all these infos into the env file, as they should not be hardcoded
         load_dotenv('../../.dataspot.env')
@@ -59,8 +62,10 @@ class DataspotClient:
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.datatype_scheme_name = 'Datentypmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle', 'collections', 'Automatisch generierte ODS-Datenmodelle')
-        self._datatype_uuid_cache = {}
         self.request_delay = request_delay
+        
+        # Initialize UUID cache
+        self.uuid_cache = DataspotUUIDCache(uuid_cache_path) if uuid_cache_path else None
     
     def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
         """
@@ -299,9 +304,11 @@ class DataspotClient:
         # Map the ODS type to Dataspot type path
         dataspot_type = type_mapping.get(ods_type.lower(), 'UNKNOWN TYPE')
 
-        # Return from cache if available
-        if dataspot_type in self._datatype_uuid_cache:
-            return self._datatype_uuid_cache[dataspot_type]
+        # Check UUID cache first if enabled
+        if self.uuid_cache:
+            cached_uuid = self.uuid_cache.get_uuid('Datatype', dataspot_type)
+            if cached_uuid:
+                return cached_uuid
 
         # Split the path to get the type name
         parts = dataspot_type.split('/')
@@ -316,8 +323,10 @@ class DataspotClient:
             response = requests_get(endpoint, headers=headers)
             type_uuid = response.json().get('id')
 
-            # Cache the result
-            self._datatype_uuid_cache[dataspot_type] = type_uuid
+            # Cache the result if caching is enabled
+            if self.uuid_cache and type_uuid:
+                self.uuid_cache.add_or_update_asset('Datatype', dataspot_type, type_uuid, datatype_path)
+                
             return type_uuid
 
         except HTTPError as e:
@@ -395,6 +404,10 @@ class DataspotClient:
             response = requests_get(endpoint, headers=headers, rate_limit_delay=self.request_delay)
             collection_uuid = response.json().get('id')
             logging.debug(f"Found collection UUID: {collection_uuid}")
+            
+            # Cache the collection UUID if caching enabled
+            if self.uuid_cache and collection_uuid:
+                self.uuid_cache.add_or_update_asset('Collection', self.tdm_scheme_name, collection_uuid, collection_path)
         except HTTPError as e:
             if e.response.status_code == 404:
                 raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
@@ -407,13 +420,19 @@ class DataspotClient:
         # Check if asset already exists
         asset_exists = False
         asset_href = None
+        asset_uuid = None
 
         try:
             asset_url = url_join(self.base_url, self.find_tdm_dataobject_path(name))
             response = requests_get(asset_url, headers=headers, rate_limit_delay=self.request_delay)
             asset_exists = True
             asset_href = response.json()['_links']['self']['href']
+            asset_uuid = response.json().get('id')
             logging.info(f"Dataobject '{name}' already exists. Proceeding to update...")
+            
+            # Cache the asset UUID if caching enabled
+            if self.uuid_cache and asset_uuid:
+                self.uuid_cache.add_or_update_asset('TDMDataobject', name, asset_uuid, asset_href)
         except HTTPError as e:
             if e.response.status_code != 404:
                 raise e
@@ -433,6 +452,11 @@ class DataspotClient:
                 response = requests_post(assets_endpoint, headers=headers, json=asset_data, rate_limit_delay=self.request_delay)
                 logging.info(f"Asset '{name}' created successfully.")
                 asset_href = response.json()['_links']['self']['href']
+                asset_uuid = response.json().get('id')
+                
+                # Cache the asset UUID if caching enabled
+                if self.uuid_cache and asset_uuid:
+                    self.uuid_cache.add_or_update_asset('TDMDataobject', name, asset_uuid, asset_href)
             except json.JSONDecodeError as e:
                 raise json.JSONDecodeError(
                     f"Failed to decode JSON response from {assets_endpoint}: {str(e)}",
@@ -529,7 +553,14 @@ class DataspotClient:
             try:
                 url_to_check = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', name)
                 check_endpoint = url_join(self.base_url, url_to_check)
-                requests_get(check_endpoint, headers=headers)
+                response = requests_get(check_endpoint, headers=headers)
+                
+                # If unit exists and we have caching enabled, cache its UUID
+                if self.uuid_cache:
+                    unit_uuid = response.json().get('id')
+                    if unit_uuid:
+                        self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, url_to_check)
+                        
                 logging.info(f"Organizational unit '{name}' already exists at top level. Skip creation...")
                 return
             except HTTPError as e:
@@ -544,6 +575,10 @@ class DataspotClient:
                 response = requests_get(parent_endpoint, headers=headers)
                 parent_uuid = response.json().get('id')
                 logging.debug(f"Retrieved parent UUID: {parent_uuid}")
+                
+                # Cache parent UUID if caching enabled
+                if self.uuid_cache and parent_uuid:
+                    self.uuid_cache.add_or_update_asset('OrganizationalUnit', parent_name, parent_uuid, parent_path)
             except HTTPError as e:
                 if e.response.status_code == 404:
                     logging.error(f"Parent organizational unit '{parent_name}' does not exist")
@@ -557,7 +592,14 @@ class DataspotClient:
             # Check if unit already exists under the parent
             try:
                 url_to_check = url_join(endpoint, name)
-                requests_get(url_to_check, headers=headers)
+                response = requests_get(url_to_check, headers=headers)
+                
+                # If unit exists and we have caching enabled, cache its UUID
+                if self.uuid_cache:
+                    unit_uuid = response.json().get('id')
+                    if unit_uuid:
+                        self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, url_to_check)
+                        
                 logging.info(f"Organizational unit '{name}' already exists under '{parent_name}'. Skip creation...")
                 return
             except HTTPError as e:
@@ -566,7 +608,23 @@ class DataspotClient:
 
         # Create the organizational unit
         try:
-            requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+            response = requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+            
+            # Cache the newly created unit UUID if caching enabled
+            if self.uuid_cache:
+                try:
+                    unit_uuid = response.json().get('id')
+                    if unit_uuid:
+                        # Construct proper path for the unit
+                        if parent_name is None:
+                            unit_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', name)
+                        else:
+                            unit_path = response.json().get('_links', {}).get('self', {}).get('href', '')
+                        
+                        self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, unit_path)
+                except Exception as e:
+                    logging.warning(f"Failed to cache organizational unit UUID: {str(e)}")
+            
             if parent_name:
                 logging.info(f"Organizational unit '{name}' created under '{parent_name}'.")
             else:
@@ -587,7 +645,23 @@ class DataspotClient:
                     logging.info(f"Attempting to create with simplified name: '{simplified_name}'")
                     org_unit_data["label"] = simplified_name
                     try:
-                        requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+                        response = requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+                        
+                        # Cache the newly created unit UUID if caching enabled
+                        if self.uuid_cache:
+                            try:
+                                unit_uuid = response.json().get('id')
+                                if unit_uuid:
+                                    # Construct proper path for the unit
+                                    if parent_name is None:
+                                        unit_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', simplified_name)
+                                    else:
+                                        unit_path = response.json().get('_links', {}).get('self', {}).get('href', '')
+                                        
+                                    self.uuid_cache.add_or_update_asset('OrganizationalUnit', simplified_name, unit_uuid, unit_path)
+                            except Exception as e:
+                                logging.warning(f"Failed to cache organizational unit UUID: {str(e)}")
+                        
                         if parent_name:
                             logging.info(f"Organizational unit created with simplified name '{simplified_name}' under '{parent_name}'")
                         else:
@@ -895,7 +969,6 @@ class DataspotClient:
             logging.error(f"Failed to create composition: {str(e)}")
             raise
 
-    # TODO: Apply this method at all instances needed
     def find_dataset_path(self, title):
         """
         Find the path to a dataset in the DNK scheme by its title.
@@ -909,22 +982,50 @@ class DataspotClient:
         Raises:
             ValueError: If the dataset is not found
         """
+        # Check cache first if caching is enabled
+        if self.uuid_cache:
+            cached_path = self.uuid_cache.get_path('Dataset', title)
+            if cached_path:
+                return cached_path
+
         if '/' not in title:
             # If no slash, construct the path using the standard format
-            return url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
-        else:
-            # If there is a slash, then we need to find the dataset by title
-            datasets_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets')
-            datasets_endpoint = url_join(self.base_url, datasets_path)
-            response = requests_get(datasets_endpoint, headers=self.auth.get_headers())
-            datasets_data = response.json()
-            datasets = datasets_data.get('_embedded', {}).get('datasets', [])
-            for dataset in datasets:
-                if dataset.get('label') == title:
-                    return dataset['_links']['self']['href']
-            raise ValueError(f"Dataset with title '{title}' not found in DNK")
+            dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
+            
+            # Verify the path exists and get the UUID
+            try:
+                endpoint = url_join(self.base_url, dataset_path)
+                response = requests_get(endpoint, headers=self.auth.get_headers())
+                dataset_uuid = response.json().get('id')
+                
+                # Cache the result if caching is enabled
+                if self.uuid_cache and dataset_uuid:
+                    self.uuid_cache.add_or_update_asset('Dataset', title, dataset_uuid, dataset_path)
+                
+                return dataset_path
+            except HTTPError:
+                pass  # Continue with the search if not found with direct path
+                
+        # If there is a slash, then we need to find the dataset by title
+        datasets_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets')
+        datasets_endpoint = url_join(self.base_url, datasets_path)
+        response = requests_get(datasets_endpoint, headers=self.auth.get_headers())
+        datasets_data = response.json()
+        datasets = datasets_data.get('_embedded', {}).get('datasets', [])
+        
+        for dataset in datasets:
+            if dataset.get('label') == title:
+                path = dataset['_links']['self']['href']
+                uuid = dataset.get('id')
+                
+                # Cache the result if caching is enabled and UUID exists
+                if self.uuid_cache and uuid:
+                    self.uuid_cache.add_or_update_asset('Dataset', title, uuid, path)
+                
+                return path
+                
+        raise ValueError(f"Dataset with title '{title}' not found in DNK")
 
-    # TODO: Apply this method at all instances needed
     def find_tdm_dataobject_path(self, title):
         """
         Determine the path to TDM attributes for a dataset based on its title.
@@ -938,22 +1039,49 @@ class DataspotClient:
         Raises:
             ValueError: If the TDM object is not found
         """
+        # Check cache first if caching is enabled
+        if self.uuid_cache:
+            cached_path = self.uuid_cache.get_path('TDMDataobject', title)
+            if cached_path:
+                return cached_path
+                
         if '/' not in title:
             # If no slash, construct the path using the standard format
-            return url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title)
-        else:
-            # If there is a slash, we need to find the TDM object by title
-            assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
-            assets_endpoint = url_join(self.base_url, assets_path)
-            response = requests_get(assets_endpoint, headers=self.auth.get_headers())
-            assets_data = response.json()
-            assets = assets_data.get('_embedded', {}).get('assets', [])
+            tdm_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title)
             
-            for asset in assets:
-                if asset.get('label') == title:
-                    return asset['_links']['self']['href']
-                    
-            raise ValueError(f"TDM dataobject with title '{title}' not found")
+            # Verify the path exists and get the UUID
+            try:
+                endpoint = url_join(self.base_url, tdm_path)
+                response = requests_get(endpoint, headers=self.auth.get_headers())
+                tdm_uuid = response.json().get('id')
+                
+                # Cache the result if caching is enabled
+                if self.uuid_cache and tdm_uuid:
+                    self.uuid_cache.add_or_update_asset('TDMDataobject', title, tdm_uuid, tdm_path)
+                
+                return tdm_path
+            except HTTPError:
+                pass  # Continue with the search if not found with direct path
+                
+        # If there is a slash, we need to find the TDM object by title
+        assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
+        assets_endpoint = url_join(self.base_url, assets_path)
+        response = requests_get(assets_endpoint, headers=self.auth.get_headers())
+        assets_data = response.json()
+        assets = assets_data.get('_embedded', {}).get('assets', [])
+        
+        for asset in assets:
+            if asset.get('label') == title:
+                path = asset['_links']['self']['href']
+                uuid = asset.get('id')
+                
+                # Cache the result if caching is enabled
+                if self.uuid_cache and uuid:
+                    self.uuid_cache.add_or_update_asset('TDMDataobject', title, uuid, path)
+                
+                return path
+                
+        raise ValueError(f"TDM dataobject with title '{title}' not found")
 
     def delete_dataset(self, title: str, fail_if_not_exists: bool = False, delete_tdm_asset: bool = True) -> bool:
         """
@@ -1006,6 +1134,15 @@ class DataspotClient:
         # Delete the dataset
         try:
             requests_delete(dataset_endpoint, headers=headers, rate_limit_delay=self.request_delay)
+            
+            # Remove from UUID cache if caching is enabled
+            if self.uuid_cache:
+                try:
+                    # Remove the dataset from the cache
+                    self.uuid_cache.remove_asset('Dataset', title)
+                except Exception as e:
+                    logging.warning(f"Failed to remove dataset from UUID cache: {str(e)}")
+            
             logging.info(f"Successfully deleted DNK dataset '{title}'")
         except HTTPError as e:
             logging.error(f"Failed to delete dataset '{title}': {str(e)}")
@@ -1023,6 +1160,15 @@ class DataspotClient:
                     asset_response = requests_get(dataobject_endpoint, headers=headers)
                     # Delete the TDM dataobject
                     requests_delete(dataobject_endpoint, headers=headers)
+                    
+                    # Remove from UUID cache if caching is enabled
+                    if self.uuid_cache:
+                        try:
+                            # Remove the TDM dataobject from the cache
+                            self.uuid_cache.remove_asset('TDMDataobject', title)
+                        except Exception as e:
+                            logging.warning(f"Failed to remove TDM dataobject from UUID cache: {str(e)}")
+                    
                     logging.info(f"Successfully deleted TDM dataobject '{title}'")
                 except HTTPError as e:
                     if e.response.status_code == 404:
@@ -1036,8 +1182,6 @@ class DataspotClient:
                 
         return True
 
-    # TODO: Apply this method at all instances needed
-    # TODO: Test this
     def find_datatype_path(self, type_name):
         """
         Find the path to a datatype in the Datentypmodell scheme by its name.
@@ -1051,22 +1195,49 @@ class DataspotClient:
         Raises:
             ValueError: If the datatype is not found
         """
+        # Check cache first if caching is enabled
+        if self.uuid_cache:
+            cached_path = self.uuid_cache.get_path('Datatype', type_name)
+            if cached_path:
+                return cached_path
+                
         if '/' not in type_name:
             # If no slash, construct the path using the standard format
-            return url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes', type_name)
-        else:
-            # If there is a slash, we need to find the datatype by name
-            datatypes_path = url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes')
-            datatypes_endpoint = url_join(self.base_url, datatypes_path)
-            response = requests_get(datatypes_endpoint, headers=self.auth.get_headers())
-            datatypes_data = response.json()
-            datatypes = datatypes_data.get('_embedded', {}).get('datatypes', [])
+            datatype_path = url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes', type_name)
             
-            for datatype in datatypes:
-                if datatype.get('label') == type_name:
-                    return datatype['_links']['self']['href']
-                    
-            raise ValueError(f"Datatype with name '{type_name}' not found")
+            # Verify the path exists and get the UUID
+            try:
+                endpoint = url_join(self.base_url, datatype_path)
+                response = requests_get(endpoint, headers=self.auth.get_headers())
+                datatype_uuid = response.json().get('id')
+                
+                # Cache the result if caching is enabled
+                if self.uuid_cache and datatype_uuid:
+                    self.uuid_cache.add_or_update_asset('Datatype', type_name, datatype_uuid, datatype_path)
+                
+                return datatype_path
+            except HTTPError:
+                pass  # Continue with the search if not found with direct path
+                
+        # If there is a slash, we need to find the datatype by name
+        datatypes_path = url_join('rest', self.database_name, 'schemes', self.datatype_scheme_name, 'datatypes')
+        datatypes_endpoint = url_join(self.base_url, datatypes_path)
+        response = requests_get(datatypes_endpoint, headers=self.auth.get_headers())
+        datatypes_data = response.json()
+        datatypes = datatypes_data.get('_embedded', {}).get('datatypes', [])
+        
+        for datatype in datatypes:
+            if datatype.get('label') == type_name:
+                path = datatype['_links']['self']['href']
+                uuid = datatype.get('id')
+                
+                # Cache the result if caching is enabled
+                if self.uuid_cache and uuid:
+                    self.uuid_cache.add_or_update_asset('Datatype', type_name, uuid, path)
+                
+                return path
+                
+        raise ValueError(f"Datatype with name '{type_name}' not found")
 
     def build_organization_hierarchy_from_ods(self, org_data: dict, cooldown_delay: float = 1.0):
         """
