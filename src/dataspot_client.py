@@ -489,216 +489,160 @@ class DataspotClient:
                     logging.error(f"Failed to create attribute '{attribute['label']}': {str(e)}")
                     raise
 
+    def dnk_create_or_update_organizational_unit(self, name: str, parent_name: str = None, custom_properties: dict = None) -> None:
+        """
+        Create a new organizational unit in the 'Datennutzungskatalog' of Dataspot or update an existing one.
+        This method replaces the previous separate methods for creating departments, dienststelle, and sammlungen,
+        as all now use the same "Organisationseinheit" stereotype.
 
+        Args:
+            name (str): The name of the organizational unit.
+            parent_name (str, optional): The name of the parent organizational unit. If None, creates a top-level unit.
+            custom_properties (dict, optional): Custom properties to be added to the organizational unit.
+
+        Returns:
+            None: The method doesn't return anything.
+
+        Raises:
+            HTTPError: If the parent doesn't exist or other HTTP errors occur.
+            json.JSONDecodeError: If the response is not valid JSON.
+        """
+        headers = self.auth.get_headers()
+
+        # Create data for the organizational unit
+        org_unit_data = {
+            "_type": "Collection",
+            "label": name,
+            "stereotype": "Organisationseinheit"
+        }
+
+        # Add custom properties if provided
+        if custom_properties:
+            org_unit_data["customProperties"] = custom_properties
+
+        # If no parent specified, create as top-level in DNK scheme
+        if parent_name is None:
+            relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
+            endpoint = url_join(self.base_url, relative_path)
+            
+            # Check if unit already exists at the top level
+            try:
+                url_to_check = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', name)
+                check_endpoint = url_join(self.base_url, url_to_check)
+                requests_get(check_endpoint, headers=headers)
+                logging.info(f"Organizational unit '{name}' already exists at top level. Skip creation...")
+                return
+            except HTTPError as e:
+                if e.response.status_code != 404:
+                    raise e
+        else:
+            # If parent specified, first get the parent's UUID
+            parent_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', parent_name)
+            parent_endpoint = url_join(self.base_url, parent_path)
+            
+            try:
+                response = requests_get(parent_endpoint, headers=headers)
+                parent_uuid = response.json().get('id')
+                logging.debug(f"Retrieved parent UUID: {parent_uuid}")
+            except HTTPError as e:
+                if e.response.status_code == 404:
+                    logging.error(f"Parent organizational unit '{parent_name}' does not exist")
+                    raise HTTPError(f"Parent organizational unit '{parent_name}' does not exist") from e
+                raise e
+                
+            # Set the endpoint for creating under the parent
+            relative_path = url_join('rest', self.database_name, 'collections', parent_uuid, 'collections')
+            endpoint = url_join(self.base_url, relative_path)
+            
+            # Check if unit already exists under the parent
+            try:
+                url_to_check = url_join(endpoint, name)
+                requests_get(url_to_check, headers=headers)
+                logging.info(f"Organizational unit '{name}' already exists under '{parent_name}'. Skip creation...")
+                return
+            except HTTPError as e:
+                if e.response.status_code != 404:
+                    raise e
+
+        # Create the organizational unit
+        try:
+            requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+            if parent_name:
+                logging.info(f"Organizational unit '{name}' created under '{parent_name}'.")
+            else:
+                logging.info(f"Top-level organizational unit '{name}' created.")
+            return
+        except json.JSONDecodeError as e:
+            raise json.JSONDecodeError(
+                f"Failed to decode JSON response from {endpoint}: {str(e)}",
+                e.doc,
+                e.pos
+            )
+        except HTTPError as e:
+            logging.error(f"HTTP error creating organizational unit '{name}': {str(e)}")
+            if e.response.status_code == 400:
+                # Try to create with a simplified/sanitized title if there's a Bad Request
+                simplified_name = ''.join(c for c in name if c.isalnum() or c.isspace()).strip()
+                if simplified_name and simplified_name != name:
+                    logging.info(f"Attempting to create with simplified name: '{simplified_name}'")
+                    org_unit_data["label"] = simplified_name
+                    try:
+                        requests_post(endpoint, headers=headers, json=org_unit_data, rate_limit_delay=self.request_delay)
+                        if parent_name:
+                            logging.info(f"Organizational unit created with simplified name '{simplified_name}' under '{parent_name}'")
+                        else:
+                            logging.info(f"Top-level organizational unit created with simplified name '{simplified_name}'")
+                        return
+                    except Exception as e2:
+                        logging.error(f"Failed with simplified name too: {str(e2)}")
+            raise
+
+    # Maintaining these methods for backward compatibility, but they now delegate to dnk_create_or_update_organizational_unit
     def dnk_create_new_department(self, name: str, custom_properties: dict = None) -> None:
         """
         Create a new department in the 'Datennutzungskatalog' of Dataspot. If the department already exists, do nothing.
+        
+        This is a backward compatibility method that delegates to dnk_create_or_update_organizational_unit.
 
         Args:
             name (str): The name of the department.
             custom_properties (dict): Custom properties to be added to the department.
 
         Returns:
-            dict: The created department metadata as returned by the API.
-
-        Raises:
-            json.JSONDecodeError: If the response is not valid JSON.
+            None: The method doesn't return anything.
         """
-        relative_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections')
-        endpoint = url_join(self.base_url, relative_path)
-        headers = self.auth.get_headers()
-
-        department_data = {
-            "_type": "Collection",
-            "label": name,
-            "stereotype": "DEPARTEMENT"
-        }
-
-        # Add custom properties to department data
-        if custom_properties:
-            department_data["customProperties"] = custom_properties
-
-        # Check if department already exists; skip if it does.
-        try:
-            url_to_check = url_join(endpoint, name)
-            requests_get(url_to_check, headers=headers)
-            logging.info(f"Departement {name} already exists. Skip creation...")
-            return
-        except HTTPError as e:
-            if e.response.status_code != 404:
-                raise e
-
-        # Create new department
-        try:
-            requests_post(endpoint, headers=headers, json=department_data)
-            logging.info(f"Departement {name} created.")
-            return
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {endpoint}: {str(e)}",
-                e.doc,
-                e.pos
-            )
+        logging.warning("dnk_create_new_department is deprecated, use dnk_create_or_update_organizational_unit instead")
+        self.dnk_create_or_update_organizational_unit(name, parent_name=None, custom_properties=custom_properties)
 
     def dnk_create_new_dienststelle(self, name: str, belongs_to_department: str, custom_properties: dict = None) -> None:
         """
-        Create a new "dienststelle" in the 'Datennutzungskatalog' in Dataspot under a specific department. If the "dienststelle" already exists, do nothing.
+        Create a new "dienststelle" in the 'Datennutzungskatalog' in Dataspot under a specific department. 
+        If the "dienststelle" already exists, do nothing.
+        
+        This is a backward compatibility method that delegates to dnk_create_or_update_organizational_unit.
 
         Args:
             name (str): The name of the dienststelle.
             belongs_to_department (str): The title of the parent department.
             custom_properties (dict): Custom properties to be added to the dienststelle.
-
-        Raises:
-            HTTPError: If the department doesn't exist or other HTTP errors occur.
-            json.JSONDecodeError: If the response is not valid JSON.
         """
-        # Check if parent department exists
-        dept_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', belongs_to_department)
-        dept_endpoint = url_join(self.base_url, dept_path)
-        headers = self.auth.get_headers()
-
-        try:
-            r = requests_get(dept_endpoint, headers=headers)
-            belongs_to_department_uuid = r.json().get('id')
-            logging.debug(f"Retrieved Department UUID: {belongs_to_department_uuid}")
-        except HTTPError as e:
-            if e.response.status_code == 404:
-                raise HTTPError(f"Department '{belongs_to_department}' does not seem to exist") from e
-            raise e
-
-        # Prepare endpoint for creating dienststelle
-        relative_path = url_join('rest', self.database_name, 'collections', belongs_to_department_uuid, 'collections')
-        endpoint = url_join(self.base_url, relative_path)
-
-        dienststelle_data = {
-            "_type": "Collection",
-            "label": name,
-            "stereotype": "DA"
-        }
-
-        # Add custom properties to dienststelle data
-        if custom_properties:
-            dienststelle_data["customProperties"] = custom_properties
-
-        # Check if dienststelle already exists
-        try:
-            url_to_check = url_join(endpoint, name)
-            requests_get(url_to_check, headers=headers)
-            logging.info(f"Dienststelle {name} already exists. Skip creation...")
-            return
-        except HTTPError as e:
-            # If the error code is 404, then everything is fine.
-            if e.response.status_code != 404:
-                raise e
-
-        # Create new dienststelle
-        try:
-            requests_post(endpoint, headers=headers, json=dienststelle_data)
-            logging.info(f"Dienststelle {name} created.")
-            return
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {endpoint}: {str(e)}",
-                e.doc,
-                e.pos
-            )
+        logging.warning("dnk_create_new_dienststelle is deprecated, use dnk_create_or_update_organizational_unit instead")
+        self.dnk_create_or_update_organizational_unit(name, parent_name=belongs_to_department, custom_properties=custom_properties)
 
     def dnk_create_new_sammlung(self, title: str, belongs_to_dienststelle: str, custom_properties: dict = None) -> None:
         """
-        Create a new sammlung in the 'Datennutzungskatalog' in Dataspot under a specific dienststelle. If the sammlung already exists, do nothing.
+        Create a new sammlung in the 'Datennutzungskatalog' in Dataspot under a specific dienststelle. 
+        If the sammlung already exists, do nothing.
+        
+        This is a backward compatibility method that delegates to dnk_create_or_update_organizational_unit.
 
         Args:
             title (str): The title of the sammlung.
             belongs_to_dienststelle (str): The name of the parent dienststelle.
             custom_properties (dict): Custom properties to be added to the sammlung.
-
-        Raises:
-            HTTPError: If the dienststelle doesn't exist or other HTTP errors occur.
-            json.JSONDecodeError: If the response is not valid JSON.
         """
-        # Sanitize title and parent name - some titles may contain characters that cause issues
-        # with the API endpoint construction
-        title = title.strip()
-        belongs_to_dienststelle = belongs_to_dienststelle.strip()
-        
-        # Check if parent dienststelle exists
-        dienststelle_path = url_join(
-            'rest',
-            self.database_name,
-            'schemes',
-            self.dnk_scheme_name,
-            'collections',
-            belongs_to_dienststelle
-        )
-        dienststelle_endpoint = url_join(self.base_url, dienststelle_path)
-        headers = self.auth.get_headers()
-        
-        try:
-            response = requests_get(dienststelle_endpoint, headers=headers)
-            dienststelle_uuid = response.json().get('id')
-            logging.debug(f"Retrieved Dienststelle UUID: {dienststelle_uuid}")
-        except HTTPError as e:
-            if e.response.status_code == 404:
-                logging.error(f"Dienststelle '{belongs_to_dienststelle}' does not exist")
-                raise HTTPError(f"Dienststelle '{belongs_to_dienststelle}' does not seem to exist") from e
-            raise e
-
-        # Prepare endpoint for creating sammlung
-        relative_path = url_join(
-            'rest',
-            self.database_name,
-            'collections',
-            dienststelle_uuid,
-            'collections'
-        )
-        endpoint = url_join(self.base_url, relative_path)
-
-        sammlung_data = {
-            "_type": "Collection",
-            "label": title,
-            "stereotype": "Organisationseinheit"
-        }
-
-        # Add custom properties to sammlung data
-        if custom_properties:
-            sammlung_data["customProperties"] = custom_properties
-
-        # Check if sammlung already exists
-        try:
-            url_to_check = url_join(endpoint, title)
-            requests_get(url_to_check, headers=headers)
-            logging.info(f"Sammlung '{title}' already exists. Skipping creation...")
-            return
-        except HTTPError as e:
-            if e.response.status_code != 404:
-                raise e
-
-        # Create new sammlung
-        try:
-            requests_post(endpoint, headers=headers, json=sammlung_data)
-            logging.info(f"Sammlung '{title}' created successfully.")
-        except HTTPError as e:
-            logging.error(f"HTTP error creating sammlung '{title}': {str(e)}")
-            if e.response.status_code == 400:
-                # Try to create with a simplified/sanitized title if there's a Bad Request
-                simplified_title = ''.join(c for c in title if c.isalnum() or c.isspace()).strip()
-                if simplified_title and simplified_title != title:
-                    logging.info(f"Attempting to create with simplified title: '{simplified_title}'")
-                    sammlung_data["label"] = simplified_title
-                    try:
-                        requests_post(endpoint, headers=headers, json=sammlung_data)
-                        logging.info(f"Sammlung created with simplified title '{simplified_title}'")
-                        return
-                    except Exception as e2:
-                        logging.error(f"Failed with simplified title too: {str(e2)}")
-            raise
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {endpoint}: {str(e)}",
-                e.doc,
-                e.pos
-            )
+        logging.warning("dnk_create_new_sammlung is deprecated, use dnk_create_or_update_organizational_unit instead")
+        self.dnk_create_or_update_organizational_unit(title, parent_name=belongs_to_dienststelle, custom_properties=custom_properties)
 
     def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
         """
@@ -826,7 +770,7 @@ class DataspotClient:
 
     def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
         """
-        Creates the complete hierarchy (department/dienststelle/sammlung/subsammlung) for a dataset if it doesn't exist.
+        Creates the complete hierarchy (organizational units) for a dataset if it doesn't exist.
         
         Args:
             dataset (Dataset): The dataset containing the path information
@@ -837,22 +781,22 @@ class DataspotClient:
         departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
         
         if not departement:
-            raise ValueError("Department is required")
+            raise ValueError("Top-level organizational unit is required")
             
-        # Create department if it doesn't exist
-        self.dnk_create_new_department(departement)
+        # Create top-level organizational unit if it doesn't exist
+        self.dnk_create_or_update_organizational_unit(departement)
         
-        # Create dienststelle if specified and doesn't exist
+        # Create second-level organizational unit if specified and doesn't exist
         if dienststelle:
-            self.dnk_create_new_dienststelle(dienststelle, departement)
+            self.dnk_create_or_update_organizational_unit(dienststelle, parent_name=departement)
             
-            # Create sammlung if specified and doesn't exist
+            # Create third-level organizational unit if specified and doesn't exist
             if sammlung:
-                self.dnk_create_new_sammlung(sammlung, dienststelle)
+                self.dnk_create_or_update_organizational_unit(sammlung, parent_name=dienststelle)
                 
-                # Create subsammlung if specified and doesn't exist
+                # Create fourth-level organizational unit if specified and doesn't exist
                 if subsammlung:
-                    self.dnk_create_new_sammlung(subsammlung, sammlung)
+                    self.dnk_create_or_update_organizational_unit(subsammlung, parent_name=sammlung)
 
     def link_dnk_bestandteile_to_tdm(self, title: str) -> None:
         """
@@ -1238,34 +1182,33 @@ class DataspotClient:
                     if cooldown_delay > 0:
                         sleep(cooldown_delay)
                     
-                    # Determine the type of organization based on its level in the hierarchy
-                    # and create it in Dataspot accordingly
+                    # Create the organization based on its level in the hierarchy
                     try:
                         if len(path_components) == 1:
-                            # Top level department
-                            self.dnk_create_new_department(title, custom_properties=custom_properties)
+                            # Top level organization unit (no parent)
+                            self.dnk_create_or_update_organizational_unit(title, parent_name=None, custom_properties=custom_properties)
                         elif len(path_components) == 2:
-                            # Dienststelle (second level)
+                            # Second level organization unit
                             parent_title = path_components[0]
-                            self.dnk_create_new_dienststelle(title, belongs_to_department=parent_title, custom_properties=custom_properties)
+                            self.dnk_create_or_update_organizational_unit(title, parent_name=parent_title, custom_properties=custom_properties)
                         elif len(path_components) == 3:
-                            # Sammlung (third level)
+                            # Third level organization unit
                             parent_title = path_components[1]
-                            logging.debug(f"Creating sammlung '{title}' under dienststelle '{parent_title}'")
-                            self.dnk_create_new_sammlung(title, belongs_to_dienststelle=parent_title, custom_properties=custom_properties)
+                            logging.debug(f"Creating organizational unit '{title}' under parent '{parent_title}'")
+                            self.dnk_create_or_update_organizational_unit(title, parent_name=parent_title, custom_properties=custom_properties)
                         elif len(path_components) >= 4:
-                            # Subsammlung (fourth level and beyond)
+                            # Fourth level organization unit and beyond
                             parent_title = path_components[2]
-                            self.dnk_create_new_sammlung(title, belongs_to_dienststelle=parent_title, custom_properties=custom_properties)
+                            self.dnk_create_or_update_organizational_unit(title, parent_name=parent_title, custom_properties=custom_properties)
                     except HTTPError as e:
                         if e.response.status_code == 400:
                             logging.error(f"Bad request error creating organization '{title}': {str(e)}")
                             
-                            # Try a simplified approach - create a top-level department regardless of depth
+                            # Try a simplified approach - create a top-level organizational unit regardless of depth
                             try:
-                                logging.info(f"[{current_org}/{total_orgs}] Attempting to create '{title}' as a top-level department as fallback")
-                                self.dnk_create_new_department(title, custom_properties=custom_properties)
-                                logging.info(f"[{current_org}/{total_orgs}] Successfully created '{title}' as a top-level department")
+                                logging.info(f"[{current_org}/{total_orgs}] Attempting to create '{title}' as a top-level organizational unit as fallback")
+                                self.dnk_create_or_update_organizational_unit(title, parent_name=None, custom_properties=custom_properties)
+                                logging.info(f"[{current_org}/{total_orgs}] Successfully created '{title}' as a top-level organizational unit")
                             except Exception as fallback_e:
                                 logging.error(f"Fallback creation also failed: {str(fallback_e)}")
                                 raise
