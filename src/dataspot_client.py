@@ -131,7 +131,7 @@ class DataspotClient:
             
         return output_path
 
-    def teardown_dnk(self, delete_empty_collections: bool = False) -> None:
+    def teardown_dnk(self, delete_empty_collections: bool = False, ignore_status: bool = False) -> None:
         """
         Delete all OGD datasets from the DNK scheme and optionally remove empty collections.
         
@@ -140,10 +140,13 @@ class DataspotClient:
         2. Deletes only datasets with stereotype "OGD"
         3. Optionally removes collections that become empty after deleting their datasets
         4. Preserves the root DNK scheme even if empty
+        5. Optionally ignores the status of the datasets and deletes them anyway
         
         Args:
             delete_empty_collections (bool): Whether to delete empty collections after removing datasets.
                                             Defaults to False.
+            ignore_status (bool): Whether to ignore the status of the datasets and delete them anyway.
+                                Defaults to False.
         
         Raises:
             requests.exceptions.RequestException: If the request fails
@@ -187,7 +190,12 @@ class DataspotClient:
                 
                 # Check if dataset has stereotype "OGD"
                 if dataset.get('stereotype') == "OGD":
+                    if dataset.get('label') == 'Datensatz OGD':
+                        logging.info(f"Ignoring OGD dataset: Datensatz OGD")
+                        continue
                     logging.info(f"Deleting OGD dataset: {dataset_label}")
+                    if ignore_status:
+                        requests_patch(url_join(self.base_url, dataset_url), headers=headers, json={"_type": "Dataset", "status": "REVIEWDCC2"}, rate_limit_delay=self.request_delay)
                     requests_delete(url_join(self.base_url, dataset_url), headers=headers, rate_limit_delay=self.request_delay)
             
             # Process sub-collections
