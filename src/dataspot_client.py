@@ -95,7 +95,7 @@ class DataspotClient:
                                             Set to None to disable UUID caching.
         """
         # TODO: Move all these infos into the env file, as they should not be hardcoded
-        load_dotenv('../../.dataspot.env')
+        load_dotenv('../.dataspot.env')
 
         base_url = os.getenv("DATASPOT_API_BASE_URL")
         if not base_url:
