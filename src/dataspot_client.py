@@ -101,10 +101,11 @@ class DataspotClient:
         if not base_url:
             raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
 
+        self.ods_imports_collection_name = 'ODS-Imports'
         self.base_url = base_url
         self.auth = DataspotAuth()
         self.database_name = 'test-staatskalender-struktur'
-        self.dnk_scheme_name = url_join('Datennutzungskatalog', 'collections', 'ODS-Imports')
+        self.dnk_scheme_name = 'Datennutzungskatalog'
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.datatype_scheme_name = 'Datentypmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle', 'collections', 'Automatisch generierte ODS-Datenmodelle')
@@ -874,7 +875,7 @@ class DataspotClient:
         
         # First check if we have the UUID in cache
         if self.uuid_cache:
-            collection_uuid = self.uuid_cache.get_uuid('Collection', 'ODS-Imports')
+            collection_uuid = self.uuid_cache.get_uuid('Collection', self.ods_imports_collection_name)
             if collection_uuid:
                 # Verify the cached UUID is still valid
                 collection_endpoint = url_join('rest', self.database_name, 'collections', collection_uuid)
@@ -887,7 +888,7 @@ class DataspotClient:
                     pass
                 
         # Check if DNK scheme exists and create if needed
-        dnk_scheme_path = url_join('rest', self.database_name, 'schemes', 'Datennutzungskatalog')
+        dnk_scheme_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name)
         dnk_scheme_endpoint = url_join(self.base_url, dnk_scheme_path)
         
         try:
@@ -901,7 +902,7 @@ class DataspotClient:
                 schemes_endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes')
                 scheme_data = {
                     "_type": "Scheme",
-                    "label": "Datennutzungskatalog"
+                    "label": self.dnk_scheme_name
                 }
                 response = requests_post(schemes_endpoint, headers=headers, json=scheme_data, rate_limit_delay=self.request_delay)
                 dnk_scheme_uuid = response.json()['id']
@@ -910,7 +911,7 @@ class DataspotClient:
                 raise
         
         # Check if ODS-Imports collection exists and create if needed
-        ods_imports_path = url_join('rest', self.database_name, 'schemes', 'Datennutzungskatalog', 'collections', 'ODS-Imports')
+        ods_imports_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', self.ods_imports_collection_name)
         ods_imports_endpoint = url_join(self.base_url, ods_imports_path)
         
         try:
@@ -921,7 +922,7 @@ class DataspotClient:
             if self.uuid_cache and response.status_code == 200:
                 ods_imports_path = response.json()['_links']['self']['href']
                 if ods_imports_path:
-                    self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
+                    self.uuid_cache.add_or_update_asset('Collection', self.ods_imports_collection_name, ods_imports_uuid, ods_imports_path)
                 
             logging.debug(f"ODS-Imports collection exists with UUID: {ods_imports_uuid}")
             return ods_imports_uuid
@@ -932,7 +933,7 @@ class DataspotClient:
                 collections_endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes', dnk_scheme_uuid, 'collections')
                 collection_data = {
                     "_type": "Collection",
-                    "label": "ODS-Imports"
+                    "label": self.ods_imports_collection_name
                 }
                 try:
                     response = requests_post(collections_endpoint, headers=headers, json=collection_data, rate_limit_delay=self.request_delay)
@@ -942,7 +943,7 @@ class DataspotClient:
                     if self.uuid_cache and response.status_code in [200, 201]:
                         ods_imports_href = response.json()['_links']['self']['href']
                         if ods_imports_href:
-                            self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_href)
+                            self.uuid_cache.add_or_update_asset('Collection', self.ods_imports_collection_name, ods_imports_uuid, ods_imports_href)
                         
                     logging.info(f"Created ODS-Imports collection with UUID: {ods_imports_uuid}")
                     return ods_imports_uuid
@@ -1104,7 +1105,7 @@ class DataspotClient:
 
         if '/' not in title:
             # If no slash, construct the path using the standard format
-            dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', title)
+            dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', self.ods_imports_collection_name, 'datasets', title)
             
             # Verify the path exists and get the UUID
             try:
@@ -1121,7 +1122,7 @@ class DataspotClient:
                 pass  # Continue with the search if not found with direct path
                 
         # If there is a slash, then we need to find the dataset by title
-        datasets_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets')
+        datasets_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', self.ods_imports_collection_name, 'datasets')
         datasets_endpoint = url_join(self.base_url, datasets_path)
         response = requests_get(datasets_endpoint, headers=self.auth.get_headers())
         datasets_data = response.json()
