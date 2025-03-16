@@ -208,7 +208,7 @@ class TestDataspotClient(unittest.TestCase):
         self.assertEqual(result, "test-collection-uuid")
         mock_post.assert_called_once()  # Should create collection
         self.client.uuid_cache.add_or_update_asset.assert_called_once()  # Should update cache
-
+    
     @patch('src.dataspot_client.requests_get')
     @patch('src.dataspot_client.requests_post')
     def test_ensure_ods_imports_collection_create_scheme_and_collection(self, mock_post, mock_get):

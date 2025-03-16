@@ -7,6 +7,7 @@ from time import sleep
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 from src.dataspot_uuid_cache import DataspotUUIDCache
+import src.config as config
 import json
 import os
 
@@ -87,7 +88,7 @@ class DataspotClient:
         # TODO: Add also_save_to_csv_path argument that can be None or a path
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
-        
+
         Args:
             request_delay (float, optional): The delay between API requests in seconds. Default is 1.0 second.
                                             This helps prevent overloading the server with too many requests.
@@ -102,16 +103,19 @@ class DataspotClient:
             raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
 
         self.auth = DataspotAuth()
-        self.database_name = 'test-staatskalender-struktur'
-        self.dnk_scheme_name = 'Datennutzungskatalog'
-        self.rdm_scheme_name = 'Referenzdatenmodell'
-        self.datatype_scheme_name = 'Datentypmodell'
-        self.tdm_scheme_name = url_join('Technische Datenmodelle', 'collections', 'Automatisch generierte ODS-Datenmodelle')
         self.request_delay = request_delay
-        
+        self.base_url = base_url
+
+        # Load configuration from config.py
+        self.database_name = config.database_name
+        self.dnk_scheme_name = config.dnk_scheme_name
+        self.rdm_scheme_name = config.rdm_scheme_name
+        self.datatype_scheme_name = config.datatype_scheme_name
+        self.tdm_scheme_name = config.tdm_scheme_name
+        self.ods_imports_collection_name = config.ods_imports_collection_name
+
         # Initialize UUID cache
         self.uuid_cache = DataspotUUIDCache(uuid_cache_path) if uuid_cache_path else None
-
 
     def teardown_dnk(self, delete_empty_collections: bool = False, ignore_status: bool = False) -> None:
         """
