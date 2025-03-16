@@ -1,5 +1,4 @@
 import logging
-from warnings import deprecated
 
 from dotenv import load_dotenv
 from requests import HTTPError
@@ -399,7 +398,8 @@ class DataspotClient:
                     # Cache is outdated, will search manually
                     asset_exists = False
                     asset_uuid = None
-        
+                    asset_href = None
+
         if not asset_exists:
             try:
                 asset_url = url_join(self.base_url, self.find_tdm_dataobject_path(name))
@@ -450,7 +450,7 @@ class DataspotClient:
         if not columns:
             logging.info("No columns provided. Skipping attribute creation.")
             return
-        
+            
         # 4. Get all existing attributes in a single call
         existing_attributes = {}
         if asset_exists:
@@ -708,7 +708,7 @@ class DataspotClient:
         logging.warning("dnk_create_new_sammlung is deprecated, use dnk_create_or_update_organizational_unit instead")
         self.dnk_create_or_update_organizational_unit(title, parent_name=belongs_to_dienststelle, custom_properties=custom_properties)
 
-    def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
+    def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> dict:
         """
         Create a new dataset or update an existing dataset in the 'Datennutzungskatalog/collections/ODS-Imports' in Dataspot.
         All datasets are placed directly in the ODS-Imports collection, regardless of their internal path structure.
@@ -726,6 +726,9 @@ class DataspotClient:
             dataset (Dataset): The dataset instance to be uploaded.
             update_strategy (str): Strategy for handling dataset existence ('create_only', 'update_only', 'create_or_update').
             force_replace (bool): Whether to completely replace an existing dataset (True) or just update properties (False).
+            
+        Returns:
+            dict: The JSON response from the API containing the dataset data
             
         Raises:
             ValueError: If the update_strategy is invalid
@@ -795,7 +798,7 @@ class DataspotClient:
         if dataset_exists:
             if update_strategy == 'create_only':
                 logging.info(f"Dataset '{dataset.name}' already exists and update_strategy is 'create_only'. Skipping.")
-                return
+                return response.json()
             
             # Update existing dataset using PUT (replace) or PATCH (update) based on force_replace
             dataset_json = dataset.to_json()
@@ -826,7 +829,7 @@ class DataspotClient:
         # 4. Handle update_only case
         if update_strategy == 'update_only':
             raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
-
+        
         # 5. Create dataset if it doesn't exist
         ods_imports_uuid = self.ensure_ods_imports_collection()
         
@@ -948,10 +951,10 @@ class DataspotClient:
                     raise
             else:
                 raise
-            
-    @deprecated("This method is deprecated")
+
     def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
         """
+        [DEPRECATED]
         Creates the complete hierarchy (organizational units) for a dataset if it doesn't exist.
         
         .. deprecated:: Will be removed in a future version
@@ -962,6 +965,7 @@ class DataspotClient:
         Raises:
             ValueError: If the path is invalid
         """
+        logging.warning("The method create_hierarchy_for_dataset is deprecated.")
         departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
         
         if not departement:

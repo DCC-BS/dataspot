@@ -2,8 +2,7 @@ import unittest
 import os
 import tempfile
 import csv
-import logging
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 from src.dataspot_uuid_cache import DataspotUUIDCache
 
 class TestDataspotUUIDCache(unittest.TestCase):
@@ -14,13 +13,13 @@ class TestDataspotUUIDCache(unittest.TestCase):
         
         # Set up test data
         self.test_data = [
-            {"_type": "Dataset", "name": "Test Dataset", "uuid": "123-456", "path": "/datasets/123-456"},
-            {"_type": "Datatype", "name": "Test Datatype", "uuid": "789-012", "path": "/datatypes/789-012"}
+            {"uuid": "123-456", "_type": "Dataset", "name": "Test Dataset", "href": "/datasets/123-456"},
+            {"uuid": "789-012", "_type": "Datatype", "name": "Test Datatype", "href": "/datatypes/789-012"}
         ]
         
         # Create a test CSV file
         with open(self.test_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['_type', 'uuid', 'name', 'path']
+            fieldnames = ['uuid', '_type', 'name', 'href']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(self.test_data)
@@ -69,7 +68,7 @@ class TestDataspotUUIDCache(unittest.TestCase):
         # Verify it was added
         self.assertEqual(len(cache.cache), original_count + 1)
         self.assertEqual(cache.get_uuid("API", "Test API"), "345-678")
-        self.assertEqual(cache.get_path("API", "Test API"), "/apis/345-678")
+        self.assertEqual(cache.get_href("API", "Test API"), "/apis/345-678")
     
     def test_add_or_update_asset_existing(self):
         """Test updating an existing asset"""
@@ -82,7 +81,7 @@ class TestDataspotUUIDCache(unittest.TestCase):
         # Verify it was updated without adding a new entry
         self.assertEqual(len(cache.cache), original_count)
         self.assertEqual(cache.get_uuid("Dataset", "Test Dataset"), "updated-uuid")
-        self.assertEqual(cache.get_path("Dataset", "Test Dataset"), "/datasets/updated")
+        self.assertEqual(cache.get_href("Dataset", "Test Dataset"), "/datasets/updated")
     
     def test_add_asset_without_path(self):
         """Test adding an asset without a path"""
@@ -91,7 +90,7 @@ class TestDataspotUUIDCache(unittest.TestCase):
         cache.add_or_update_asset("Report", "Test Report", "567-890")
         
         self.assertEqual(cache.get_uuid("Report", "Test Report"), "567-890")
-        self.assertEqual(cache.get_path("Report", "Test Report"), "")
+        self.assertEqual(cache.get_href("Report", "Test Report"), "")
     
     def test_add_asset_with_empty_uuid(self):
         """Test adding an asset with an empty UUID"""
@@ -118,18 +117,18 @@ class TestDataspotUUIDCache(unittest.TestCase):
         uuid = cache.get_uuid("NonExistent", "Does Not Exist")
         self.assertIsNone(uuid)
     
-    def test_get_path_existing(self):
+    def test_get_href_existing(self):
         """Test getting path for an existing asset"""
         cache = DataspotUUIDCache(self.test_csv_path)
         
-        path = cache.get_path("Dataset", "Test Dataset")
+        path = cache.get_href("Dataset", "Test Dataset")
         self.assertEqual(path, "/datasets/123-456")
     
-    def test_get_path_nonexistent(self):
+    def test_get_href_nonexistent(self):
         """Test getting path for a non-existent asset"""
         cache = DataspotUUIDCache(self.test_csv_path)
         
-        path = cache.get_path("NonExistent", "Does Not Exist")
+        path = cache.get_href("NonExistent", "Does Not Exist")
         self.assertIsNone(path)
     
     def test_get_all_by_type_existing(self):

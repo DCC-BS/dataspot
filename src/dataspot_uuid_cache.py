@@ -50,15 +50,15 @@ class DataspotUUIDCache:
             rows = []
             for (type_val, name), data in self.cache.items():
                 rows.append({
+                    'uuid': data['uuid'],
                     '_type': type_val,
                     'name': name,
-                    'href': data.get('href', ''),
-                    'uuid': data['uuid']
+                    'href': data.get('href', '')
                 })
             
             # Write to CSV
             with open(self.csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['_type', 'uuid', 'name', 'href']
+                fieldnames = ['uuid', '_type', 'name', 'href']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(rows)
@@ -125,7 +125,7 @@ class DataspotUUIDCache:
             return href
         logging.debug(f"Cache miss for {_type} '{name}'")
         return None
-    
+
     def get_all_by_type(self, _type):
         """
         Get all assets of a specific type.
@@ -134,14 +134,14 @@ class DataspotUUIDCache:
             _type (str): The type of assets to retrieve
             
         Returns:
-            list: A list of dictionaries with name, uuid, and href for each asset
+            list: A list of dictionaries with uuid, name, and href for each asset
         """
         results = []
         for (type_val, name), data in self.cache.items():
             if type_val == _type:
                 results.append({
-                    'name': name,
                     'uuid': data['uuid'],
+                    'name': name,
                     'href': data.get('href', '')
                 })
         return results

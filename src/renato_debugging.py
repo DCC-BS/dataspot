@@ -23,6 +23,8 @@ def main_1_update_dataset_update_method_testing():
 
     ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
     ods_ids = ods_ids[:10]
+    ods_ids.append('100034') # Includes a ,
+    ods_ids.append('100236') # Includes a /
     print(ods_ids)
 
     for ods_id in ods_ids:
