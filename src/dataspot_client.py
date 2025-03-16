@@ -114,75 +114,7 @@ class DataspotClient:
         
         # Initialize UUID cache
         self.uuid_cache = DataspotUUIDCache(uuid_cache_path) if uuid_cache_path else None
-    
-    def download(self, relative_path, params: dict[str, str] = None, endpoint_type: str = 'rest') -> list[dict[str, str]]:
-        """
-        Download data from Dataspot API.
-        
-        Args:
-            relative_path (str): The relative path for the API endpoint
-            params (dict[str, str]): The query parameters that should be passed in the url, i.e. everything after the ? in the url
-            endpoint_type (str): The endpoint type that should be used ('rest' or 'api').
-                Use api for bulk downloads in various formats (excel, csv, json, xml, ...).
-                Use rest for individual asset access in json format
-        Returns:
-            dict: JSON response from the API
-            
-        Raises:
-            requests.exceptions.RequestException: If the request fails
-            json.JSONDecodeError: If the response is not valid JSON
-        """
-        endpoint = url_join(self.base_url, endpoint_type, self.database_name, relative_path)
-        headers = self.auth.get_headers()
-        
-        response = requests_get(endpoint, headers=headers, params=params, rate_limit_delay=self.request_delay)
-        
-        try:
-            return response.json()
-        except json.JSONDecodeError as e:
-            raise json.JSONDecodeError(
-                f"Failed to decode JSON response from {endpoint}: {str(e)}", 
-                e.doc, 
-                e.pos
-            )
 
-    def download_dnk(self, language: str = "de") -> list[dict[str, str]]:
-        """
-        Download the Datennutzungskatalog (DNK) from Dataspot.
-        
-        Args:
-            language (str): Language code for the DNK (default: "de")
-            
-        Returns:
-            dict: The DNK data in JSON format
-        """
-        relative_path = url_join('schemes', self.dnk_scheme_name, 'download')
-        params = {
-            'language': language,
-            'format': 'json'
-        }
-        return self.download(relative_path, params, endpoint_type='api')
-
-    def save_dnk(self, output_dir: str = "tmp", language: str = "de") -> str:
-        """
-        Download and save the DNK to a file.
-        
-        Args:
-            output_dir (str): Directory to save the file (default: "tmp")
-            language (str): Language code for the DNK (default: "de")
-            
-        Returns:
-            str: Path to the saved file
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        
-        dnk_data = self.download_dnk(language)
-        
-        output_path = os.path.join(output_dir, "Datennutzungskatalog.json")
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(dnk_data, f, ensure_ascii=False, indent=2)
-            
-        return output_path
 
     def teardown_dnk(self, delete_empty_collections: bool = False, ignore_status: bool = False) -> None:
         """
