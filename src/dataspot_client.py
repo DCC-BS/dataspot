@@ -1097,6 +1097,7 @@ class DataspotClient:
         Raises:
             ValueError: If the dataset is not found
         """
+        logging.warning("The method find_dataset_path is deprecated.")
         # Check cache first if caching is enabled
         if self.uuid_cache:
             cached_href = self.uuid_cache.get_href('Dataset', title)
@@ -1154,6 +1155,7 @@ class DataspotClient:
         Raises:
             ValueError: If the TDM object is not found
         """
+        logging.warning("The method find_tdm_dataobject_path is deprecated.")
         # Check cache first if caching is enabled
         if self.uuid_cache:
             cached_href = self.uuid_cache.get_href('TDMDataobject', title)
@@ -1310,6 +1312,7 @@ class DataspotClient:
         Raises:
             ValueError: If the datatype is not found
         """
+        logging.warning("The method find_datatype_path is deprecated.")
         # Check cache first if caching is enabled
         if self.uuid_cache:
             cached_href = self.uuid_cache.get_href('Datatype', type_name)
@@ -1372,6 +1375,7 @@ class DataspotClient:
         Raises:
             ValueError: If organization data is missing or invalid
         """
+        logging.warning("The method build_organization_hierarchy_from_ods is deprecated.")
         if not org_data or 'results' not in org_data:
             raise ValueError("Invalid organization data format")
             
