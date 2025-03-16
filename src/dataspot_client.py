@@ -1,4 +1,5 @@
 import logging
+from warnings import deprecated
 
 from dotenv import load_dotenv
 from requests import HTTPError
@@ -11,8 +12,6 @@ import json
 import os
 
 from src.dataspot_dataset import Dataset
-
-# TODO: Add better error handling that outputs more information about the error (see dataspot documentation)
 
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
@@ -155,7 +154,7 @@ class DataspotClient:
             # Get collection details
             response = requests_get(collection_url, headers=headers, rate_limit_delay=self.request_delay)
             collection_data = response.json()
-            collection_uuid = collection_data.get('id')
+            collection_uuid = collection_data['id']
             
             # Process datasets in this collection
             # For the root level, use 'schemes' instead of 'collections' in the URL
@@ -284,7 +283,7 @@ class DataspotClient:
 
         try:
             response = requests_get(endpoint, headers=headers)
-            type_uuid = response.json().get('id')
+            type_uuid = response.json()['id']
 
             # Cache the result if caching is enabled
             if self.uuid_cache and type_uuid:
@@ -319,7 +318,7 @@ class DataspotClient:
         
         try:
             response = requests_get(endpoint, headers=headers)
-            collection_uuid = response.json().get('id')
+            collection_uuid = response.json()['id']
             logging.debug(f"Found collection UUID: {collection_uuid}")
         except HTTPError as e:
             if e.response.status_code == 404:
@@ -358,51 +357,69 @@ class DataspotClient:
             HTTPError: If the collection doesn't exist or other HTTP errors occur
             json.JSONDecodeError: If the response is not valid JSON
         """
-        # Get the UUID of the target collection
-        collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
-        endpoint = url_join(self.base_url, collection_path)
         headers = self.auth.get_headers()
-
-        try:
-            response = requests_get(endpoint, headers=headers, rate_limit_delay=self.request_delay)
-            collection_uuid = response.json().get('id')
-            logging.debug(f"Found collection UUID: {collection_uuid}")
-            
-            # Cache the collection UUID if caching enabled
-            if self.uuid_cache and collection_uuid:
-                self.uuid_cache.add_or_update_asset('Collection', self.tdm_scheme_name, collection_uuid, collection_path)
-        except HTTPError as e:
-            if e.response.status_code == 404:
-                raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
-            raise e
-
-        # Prepare endpoint for creating/accessing the asset
-        assets_path = url_join('rest', self.database_name, 'collections', collection_uuid, 'assets')
-        assets_endpoint = url_join(self.base_url, assets_path)
-
-        # Check if asset already exists
         asset_exists = False
         asset_href = None
         asset_uuid = None
+        collection_uuid = None
 
-        try:
-            asset_url = url_join(self.base_url, self.find_tdm_dataobject_path(name))
-            response = requests_get(asset_url, headers=headers, rate_limit_delay=self.request_delay)
-            asset_exists = True
-            asset_href = response.json()['_links']['self']['href']
-            asset_uuid = response.json().get('id')
-            logging.info(f"Dataobject '{name}' already exists. Proceeding to update...")
-            
-            # Cache the asset UUID if caching enabled
-            if self.uuid_cache and asset_uuid:
-                self.uuid_cache.add_or_update_asset('TDMDataobject', name, asset_uuid, asset_href)
-        except HTTPError as e:
-            if e.response.status_code != 404:
+        # 1. Get collection UUID (from cache if possible)
+        if self.uuid_cache:
+            collection_uuid = self.uuid_cache.get_uuid('Collection', self.tdm_scheme_name)
+        
+        if not collection_uuid:
+            collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
+            endpoint = url_join(self.base_url, collection_path)
+
+            try:
+                response = requests_get(endpoint, headers=headers, rate_limit_delay=self.request_delay)
+                collection_uuid = response.json()['id']
+                logging.debug(f"Found collection UUID: {collection_uuid}")
+                
+                # Cache the collection UUID if caching enabled
+                if self.uuid_cache and collection_uuid:
+                    self.uuid_cache.add_or_update_asset('Collection', self.tdm_scheme_name, collection_uuid, collection_path)
+            except HTTPError as e:
+                if e.response.status_code == 404:
+                    raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
                 raise e
-            logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
-        except ValueError:
-            logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
 
+        # 2. Check if asset already exists (from cache if possible)
+        if self.uuid_cache:
+            asset_uuid = self.uuid_cache.get_uuid('TDMDataobject', name)
+            asset_href = self.uuid_cache.get_href('TDMDataobject', name)
+            if asset_uuid and asset_href:
+                asset_exists = True
+                asset_url = url_join(self.base_url, asset_href)
+                try:
+                    response = requests_get(asset_url, headers=headers, rate_limit_delay=self.request_delay)
+                    asset_href = response.json()['_links']['self']['href']
+                    logging.info(f"Dataobject '{name}' found in cache. Proceeding to update...")
+                except HTTPError:
+                    # Cache is outdated, will search manually
+                    asset_exists = False
+                    asset_uuid = None
+        
+        if not asset_exists:
+            try:
+                asset_url = url_join(self.base_url, self.find_tdm_dataobject_path(name))
+                response = requests_get(asset_url, headers=headers, rate_limit_delay=self.request_delay)
+                asset_exists = True
+                asset_href = response.json()['_links']['self']['href']
+                asset_uuid = response.json()['id']
+                logging.info(f"Dataobject '{name}' already exists. Proceeding to update...")
+                
+                # Cache the asset UUID if caching enabled
+                if self.uuid_cache and asset_uuid:
+                    self.uuid_cache.add_or_update_asset('TDMDataobject', name, asset_uuid, asset_href)
+            except HTTPError as e:
+                if e.response.status_code != 404:
+                    raise e
+                logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
+            except ValueError:
+                logging.info(f"Dataobject '{name}' does not exist. Will create a new one...")
+
+        # 3. Create or update asset
         if not asset_exists:
             # Prepare asset data for new creation
             asset_data = {
@@ -411,11 +428,13 @@ class DataspotClient:
             }
 
             # Create new asset
+            assets_path = url_join('rest', self.database_name, 'collections', collection_uuid, 'assets')
+            assets_endpoint = url_join(self.base_url, assets_path)
             try:
                 response = requests_post(assets_endpoint, headers=headers, json=asset_data, rate_limit_delay=self.request_delay)
                 logging.info(f"Asset '{name}' created successfully.")
                 asset_href = response.json()['_links']['self']['href']
-                asset_uuid = response.json().get('id')
+                asset_uuid = response.json()['id']
                 
                 # Cache the asset UUID if caching enabled
                 if self.uuid_cache and asset_uuid:
@@ -427,12 +446,12 @@ class DataspotClient:
                     e.pos
                 )
         
-        # For both create and update: process the attributes
+        # Process attributes if columns are provided
         if not columns:
             logging.info("No columns provided. Skipping attribute creation.")
             return
-            
-        # If updating, first get existing attributes to determine what to add or update
+        
+        # 4. Get all existing attributes in a single call
         existing_attributes = {}
         if asset_exists:
             attributes_endpoint = url_join(self.base_url, asset_href, 'attributes')
@@ -445,8 +464,9 @@ class DataspotClient:
             except Exception as e:
                 logging.warning(f"Failed to get existing attributes: {str(e)}")
         
-        # Add or update attributes
-        asset_attributes_endpoint = url_join(self.base_url, asset_href, 'attributes')
+        # 5. Prepare attributes to create and update
+        attributes_to_create = []
+        attributes_to_update = []
         
         for col in columns:
             attribute = {
@@ -456,25 +476,32 @@ class DataspotClient:
                 "hasRange": self.ods_type_to_dataspot_uuid(col['type'])
             }
             
-            # Check if this attribute already exists
             if col['name'] in existing_attributes:
-                # Update existing attribute
-                attr_href = existing_attributes[col['name']]['_links']['self']['href']
-                attr_endpoint = url_join(self.base_url, attr_href)
-                try:
-                    requests_patch(attr_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
-                    logging.info(f"Attribute '{attribute['label']}' updated successfully.")
-                except Exception as e:
-                    logging.error(f"Failed to update attribute '{attribute['label']}': {str(e)}")
-                    raise
+                # Add to update list
+                attributes_to_update.append((existing_attributes[col['name']]['_links']['self']['href'], attribute))
             else:
-                # Create new attribute
-                try:
-                    requests_post(asset_attributes_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
-                    logging.info(f"Attribute '{attribute['label']}' created successfully.")
-                except Exception as e:
-                    logging.error(f"Failed to create attribute '{attribute['label']}': {str(e)}")
-                    raise
+                # Add to create list
+                attributes_to_create.append(attribute)
+        
+        # 6. Process attribute updates
+        for attr_href, attribute in attributes_to_update:
+            attr_endpoint = url_join(self.base_url, attr_href)
+            try:
+                requests_patch(attr_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
+                logging.info(f"Attribute '{attribute['label']}' updated successfully.")
+            except Exception as e:
+                logging.error(f"Failed to update attribute '{attribute['label']}': {str(e)}")
+                raise
+        
+        # 7. Process attribute creations
+        asset_attributes_endpoint = url_join(self.base_url, asset_href, 'attributes')
+        for attribute in attributes_to_create:
+            try:
+                requests_post(asset_attributes_endpoint, headers=headers, json=attribute, rate_limit_delay=self.request_delay)
+                logging.info(f"Attribute '{attribute['label']}' created successfully.")
+            except Exception as e:
+                logging.error(f"Failed to create attribute '{attribute['label']}': {str(e)}")
+                raise
 
     def dnk_create_or_update_organizational_unit(self, name: str, parent_name: str = None, custom_properties: dict = None) -> None:
         """
@@ -520,7 +547,7 @@ class DataspotClient:
                 
                 # If unit exists and we have caching enabled, cache its UUID
                 if self.uuid_cache:
-                    unit_uuid = response.json().get('id')
+                    unit_uuid = response.json()['id']
                     if unit_uuid:
                         self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, url_to_check)
                         
@@ -536,7 +563,7 @@ class DataspotClient:
             
             try:
                 response = requests_get(parent_endpoint, headers=headers)
-                parent_uuid = response.json().get('id')
+                parent_uuid = response.json()['id']
                 logging.debug(f"Retrieved parent UUID: {parent_uuid}")
                 
                 # Cache parent UUID if caching enabled
@@ -559,7 +586,7 @@ class DataspotClient:
                 
                 # If unit exists and we have caching enabled, cache its UUID
                 if self.uuid_cache:
-                    unit_uuid = response.json().get('id')
+                    unit_uuid = response.json()['id']
                     if unit_uuid:
                         self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, url_to_check)
                         
@@ -576,13 +603,13 @@ class DataspotClient:
             # Cache the newly created unit UUID if caching enabled
             if self.uuid_cache:
                 try:
-                    unit_uuid = response.json().get('id')
+                    unit_uuid = response.json()['id']
                     if unit_uuid:
                         # Construct proper path for the unit
                         if parent_name is None:
                             unit_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', name)
                         else:
-                            unit_path = response.json().get('_links', {}).get('self', {}).get('href', '')
+                            unit_path = response.json()['_links']['self']['href']
                         
                         self.uuid_cache.add_or_update_asset('OrganizationalUnit', name, unit_uuid, unit_path)
                 except Exception as e:
@@ -613,13 +640,13 @@ class DataspotClient:
                         # Cache the newly created unit UUID if caching enabled
                         if self.uuid_cache:
                             try:
-                                unit_uuid = response.json().get('id')
+                                unit_uuid = response.json()['id']
                                 if unit_uuid:
                                     # Construct proper path for the unit
                                     if parent_name is None:
                                         unit_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'collections', simplified_name)
                                     else:
-                                        unit_path = response.json().get('_links', {}).get('self', {}).get('href', '')
+                                        unit_path = response.json()['_links']['self']['href']
                                         
                                     self.uuid_cache.add_or_update_asset('OrganizationalUnit', simplified_name, unit_uuid, unit_path)
                             except Exception as e:
@@ -747,7 +774,7 @@ class DataspotClient:
                     for asset in assets_data['_embedded']['assets']:
                         if asset.get('label') == dataset.name:
                             dataset_exists = True
-                            dataset_uuid = asset.get('id')
+                            dataset_uuid = asset['id']
                             dataset_url = url_join(self.base_url, asset['_links']['self']['href'])
                             
                             # Update the cache with valid data
@@ -785,9 +812,9 @@ class DataspotClient:
                 # Update cache with any changes from the response
                 if self.uuid_cache and response.status_code == 200:
                     response_data = response.json()
-                    updated_uuid = response_data.get('id')
+                    updated_uuid = response_data['id']
                     if updated_uuid:
-                        href = response_data.get('_links', {}).get('self', {}).get('href', '')
+                        href = response_data['_links']['self']['href']
                         self.uuid_cache.add_or_update_asset('Dataset', dataset.name, updated_uuid, href)
                 
                 logging.info(f"Dataset '{dataset.name}' updated successfully")
@@ -821,9 +848,9 @@ class DataspotClient:
             # Only update cache if creation was successful
             if response.status_code in [200, 201]:
                 response_data = response.json()
-                new_dataset_uuid = response_data.get('id')
+                new_dataset_uuid = response_data['id']
                 if new_dataset_uuid and self.uuid_cache:
-                    href = response_data.get('_links', {}).get('self', {}).get('href', '')
+                    href = response_data['_links']['self']['href']
                     self.uuid_cache.add_or_update_asset('Dataset', dataset.name, new_dataset_uuid, href)
             
             logging.info(f"Dataset '{dataset.name}' created successfully")
@@ -862,7 +889,7 @@ class DataspotClient:
         
         try:
             response = requests_get(dnk_scheme_endpoint, headers=headers, rate_limit_delay=self.request_delay)
-            dnk_scheme_uuid = response.json().get('id')
+            dnk_scheme_uuid = response.json()['id']
             logging.debug(f"DNK scheme exists with UUID: {dnk_scheme_uuid}")
         except HTTPError as e:
             if e.response.status_code == 404:
@@ -874,7 +901,7 @@ class DataspotClient:
                     "label": "Datennutzungskatalog"
                 }
                 response = requests_post(schemes_endpoint, headers=headers, json=scheme_data, rate_limit_delay=self.request_delay)
-                dnk_scheme_uuid = response.json().get('id')
+                dnk_scheme_uuid = response.json()['id']
                 logging.info(f"Created DNK scheme with UUID: {dnk_scheme_uuid}")
             else:
                 raise
@@ -885,11 +912,13 @@ class DataspotClient:
         
         try:
             response = requests_get(ods_imports_endpoint, headers=headers, rate_limit_delay=self.request_delay)
-            ods_imports_uuid = response.json().get('id')
+            ods_imports_uuid = response.json()['id']
             
             # Only cache the UUID if the response was successful
             if self.uuid_cache and response.status_code == 200:
-                self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
+                ods_imports_path = response.json()['_links']['self']['href']
+                if ods_imports_path:
+                    self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
                 
             logging.debug(f"ODS-Imports collection exists with UUID: {ods_imports_uuid}")
             return ods_imports_uuid
@@ -904,13 +933,13 @@ class DataspotClient:
                 }
                 try:
                     response = requests_post(collections_endpoint, headers=headers, json=collection_data, rate_limit_delay=self.request_delay)
-                    ods_imports_uuid = response.json().get('id')
+                    ods_imports_uuid = response.json()['id']
                     
                     # Only cache if creation was successful
                     if self.uuid_cache and response.status_code in [200, 201]:
-                        ods_imports_path = response.json().get('_links', {}).get('self', {}).get('href', '')
-                        if ods_imports_path:
-                            self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
+                        ods_imports_href = response.json()['_links']['self']['href']
+                        if ods_imports_href:
+                            self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_href)
                         
                     logging.info(f"Created ODS-Imports collection with UUID: {ods_imports_uuid}")
                     return ods_imports_uuid
@@ -919,10 +948,13 @@ class DataspotClient:
                     raise
             else:
                 raise
-
+            
+    @deprecated("This method is deprecated")
     def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
         """
         Creates the complete hierarchy (organizational units) for a dataset if it doesn't exist.
+        
+        .. deprecated:: Will be removed in a future version
         
         Args:
             dataset (Dataset): The dataset containing the path information
@@ -1013,7 +1045,7 @@ class DataspotClient:
             # Add a composition for each attribute
             for attribute in tdm_attributes:
                 attribute_label = attribute.get('title')
-                attribute_id = attribute.get('id')
+                attribute_id = attribute['id']
                 
                 if not attribute_label:
                     logging.warning(f"Skipping attribute with missing label: {attribute}")
@@ -1062,9 +1094,9 @@ class DataspotClient:
         """
         # Check cache first if caching is enabled
         if self.uuid_cache:
-            cached_path = self.uuid_cache.get_path('Dataset', title)
-            if cached_path:
-                return cached_path
+            cached_href = self.uuid_cache.get_href('Dataset', title)
+            if cached_href:
+                return cached_href
 
         if '/' not in title:
             # If no slash, construct the path using the standard format
@@ -1074,7 +1106,7 @@ class DataspotClient:
             try:
                 endpoint = url_join(self.base_url, dataset_path)
                 response = requests_get(endpoint, headers=self.auth.get_headers())
-                dataset_uuid = response.json().get('id')
+                dataset_uuid = response.json()['id']
                 
                 # Cache the result if caching is enabled
                 if self.uuid_cache and dataset_uuid:
@@ -1094,7 +1126,7 @@ class DataspotClient:
         for dataset in datasets:
             if dataset.get('label') == title:
                 path = dataset['_links']['self']['href']
-                uuid = dataset.get('id')
+                uuid = dataset['id']
                 
                 # Cache the result if caching is enabled and UUID exists
                 if self.uuid_cache and uuid:
@@ -1119,9 +1151,9 @@ class DataspotClient:
         """
         # Check cache first if caching is enabled
         if self.uuid_cache:
-            cached_path = self.uuid_cache.get_path('TDMDataobject', title)
-            if cached_path:
-                return cached_path
+            cached_href = self.uuid_cache.get_href('TDMDataobject', title)
+            if cached_href:
+                return cached_href
                 
         if '/' not in title:
             # If no slash, construct the path using the standard format
@@ -1131,7 +1163,7 @@ class DataspotClient:
             try:
                 endpoint = url_join(self.base_url, tdm_path)
                 response = requests_get(endpoint, headers=self.auth.get_headers())
-                tdm_uuid = response.json().get('id')
+                tdm_uuid = response.json()['id']
                 
                 # Cache the result if caching is enabled
                 if self.uuid_cache and tdm_uuid:
@@ -1151,7 +1183,7 @@ class DataspotClient:
         for asset in assets:
             if asset.get('label') == title:
                 path = asset['_links']['self']['href']
-                uuid = asset.get('id')
+                uuid = asset['id']
                 
                 # Cache the result if caching is enabled
                 if self.uuid_cache and uuid:
@@ -1190,7 +1222,7 @@ class DataspotClient:
             # Verify the dataset exists by fetching it
             response = requests_get(dataset_endpoint, headers=headers)
             dataset_data = response.json()
-            dataset_uuid = dataset_data.get('id')
+            dataset_uuid = dataset_data['id']
             
             if not dataset_uuid:
                 raise ValueError(f"Dataset '{title}' found but has no UUID")
@@ -1275,9 +1307,9 @@ class DataspotClient:
         """
         # Check cache first if caching is enabled
         if self.uuid_cache:
-            cached_path = self.uuid_cache.get_path('Datatype', type_name)
-            if cached_path:
-                return cached_path
+            cached_href = self.uuid_cache.get_href('Datatype', type_name)
+            if cached_href:
+                return cached_href
                 
         if '/' not in type_name:
             # If no slash, construct the path using the standard format
@@ -1287,7 +1319,7 @@ class DataspotClient:
             try:
                 endpoint = url_join(self.base_url, datatype_path)
                 response = requests_get(endpoint, headers=self.auth.get_headers())
-                datatype_uuid = response.json().get('id')
+                datatype_uuid = response.json()['id']
                 
                 # Cache the result if caching is enabled
                 if self.uuid_cache and datatype_uuid:
@@ -1307,7 +1339,7 @@ class DataspotClient:
         for datatype in datatypes:
             if datatype.get('label') == type_name:
                 path = datatype['_links']['self']['href']
-                uuid = datatype.get('id')
+                uuid = datatype['id']
                 
                 # Cache the result if caching is enabled
                 if self.uuid_cache and uuid:

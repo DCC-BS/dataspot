@@ -7,7 +7,7 @@ class DataspotUUIDCache:
     """
     A cache for Dataspot UUIDs that uses a CSV file for storage.
     
-    The cache stores mappings between asset types, names, UUIDs, and paths
+    The cache stores mappings between asset types, names, UUIDs, and hrefs
     to reduce the number of API calls needed to retrieve UUIDs.
     """
     
@@ -31,7 +31,7 @@ class DataspotUUIDCache:
                             key = (row['_type'], row['name'])
                             self.cache[key] = {
                                 'uuid': row['uuid'],
-                                'path': row.get('path', '')
+                                'href': row.get('href', '')
                             }
                 logging.info(f"Loaded {len(self.cache)} entries from UUID cache at {csv_path}")
             except Exception as e:
@@ -51,14 +51,14 @@ class DataspotUUIDCache:
             for (type_val, name), data in self.cache.items():
                 rows.append({
                     '_type': type_val,
-                    'uuid': data['uuid'],
                     'name': name,
-                    'path': data.get('path', '')
+                    'href': data.get('href', ''),
+                    'uuid': data['uuid']
                 })
             
             # Write to CSV
             with open(self.csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['_type', 'uuid', 'name', 'path']
+                fieldnames = ['_type', 'uuid', 'name', 'href']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(rows)
@@ -66,7 +66,7 @@ class DataspotUUIDCache:
         except Exception as e:
             logging.error(f"Failed to save UUID cache to {self.csv_path}: {str(e)}")
     
-    def add_or_update_asset(self, _type, name, uuid, path=None):
+    def add_or_update_asset(self, _type, name, uuid, href=None):
         """
         Add or update an asset in the cache.
         
@@ -74,7 +74,7 @@ class DataspotUUIDCache:
             _type (str): The type of the asset (e.g., 'Dataset', 'Datatype')
             name (str): The name/label of the asset
             uuid (str): The UUID of the asset
-            path (str, optional): The API path to access the asset
+            href (str, optional): The API href to access the asset
         """
         if not uuid:
             logging.warning(f"Attempted to cache asset with empty UUID: {_type}/{name}")
@@ -83,7 +83,7 @@ class DataspotUUIDCache:
         key = (_type, name)
         self.cache[key] = {
             'uuid': uuid,
-            'path': path or ''
+            'href': href or ''
         }
         self.save_cache()
         logging.debug(f"Cached {_type} '{name}' with UUID {uuid}")
@@ -107,22 +107,22 @@ class DataspotUUIDCache:
         logging.debug(f"Cache miss for {_type} '{name}'")
         return None
     
-    def get_path(self, _type, name):
+    def get_href(self, _type, name):
         """
-        Get the path for an asset by type and name.
+        Get the href for an asset by type and name.
         
         Args:
             _type (str): The type of the asset
             name (str): The name/label of the asset
             
         Returns:
-            str: The path if found, None otherwise
+            str: The href if found, None otherwise
         """
         key = (_type, name)
         if key in self.cache:
-            path = self.cache[key]['path']
-            logging.debug(f"Cache hit for {_type} '{name}': path {path}")
-            return path
+            href = self.cache[key]['href']
+            logging.debug(f"Cache hit for {_type} '{name}': href {href}")
+            return href
         logging.debug(f"Cache miss for {_type} '{name}'")
         return None
     
@@ -134,7 +134,7 @@ class DataspotUUIDCache:
             _type (str): The type of assets to retrieve
             
         Returns:
-            list: A list of dictionaries with name, uuid, and path for each asset
+            list: A list of dictionaries with name, uuid, and href for each asset
         """
         results = []
         for (type_val, name), data in self.cache.items():
@@ -142,7 +142,7 @@ class DataspotUUIDCache:
                 results.append({
                     'name': name,
                     'uuid': data['uuid'],
-                    'path': data.get('path', '')
+                    'href': data.get('href', '')
                 })
         return results
     

@@ -12,12 +12,30 @@ from metadata_translator import ods_to_dataspot
 
 
 def main_X():
-    client = DataspotClient(uuid_cache_path=None)
+    dataspot_client = DataspotClient()
     ods_client = ODSClient()
     pass
 
 
-def main_1_build_organization_structure_in_dnk():
+def main_1_update_dataset_update_method_testing():
+    dataspot_client = DataspotClient()
+    ods_client = ODSClient()
+
+    ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
+    ods_ids = ods_ids[:10]
+    print(ods_ids)
+
+    for ods_id in ods_ids:
+        logging.info(f"Processing dataset {ods_id}...")
+
+        ods_metadata = ods_utils.get_dataset_metadata(dataset_id = ods_id)
+        dataset = ods_to_dataspot(ods_metadata=ods_metadata, ods_dataset_id=ods_id, dataspot_client=dataspot_client)
+        dataspot_client.dnk_create_or_update_dataset(dataset=dataset)
+        logging.info(f"Done uploading dataset {ods_id}")
+    pass
+
+
+def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
 
@@ -102,6 +120,6 @@ def main_1_build_organization_structure_in_dnk():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_X()
+    main_1_update_dataset_update_method_testing()
     logging.info('Job successful!')
     
