@@ -101,8 +101,6 @@ class DataspotClient:
         if not base_url:
             raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
 
-        self.ods_imports_collection_name = 'ODS-Imports'
-        self.base_url = base_url
         self.auth = DataspotAuth()
         self.database_name = 'test-staatskalender-struktur'
         self.dnk_scheme_name = 'Datennutzungskatalog'
@@ -312,7 +310,7 @@ class DataspotClient:
         """
         
         # First, get the UUID of the target collection
-        collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
+        collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'collections', self.ods_imports_collection_name)
         endpoint = url_join(self.base_url, collection_path)
         headers = self.auth.get_headers()
         
@@ -322,7 +320,7 @@ class DataspotClient:
             logging.debug(f"Found collection UUID: {collection_uuid}")
         except HTTPError as e:
             if e.response.status_code == 404:
-                logging.info(f"Collection '{self.tdm_scheme_name}' not found. Nothing to delete.")
+                logging.info(f"Collection '{self.tdm_scheme_name}/collections/{self.ods_imports_collection_name}' not found. Nothing to delete.")
                 return
             raise e
         
@@ -343,7 +341,7 @@ class DataspotClient:
 
     def tdm_create_or_update_dataobject(self, name: str, columns: list[dict] = None) -> None:
         """
-        Create a new dataobject (also called asset) in the 'Automatisch generierte ODS-Datenmodelle' collection in the 'Technisches Datenmodell' in Dataspot or update an existing one.
+        Create a new dataobject (also called asset) in the 'ODS-Imports' collection in the 'Technisches Datenmodell' in Dataspot or update an existing one.
         The attributes of this dataobject are determined by the provided columns.
 
         Args:
@@ -365,10 +363,10 @@ class DataspotClient:
 
         # 1. Get collection UUID (from cache if possible)
         if self.uuid_cache:
-            collection_uuid = self.uuid_cache.get_uuid('Collection', self.tdm_scheme_name)
+            collection_uuid = self.uuid_cache.get_uuid('Collection', self.ods_imports_collection_name)
         
         if not collection_uuid:
-            collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name)
+            collection_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'collections', self.ods_imports_collection_name)
             endpoint = url_join(self.base_url, collection_path)
 
             try:
@@ -378,10 +376,10 @@ class DataspotClient:
                 
                 # Cache the collection UUID if caching enabled
                 if self.uuid_cache and collection_uuid:
-                    self.uuid_cache.add_or_update_asset('Collection', self.tdm_scheme_name, collection_uuid, collection_path)
+                    self.uuid_cache.add_or_update_asset('Collection', self.ods_imports_collection_name, collection_uuid, collection_path)
             except HTTPError as e:
                 if e.response.status_code == 404:
-                    raise HTTPError(f"Collection '{self.tdm_scheme_name}' does not exist") from e
+                    raise HTTPError(f"Collection '{self.tdm_scheme_name}/collections/{self.ods_imports_collection_name}' does not exist") from e
                 raise e
 
         # 2. Check if asset already exists (from cache if possible)
@@ -1164,7 +1162,7 @@ class DataspotClient:
                 
         if '/' not in title:
             # If no slash, construct the path using the standard format
-            tdm_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'classifiers', title)
+            tdm_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'collections', self.ods_imports_collection_name, 'classifiers', title)
             
             # Verify the path exists and get the UUID
             try:
@@ -1181,7 +1179,7 @@ class DataspotClient:
                 pass  # Continue with the search if not found with direct path
                 
         # If there is a slash, we need to find the TDM object by title
-        assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'assets')
+        assets_path = url_join('rest', self.database_name, 'schemes', self.tdm_scheme_name, 'collections', self.ods_imports_collection_name, 'assets')
         assets_endpoint = url_join(self.base_url, assets_path)
         response = requests_get(assets_endpoint, headers=self.auth.get_headers())
         assets_data = response.json()
