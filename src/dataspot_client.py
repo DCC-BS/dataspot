@@ -33,6 +33,54 @@ def create_url_to_website(path: str) -> str:
     new_path = new_path.rstrip('/')
     return f"https://staatskalender.bs.ch/organization/{new_path}"
 
+def escape_special_chars(name: str) -> str:
+    '''
+    Escape special characters in asset names for Dataspot API according to the business key rules.
+    
+    According to Dataspot documentation, special characters need to be properly escaped in business keys:
+    
+    1. If a name contains / or ., it should be enclosed in double quotes
+       Example: INPUT/OUTPUT → "INPUT/OUTPUT"
+       Example: dataspot. → "dataspot."
+    
+    2. If a name contains double quotes ("), each double quote should be doubled ("") and 
+       the entire name should be enclosed in double quotes
+       Example: 28" City Bike → "28"" City Bike"
+       Example: Project "Zeus" → "Project ""Zeus"""
+    
+    Args:
+        name (str): The name of the asset (dataset, organizational unit, etc.)
+        
+    Returns:
+        str: The escaped name suitable for use in Dataspot API business keys
+    '''
+    
+    if name is None:
+        logging.warning(f"Trying to escape special characters for None")
+
+    if not name:
+        return name
+    
+    # Check if the name contains any characters that need special handling
+    needs_quoting = False
+    
+    # Names containing '/' or '.' need to be quoted
+    if '/' in name or '.' in name:
+        needs_quoting = True
+    
+
+    # Names containing double quotes need special handling
+    has_quotes = '"' in name
+    if has_quotes:
+        needs_quoting = True
+        # Double each quote in the name
+        name = "".join('""' if char == '"' else char for char in name)
+    
+    # Enclose the name in quotes if needed
+    if needs_quoting:
+        return f'"{name}"'
+    
+    return name
 
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
