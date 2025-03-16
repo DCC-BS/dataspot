@@ -106,7 +106,7 @@ class DataspotClient:
         self.base_url = base_url
         self.auth = DataspotAuth()
         self.database_name = 'test-staatskalender-struktur'
-        self.dnk_scheme_name = 'Datennutzungskatalog'
+        self.dnk_scheme_name = url_join('Datennutzungskatalog', 'collections', 'ODS-Imports')
         self.rdm_scheme_name = 'Referenzdatenmodell'
         self.datatype_scheme_name = 'Datentypmodell'
         self.tdm_scheme_name = url_join('Technische Datenmodelle', 'collections', 'Automatisch generierte ODS-Datenmodelle')
@@ -234,23 +234,6 @@ class DataspotClient:
             logging.info("Finished cleaning up OGD datasets and empty collections from DNK")
         else:
             logging.info("Finished cleaning up OGD datasets from DNK")
-
-    def download_rdm(self, language: str = "de") -> list[dict[str, str]]:
-        """
-        Download the Referenzdatenmodell (RDM) from Dataspot.
-
-        Args:
-            language (str): Language code for the RDM (default: "de")
-
-        Returns:
-            dict: The RDM data in JSON format
-        """
-        relative_path = url_join('schemes', self.rdm_scheme_name, 'download')
-        params = {
-            'language': language,
-            'format': 'json'
-        }
-        return self.download(relative_path, params, endpoint_type='api')
 
     def ods_type_to_dataspot_uuid(self, ods_type: str) -> str:
         """
@@ -700,7 +683,8 @@ class DataspotClient:
 
     def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> None:
         """
-        Create a new dataset or update an existing dataset in the 'Datennutzungskatalog' in Dataspot.
+        Create a new dataset or update an existing dataset in the 'Datennutzungskatalog/collections/ODS-Imports' in Dataspot.
+        All datasets are placed directly in the ODS-Imports collection, regardless of their internal path structure.
         
         The method behavior is controlled by the update_strategy parameter:
         - 'create_only': Only creates a new dataset using POST. Fails if the dataset already exists.
@@ -717,110 +701,224 @@ class DataspotClient:
             force_replace (bool): Whether to completely replace an existing dataset (True) or just update properties (False).
             
         Raises:
-            ValueError: If the dataset path is invalid or if the update_strategy is invalid
+            ValueError: If the update_strategy is invalid
             HTTPError: If API requests fail
             json.JSONDecodeError: If response parsing fails
         """
         if update_strategy not in ['create_only', 'update_only', 'create_or_update']:
             raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of: 'create_only', 'update_only', 'create_or_update'")
         
-        departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
-        
-        # Determine the parent collection (last non-empty element in path)
-        parent_path = [p for p in [departement, dienststelle, sammlung, subsammlung] if p]
-        if not parent_path:
-            raise ValueError(f"Invalid path for dataset {dataset.name}: path is empty")
-        
-        parent_collection = parent_path[-1]
-        
-        # Try to get parent collection
         headers = self.auth.get_headers()
-        parent_path = url_join(
-            'rest',
-            self.database_name,
-            'schemes',
-            self.dnk_scheme_name,
-            'collections',
-            parent_collection
-        )
-        parent_endpoint = url_join(self.base_url, parent_path)
-        
-        try:
-            response = requests_get(parent_endpoint, headers=headers)
-            parent_uuid = response.json().get('id')
-        except HTTPError as e:
-            if e.response.status_code == 404:
-                # Only create hierarchy if parent doesn't exist and we're not in update_only mode
-                if update_strategy == 'update_only':
-                    raise ValueError(f"Parent collection '{parent_collection}' doesn't exist and update_strategy is 'update_only'")
-                
-                self.create_hierarchy_for_dataset(dataset)
-                # Retry getting parent after creation
-                response = requests_get(parent_endpoint, headers=headers)
-                parent_uuid = response.json().get('id')
-            else:
-                raise
-
-        # Construct dataset endpoint
-        dataset_path = url_join(
-            'rest',
-            self.database_name,
-            'collections',
-            parent_uuid,
-            'assets'
-        )
-        dataset_endpoint = url_join(self.base_url, dataset_path)
-        
-        # Check if dataset exists
         dataset_exists = False
         dataset_url = None
-        existing_dataset_data = None
+        dataset_uuid = None
+        escaped_name = escape_special_chars(dataset.name)
         
-        try:
-            specific_dataset_url = url_join(self.base_url, self.find_dataset_path(dataset.name))
-            response = requests_get(specific_dataset_url, headers=headers)
-            dataset_exists = True
-            dataset_url = specific_dataset_url
-            existing_dataset_data = response.json()
-            logging.debug(f"Dataset '{dataset.name}' exists")
-        except HTTPError as e:
-            if e.response.status_code != 404:
-                raise
-            logging.debug(f"Dataset '{dataset.name}' does not exist")
-        except ValueError:
-            logging.debug(f"Dataset '{dataset.name}' does not exist")
+        # 1. Try to find dataset by UUID from cache first
+        if self.uuid_cache:
+            dataset_uuid = self.uuid_cache.get_uuid('Dataset', dataset.name)
+            if dataset_uuid:
+                # Use the direct UUID endpoint to get the dataset
+                dataset_endpoint = url_join('rest', self.database_name, 'assets', dataset_uuid)
+                dataset_url = url_join(self.base_url, dataset_endpoint)
+                try:
+                    response = requests_get(dataset_url, headers=headers, rate_limit_delay=self.request_delay)
+                    dataset_exists = True
+                    logging.info(f"Dataset '{dataset.name}' found by UUID in cache.")
+                except HTTPError as e:
+                    # UUID is no longer valid, will need to search by name
+                    logging.debug(f"Dataset UUID from cache is invalid, will search by name: {str(e)}")
+                    dataset_uuid = None
+                    dataset_url = None
         
-        # Prepare dataset JSON
-        dataset_json = dataset.to_json()
-        logging.debug(f"Dataset JSON Payload: {json.dumps(dataset_json, indent=2)}")
+        # 2. If not found by UUID, try to find by name
+        if not dataset_exists:
+            # Search for datasets by name in the ODS-Imports collection
+            ods_imports_uuid = self.ensure_ods_imports_collection()
+            datasets_endpoint = url_join('rest', self.database_name, 'collections', ods_imports_uuid, 'assets')
+            datasets_url = url_join(self.base_url, datasets_endpoint)
+            
+            try:
+                response = requests_get(datasets_url, headers=headers, rate_limit_delay=self.request_delay)
+                assets_data = response.json()
+                
+                # Look for the dataset in the collection's assets
+                if '_embedded' in assets_data and 'assets' in assets_data['_embedded']:
+                    for asset in assets_data['_embedded']['assets']:
+                        if asset.get('label') == dataset.name:
+                            dataset_exists = True
+                            dataset_uuid = asset.get('id')
+                            dataset_url = url_join(self.base_url, asset['_links']['self']['href'])
+                            
+                            # Update the cache with valid data
+                            if self.uuid_cache and dataset_uuid:
+                                self.uuid_cache.add_or_update_asset('Dataset', dataset.name, dataset_uuid, asset['_links']['self']['href'])
+                            
+                            logging.debug(f"Dataset '{dataset.name}' found by name.")
+                            break
+                
+                if not dataset_exists:
+                    logging.debug(f"Dataset '{dataset.name}' does not exist in the ODS-Imports collection.")
+            except HTTPError as e:
+                logging.error(f"Error searching for dataset by name: {str(e)}")
+                if e.response.status_code != 404:
+                    raise
         
-        # Determine which HTTP method to use based on existence and strategy
+        # 3. Handle the dataset based on existence and update strategy
         if dataset_exists:
             if update_strategy == 'create_only':
                 logging.info(f"Dataset '{dataset.name}' already exists and update_strategy is 'create_only'. Skipping.")
                 return
             
             # Update existing dataset using PUT (replace) or PATCH (update) based on force_replace
-            if force_replace:
-                # Use PUT to completely replace the dataset
-                logging.info(f"Replacing dataset '{dataset.name}' using PUT")
-                response = requests_put(dataset_url, headers=headers, json=dataset_json)
-            else:
-                # Use PATCH to update only the specified properties
-                logging.info(f"Updating dataset '{dataset.name}' using PATCH")
-                response = requests_patch(dataset_url, headers=headers, json=dataset_json)
+            dataset_json = dataset.to_json()
+            try:
+                if force_replace:
+                    # Use PUT to completely replace the dataset
+                    logging.info(f"Replacing dataset '{dataset.name}' using PUT")
+                    response = requests_put(dataset_url, headers=headers, json=dataset_json, rate_limit_delay=self.request_delay)
+                else:
+                    # Use PATCH to update only the specified properties
+                    logging.info(f"Updating dataset '{dataset.name}' using PATCH")
+                    response = requests_patch(dataset_url, headers=headers, json=dataset_json, rate_limit_delay=self.request_delay)
                 
-            logging.info(f"Dataset '{dataset.name}' updated successfully")
-        else:
-            if update_strategy == 'update_only':
-                raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
-            
+                # Update cache with any changes from the response
+                if self.uuid_cache and response.status_code == 200:
+                    response_data = response.json()
+                    updated_uuid = response_data.get('id')
+                    if updated_uuid:
+                        href = response_data.get('_links', {}).get('self', {}).get('href', '')
+                        self.uuid_cache.add_or_update_asset('Dataset', dataset.name, updated_uuid, href)
+                
+                logging.info(f"Dataset '{dataset.name}' updated successfully")
+                return response.json()
+            except HTTPError as e:
+                logging.error(f"Error updating dataset '{dataset.name}': {str(e)}")
+                raise
+        
+        # 4. Handle update_only case
+        if update_strategy == 'update_only':
+            raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
+
+        # 5. Create dataset if it doesn't exist
+        ods_imports_uuid = self.ensure_ods_imports_collection()
+        
+        # Prepare dataset JSON for creation
+        dataset_json = dataset.to_json()
+        # Ensure the dataset is created in the ODS-Imports collection
+        dataset_json["inCollection"] = ods_imports_uuid
+        logging.debug(f"Dataset JSON Payload: {json.dumps(dataset_json, indent=2)}")
+        
+        # Create endpoint for dataset creation
+        assets_endpoint = url_join('rest', self.database_name, 'assets')
+        assets_url = url_join(self.base_url, assets_endpoint)
+        
+        try:
             # Create new dataset using POST
             logging.info(f"Creating dataset '{dataset.name}' using POST")
-            response = requests_post(dataset_endpoint, headers=headers, json=dataset_json)
+            response = requests_post(assets_url, headers=headers, json=dataset_json, rate_limit_delay=self.request_delay)
+            
+            # Only update cache if creation was successful
+            if response.status_code in [200, 201]:
+                response_data = response.json()
+                new_dataset_uuid = response_data.get('id')
+                if new_dataset_uuid and self.uuid_cache:
+                    href = response_data.get('_links', {}).get('self', {}).get('href', '')
+                    self.uuid_cache.add_or_update_asset('Dataset', dataset.name, new_dataset_uuid, href)
+            
             logging.info(f"Dataset '{dataset.name}' created successfully")
+            return response.json()
+        except HTTPError as e:
+            logging.error(f"Error creating dataset '{dataset.name}': {str(e)}")
+            raise
         
-        return response.json()
+    def ensure_ods_imports_collection(self) -> str:
+        """
+        Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
+        Creates both the scheme and collection if they don't exist.
+        
+        Returns:
+            str: The UUID of the ODS-Imports collection
+        """
+        headers = self.auth.get_headers()
+        
+        # First check if we have the UUID in cache
+        if self.uuid_cache:
+            collection_uuid = self.uuid_cache.get_uuid('Collection', 'ODS-Imports')
+            if collection_uuid:
+                # Verify the cached UUID is still valid
+                collection_endpoint = url_join('rest', self.database_name, 'collections', collection_uuid)
+                try:
+                    response = requests_get(url_join(self.base_url, collection_endpoint), headers=headers, rate_limit_delay=self.request_delay)
+                    if response.status_code == 200:
+                        return collection_uuid
+                except HTTPError:
+                    # Cache is invalid, will proceed with normal lookup
+                    pass
+                
+        # Check if DNK scheme exists and create if needed
+        dnk_scheme_path = url_join('rest', self.database_name, 'schemes', 'Datennutzungskatalog')
+        dnk_scheme_endpoint = url_join(self.base_url, dnk_scheme_path)
+        
+        try:
+            response = requests_get(dnk_scheme_endpoint, headers=headers, rate_limit_delay=self.request_delay)
+            dnk_scheme_uuid = response.json().get('id')
+            logging.debug(f"DNK scheme exists with UUID: {dnk_scheme_uuid}")
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                # DNK scheme doesn't exist, create it
+                logging.info("DNK scheme doesn't exist, creating it")
+                schemes_endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes')
+                scheme_data = {
+                    "_type": "Scheme",
+                    "label": "Datennutzungskatalog"
+                }
+                response = requests_post(schemes_endpoint, headers=headers, json=scheme_data, rate_limit_delay=self.request_delay)
+                dnk_scheme_uuid = response.json().get('id')
+                logging.info(f"Created DNK scheme with UUID: {dnk_scheme_uuid}")
+            else:
+                raise
+        
+        # Check if ODS-Imports collection exists and create if needed
+        ods_imports_path = url_join('rest', self.database_name, 'schemes', 'Datennutzungskatalog', 'collections', 'ODS-Imports')
+        ods_imports_endpoint = url_join(self.base_url, ods_imports_path)
+        
+        try:
+            response = requests_get(ods_imports_endpoint, headers=headers, rate_limit_delay=self.request_delay)
+            ods_imports_uuid = response.json().get('id')
+            
+            # Only cache the UUID if the response was successful
+            if self.uuid_cache and response.status_code == 200:
+                self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
+                
+            logging.debug(f"ODS-Imports collection exists with UUID: {ods_imports_uuid}")
+            return ods_imports_uuid
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                # ODS-Imports doesn't exist, create it
+                logging.info("ODS-Imports collection doesn't exist, creating it")
+                collections_endpoint = url_join(self.base_url, 'rest', self.database_name, 'schemes', dnk_scheme_uuid, 'collections')
+                collection_data = {
+                    "_type": "Collection",
+                    "label": "ODS-Imports"
+                }
+                try:
+                    response = requests_post(collections_endpoint, headers=headers, json=collection_data, rate_limit_delay=self.request_delay)
+                    ods_imports_uuid = response.json().get('id')
+                    
+                    # Only cache if creation was successful
+                    if self.uuid_cache and response.status_code in [200, 201]:
+                        ods_imports_path = response.json().get('_links', {}).get('self', {}).get('href', '')
+                        if ods_imports_path:
+                            self.uuid_cache.add_or_update_asset('Collection', 'ODS-Imports', ods_imports_uuid, ods_imports_path)
+                        
+                    logging.info(f"Created ODS-Imports collection with UUID: {ods_imports_uuid}")
+                    return ods_imports_uuid
+                except HTTPError as create_error:
+                    logging.error(f"Failed to create ODS-Imports collection: {str(create_error)}")
+                    raise
+            else:
+                raise
 
     def create_hierarchy_for_dataset(self, dataset: Dataset) -> None:
         """
