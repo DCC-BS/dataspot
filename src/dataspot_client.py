@@ -734,65 +734,75 @@ class DataspotClient:
         headers = self.auth.get_headers()
         dataset_exists = False
         dataset_url = None
-        dataset_uuid = None
         escaped_name = escape_special_chars(dataset.name)
         
-        # 1. Try to find dataset by UUID from cache first
+        # 1. Try to find dataset directly using href from cache first
         if self.uuid_cache:
-            dataset_uuid = self.uuid_cache.get_uuid('Dataset', dataset.name)
-            if dataset_uuid:
-                # Use the direct UUID endpoint to get the dataset
-                dataset_endpoint = url_join('rest', self.database_name, 'assets', dataset_uuid)
-                dataset_url = url_join(self.base_url, dataset_endpoint)
+            dataset_href = self.uuid_cache.get_href('Dataset', dataset.name)
+            if dataset_href:
+                dataset_url = url_join(self.base_url, dataset_href)
                 try:
                     response = requests_get(dataset_url, headers=headers, rate_limit_delay=self.request_delay)
                     dataset_exists = True
-                    logging.info(f"Dataset '{dataset.name}' found by UUID in cache.")
+                    # Update UUID in cache if needed
+                    dataset_uuid = response.json()['id']
+                    if dataset_uuid and self.uuid_cache:
+                        self.uuid_cache.add_or_update_asset('Dataset', dataset.name, dataset_uuid, dataset_href)
+                    logging.info(f"Dataset '{dataset.name}' found using cached href.")
                 except HTTPError as e:
-                    # UUID is no longer valid, will need to search by name
-                    logging.debug(f"Dataset UUID from cache is invalid, will search by name: {str(e)}")
-                    dataset_uuid = None
+                    # Href is no longer valid, will need to search by name
+                    logging.debug(f"Dataset href from cache is invalid, will search by direct path: {str(e)}")
                     dataset_url = None
         
-        # 2. If not found by UUID, try to find by name
+        # TODO (renato): Think about these comments. What exactly should happen? Do I really want Step 2 below???
+        # If a dataset exists and has a valid href, that href should remain valid as long as the dataset exists. If a request to that href fails, it likely means one of:
+        # The dataset was deleted
+        # The user's permissions changed
+        # There's a server-side issue
+        # The cache is corrupted with a malformed href
+
+        # The more common and valid scenario is when a dataset exists but isn't in your cache:
+        # Created by another user
+        # Created through the web interface
+        # Created by a different client instance
+        # Created before you started using caching
+
+        # 2. If not found in cache, try to find by direct path
         if not dataset_exists:
-            # Search for datasets by name in the ODS-Imports collection
-            collection_data = self.ensure_ods_imports_collection()
-            ods_imports_uuid = collection_data['id']
-            datasets_endpoint = url_join('rest', self.database_name, 'collections', ods_imports_uuid, 'assets')
-            datasets_url = url_join(self.base_url, datasets_endpoint)
+            # Use pattern (1) from user instructions: /rest/{database}/schemes/{scheme}/datasets/{name}
+            dataset_path = url_join('rest', self.database_name, 'schemes', self.dnk_scheme_name, 'datasets', escaped_name)
+            dataset_url = url_join(self.base_url, dataset_path)
             
             try:
-                response = requests_get(datasets_url, headers=headers, rate_limit_delay=self.request_delay)
-                assets_data = response.json()
+                response = requests_get(dataset_url, headers=headers, rate_limit_delay=self.request_delay)
+                dataset_data = response.json()
+                dataset_exists = True
                 
-                # Look for the dataset in the collection's assets
-                if '_embedded' in assets_data and 'assets' in assets_data['_embedded']:
-                    for asset in assets_data['_embedded']['assets']:
-                        if asset.get('label') == dataset.name:
-                            dataset_exists = True
-                            dataset_uuid = asset['id']
-                            dataset_url = url_join(self.base_url, asset['_links']['self']['href'])
-                            
-                            # Update the cache with valid data
-                            if self.uuid_cache and dataset_uuid:
-                                self.uuid_cache.add_or_update_asset('Dataset', dataset.name, dataset_uuid, asset['_links']['self']['href'])
-                            
-                            logging.debug(f"Dataset '{dataset.name}' found by name.")
-                            break
+                # Cache the dataset information
+                if self.uuid_cache:
+                    dataset_uuid = dataset_data['id']
+                    dataset_href = dataset_data['_links']['self']['href']
+                    if dataset_uuid and dataset_href:
+                        self.uuid_cache.add_or_update_asset('Dataset', dataset.name, dataset_uuid, dataset_href)
                 
-                if not dataset_exists:
-                    logging.debug(f"Dataset '{dataset.name}' does not exist in the ODS-Imports collection.")
+                logging.info(f"Dataset '{dataset.name}' found by direct path.")
             except HTTPError as e:
-                logging.error(f"Error searching for dataset by name: {str(e)}")
                 if e.response.status_code != 404:
+                    logging.error(f"Error searching for dataset by direct path: {str(e)}")
                     raise
+                logging.info(f"Dataset '{dataset.name}' does not exist in the DNK scheme.")
         
         # 3. Handle the dataset based on existence and update strategy
         if dataset_exists:
             if update_strategy == 'create_only':
                 logging.info(f"Dataset '{dataset.name}' already exists and update_strategy is 'create_only'. Skipping.")
-                return response.json()
+                # Return the latest dataset data
+                try:
+                    response = requests_get(dataset_url, headers=headers, rate_limit_delay=self.request_delay)
+                    return response.json()
+                except HTTPError as e:
+                    logging.error(f"Error fetching existing dataset '{dataset.name}': {str(e)}")
+                    raise
             
             # Update existing dataset using PUT (replace) or PATCH (update) based on force_replace
             dataset_json = dataset.to_json()
@@ -806,13 +816,13 @@ class DataspotClient:
                     logging.info(f"Updating dataset '{dataset.name}' using PATCH")
                     response = requests_patch(dataset_url, headers=headers, json=dataset_json, rate_limit_delay=self.request_delay)
                 
-                # Update cache with any changes from the response
-                if self.uuid_cache and response.status_code == 200:
+                # Update cache with the latest href and UUID from the response
+                if self.uuid_cache and response.status_code in [200, 201]:
                     response_data = response.json()
                     updated_uuid = response_data['id']
-                    if updated_uuid:
-                        href = response_data['_links']['self']['href']
-                        self.uuid_cache.add_or_update_asset('Dataset', dataset.name, updated_uuid, href)
+                    updated_href = response_data['_links']['self']['href']
+                    if updated_uuid and updated_href:
+                        self.uuid_cache.add_or_update_asset('Dataset', dataset.name, updated_uuid, updated_href)
                 
                 logging.info(f"Dataset '{dataset.name}' updated successfully")
                 return response.json()
@@ -825,6 +835,7 @@ class DataspotClient:
             raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
         
         # 5. Create dataset if it doesn't exist
+        # First, ensure ODS-Imports collection exists
         collection_data = self.ensure_ods_imports_collection()
         ods_imports_uuid = collection_data['id']
         
@@ -832,7 +843,6 @@ class DataspotClient:
         dataset_json = dataset.to_json()
         # Ensure the dataset is created in the ODS-Imports collection
         dataset_json["inCollection"] = ods_imports_uuid
-        logging.debug(f"Dataset JSON Payload: {json.dumps(dataset_json, indent=2)}")
         
         # Create endpoint for dataset creation
         assets_endpoint = url_join('rest', self.database_name, 'assets')
@@ -855,8 +865,12 @@ class DataspotClient:
             return response.json()
         except HTTPError as e:
             logging.error(f"Error creating dataset '{dataset.name}': {str(e)}")
+            # TODO (renato): When we encounter other causes for error code 400, append them here!
+            # If we get a 400 error, it might be due to special characters in the name
+            if e.response.status_code == 400:
+                logging.warning(f"Bad request when creating dataset. This might be due to special characters in the name.")
             raise
-        
+
     def ensure_ods_imports_collection(self) -> dict:
         """
         Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
