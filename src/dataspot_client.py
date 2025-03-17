@@ -14,9 +14,29 @@ from src.dataspot_dataset import Dataset
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
 
-# TODO: After the link in ods dataset is fixed, we create it ourselves. Revert after that bugfix.
-def create_url_to_website(path: str) -> str:
-    # It was this before:  url_website = org.get('url_website', '')
+def generate_potential_staatskalender_url(path: str) -> str:
+    """
+    Generate a URL for the Basel Staatskalender based on an organization path string.
+    
+    This function transforms an organization path into a standardized URL format
+    by applying these transformations:
+    - Convert to lowercase
+    - Replace spaces with hyphens
+    - Convert German umlauts (ö→oe, ä→ae, ü→ue)
+    - Remove all characters except letters, hyphens, and forward slashes
+    - Replace double hyphens with single ones
+    - Remove trailing slashes
+    
+    Args:
+        path (str): The organization path string to transform
+        
+    Returns:
+        str: A formatted URL pointing to the organization in the Basel Staatskalender
+        
+    Example:
+        >>> generate_potential_staatskalender_url("Präsidialdepartement/Kantons- und Stadtentwicklung")
+        "https://staatskalender.bs.ch/organization/praesidialdepartement/kantons-und-stadtentwicklung"
+    """
     # Make path string lowercase, and replace ö -> oe, ä -> ae, ü -> ue, space -> '-', and remove trailing slashes
     new_path = path.lower()
     new_path = new_path.replace(' ', '-')
@@ -1439,7 +1459,7 @@ class DataspotClient:
                 title = org.get('title')
                 title_full = org.get('title_full', '')
                 children_ids = org.get('children_id', []) or []
-                url_website = create_url_to_website(title_full)
+                url_website = generate_potential_staatskalender_url(title_full)
 
                 # Increment the counter
                 current_org += 1
