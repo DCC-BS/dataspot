@@ -1,7 +1,10 @@
 # Dataspot configuration variables
 
+# Base URL
+base_url = 'https://www.myserver.com'
+
 # Database name
-database_name = 'test-staatskalender-struktur'
+database_name = 'test-database'
 
 # Scheme names
 dnk_scheme_name = 'Datennutzungskatalog'

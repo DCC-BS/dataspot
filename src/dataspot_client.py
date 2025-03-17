@@ -1,6 +1,5 @@
 import logging
 
-from dotenv import load_dotenv
 from requests import HTTPError
 from time import sleep
 
@@ -9,13 +8,11 @@ from src.common import requests_get, requests_delete, requests_post, requests_pu
 from src.dataspot_uuid_cache import DataspotUUIDCache
 import src.config as config
 import json
-import os
 
 from src.dataspot_dataset import Dataset
 
 def url_join(*parts: str) -> str:
     return "/".join([part.strip("/") for part in parts])
-
 
 # TODO: After the link in ods dataset is fixed, we create it ourselves. Revert after that bugfix.
 def create_url_to_website(path: str) -> str:
@@ -95,18 +92,11 @@ class DataspotClient:
             uuid_cache_path (str, optional): Path to the CSV file used to cache UUIDs. Default is "dataspot_uuids.csv".
                                             Set to None to disable UUID caching.
         """
-        # TODO: Move all these infos into the env file, as they should not be hardcoded
-        load_dotenv('../.dataspot.env')
-
-        base_url = os.getenv("DATASPOT_API_BASE_URL")
-        if not base_url:
-            raise ValueError("DATASPOT_API_BASE_URL environment variable is not set")
-
         self.auth = DataspotAuth()
         self.request_delay = request_delay
-        self.base_url = base_url
 
         # Load configuration from config.py
+        self.base_url = config.base_url
         self.database_name = config.database_name
         self.dnk_scheme_name = config.dnk_scheme_name
         self.rdm_scheme_name = config.rdm_scheme_name
