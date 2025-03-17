@@ -146,7 +146,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         self.client.uuid_cache.get_uuid.assert_called_once_with('Collection', 'ODS-Imports')
         mock_get.assert_called_once()  # Should only call to validate the UUID
         mock_post.assert_not_called()  # Should not create a new collection
@@ -171,7 +171,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         self.client.uuid_cache.get_uuid.assert_called_once_with('Collection', 'ODS-Imports')
         self.client.uuid_cache.add_or_update_asset.assert_called_once()  # Should update cache
         self.assertEqual(mock_get.call_count, 2)  # Should check scheme and collection
@@ -205,7 +205,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         mock_post.assert_called_once()  # Should create collection
         self.client.uuid_cache.add_or_update_asset.assert_called_once()  # Should update cache
     
@@ -248,7 +248,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         self.assertEqual(mock_post.call_count, 2)  # Should create both scheme and collection
         self.client.uuid_cache.add_or_update_asset.assert_called_once()  # Should update cache
     
@@ -294,7 +294,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         self.assertEqual(mock_get.call_count, 3)  # Should try cache validation, check scheme, check collection
         
         # Update assertion for correct functionality
@@ -325,7 +325,7 @@ class TestDataspotClient(unittest.TestCase):
         result = self.client.ensure_ods_imports_collection()
         
         # Verify results
-        self.assertEqual(result, "test-collection-uuid")
+        self.assertEqual(result, {"id": "test-collection-uuid", "label": "ODS-Imports-Renamed", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
         
         # It should not update the cache with the new name since this is specifically looking for "ODS-Imports"
         # In a real scenario, this would lead to a cache miss on next call with the new name

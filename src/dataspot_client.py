@@ -767,7 +767,8 @@ class DataspotClient:
         # 2. If not found by UUID, try to find by name
         if not dataset_exists:
             # Search for datasets by name in the ODS-Imports collection
-            ods_imports_uuid = self.ensure_ods_imports_collection()
+            collection_data = self.ensure_ods_imports_collection()
+            ods_imports_uuid = collection_data['id']
             datasets_endpoint = url_join('rest', self.database_name, 'collections', ods_imports_uuid, 'assets')
             datasets_url = url_join(self.base_url, datasets_endpoint)
             
@@ -834,7 +835,8 @@ class DataspotClient:
             raise ValueError(f"Dataset '{dataset.name}' doesn't exist and update_strategy is 'update_only'")
         
         # 5. Create dataset if it doesn't exist
-        ods_imports_uuid = self.ensure_ods_imports_collection()
+        collection_data = self.ensure_ods_imports_collection()
+        ods_imports_uuid = collection_data['id']
         
         # Prepare dataset JSON for creation
         dataset_json = dataset.to_json()
@@ -865,13 +867,13 @@ class DataspotClient:
             logging.error(f"Error creating dataset '{dataset.name}': {str(e)}")
             raise
         
-    def ensure_ods_imports_collection(self) -> str:
+    def ensure_ods_imports_collection(self) -> dict:
         """
         Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
         Creates both the scheme and collection if they don't exist.
         
         Returns:
-            str: The UUID of the ODS-Imports collection
+            dict: The JSON response containing the UUID of the ODS-Imports collection
         """
         headers = self.auth.get_headers()
         
@@ -884,7 +886,7 @@ class DataspotClient:
                 try:
                     response = requests_get(url_join(self.base_url, collection_endpoint), headers=headers, rate_limit_delay=self.request_delay)
                     if response.status_code == 200:
-                        return collection_uuid
+                        return response.json()
                 except HTTPError:
                     # Cache is invalid, will proceed with normal lookup
                     pass
@@ -927,7 +929,7 @@ class DataspotClient:
                     self.uuid_cache.add_or_update_asset('Collection', self.ods_imports_collection_name, ods_imports_uuid, ods_imports_path)
                 
             logging.debug(f"ODS-Imports collection exists with UUID: {ods_imports_uuid}")
-            return ods_imports_uuid
+            return response.json()
         except HTTPError as e:
             if e.response.status_code == 404:
                 # ODS-Imports doesn't exist, create it
@@ -948,7 +950,7 @@ class DataspotClient:
                             self.uuid_cache.add_or_update_asset('Collection', self.ods_imports_collection_name, ods_imports_uuid, ods_imports_href)
                         
                     logging.info(f"Created ODS-Imports collection with UUID: {ods_imports_uuid}")
-                    return ods_imports_uuid
+                    return response.json()
                 except HTTPError as create_error:
                     logging.error(f"Failed to create ODS-Imports collection: {str(create_error)}")
                     raise
