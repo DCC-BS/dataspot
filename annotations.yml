@@ -68,6 +68,90 @@ Dataset:
       cardinality: ONE
        
       literals:
+        001:
+          label: deprecated-001
+        002:
+          label: deprecated-002
+        003:
+          label: deprecated-003
+        004:
+          label: deprecated-004
+        005:
+          label: deprecated-005
+        006:
+          label: deprecated-006
+        007:
+          label: deprecated-007
+        008:
+          label: deprecated-008
+        009:
+          label: deprecated-009
+        010:
+          label: deprecated-010
+        011:
+          label: deprecated-011
+        012:
+          label: deprecated-012
+        013:
+          label: deprecated-013
+        014:
+          label: deprecated-014
+        015:
+          label: deprecated-015
+        016:
+          label: deprecated-016
+        017:
+          label: deprecated-017
+        018:
+          label: deprecated-018
+        019:
+          label: deprecated-019
+        020:
+          label: deprecated-020
+        021:
+          label: deprecated-021
+        022:
+          label: deprecated-022
+        023:
+          label: deprecated-023
+        024:
+          label: deprecated-024
+        025:
+          label: deprecated-025
+        026:
+          label: deprecated-026
+        027:
+          label: deprecated-027
+        028:
+          label: deprecated-028
+        029:
+          label: deprecated-029
+        030:
+          label: deprecated-030
+        031:
+          label: deprecated-031
+        032:
+          label: deprecated-032
+        033:
+          label: deprecated-033
+        034:
+          label: deprecated-034
+        035:
+          label: deprecated-035
+        036:
+          label: deprecated-036
+        037:
+          label: deprecated-037
+        038:
+          label: deprecated-038
+        039:
+          label: deprecated-039
+        040:
+          label: deprecated-040
+        170:
+          label: deprecated-170
+        240:
+          label: deprecated-240
         http://publications.europa.eu/resource/authority/frequency/CONT:
           label: kontinuierlich
           title: Daten werden ohne Unterbrechung laufend aktualisiert
@@ -445,6 +529,256 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 70
+            LASTPUB:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            PRODFILENAME:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            LAYERNAME:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
+            LICENSE:
+              label: Lizenz
+              title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              group: OGD
+              order: 20
+              literals:
+                "001":
+                  label: CC0 1.0
+                "002":
+                  label: CC BY                  
+                "003":
+                  label: CC BY 3.0 CH
+                "004":
+                  label: CC BY 3.0 CH + OpenStreetMap
+                "005":
+                  label: CC BY 4.0
+                "006":
+                  label: CC BY 4.0 + OpenStreetMap
+            RECHT:
+              label: Rechte
+              title: 
+              group: OGD
+              order: 30
+              literals:
+                "001":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_open
+                "002":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by
+                "003":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                "004":
+                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+            THEMA:
+              label: Themen
+              title: 
+              group: OGD
+              order: 40
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft 
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            HGEBER:
+              label: Herausgeber
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 50
+            REF:
+              label: Referenz
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 60
+            ZUSCH:
+              label: Zuschreibungen
+              title: 
+              baseType: TEXT
+              group: OGD
+              order: 70
+            PORG:
+              label: Publizierende Organisation
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 80
+            ID:
+              label: Datenportal-Identifikation
+              title: 
+              baseType: INTEGER
+              group: OGD
+              order: 100
+            TAG:
+              label: Tags
+              title: 
+              baseType: STRING
+              group: OGD
+              order: 110
+              cardinality: MANY
+         
+## Geo-Datensatz-Layer ##
+        GEOLAYER:
+          label: Geo-Datensatz-Layer
+          icon: map
+          
+          customProperties:
+            GEOCAT:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: MANY              
+              literals:
+                "001":
+                  label: Basiskarten
+                "002":
+                  label: Bodenbedeckung, Bodennutzung
+                "003":
+                  label: Luft-, Satellitenbilder
+                "004":
+                  label: Ortsangaben, Referenzsysteme
+                "005":
+                  label: Höhen
+                "006":
+                  label: Politische und Administrative Grenzen
+                "007":
+                  label: Raumplanung, Raumentwicklung
+                "008":
+                  label: Grundstückkataster
+                "009":
+                  label: Geologie
+                "010":
+                  label: Boden
+                "011":
+                  label: Naturbedingte Risiken
+                "012":
+                  label: Wald, Flora, Fauna
+                "013":
+                  label: Gewässer
+                "014":
+                  label: Atmosphäre, Luft, Klima
+                "015":
+                  label: Umweltschutz, Lärm
+                "016":
+                  label: Natur- und Landschaftsschutz
+                "017":
+                  label: Bevölkerung, Gesellschaft, Kultur
+                "018":
+                  label: Gesundheit
+                "019":
+                  label: Gebäude, Anlagen
+                "020":
+                  label: Verkehr
+                "021":
+                  label: Energie
+                "022":
+                  label: Wasser- und Abfallsysteme
+                "023":
+                  label: Kommunikation
+                "024":
+                  label: Militär, Sicherheit
+                "025":
+                  label: Landwirtschaft
+                "026":
+                  label: Wirtschaftliche Aktivitäten
+            AUSDBESCHR:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            GEOID:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: STRING
+              group: GEO
+              order: 50
+            KRZL:
+              label: Kürzel
+              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
+              baseType: STRING
+              group: GEO
+              order: 70
+            LASTPUB:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            PRODFILENAME:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            LAYERNAME:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
             LICENSE:
               label: Lizenz
               title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
@@ -666,6 +1000,21 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 70
+            LASTPUB:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            PRODFILENAME:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            LAYERNAME:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
 
 ## CUSTOM PROPERTIES ##
 
@@ -730,6 +1079,11 @@ Dataset:
        order: 30
        baseType: DATE
      PD:
+       label: Publikationsdatum
+       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
+       order: 40
+       baseType: DATE
+     PD2:
        label: Publikationsdatum
        title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
        order: 40
@@ -891,7 +1245,7 @@ BusinessAttribute:
 
   customProperties:
     ID:
-      label: Identifikation 
+      label: Identifikation (deprecated)
       baseType: INTEGER
       order: 10
     PRIM:
@@ -1037,13 +1391,39 @@ Collection:
           
 ## SAMMLUNGSART DEPARTEMENT##
         DEPARTEMENT:
-          label: Departement
+          label: Departement (deprecated, use Organisationseinheit)
           icon: city
 
 ## SAMMLUNGSART DIENSTABTEILUNG##
         DA:
-          label: Dienststelle
+          label: Dienststelle (deprecated, use Organisationseinheit)
           icon: building
+          
+        BASISSAMMLUNG:
+          label: BASISSAMMLUNG
+## SAMMLUNGSART ORGANISATIONSEINHEIT ##
+        Organisationseinheit:
+          label: Organisationseinheit
+          icon: building
+          order: 1
+          customProperties:
+            Link_zum_Staatskalender:
+              label: Link zum Staatskalender
+              baseType: STRING
+              title: Link zur Quelle im Staatskalender
+              width: 1
+              order: 1
+            ID:
+              label: ID im Staatskalender
+              baseType: INTEGER
+              title: Die interne ID im Staatskalender
+              width: 1
+              order: 2
+
+## SAMMLUNGSART GEO-DATENSATZ MIT LAYER ##
+        GEO_DATENSATZ_MIT_LAYER:
+          label: Geo-Datensatz mit Layer
+          icon: layer-group
 
 #020 - HERKUNFT
 Derivation:
