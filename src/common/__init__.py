@@ -23,7 +23,7 @@ http_errors_to_handle = (
     requests.Timeout,
 )
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../..', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../..', '.proxy.env'))
 proxies = {
     'http': os.getenv('HTTP_PROXY'),
     'https': os.getenv('HTTPS_PROXY')

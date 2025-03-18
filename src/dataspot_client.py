@@ -723,7 +723,7 @@ class DataspotClient:
 
     def dnk_create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update', force_replace: bool = False) -> dict:
         """
-        Create a new dataset or update an existing dataset in the 'Datennutzungskatalog/collections/ODS-Imports' in Dataspot.
+        Create a new dataset or update an existing dataset in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
         All datasets are placed directly in the ODS-Imports collection, regardless of their internal path structure.
         
         The method behavior is controlled by the update_strategy parameter:
