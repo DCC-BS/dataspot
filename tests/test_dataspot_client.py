@@ -22,11 +22,6 @@ class TestDataspotClient(unittest.TestCase):
         # Mock the headers returned by the auth
         self.mock_auth.return_value.get_headers.return_value = {'Authorization': 'Bearer fake-token'}
         
-        # Mock environment variables
-        self.env_patcher = patch('src.dataspot_client.os.getenv')
-        self.mock_getenv = self.env_patcher.start()
-        self.mock_getenv.return_value = 'https://test-dataspot-api.com'
-        
         # Create the client
         self.client = DataspotClient()
         self.client.base_url = 'https://test-dataspot-api.com'
@@ -44,7 +39,6 @@ class TestDataspotClient(unittest.TestCase):
     def tearDown(self):
         """Tear down test fixtures after each test."""
         self.auth_patcher.stop()
-        self.env_patcher.stop()
     
     def _create_sample_dataset(self):
         """Create a sample dataset for testing."""
