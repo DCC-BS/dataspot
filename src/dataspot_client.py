@@ -6,13 +6,23 @@ from time import sleep
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 from src.dataspot_uuid_cache import DataspotUUIDCache
+import src.clients.client_helpers as client_helpers
 import src.config as config
 import json
 
 from src.dataspot_dataset import Dataset
 
 def url_join(*parts: str) -> str:
-    return "/".join([part.strip("/") for part in parts])
+    """
+    Join URL parts ensuring proper formatting with slashes.
+    
+    Args:
+        *parts: URL parts to be joined.
+        
+    Returns:
+        str: A properly formatted URL.
+    """
+    return client_helpers.url_join(*parts)
 
 def generate_potential_staatskalender_url(path: str) -> str:
     """
@@ -37,17 +47,7 @@ def generate_potential_staatskalender_url(path: str) -> str:
         >>> generate_potential_staatskalender_url("Präsidialdepartement/Kantons- und Stadtentwicklung")
         "https://staatskalender.bs.ch/organization/praesidialdepartement/kantons-und-stadtentwicklung"
     """
-    # Make path string lowercase, and replace ö -> oe, ä -> ae, ü -> ue, space -> '-', and remove trailing slashes
-    new_path = path.lower()
-    new_path = new_path.replace(' ', '-')
-    new_path = new_path.replace('ö', 'oe')
-    new_path = new_path.replace('ä', 'ae')
-    new_path = new_path.replace('ü', 'ue')
-    # Keep only letters a-z and hyphens, remove all other characters
-    new_path = ''.join(c for c in new_path if c.isalpha() or c in '-/')
-    new_path = new_path.replace('--', '-')
-    new_path = new_path.rstrip('/')
-    return f"https://staatskalender.bs.ch/organization/{new_path}"
+    return client_helpers.generate_potential_staatskalender_url(path)
 
 def escape_special_chars(name: str) -> str:
     '''
@@ -71,32 +71,7 @@ def escape_special_chars(name: str) -> str:
         str: The escaped name suitable for use in Dataspot API business keys
     '''
     
-    if name is None:
-        logging.warning(f"Trying to escape special characters for None")
-
-    if not name:
-        return name
-    
-    # Check if the name contains any characters that need special handling
-    needs_quoting = False
-    
-    # Names containing '/' or '.' need to be quoted
-    if '/' in name or '.' in name:
-        needs_quoting = True
-    
-
-    # Names containing double quotes need special handling
-    has_quotes = '"' in name
-    if has_quotes:
-        needs_quoting = True
-        # Double each quote in the name
-        name = "".join('""' if char == '"' else char for char in name)
-    
-    # Enclose the name in quotes if needed
-    if needs_quoting:
-        return f'"{name}"'
-    
-    return name
+    return client_helpers.escape_special_chars(name)
 
 class DataspotClient:
     """Client for interacting with the Dataspot API."""
