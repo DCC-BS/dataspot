@@ -6,7 +6,7 @@ from time import sleep
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
 from src.dataspot_uuid_cache import DataspotUUIDCache
-import src.clients.client_helpers as client_helpers
+import src.clients.helpers as client_helpers
 import src.config as config
 import json
 

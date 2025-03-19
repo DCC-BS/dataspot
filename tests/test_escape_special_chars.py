@@ -13,7 +13,7 @@ import pytest
 # Add the parent directory to the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.clients.client_helpers import escape_special_chars
+from src.clients.helpers import escape_special_chars
 
 
 class TestEscapeSpecialChars:
