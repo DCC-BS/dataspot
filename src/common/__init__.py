@@ -3,7 +3,6 @@ import os
 import urllib3
 import ssl
 import requests
-import time
 
 from dotenv import load_dotenv
 from src.common.retry import *
@@ -29,15 +28,24 @@ proxies = {
     'https': os.getenv('HTTPS_PROXY')
 }
 
+def _print_potential_error_messages(response: requests.Response) -> None:
+    if response.status_code not in [200, 201]:
+        error_message_detailed = json.loads(response.content.decode(response.apparent_encoding))
+        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+        violations = error_message_detailed.get('violations', [])
+        if violations:
+            logging.error(f"Found {len(violations)} violations:")
+            for violation in violations:
+                logging.error(violation)
+
 @retry(http_errors_to_handle, tries=1, delay=5, backoff=1)
 def requests_get(*args, **kwargs):
     # Extract delay parameter or use default
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     
     r = requests.get(*args, proxies=proxies, **kwargs)
-    if r.status_code == 400:
-        error_message_detailed = json.loads(r.content.decode(r.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+
+    _print_potential_error_messages(r)
     r.raise_for_status()
     
     # Add delay after request to avoid overloading the server
@@ -51,9 +59,7 @@ def requests_post(*args, **kwargs):
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     
     r = requests.post(*args, proxies=proxies, **kwargs)
-    if r.status_code == 400:
-        error_message_detailed = json.loads(r.content.decode(r.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+    _print_potential_error_messages(r)
     r.raise_for_status()
     
     # Add delay after request to avoid overloading the server
@@ -67,9 +73,7 @@ def requests_patch(*args, **kwargs):
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     
     r = requests.patch(*args, proxies=proxies, **kwargs)
-    if r.status_code == 400:
-        error_message_detailed = json.loads(r.content.decode(r.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+    _print_potential_error_messages(r)
     r.raise_for_status()
     
     # Add delay after request to avoid overloading the server
@@ -83,9 +87,7 @@ def requests_put(*args, **kwargs):
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     
     r = requests.put(*args, proxies=proxies, **kwargs)
-    if r.status_code == 400:
-        error_message_detailed = json.loads(r.content.decode(r.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+    _print_potential_error_messages(r)
     r.raise_for_status()
     
     # Add delay after request to avoid overloading the server
@@ -99,9 +101,7 @@ def requests_delete(*args, **kwargs):
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     
     r = requests.delete(*args, proxies=proxies, **kwargs)
-    if r.status_code == 400:
-        error_message_detailed = json.loads(r.content.decode(r.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+    _print_potential_error_messages(r)
     r.raise_for_status()
     
     # Add delay after request to avoid overloading the server
