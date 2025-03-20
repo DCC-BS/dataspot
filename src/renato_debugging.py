@@ -1,127 +1,149 @@
 import logging
-from time import sleep
+import os
+import sys
+from typing import Dict, Any
 
-from ods_client import ODSClient
-from dataspot_client import DataspotClient
-from dataspot_dataset import OGDDataset
-import json
+from src.clients.dnk_client import DNKClient
+from src.dataspot_dataset import Dataset, OGDDataset
+from src.ods_dataspot_mapping import ODSDataspotMapping
 
-import ods_utils_py as ods_utils
-
-from metadata_translator import ods_to_dataspot
-
-
-def main_X():
-    dataspot_client = DataspotClient()
-    ods_client = ODSClient()
-    pass
-
-
-def main_1_update_dataset_update_method_testing():
-    dataspot_client = DataspotClient()
-    ods_client = ODSClient()
-
-    ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False)
-    ods_ids = ods_ids[:10]
-    ods_ids.append('100034') # Includes a ,
-    ods_ids.append('100236') # Includes a /
-    print(ods_ids)
-
-    for ods_id in ods_ids:
-        logging.info(f"Processing dataset {ods_id}...")
-
-        ods_metadata = ods_utils.get_dataset_metadata(dataset_id = ods_id)
-        dataset = ods_to_dataspot(ods_metadata=ods_metadata, ods_dataset_id=ods_id, dataspot_client=dataspot_client)
-        dataspot_client.dnk_create_or_update_dataset(dataset=dataset)
-        logging.info(f"Done uploading dataset {ods_id}")
-    pass
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("dataspot-debugger")
 
 
-def main_X_build_organization_structure_in_dnk():
-    """
-    Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
+def create_test_dataset(ods_id: str, title: str, description: str) -> Dataset:
+    """Create a test dataset with the given properties."""
+    # TODO (in the distant future, BEFORE any release): Remove deprecated _PATH method (AND ALL RELATED AND DEPENDENT CODE)
+    dataset = OGDDataset(
+        name="OGD-Dataset-TEST",
+        _PATH="Test-Departement/Test-Dienststelle/Test-Sammlung",
+        kurzbeschreibung=title,
+        beschreibung=description,
+        synonyme=["Test-Synonym", "Test-Synonym-2"],
+        schluesselwoerter=["Abfall", "Abort", "Abstimmung"]
+    )
+    return dataset
 
-    This method:
-    1. Retrieves organization data from the ODS API
-    2. Builds the organization hierarchy in Dataspot using a path-depth approach
-       where organizations are processed level by level based on their path depth
-    3. This ensures parent organizations are always created before their children
-    """
-    logging.info("Starting organization structure build...")
 
-    # Initialize clients
-    ods_client = ODSClient()
-    dataspot_client = DataspotClient()
+def test_mapping_operations():
+    """Test basic mapping operations"""
+    logger.info("Testing mapping operations...")
+    
+    # Use a temporary file for testing
+    test_file = "test_debug_mapping.csv"
+    if os.path.exists(test_file):
+        os.remove(test_file)
+    
+    mapping = ODSDataspotMapping(test_file)
+    
+    # Add some test entries
+    mapping.add_entry("test-id-1", "test-uuid-1", "https://example.com/datasets/1")
+    mapping.add_entry("test-id-2", "test-uuid-2", "https://example.com/datasets/2")
+    
+    # Verify entries
+    assert mapping.get_uuid("test-id-1") == "test-uuid-1"
+    assert mapping.get_href("test-id-2") == "https://example.com/datasets/2"
+    
+    # Test updating an entry
+    mapping.add_entry("test-id-1", "updated-uuid-1", "https://example.com/updated/1")
+    assert mapping.get_uuid("test-id-1") == "updated-uuid-1"
+    
+    # Test removing an entry
+    assert mapping.remove_entry("test-id-2")
+    assert mapping.get_entry("test-id-2") is None
+    
+    # Create new instance to test persistence
+    new_mapping = ODSDataspotMapping(test_file)
+    assert new_mapping.get_uuid("test-id-1") == "updated-uuid-1"
+    assert new_mapping.get_entry("test-id-2") is None
+    
+    # Clean up
+    os.remove(test_file)
+    logger.info("Mapping operations test completed successfully")
 
-    # Configuration for data retrieval and processing
-    batch_size = 100  # Number of records to retrieve in each API call
-    max_batches = None  # Maximum number of batches to retrieve (set to None for all)
-    cooldown_delay = 1.0  # Delay in seconds between API calls to prevent overloading the server
-    all_organizations = {"results": []}
 
-    # Fetch organization data in batches
-    logging.info("Fetching organization data from ODS API...")
-    batch_count = 0
-    total_retrieved = 0
-
+def test_dnk_client_operations():
+    """Test DNK client operations with the mapping integration"""
+    logger.info("Testing DNK client operations with mapping...")
+    
+    # Use a dedicated file for this test
+    test_mapping_file = "dnk_client_test_mapping.csv"
+    if os.path.exists(test_mapping_file):
+        os.remove(test_mapping_file)
+    
+    # Create client with faster request delay for testing
+    client = DNKClient(request_delay=0.5, mapping_file=test_mapping_file)
+    
+    # Create test datasets
+    dataset1 = create_test_dataset(
+        "test-ods-1",
+        "Test Dataset 1",
+        "This is a test dataset for debugging the DNKClient"
+    )
+    
+    dataset2 = create_test_dataset(
+        "test-ods-2", 
+        "Test Dataset 2",
+        "This is another test dataset with a different ID"
+    )
+    
+    # Test creating new datasets
     try:
-        while True:
-            # Get the next batch of organization data
-            offset = batch_count * batch_size
-            batch_data = ods_client.get_organization_data(limit=batch_size, offset=offset)
-
-            # Check if we received any results
-            batch_results = batch_data.get('results', [])
-            num_results = len(batch_results)
-
-            if num_results == 0:
-                # No more results, break out of the loop
-                break
-
-            # Add the batch results to our collected data
-            all_organizations['results'].extend(batch_results)
-            total_retrieved += num_results
-
-            logging.info(
-                f"Retrieved batch {batch_count + 1} with {num_results} organizations (total: {total_retrieved})")
-
-            # Check if we've reached our batch limit
-            batch_count += 1
-            if max_batches is not None and batch_count >= max_batches:
-                logging.info(f"Reached the maximum number of batches ({max_batches})")
-                break
-
-        # Set the total count in the combined data
-        all_organizations['total_count'] = batch_data.get('total_count', total_retrieved)
-        logging.info(f"Total organizations retrieved: {total_retrieved} (out of {all_organizations['total_count']})")
-
-        # Optionally clear existing structure before building
-        if True:  # Set to True to clear existing structure
-            logging.info("Clearing existing organization structure...")
-            dataspot_client.teardown_dnk(delete_empty_collections=True)
-
-        # Build the organization hierarchy in Dataspot
-        logging.info("Building organization hierarchy in Dataspot...")
-        try:
-            dataspot_client.build_organization_hierarchy_from_ods(
-                all_organizations,
-                cooldown_delay=cooldown_delay
-            )
-            logging.info("Organization structure build completed successfully")
-        except Exception as e:
-            logging.error(f"Error building organization hierarchy: {str(e)}")
-            logging.info("Organization structure build partially completed with errors")
-
-    except KeyboardInterrupt:
-        logging.info("Operation was interrupted by user")
+        logger.info(f"Creating dataset: {dataset1.title}")
+        response1 = client.create_or_update_dataset(dataset1, update_strategy="create_only")
+        logger.info(f"Successfully created dataset: {response1.get('href')}")
+        
+        logger.info(f"Creating dataset: {dataset2.title}")
+        response2 = client.create_or_update_dataset(dataset2, update_strategy="create_only")
+        logger.info(f"Successfully created dataset: {response2.get('href')}")
+        
+        # Verify mapping was updated
+        assert client.mapping.has_entry("test-ods-1")
+        assert client.mapping.has_entry("test-ods-2")
+        
+        # Test updating an existing dataset
+        logger.info(f"Updating dataset: {dataset1.title}")
+        dataset1.description = "Updated description for testing"
+        update_response = client.create_or_update_dataset(dataset1, update_strategy="update_only")
+        logger.info(f"Successfully updated dataset: {update_response.get('href')}")
+        
+        # Test create_or_update behavior
+        logger.info(f"Creating or updating dataset: {dataset2.title}")
+        dataset2.description = "Changed description for testing create_or_update"
+        update_response2 = client.create_or_update_dataset(dataset2)  # default is create_or_update
+        logger.info(f"Successfully created or updated dataset: {update_response2.get('href')}")
+        
+        # Test retrieving by href from mapping
+        href1 = client.mapping.get_href("test-ods-1")
+        logger.info(f"Retrieved href from mapping: {href1}")
+        
+        # Test persistence of mapping
+        new_client = DNKClient(mapping_file=test_mapping_file)
+        assert new_client.mapping.get_uuid("test-ods-1") == client.mapping.get_uuid("test-ods-1")
+        assert new_client.mapping.get_href("test-ods-2") == client.mapping.get_href("test-ods-2")
+        
+        logger.info("DNK client operations test completed successfully")
+        
     except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
-    finally:
-        logging.info("Organization structure build process finished")
+        logger.error(f"Error during DNK client test: {str(e)}")
+        raise
+    
+    # Note: We are not cleaning up the datasets or mapping file here to allow manual inspection
+
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logging.info(f'Executing {__file__}...')
-    main_1_update_dataset_update_method_testing()
-    logging.info('Job successful!')
+    logger.info("Starting Dataspot debugging tests")
     
+    # Test mapping operations first
+    test_mapping_operations()
+    
+    # Then test DNK client with mapping
+    test_dnk_client_operations()
+    
+    logger.info("All tests completed")
+
