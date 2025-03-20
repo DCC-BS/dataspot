@@ -15,11 +15,15 @@ The default rate limit delay between requests is 1 second but can be customized 
 
 import json
 import os
+from json import JSONDecodeError
+
 import urllib3
 import ssl
 import requests
 
 from dotenv import load_dotenv
+from urllib3.exceptions import HTTPError
+
 from src.common.retry import *
 
 
@@ -46,14 +50,18 @@ proxies = {
 }
 
 def _print_potential_error_messages(response: requests.Response) -> None:
-    if response.status_code not in [200, 201]:
-        error_message_detailed = json.loads(response.content.decode(response.apparent_encoding))
-        logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
-        violations = error_message_detailed.get('violations', [])
-        if violations:
-            logging.error(f"Found {len(violations)} violations:")
-            for violation in violations:
-                logging.error(violation)
+    try:
+        if response.status_code not in [200, 201]:
+            error_message_detailed = json.loads(response.content.decode(response.apparent_encoding))
+            logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+            violations = error_message_detailed.get('violations', [])
+            if violations:
+                logging.error(f"Found {len(violations)} violations:")
+                for violation in violations:
+                    logging.error(violation)
+
+    except JSONDecodeError or HTTPError:
+        exit(f"Error {response.status_code}: Cannot perform {response.request.method} because  '{response.reason}' for url {response.url}")
 
 @retry(http_errors_to_handle, tries=1, delay=5, backoff=1)
 def requests_get(*args, **kwargs):
