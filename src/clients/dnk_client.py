@@ -1,6 +1,5 @@
 import logging
 import os
-import json
 from typing import Dict, List, Any, Optional, Tuple
 
 from requests import HTTPError
@@ -10,24 +9,27 @@ from src.clients.helpers import url_join, escape_special_chars, generate_potenti
 from src.dataspot_auth import DataspotAuth
 from src.dataspot_dataset import Dataset
 from src.common import requests_get
+from src.ods_dataspot_mapping import ODSDataspotMapping
 
 
 # TODO (large language model): If possible, remove any headers and authentication from this class, and handle all of that (and, in particular, headers) in the BaseDataspotClient class.
 class DNKClient(BaseDataspotClient):
     """Client for interacting with the DNK (Datennutzungskatalog)."""
     
-    def __init__(self, auth: Optional[DataspotAuth] = None):
+    def __init__(self, auth: Optional[DataspotAuth] = None, request_delay: float = 1.0, mapping_file: str = "ods_dataspot_mapping.csv"):
         """
         Initialize the DNK client.
         
         Args:
             auth (DataspotAuth, optional): Authentication provider instance. If None, creates a new one.
             request_delay (float, optional): Delay between API requests in seconds. Default is 1.0 second.
+            mapping_file (str, optional): Path to the CSV file for ODS-Dataspot mapping. Default is "ods_dataspot_mapping.csv".
         """
-        super().__init__(auth)
+        super().__init__(request_delay=request_delay)
         # TODO (large language model): For any of the os.getenvs: Do not default to any value, but throw an error if not found!
         self.dnk_scheme_name = os.getenv("DATASPOT_DNK_SCHEME_NAME", 'Datennutzungskatalog')
         self.ods_imports_collection_name = os.getenv("DATASPOT_ODS_IMPORTS_COLLECTION_NAME", 'ODS-Imports')
+        self.mapping = ODSDataspotMapping(mapping_file)
 
     # TODO: Do NOT implement me
     def teardown_dnk(self, delete_empty_collections: bool = False) -> None:
@@ -42,7 +44,8 @@ class DNKClient(BaseDataspotClient):
         """
         pass
 
-    # TODO: Implement me
+    # TODO (large language model): Add logging.
+    # TODO (large language model): Check with docs. Try to access the dataset from the mapping. If it already exists, directly access it through the href. NEVER use the name to access a dataset.
     def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update',
                                      force_replace: bool = False) -> dict:
         """
@@ -71,7 +74,96 @@ class DNKClient(BaseDataspotClient):
             HTTPError: If API requests fail
             json.JSONDecodeError: If response parsing fails
         """
-        pass
+        # Validate update strategy
+        valid_strategies = ['create_only', 'update_only', 'create_or_update']
+        if update_strategy not in valid_strategies:
+            raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of {valid_strategies}")
+        
+        # Get ODS ID from dataset
+        ods_id = dataset.properties.get('ID')
+        if not ods_id:
+            raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
+        
+        # Escape the dataset title for use in business key
+        escaped_title = escape_special_chars(dataset.title)
+        
+        # TODO (Renato): Think about whether it would make sense to also have a lookup table for the schemes.
+        # Construct base endpoint for the collection where datasets are stored
+        collection_endpoint = url_join(
+            self.base_url,
+            "rest",
+            self.database_name,
+            "schemes",
+            self.dnk_scheme_name,
+            "collections",
+            self.ods_imports_collection_name
+        )
+        
+        # Construct the endpoint for this specific dataset
+        dataset_endpoint = url_join(collection_endpoint, escaped_title)
+        
+        # Check if dataset exists in Dataspot
+        dataset_exists = False
+        href = None
+        
+        # Check mapping for existing entry
+        entry = self.mapping.get_entry(ods_id)
+        if entry:
+            dataset_exists = True
+            _, href = entry
+            # Verify that the dataset still exists at this href
+            try:
+                self.resource_exists(href)
+                
+            # TODO (renato): Check if this is the correct exception to catch.
+            except HTTPError:
+                # If we get an error, the dataset might have been moved or deleted
+                dataset_exists = False
+                self.mapping.remove_entry(ods_id)
+        
+        # If not in mapping or mapping was invalid, check directly
+        if not dataset_exists:
+            dataset_exists = self.resource_exists(dataset_endpoint)
+            if dataset_exists:
+                href = dataset_endpoint
+        
+        # Handle according to update strategy
+        if dataset_exists:
+            if update_strategy == 'create_only':
+                raise ValueError(f"Dataset '{dataset.title}' already exists and update_strategy is 'create_only'")
+            
+            if update_strategy in ['update_only', 'create_or_update']:
+                # Update the existing dataset
+                response = self.update_resource(
+                    endpoint=href or dataset_endpoint,
+                    data=dataset.to_dict(),
+                    replace=force_replace
+                )
+                
+                # Ensure the mapping is updated
+                if ods_id and response.get('href') and response.get('uuid'):
+                    self.mapping.add_entry(ods_id, response['uuid'], response['href'])
+                    
+                return response
+        else:
+            if update_strategy == 'update_only':
+                raise ValueError(f"Dataset '{dataset.title}' does not exist and update_strategy is 'update_only'")
+            
+            if update_strategy in ['create_only', 'create_or_update']:
+                # Create a new dataset
+                response = self.create_resource(
+                    endpoint=collection_endpoint,
+                    data=dataset.to_dict()
+                )
+                
+                # Store the mapping for future reference
+                if ods_id and response.get('href') and response.get('uuid'):
+                    self.mapping.add_entry(ods_id, response['uuid'], response['href'])
+                    
+                return response
+        
+        # This should not happen if the code is correct
+        raise RuntimeError("Unexpected error in create_or_update_dataset")
 
     # TODO: Implement me
     def delete_dataset(self, title: str, fail_if_not_exists: bool = False) -> bool:

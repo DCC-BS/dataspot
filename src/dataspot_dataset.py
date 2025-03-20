@@ -68,6 +68,12 @@ class Dataset(ABC):
         
         return departement, dienststelle, sammlung, subsammlung
 
+    # TODO (large language model): add unit tests for this.
+    def to_dict(self):
+        exit("TODO: Please implement me.")
+        pass
+
+
 @dataclass
 class BasicDataset(Dataset):
     kurzbeschreibung: Optional[str] = field(default=None, metadata={'json_key': 'title'})
