@@ -137,7 +137,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_get.return_value = mock_response
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
@@ -162,7 +162,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_get.side_effect = [dnk_scheme_response, ods_collection_response]
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
@@ -196,7 +196,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_post.return_value = collection_created_response
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
@@ -239,7 +239,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_post.side_effect = [scheme_created_response, collection_created_response]
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
@@ -285,7 +285,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_get.side_effect = [http_error, dnk_scheme_response, ods_collection_response]
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})
@@ -316,7 +316,7 @@ class TestDataspotClient(unittest.TestCase):
         mock_get.return_value = renamed_collection_response
         
         # Call the method
-        result = self.client.ensure_ods_imports_collection()
+        result = self.client.ensure_ods_imports_collection_exists()
         
         # Verify results
         self.assertEqual(result, {"id": "test-collection-uuid", "label": "ODS-Imports-Renamed", "_links": {"self": {"href": "/rest/test-db/collections/test-collection-uuid"}}})

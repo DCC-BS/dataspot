@@ -54,7 +54,6 @@ def generate_potential_staatskalender_url(path: str) -> str:
     new_path = new_path.rstrip('/')
     return f"https://staatskalender.bs.ch/organization/{new_path}"
 
-
 def escape_special_chars(name: str) -> str:
     '''
     Escape special characters in asset names for Dataspot API according to the business key rules.

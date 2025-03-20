@@ -830,7 +830,7 @@ class DataspotClient:
         
         # 5. Create dataset if it doesn't exist
         # First, ensure ODS-Imports collection exists
-        collection_data = self.ensure_ods_imports_collection()
+        collection_data = self.ensure_ods_imports_collection_exists()
         ods_imports_uuid = collection_data['id']
         
         # Prepare dataset JSON for creation
@@ -865,7 +865,7 @@ class DataspotClient:
                 logging.warning(f"Bad request when creating dataset. This might be due to special characters in the name.")
             raise
 
-    def ensure_ods_imports_collection(self) -> dict:
+    def ensure_ods_imports_collection_exists(self) -> dict:
         """
         Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
         Creates both the scheme and collection if they don't exist.
