@@ -1,3 +1,18 @@
+"""
+Dataspot API Request Handlers
+
+This module provides wrapper functions around the requests library for making HTTP requests to the Dataspot API.
+It includes:
+
+- Automatic retry logic for various HTTP/network errors
+- Rate limiting to prevent server overload (this is the only module that handles rate limiting)
+- Proxy support via environment variables
+- Error message parsing and logging
+- Support for all common HTTP methods (GET, POST, PUT, PATCH, DELETE)
+
+The default rate limit delay between requests is 1 second but can be customized per request.
+"""
+
 import json
 import os
 import urllib3
@@ -6,6 +21,8 @@ import requests
 
 from dotenv import load_dotenv
 from src.common.retry import *
+
+
 
 # Default rate limit to avoid overloading the server
 RATE_LIMIT_DELAY_SEC = 1.0
