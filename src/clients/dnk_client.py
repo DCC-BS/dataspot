@@ -17,15 +17,14 @@ from src.ods_dataspot_mapping import ODSDataspotMapping
 class DNKClient(BaseDataspotClient):
     """Client for interacting with the DNK (Datennutzungskatalog)."""
     
-    def __init__(self, request_delay: float = 1.0, mapping_file: str = "ods_dataspot_mapping.csv"):
+    def __init__(self, mapping_file: str = "ods_dataspot_mapping.csv"):
         """
         Initialize the DNK client.
         
         Args:
-            request_delay (float, optional): Delay between API requests in seconds. Default is 1.0 second.
             mapping_file (str, optional): Path to the CSV file for ODS-Dataspot mapping. Default is "ods_dataspot_mapping.csv".
         """
-        super().__init__(request_delay=request_delay)
+        super().__init__()
         
         # Load scheme name from config
         self.scheme_name = config.dnk_scheme_name

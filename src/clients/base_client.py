@@ -8,21 +8,15 @@ from src.clients.helpers import url_join
 
 from requests import HTTPError
 
-# TODO (large language model): If possible, remove rate limiting from this class, and handle that in the common module.
 # TODO (Renato): Add at least one @abstractmethod to properly enforce this class as abstract and prevent direct instantiation.
 class BaseDataspotClient(ABC):
     """Base class for Dataspot API clients with common functionality."""
 
-    def __init__(self, request_delay=1.0):
+    def __init__(self):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
-
-        Args:
-            request_delay (float, optional): The delay between API requests in seconds. Default is 1.0 second.
-                                            This helps prevent overloading the server with too many requests.
         """
         self.auth = DataspotAuth()
-        self.request_delay = request_delay
 
         # Load configuration from config.py
         self.base_url = config.base_url
@@ -47,7 +41,7 @@ class BaseDataspotClient(ABC):
         """
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
-        response = requests_post(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
+        response = requests_post(full_url, headers=headers, json=data)
         return response.json()
     
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False) -> Dict[str, Any]:
@@ -70,10 +64,10 @@ class BaseDataspotClient(ABC):
         
         if replace:
             # Use PUT to completely replace the resource
-            response = requests_put(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
+            response = requests_put(full_url, headers=headers, json=data)
         else:
             # Use PATCH to update only the specified properties
-            response = requests_patch(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
+            response = requests_patch(full_url, headers=headers, json=data)
             
         return response.json()
     
@@ -89,7 +83,7 @@ class BaseDataspotClient(ABC):
         """
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
-        requests_delete(full_url, headers=headers, rate_limit_delay=self.request_delay)
+        requests_delete(full_url, headers=headers)
     
     def get_resource_if_exists(self, endpoint: str) -> Dict[str, Any] | None:
         """
@@ -108,7 +102,7 @@ class BaseDataspotClient(ABC):
         full_url = url_join(self.base_url, endpoint)
         
         try:
-            response = requests_get(full_url, headers=headers, rate_limit_delay=self.request_delay)
+            response = requests_get(full_url, headers=headers)
             return response.json()
         except HTTPError as e:
             if e.response.status_code == 404:
