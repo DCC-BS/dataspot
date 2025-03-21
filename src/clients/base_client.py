@@ -29,11 +29,13 @@ class BaseDataspotClient(ABC):
         self.database_name = config.database_name
         self.ods_imports_collection_name = config.ods_imports_collection_name
 
-    def create_resource(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    # TODO (large language model): Correctly use the _type parameter.
+    def create_resource(self, _type: str, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create a new resource via POST request.
         
         Args:
+            _type (str): The type of resource to create (e.g. 'Dataset', 'Collection')
             endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
             
