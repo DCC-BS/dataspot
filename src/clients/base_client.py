@@ -8,7 +8,6 @@ from src.clients.helpers import url_join
 
 from requests import HTTPError
 
-# TODO (large language model): Remove "if not endpoint.startswith(self.base_url)" from all methods.
 # TODO (large language model): If possible, remove rate limiting from this class, and handle that in the common module.
 # TODO (Renato): Add at least one @abstractmethod to properly enforce this class as abstract and prevent direct instantiation.
 class BaseDataspotClient(ABC):
@@ -45,7 +44,7 @@ class BaseDataspotClient(ABC):
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        full_url = url_join(self.base_url, endpoint)
         response = requests_post(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
         return response.json()
     
@@ -65,7 +64,7 @@ class BaseDataspotClient(ABC):
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        full_url = url_join(self.base_url, endpoint)
         
         if replace:
             # Use PUT to completely replace the resource
@@ -87,7 +86,7 @@ class BaseDataspotClient(ABC):
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        full_url = url_join(self.base_url, endpoint)
         requests_delete(full_url, headers=headers, rate_limit_delay=self.request_delay)
     
     def get_resource_if_exists(self, endpoint: str) -> Dict[str, Any] | None:
@@ -104,7 +103,7 @@ class BaseDataspotClient(ABC):
             HTTPError: If API requests fail with status codes other than 404
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        full_url = url_join(self.base_url, endpoint)
         
         try:
             response = requests_get(full_url, headers=headers, rate_limit_delay=self.request_delay)
