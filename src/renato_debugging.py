@@ -35,7 +35,10 @@ def main_1_test_require_scheme_exists():
 
     dataspot_client.require_scheme_exists()
 
-
+def main_2_test_ensure_ods_imports_collection_exists():
+    dataspot_client = DNKClient()
+    ods_imports_collection = dataspot_client.ensure_ods_imports_collection_exists()
+    print(f"ODS-Imports collection: {ods_imports_collection}")
 
 def main_X_build_organization_structure_in_dnk():
     """
@@ -122,6 +125,6 @@ def main_X_build_organization_structure_in_dnk():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_1_test_require_scheme_exists()
+    main_2_test_ensure_ods_imports_collection_exists()
     logging.info('Job successful!')
     

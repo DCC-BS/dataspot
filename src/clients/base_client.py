@@ -99,6 +99,9 @@ class BaseDataspotClient(ABC):
             
         Returns:
             Dict[str, Any] | None: The resource data (converted to json) if it exists, None if it doesn't
+            
+        Raises:
+            HTTPError: If API requests fail with status codes other than 404
         """
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint

@@ -303,6 +303,7 @@ class DNKClient(BaseDataspotClient):
 
         Raises:
             ValueError: If the DNK scheme doesn't exist
+            HTTPError: If API requests fail
         """
         dnk_scheme_path = url_join('rest', self.database_name, 'schemes', self.scheme_name)
         scheme_response = self.get_resource_if_exists(dnk_scheme_path)
@@ -313,19 +314,23 @@ class DNKClient(BaseDataspotClient):
     def ensure_ods_imports_collection_exists(self) -> dict:
         """
         Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
-        Creates both the scheme and collection if they don't exist.
+        Creates the collection if it does not exist, but requires the scheme to already exist.
 
         Returns:
             dict: The JSON response containing information about the ODS-Imports collection
+            
+        Raises:
+            ValueError: If the DNK scheme does not exist
+            HTTPError: If API requests fail
         """
 
         # Assert that the DNK scheme exists.
         self.require_scheme_exists()
-        
 
         # Check if ODS-Imports collection exists and create if needed
         ods_imports_path = url_join('rest', self.database_name, 'schemes', self.scheme_name, 'collections',
                                     self.ods_imports_collection_name)
+
         # Check if ODS-Imports collection exists
         collection_response = self.get_resource_if_exists(ods_imports_path)
         if collection_response:
@@ -334,7 +339,7 @@ class DNKClient(BaseDataspotClient):
 
         # ODS-Imports doesn't exist, create it
         logging.info("ODS-Imports collection doesn't exist, creating it")
-        collections_endpoint = url_join('rest', self.database_name, 'schemes', self.scheme_name)
+        collections_endpoint = url_join('rest', self.database_name, 'schemes', self.scheme_name, 'collections')
         collection_data = {
             "_type": "Collection",
             "label": self.ods_imports_collection_name
