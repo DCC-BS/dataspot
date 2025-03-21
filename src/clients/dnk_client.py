@@ -79,15 +79,18 @@ class DNKClient(BaseDataspotClient):
         # Validate update strategy
         valid_strategies = ['create_only', 'update_only', 'create_or_update']
         if update_strategy not in valid_strategies:
+            logging.error(f"Invalid update_strategy: {update_strategy}. Must be one of {valid_strategies}")
             raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of {valid_strategies}")
         
         # Get ODS ID from dataset
         ods_id = dataset.to_json().get('datenportal_identifikation')
         if not ods_id:
+            logging.error("Dataset missing 'ID' property required for ODS ID")
             raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
         
         # Escape the dataset title for use in business key
         title = dataset.to_json()['label']
+        logging.info(f"Processing dataset: '{title}' with ODS ID: {ods_id}")
         
         # TODO (Renato): Think about whether it would make sense to also have a lookup table for the schemes.
         # Construct base endpoint for the collection where datasets are stored
@@ -100,6 +103,7 @@ class DNKClient(BaseDataspotClient):
             self.ods_imports_collection_name
         )
 
+        logging.debug(f"Ensuring ODS-Imports collection exists")
         self.ensure_ods_imports_collection_exists()
         
         # Check if dataset exists in Dataspot
@@ -107,24 +111,32 @@ class DNKClient(BaseDataspotClient):
         href = None
         
         # Check mapping for existing entry
+        logging.debug(f"Checking if dataset with ODS ID {ods_id} exists in mapping")
         entry = self.mapping.get_entry(ods_id)
         if entry:
             dataset_exists = True
             _, href = entry
+            logging.debug(f"Found existing dataset in mapping with href: {href}")
+            
             # Verify that the dataset still exists at this href
+            logging.debug(f"Verifying dataset still exists at: {href}")
             resource_data = self.get_resource_if_exists(href)
             if not resource_data:
                 # Dataset doesn't exist at the expected location
+                logging.warning(f"Dataset no longer exists at {href}, removing from mapping")
                 dataset_exists = False
                 self.mapping.remove_entry(ods_id)
         
         # Handle according to update strategy
         if dataset_exists:
             if update_strategy == 'create_only':
+                logging.error(f"Dataset '{title}' already exists and update_strategy is 'create_only'")
                 raise ValueError(f"Dataset '{title}' already exists and update_strategy is 'create_only'")
             
             if update_strategy in ['update_only', 'create_or_update']:
                 # Update the existing dataset
+                logging.info(f"Updating existing dataset '{title}' at {href}")
+                logging.debug(f"Update method: {'PUT (replace)' if force_replace else 'PATCH (partial update)'}")
                 response = self.update_resource(
                     endpoint=href,
                     data=dataset.to_json(),
@@ -133,11 +145,14 @@ class DNKClient(BaseDataspotClient):
                 
                 # Ensure the mapping is updated
                 if ods_id and response.get('href') and response.get('uuid'):
+                    logging.debug(f"Updating mapping for ODS ID {ods_id} with UUID {response['uuid']} and href {response['href']}")
                     self.mapping.add_entry(ods_id, response['uuid'], response['href'])
-                    
+                
+                logging.info(f"Successfully updated dataset '{title}'")
                 return response
         else:
             if update_strategy == 'update_only':
+                logging.error(f"Dataset '{title}' does not exist and update_strategy is 'update_only'")
                 raise ValueError(f"Dataset '{title}' does not exist and update_strategy is 'update_only'")
             
             if update_strategy in ['create_only', 'create_or_update']:
@@ -150,11 +165,14 @@ class DNKClient(BaseDataspotClient):
                 
                 # Store the mapping for future reference
                 if ods_id and response.get('href') and response.get('uuid'):
+                    logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {response['uuid']} and href {response['href']}")
                     self.mapping.add_entry(ods_id, response['uuid'], response['href'])
-                    
+                
+                logging.info(f"Successfully created dataset '{title}'")
                 return response
         
         # This should not happen if the code is correct
+        logging.error("Unexpected error in create_or_update_dataset")
         raise RuntimeError("Unexpected error in create_or_update_dataset")
 
     # TODO: Implement me
