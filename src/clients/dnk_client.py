@@ -1,5 +1,6 @@
 import logging
 import os
+from requests import RequestException, ConnectionError, Timeout
 from typing import Dict, List, Any, Optional, Tuple
 
 from requests import HTTPError
@@ -271,7 +272,7 @@ class DNKClient(BaseDataspotClient):
                         logging.warning(f"Invalid URL for organization '{title}': {url_website}.")
                         url_website = org.get('url_website', '')
                         logging.info(f"Invalid URL for organization '{title}', falling back to {url_website}")
-                except Exception as e: # TODO (large language model): Specify Exception
+                except (RequestException, ConnectionError, Timeout) as e:
                     logging.warning(f"Invalid URL for organization '{title}': {url_website}")
 
                     # Note: We don't check whether the fallback url is valid, because we assume it is.
