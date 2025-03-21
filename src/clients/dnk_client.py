@@ -47,7 +47,6 @@ class DNKClient(BaseDataspotClient):
         """
         pass
 
-    # TODO (large language model): Add logging.
     # TODO (large language model): Check with docs. Try to access the dataset from the mapping. If it already exists, directly access it through the href. NEVER use the name to access a dataset.
     def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update',
                                      force_replace: bool = False) -> dict:
@@ -89,7 +88,7 @@ class DNKClient(BaseDataspotClient):
             logging.error("Dataset missing 'ID' property required for ODS ID")
             raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
         
-        # Escape the dataset title for use in business key
+        # Escape the dataset title for use in business key # TODO (Renato): I don't think this is the correct comment.
         title = dataset.to_json()['label']
         logging.info(f"Processing dataset: '{title}' with ODS ID: {ods_id}")
         
