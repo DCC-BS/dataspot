@@ -1,24 +1,26 @@
 from typing import Dict, Any
+from abc import ABC, abstractmethod
 
 from src import config
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
+from src.clients.helpers import url_join
 
 from requests import HTTPError
 
+# TODO (large language model): Remove "if not endpoint.startswith(self.base_url)" from all methods.
 # TODO (large language model): If possible, remove rate limiting from this class, and handle that in the common module.
-class BaseDataspotClient:
+# TODO (Renato): Add at least one @abstractmethod to properly enforce this class as abstract and prevent direct instantiation.
+class BaseDataspotClient(ABC):
     """Base class for Dataspot API clients with common functionality."""
 
-    def __init__(self, request_delay=1.0, uuid_cache_path="dataspot_uuids.csv"):
+    def __init__(self, request_delay=1.0):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
 
         Args:
             request_delay (float, optional): The delay between API requests in seconds. Default is 1.0 second.
                                             This helps prevent overloading the server with too many requests.
-            uuid_cache_path (str, optional): Path to the CSV file used to cache UUIDs. Default is "dataspot_uuids.csv".
-                                            Set to None to disable UUID caching.
         """
         self.auth = DataspotAuth()
         self.request_delay = request_delay
@@ -26,19 +28,14 @@ class BaseDataspotClient:
         # Load configuration from config.py
         self.base_url = config.base_url
         self.database_name = config.database_name
-        self.dnk_scheme_name = config.dnk_scheme_name
-        self.rdm_scheme_name = config.rdm_scheme_name
-        self.datatype_scheme_name = config.datatype_scheme_name
-        self.tdm_scheme_name = config.tdm_scheme_name
         self.ods_imports_collection_name = config.ods_imports_collection_name
-        
 
     def create_resource(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create a new resource via POST request.
         
         Args:
-            endpoint (str): Full API endpoint URL
+            endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
             
         Returns:
@@ -48,7 +45,8 @@ class BaseDataspotClient:
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
-        response = requests_post(endpoint, headers=headers, json=data, rate_limit_delay=self.request_delay)
+        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        response = requests_post(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
         return response.json()
     
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False) -> Dict[str, Any]:
@@ -56,7 +54,7 @@ class BaseDataspotClient:
         Update an existing resource via PUT or PATCH request.
         
         Args:
-            endpoint (str): Full API endpoint URL
+            endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
             replace (bool): Whether to completely replace (PUT) or partially update (PATCH)
             
@@ -67,13 +65,14 @@ class BaseDataspotClient:
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
+        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
         
         if replace:
             # Use PUT to completely replace the resource
-            response = requests_put(endpoint, headers=headers, json=data, rate_limit_delay=self.request_delay)
+            response = requests_put(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
         else:
             # Use PATCH to update only the specified properties
-            response = requests_patch(endpoint, headers=headers, json=data, rate_limit_delay=self.request_delay)
+            response = requests_patch(full_url, headers=headers, json=data, rate_limit_delay=self.request_delay)
             
         return response.json()
     
@@ -82,30 +81,32 @@ class BaseDataspotClient:
         Delete a resource via DELETE request.
         
         Args:
-            endpoint (str): Full API endpoint URL
+            endpoint (str): API endpoint path (will be joined with base_url)
             
         Raises:
             HTTPError: If the request fails
         """
         headers = self.auth.get_headers()
-        requests_delete(endpoint, headers=headers, rate_limit_delay=self.request_delay)
+        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
+        requests_delete(full_url, headers=headers, rate_limit_delay=self.request_delay)
     
-    def resource_exists(self, endpoint: str) -> bool:
+    def get_resource_if_exists(self, endpoint: str) -> Dict[str, Any] | None:
         """
-        Check if a resource exists.
+        Get a resource if it exists, return None if it doesn't.
         
         Args:
-            endpoint (str): Full API endpoint URL
+            endpoint (str): API endpoint path (will be joined with base_url)
             
         Returns:
-            bool: True if the resource exists, False otherwise
+            Dict[str, Any] | None: The resource data (converted to json) if it exists, None if it doesn't
         """
         headers = self.auth.get_headers()
+        full_url = url_join(self.base_url, endpoint) if not endpoint.startswith(self.base_url) else endpoint
         
         try:
-            requests_get(endpoint, headers=headers, rate_limit_delay=self.request_delay)
-            return True
+            response = requests_get(full_url, headers=headers, rate_limit_delay=self.request_delay)
+            return response.json()
         except HTTPError as e:
             if e.response.status_code == 404:
-                return False
+                return None
             raise

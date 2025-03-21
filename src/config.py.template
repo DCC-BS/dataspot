@@ -12,5 +12,14 @@ rdm_scheme_name = 'Referenzdatenmodell'
 datatype_scheme_name = 'Datentypmodell'
 tdm_scheme_name = 'Technische Datenmodelle'
 
-# Collection names
-ods_imports_collection_name = 'ODS-Imports' 
+# Default ODS Imports collection name: The name of the collection where all ODS Imports will be imported to.
+ods_imports_collection_name = 'ODS-Imports'
+
+# Validate that critical configuration values are present
+assert base_url, "base_url must be set in config.py"
+assert database_name, "database_name must be set in config.py"
+assert dnk_scheme_name, "dnk_scheme_name must be set in config.py"
+assert rdm_scheme_name, "rdm_scheme_name must be set in config.py"
+assert datatype_scheme_name, "datatype_scheme_name must be set in config.py"
+assert tdm_scheme_name, "tdm_scheme_name must be set in config.py"
+assert ods_imports_collection_name, "ods_imports_collection_name must be set in config.py"

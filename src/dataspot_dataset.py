@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field, fields
 from typing import List, Optional, Dict, Any
 from abc import ABC, abstractmethod
@@ -20,7 +21,6 @@ from abc import ABC, abstractmethod
 class Dataset(ABC):
     """Base class for all dataset types, serving as a common type annotation for BasicDataset, OGDDataset, and other dataset variants. This class CANNOT be instantiated directly."""
     name: str = field(metadata={"json_key": "label"})
-    _PATH: str = field()
 
     _type: str = field(default="Dataset", init=False)
 
@@ -43,7 +43,8 @@ class Dataset(ABC):
         Raises:
             ValueError: If the department (first part) is empty.
         """
-        parts = self._PATH.strip('/').split('/')
+        logging.warning("get_departement_dienststelle_sammlung_subsammlung is deprecated.")
+        parts = "DEPRECATED/STILL-DEPRECATED"
         
         # Department is always the first part and must not be empty
         if not parts[0]:
@@ -68,11 +69,6 @@ class Dataset(ABC):
         
         return departement, dienststelle, sammlung, subsammlung
 
-    # TODO (large language model): add unit tests for this.
-    def to_dict(self):
-        exit("TODO: Please implement me.")
-        pass
-
 
 @dataclass
 class BasicDataset(Dataset):
@@ -81,7 +77,7 @@ class BasicDataset(Dataset):
     schluesselwoerter: Optional[List[str]] = field(default=None, metadata={'json_key': 'tags'})
     synonyme: Optional[List[str]] = field(default=None, metadata={'json_key': 'synonyms'})
     aktualisierungszyklus: Optional[str] = field(default=None, metadata={'json_key': 'accrualPeriodicity'})
-    identifikation: Optional[str] = field(default=None, metadata={'json_key': 'identifier'})
+    identifikation: Optional[str] = field(default=None, metadata={'json_key': 'identifier'}) # TODO: REMOVE ME
     # TODO: zeitliche_dimension_beginn
     # TODO: zeitliche_dimension_ende
     geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'}) # TODO: Check
@@ -175,7 +171,7 @@ class OGDDataset(BasicDataset):
     # TODO: referenz
     # TODO: zuschreibungen
     #publizierende_organisation - GELÖSCHT
-    # TODO: datenportal_identifikation
+    datenportal_identifikation: Optional[str] = field(default=None, metadata={'json_key': 'datenportal_identifikation'})
     tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
 
     # Immutable fields

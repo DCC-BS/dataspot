@@ -4,6 +4,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from requests import HTTPError
 
+from src import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join, escape_special_chars, generate_potential_staatskalender_url
 from src.dataspot_auth import DataspotAuth
@@ -16,19 +17,20 @@ from src.ods_dataspot_mapping import ODSDataspotMapping
 class DNKClient(BaseDataspotClient):
     """Client for interacting with the DNK (Datennutzungskatalog)."""
     
-    def __init__(self, auth: Optional[DataspotAuth] = None, request_delay: float = 1.0, mapping_file: str = "ods_dataspot_mapping.csv"):
+    def __init__(self, request_delay: float = 1.0, mapping_file: str = "ods_dataspot_mapping.csv"):
         """
         Initialize the DNK client.
         
         Args:
-            auth (DataspotAuth, optional): Authentication provider instance. If None, creates a new one.
             request_delay (float, optional): Delay between API requests in seconds. Default is 1.0 second.
             mapping_file (str, optional): Path to the CSV file for ODS-Dataspot mapping. Default is "ods_dataspot_mapping.csv".
         """
         super().__init__(request_delay=request_delay)
-        # TODO (large language model): For any of the os.getenvs: Do not default to any value, but throw an error if not found!
-        self.dnk_scheme_name = os.getenv("DATASPOT_DNK_SCHEME_NAME", 'Datennutzungskatalog')
-        self.ods_imports_collection_name = os.getenv("DATASPOT_ODS_IMPORTS_COLLECTION_NAME", 'ODS-Imports')
+        
+        # Load scheme name from config
+        self.scheme_name = config.dnk_scheme_name
+        
+        # Set up mapping
         self.mapping = ODSDataspotMapping(mapping_file)
 
     # TODO: Do NOT implement me
@@ -80,27 +82,25 @@ class DNKClient(BaseDataspotClient):
             raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of {valid_strategies}")
         
         # Get ODS ID from dataset
-        ods_id = dataset.properties.get('ID')
+        ods_id = dataset.to_json().get('datenportal_identifikation')
         if not ods_id:
             raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
         
         # Escape the dataset title for use in business key
-        escaped_title = escape_special_chars(dataset.title)
+        title = dataset.to_json()['label']
         
         # TODO (Renato): Think about whether it would make sense to also have a lookup table for the schemes.
         # Construct base endpoint for the collection where datasets are stored
         collection_endpoint = url_join(
-            self.base_url,
             "rest",
             self.database_name,
             "schemes",
-            self.dnk_scheme_name,
+            self.scheme_name,
             "collections",
             self.ods_imports_collection_name
         )
-        
-        # Construct the endpoint for this specific dataset
-        dataset_endpoint = url_join(collection_endpoint, escaped_title)
+
+        self.ensure_ods_imports_collection_exists()
         
         # Check if dataset exists in Dataspot
         dataset_exists = False
@@ -112,31 +112,22 @@ class DNKClient(BaseDataspotClient):
             dataset_exists = True
             _, href = entry
             # Verify that the dataset still exists at this href
-            try:
-                self.resource_exists(href)
-                
-            # TODO (renato): Check if this is the correct exception to catch.
-            except HTTPError:
-                # If we get an error, the dataset might have been moved or deleted
+            resource_data = self.get_resource_if_exists(href)
+            if not resource_data:
+                # Dataset doesn't exist at the expected location
                 dataset_exists = False
                 self.mapping.remove_entry(ods_id)
-        
-        # If not in mapping or mapping was invalid, check directly
-        if not dataset_exists:
-            dataset_exists = self.resource_exists(dataset_endpoint)
-            if dataset_exists:
-                href = dataset_endpoint
         
         # Handle according to update strategy
         if dataset_exists:
             if update_strategy == 'create_only':
-                raise ValueError(f"Dataset '{dataset.title}' already exists and update_strategy is 'create_only'")
+                raise ValueError(f"Dataset '{title}' already exists and update_strategy is 'create_only'")
             
             if update_strategy in ['update_only', 'create_or_update']:
                 # Update the existing dataset
                 response = self.update_resource(
-                    endpoint=href or dataset_endpoint,
-                    data=dataset.to_dict(),
+                    endpoint=href,
+                    data=dataset.to_json(),
                     replace=force_replace
                 )
                 
@@ -147,13 +138,14 @@ class DNKClient(BaseDataspotClient):
                 return response
         else:
             if update_strategy == 'update_only':
-                raise ValueError(f"Dataset '{dataset.title}' does not exist and update_strategy is 'update_only'")
+                raise ValueError(f"Dataset '{title}' does not exist and update_strategy is 'update_only'")
             
             if update_strategy in ['create_only', 'create_or_update']:
                 # Create a new dataset
                 response = self.create_resource(
+                    _type='Dataset',
                     endpoint=collection_endpoint,
-                    data=dataset.to_dict()
+                    data=dataset.to_json()
                 )
                 
                 # Store the mapping for future reference
@@ -301,3 +293,56 @@ class DNKClient(BaseDataspotClient):
         logging.info(f"Processed {len(processed_orgs)} organizations successfully")
         if failed_orgs:
             logging.warning(f"Failed to process {len(failed_orgs)} organizations")
+
+    def require_scheme_exists(self) -> str:
+        """
+        Assert that the DNK scheme exists and return its href. Throw an error if it doesn't.
+
+        Returns:
+            str: The href of the DNK scheme
+
+        Raises:
+            ValueError: If the DNK scheme doesn't exist
+        """
+        dnk_scheme_path = url_join('rest', self.database_name, 'schemes', self.scheme_name)
+        scheme_response = self.get_resource_if_exists(dnk_scheme_path)
+        if not scheme_response:
+            raise ValueError(f"DNK scheme '{self.scheme_name}' does not exist")
+        return scheme_response['href']
+
+    def ensure_ods_imports_collection_exists(self) -> dict:
+        """
+        Ensures that the ODS-Imports collection exists within the Datennutzungskatalog scheme.
+        Creates both the scheme and collection if they don't exist.
+
+        Returns:
+            dict: The JSON response containing information about the ODS-Imports collection
+        """
+
+        # Assert that the DNK scheme exists.
+        self.require_scheme_exists()
+        
+
+        # Check if ODS-Imports collection exists and create if needed
+        ods_imports_path = url_join('rest', self.database_name, 'schemes', self.scheme_name, 'collections',
+                                    self.ods_imports_collection_name)
+        # Check if ODS-Imports collection exists
+        collection_response = self.get_resource_if_exists(ods_imports_path)
+        if collection_response:
+            logging.debug(f"ODS-Imports collection exists")
+            return collection_response
+
+        # ODS-Imports doesn't exist, create it
+        logging.info("ODS-Imports collection doesn't exist, creating it")
+        collections_endpoint = url_join('rest', self.database_name, 'schemes', self.scheme_name)
+        collection_data = {
+            "_type": "Collection",
+            "label": self.ods_imports_collection_name
+        }
+        try:
+            response_json = self.create_resource(endpoint=collections_endpoint, data=collection_data)
+            logging.info(f"Created ODS-Imports collection: {self.ods_imports_collection_name}")
+            return response_json
+        except HTTPError as create_error:
+            logging.error(f"Failed to create ODS-Imports collection: {str(create_error)}")
+            raise

@@ -48,6 +48,7 @@ class ODSClient:
 
         return column_info
 
+    # TODO (Renato): Move this to a staatskalender_client or something like this.
     def get_organization_data(self, limit: int = 100, offset: int = 0) -> dict:
         """
         Get organization data from a specific dataset using the Explore API.
