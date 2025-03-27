@@ -631,12 +631,6 @@ Dataset:
                   label: Statistische Grundlagen
                 "024":
                   label: Tourismus
-            HGEBER:
-              label: Herausgeber
-              title: 
-              baseType: STRING
-              group: OGD
-              order: 50
             REF:
               label: Referenz
               title: 
@@ -649,12 +643,6 @@ Dataset:
               baseType: STRING
               group: OGD
               order: 70
-            PORG:
-              label: Publizierende Organisation
-              title: 
-              baseType: STRING
-              group: OGD
-              order: 80
             ID:
               label: Datenportal-Identifikation
               title: 
@@ -1005,7 +993,7 @@ BusinessAttribute:
 
   customProperties:
     ID:
-      label: Identifikation (deprecated)
+      label: Identifikation
       baseType: INTEGER
       order: 10
     PRIM:
