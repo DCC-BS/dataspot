@@ -848,17 +848,12 @@ Dataset:
        title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
        order: 40
        baseType: DATE
-     PD2:
-       label: Publikationsdatum
-       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
-       order: 40
-       baseType: DATE
      PERSOND:
        label: Personendaten
        title: Hat es Personendaten im Datensatz?
        group: PERSOND
        baseType: BOOLEAN
-       order: 41       
+       order: 41
      HIST:
        label: Historisierung
        title: Wird der Datensatz historisiert?
@@ -875,7 +870,7 @@ Dataset:
        label: Art der Historisierung
        title: Wie wird historisiert (Snapshots etc.)?
        baseType: TEXT
-       group: HIST    
+       group: HIST
        order: 70
      ABF:
        label: Aufbewahrungsfrist (Jahre)
@@ -913,15 +908,15 @@ Dataset:
        group: AUFBEW
        baseType: TEXT
        order: 130
-       
+
 ## BESTANDTEILE ##
 Composition:
   properties:
     label:
       label: Bezeichnung
-    title: 
+    title:
       label: Technische Bezeichnung
-      
+
 ## DISTRIBUTION ##
 Distribution:
   properties:
@@ -965,7 +960,7 @@ Distribution:
           label: GeoParquet
         Shapefile:
           label: Shapefile
-          
+
 
 #200 - GESCHÄFTSOBJEKTMODELL
 BusinessObject:
@@ -986,7 +981,7 @@ BusinessAttribute:
     AUFBEW:
       label: Archivierung
       order: 30
-      icon: box-archive      
+      icon: box-archive
     DP:
       label: Datenschutz
       order: 10
@@ -1033,13 +1028,13 @@ BusinessAttribute:
       label: Art der Historisierung
       title: Wie wird historisiert (Snapshots etc.)?
       baseType: TEXT
-      group: HIST    
+      group: HIST
       order: 50
     Identifikator:
       label: Identifikator
       title: tbd
-      baseType: STRING 
-      order: 5   
+      baseType: STRING
+      order: 5
     VERTR:
       label: Vertraulichkeit
       #title:
@@ -1050,7 +1045,7 @@ BusinessAttribute:
           label: Öffentlich
           order: 1
         "2":
-          label: Intern  
+          label: Intern
           order: 2
         "3":
           label: Vertraulich
@@ -1068,7 +1063,7 @@ BusinessAttribute:
           label: Grundschutz (GS)
           order: 1
         "2":
-          label: erhöhter Schutzbedarf (ES)  
+          label: erhöhter Schutzbedarf (ES)
           order: 2
         "3":
           label: sehr hoher Schutzbedarf (SHS)
@@ -1088,7 +1083,7 @@ ReferenceDataModel:
         Leistungsverzeichnis:
           label: Leistungsverzeichnis
           ling: s2p3m
-          icon: book       
+          icon: book
 
 ReferenceObject:
   label: Element
@@ -1096,7 +1091,7 @@ ReferenceObject:
 
 ## STEREOPTYPE TYP ##
   properties:
-    stereotype:   
+    stereotype:
       label: Typ
       literals:
 
@@ -1112,7 +1107,7 @@ UmlClass:
   properties:
     stereotype:
       label: File-Format
-      #title: 
+      #title:
       literals:
         "1":
           label: json
@@ -1122,7 +1117,7 @@ UmlClass:
           label: shape
         "4":
           label: csv
-          
+
 
 #500 - SYSTEMKATALOG
 
@@ -1152,21 +1147,21 @@ Collection:
     stereotype:
       label: Sammlungstyp
       title: Sammlungstypen definieren spezifische Sammlungen zur Strukturierung von Metadatenobjekten.
-      literals:      
-          
+      literals:
+
 ## SAMMLUNGSART DEPARTEMENT##
         DEPARTEMENT:
-          label: Departement
+          label: Departement (veraltet -> Organisationseinheit verwenden!)
           icon: city
 
 ## SAMMLUNGSART DIENSTABTEILUNG##
         DA:
-          label: Dienststelle
+          label: Dienststelle (veraltet -> Organisationseinheit verwenden!)
           icon: building
-          
+
         BASISSAMMLUNG:
-          label: deprecated-BASISSAMMLUNG
-        
+          label: deprecated-BASISSAMMLUNG (veraltet -> Organisationseinheit verwenden!)
+
         Organisationseinheit:
           label: Organisationseinheit
           icon: building
@@ -1236,7 +1231,7 @@ Derivation:
 Asset:
   properties:
     status:
-      literals:      
+      literals:
 
 ###### Zusatzstatus Workflow ######
 
@@ -1296,7 +1291,7 @@ Asset:
           group: PUBLIC
           order: 11
         REVIEWDCC2:
-          label: Lösch-Prüfung DCC 
+          label: Lösch-Prüfung DCC
           icon: arrows-rotate
           group: PUBLIC
           order: 13
@@ -1309,12 +1304,12 @@ Asset:
           label: Finale Abnahme DO
           icon: user-check
           group: DRAFT
-          order: 14          
+          order: 14
         INTERMINATION2:
           label: Metadaten archiviert
           icon: trash
           order: 15
-          group: NOT_PUBLIC          
+          group: NOT_PUBLIC
         DELETE:
           label: Metadaten löschen
           icon: solid-trash
@@ -1324,7 +1319,7 @@ Asset:
           label: Metadaten gelöscht
           icon: solid-trash
           order: 17
-          group: NOT_PUBLIC          
+          group: NOT_PUBLIC
 
 ##### Status aus Standard Workflow d. #####
         WORKING:
@@ -1375,12 +1370,12 @@ Asset:
           labelEn: Rejected
           icon: thumbs-down
           order: 60
-          group: DRAFT     
-  
-  
-#040 - ABHÄNGIGKEIT    
-  
-  
+          group: DRAFT
+
+
+#040 - ABHÄNGIGKEIT
+
+
 #050 - TRANSFORMATIONSREGELN
 Rule:
   groups:
@@ -1411,7 +1406,7 @@ Rule:
         FILTER:
           label: Filter
           order: 50
-          icon: filter  
+          icon: filter
 
 
 #060 - KENNZEICHNUNG VON HERKUNFT
