@@ -422,30 +422,30 @@ Dataset:
               order: 70
             ID:
               label: Datenportal-Identifikation
-              title: 
+              title:
               baseType: INTEGER
               group: OGD
               order: 100
             TAG:
               label: Tags
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 110
               cardinality: MANY
-              
+
 ## GEO UND OGD ##
         GEOUNDOGD:
           label: Geo- und OGD-Datensatz
           icon: earth-europe
-          
+
           customProperties:
             GEOCAT:
               label: Geokategorie
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
               group: GEO
               order: 10
-              cardinality: MANY              
+              cardinality: MANY
               literals:
                 "001":
                   label: Basiskarten
@@ -553,7 +553,7 @@ Dataset:
                 "001":
                   label: CC0 1.0
                 "002":
-                  label: CC BY                  
+                  label: CC BY
                 "003":
                   label: CC BY 3.0 CH
                 "004":
@@ -564,7 +564,7 @@ Dataset:
                   label: CC BY 4.0 + OpenStreetMap
             RECHT:
               label: Rechte
-              title: 
+              title:
               group: OGD
               order: 30
               literals:
@@ -578,7 +578,7 @@ Dataset:
                   label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
             THEMA:
               label: Themen
-              title: 
+              title:
               group: OGD
               order: 40
               cardinality: MANY
@@ -602,7 +602,7 @@ Dataset:
                 "009":
                   label: Arbeit, Erwerb
                 "010":
-                  label: Volkswirtschaft 
+                  label: Volkswirtschaft
                 "011":
                   label: Verwaltung
                 "012":
@@ -633,25 +633,25 @@ Dataset:
                   label: Tourismus
             REF:
               label: Referenz
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 60
             ZUSCH:
               label: Zuschreibungen
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 70
             ID:
               label: Datenportal-Identifikation
-              title: 
+              title:
               baseType: INTEGER
               group: OGD
               order: 100
             TAG:
               label: Tags
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 110
@@ -778,9 +778,9 @@ Dataset:
        #cardinality: MANY
        #literals:
          #"1":
-           #label: Gebäude    
+           #label: Gebäude
          #"2":
-           #label: Geo     
+           #label: Geo
      VERTR:
        label: Vertraulichkeit
        #title:
@@ -790,7 +790,7 @@ Dataset:
            label: Öffentlich
            order: 1
          "2":
-           label: Intern  
+           label: Intern
            order: 2
          "3":
            label: Vertraulich
@@ -807,7 +807,7 @@ Dataset:
            label: Grundschutz (GS)
            order: 1
          "2":
-           label: erhöhter Schutzbedarf (ES)  
+           label: erhöhter Schutzbedarf (ES)
            order: 2
          "3":
            label: sehr hoher Schutzbedarf (SHS)
@@ -820,11 +820,11 @@ Dataset:
          #"1":
            #label: xx
          #"2":
-           #label: xx        
+           #label: xx
          #"3":
-           #label: xx    
+           #label: xx
          #"4":
-           #label: xx           
+           #label: xx
      LASTACTl:
        label: Letzte Aktualisierung
        title: Letzte Aktualisierung des Datensatzes
