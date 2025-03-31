@@ -31,42 +31,42 @@ class Dataset(ABC):
         """
         raise NotImplementedError(f"The method to_json cannot be called from the abstract Dataset class directly!")
 
-    def get_departement_dienststelle_sammlung_subsammlung(self) -> (str, Optional[str], Optional[str], Optional[str]):
+    def DEPRECATED_get_departement_dienststelle_sammlung_subsammlung(self) -> (str, Optional[str], Optional[str], Optional[str]):
         """
         Extracts the departement, dienststelle, sammlung, and subsammlung from the _PATH field.
-        
+
         Parts are processed sequentially - each part is only considered if all previous parts exist.
-        
+
         Returns:
             tuple: (departement, dienststelle, sammlung, subsammlung) where all except departement may be None.
-            
+
         Raises:
             ValueError: If the department (first part) is empty.
         """
         logging.warning("get_departement_dienststelle_sammlung_subsammlung is deprecated.")
         parts = "DEPRECATED/STILL-DEPRECATED"
-        
+
         # Department is always the first part and must not be empty
         if not parts[0]:
             raise ValueError("Dienststelle cannot be empty!")
-            
+
         departement = parts[0]
         dienststelle = None
         sammlung = None
         subsammlung = None
-        
+
         # Check for dienststelle
         if len(parts) >= 2:
             dienststelle = parts[1]
-            
+
             # Check for sammlung (only if we have dienststelle)
             if len(parts) >= 3:
                 sammlung = parts[2]
-                
+
                 # Check for subsammlung (only if we have sammlung)
                 if len(parts) >= 4:
                     subsammlung = parts[3]
-        
+
         return departement, dienststelle, sammlung, subsammlung
 
 

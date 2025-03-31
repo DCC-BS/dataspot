@@ -969,7 +969,7 @@ class DataspotClient:
             ValueError: If the path is invalid
         """
         logging.warning("The method create_hierarchy_for_dataset is deprecated.")
-        departement, dienststelle, sammlung, subsammlung = dataset.get_departement_dienststelle_sammlung_subsammlung()
+        departement, dienststelle, sammlung, subsammlung = dataset.DEPRECATED_get_departement_dienststelle_sammlung_subsammlung()
         
         if not departement:
             raise ValueError("Top-level organizational unit is required")
