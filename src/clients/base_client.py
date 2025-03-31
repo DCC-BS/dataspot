@@ -23,15 +23,15 @@ class BaseDataspotClient(ABC):
         self.database_name = config.database_name
         self.ods_imports_collection_name = config.ods_imports_collection_name
 
-    # TODO (large language model): Correctly use the _type parameter.
-    def create_resource(self, _type: str, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_resource(self, endpoint: str, data: Dict[str, Any], _type: str = "Asset") -> Dict[str, Any]:
         """
         Create a new resource via POST request.
         
         Args:
-            _type (str): The type of resource to create (e.g. 'Dataset', 'Collection')
             endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
+            _type (str, optional): The type of resource to create (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
+                                  If provided, it will override any existing '_type' in data
             
         Returns:
             Dict[str, Any]: JSON response from the API
@@ -41,10 +41,17 @@ class BaseDataspotClient(ABC):
         """
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
-        response = requests_post(full_url, headers=headers, json=data)
+        
+        # Clone the data to avoid modifying the original
+        data_to_send = dict(data)
+        
+        # Add or override _type
+        data_to_send["_type"] = _type
+        
+        response = requests_post(full_url, headers=headers, json=data_to_send)
         return response.json()
     
-    def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False) -> Dict[str, Any]:
+    def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False, _type: str = "Asset") -> Dict[str, Any]:
         """
         Update an existing resource via PUT or PATCH request.
         
@@ -52,6 +59,8 @@ class BaseDataspotClient(ABC):
             endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
             replace (bool): Whether to completely replace (PUT) or partially update (PATCH)
+            _type (str, optional): The type of resource to update (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
+                                  If provided, it will override any existing '_type' in data
             
         Returns:
             Dict[str, Any]: JSON response from the API
@@ -62,12 +71,18 @@ class BaseDataspotClient(ABC):
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
         
+        # Clone the data to avoid modifying the original
+        data_to_send = dict(data)
+        
+        # Add or override _type
+        data_to_send["_type"] = _type
+        
         if replace:
             # Use PUT to completely replace the resource
-            response = requests_put(full_url, headers=headers, json=data)
+            response = requests_put(full_url, headers=headers, json=data_to_send)
         else:
             # Use PATCH to update only the specified properties
-            response = requests_patch(full_url, headers=headers, json=data)
+            response = requests_patch(full_url, headers=headers, json=data_to_send)
             
         return response.json()
     

@@ -10,7 +10,7 @@ from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join, escape_special_chars, generate_potential_staatskalender_url
 from src.dataspot_auth import DataspotAuth
 from src.dataspot_dataset import Dataset
-from src.common import requests_get
+from src.common import requests_get # BUT DO NOT IMPORT THESE: requests_post, requests_put, requests_patch
 from src.ods_dataspot_mapping import ODSDataspotMapping
 
 
@@ -138,7 +138,8 @@ class DNKClient(BaseDataspotClient):
                 response = self.update_resource(
                     endpoint=href,
                     data=dataset.to_json(),
-                    replace=force_replace
+                    replace=force_replace,
+                    _type='Dataset'
                 )
                 
                 # Ensure the mapping is updated
@@ -156,9 +157,9 @@ class DNKClient(BaseDataspotClient):
             if update_strategy in ['create_only', 'create_or_update']:
                 # Create a new dataset
                 response = self.create_resource(
-                    _type='Dataset',
                     endpoint=collection_endpoint,
-                    data=dataset.to_json()
+                    data=dataset.to_json(),
+                    _type='Dataset'
                 )
                 
                 # Store the mapping for future reference
@@ -361,7 +362,7 @@ class DNKClient(BaseDataspotClient):
             "label": self.ods_imports_collection_name
         }
         try:
-            response_json = self.create_resource(endpoint=collections_endpoint, data=collection_data)
+            response_json = self.create_resource(endpoint=collections_endpoint, data=collection_data, _type="Collection")
             logging.info(f"Created ODS-Imports collection: {self.ods_imports_collection_name}")
             return response_json
         except HTTPError as create_error:
