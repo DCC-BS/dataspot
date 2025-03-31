@@ -19,6 +19,27 @@ def url_join(*parts: str) -> str:
     """
     return "/".join([part.strip("/") for part in parts])
 
+def get_uuid_and_href_from_response(response: dict) -> tuple:
+    """
+    Extract both UUID and href from a Dataspot API response.
+    
+    The UUID is at response['id']. The href is at response['_links']['self']['href'].
+    
+    Args:
+        response (dict): The JSON response from Dataspot API
+        
+    Returns:
+        tuple: (uuid, href) where both are strings or None if not found
+        
+    Example:
+        >>> uuid, href = get_uuid_and_href_from_response(response)
+        >>> if uuid and href:
+        >>>     # Use the UUID and href
+    """
+    uuid = response.get('id')
+    href = response.get('_links', {}).get('self', {}).get('href')
+    return uuid, href
+
 def generate_potential_staatskalender_url(path: str) -> str:
     """
     Generate a URL for the Basel Staatskalender based on an organization path string.
