@@ -7,7 +7,7 @@ from requests import HTTPError
 
 from src import config
 from src.clients.base_client import BaseDataspotClient
-from src.clients.helpers import url_join, escape_special_chars, generate_potential_staatskalender_url
+from src.clients.helpers import url_join, escape_special_chars, generate_potential_staatskalender_url, get_uuid_and_href_from_response
 from src.dataspot_auth import DataspotAuth
 from src.dataspot_dataset import Dataset
 from src.common import requests_get # BUT DO NOT IMPORT THESE: requests_post, requests_put, requests_patch
@@ -86,23 +86,24 @@ class DNKClient(BaseDataspotClient):
             logging.error("Dataset missing 'ID' property required for ODS ID")
             raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
         
-        # Escape the dataset title for use in business key # TODO (Renato): I don't think this is the correct comment.
+        # Read the dataset title
         title = dataset.to_json()['label']
         logging.info(f"Processing dataset: '{title}' with ODS ID: {ods_id}")
         
         # TODO (Renato): Think about whether it would make sense to also have a lookup table for the schemes.
         # Construct base endpoint for the collection where datasets are stored
-        collection_endpoint = url_join(
-            "rest",
-            self.database_name,
-            "schemes",
-            self.scheme_name,
-            "collections",
-            self.ods_imports_collection_name
-        )
-
         logging.debug(f"Ensuring ODS-Imports collection exists")
-        self.ensure_ods_imports_collection_exists()
+        collection_data = self.ensure_ods_imports_collection_exists()
+        logging.debug(f"Collection info: {collection_data}")
+
+        # Get the collection UUID and href
+        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
+
+        if not collection_uuid or not collection_href:
+            logging.error("Failed to get collection UUID or href")
+            raise ValueError("Could not retrieve collection information required for dataset creation")
+
+        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
         
         # Check if dataset exists in Dataspot
         dataset_exists = False
@@ -143,9 +144,13 @@ class DNKClient(BaseDataspotClient):
                 )
                 
                 # Ensure the mapping is updated
-                if ods_id and response.get('href') and response.get('uuid'):
-                    logging.debug(f"Updating mapping for ODS ID {ods_id} with UUID {response['uuid']} and href {response['href']}")
-                    self.mapping.add_entry(ods_id, response['uuid'], response['href'])
+                if ods_id:
+                    uuid, href = get_uuid_and_href_from_response(response)
+                    if uuid and href:
+                        logging.debug(f"Updating mapping for ODS ID {ods_id} with UUID {uuid} and href {href}")
+                        self.mapping.add_entry(ods_id, uuid, href)
+                    else:
+                        logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
                 
                 logging.info(f"Successfully updated dataset '{title}'")
                 return response
@@ -156,16 +161,32 @@ class DNKClient(BaseDataspotClient):
             
             if update_strategy in ['create_only', 'create_or_update']:
                 # Create a new dataset
+                # We have two options:
+                # 1. Use the collection's datasets endpoint
+                # 2. Use the global assets endpoint and specify inCollection
+                
+                # Option 1: Use the collection's datasets endpoint
+                dataset_creation_endpoint = url_join(collection_href, "datasets")
+                
+                # Option 2 (alternative): Create via assets endpoint with inCollection
+                # dataset_json = dataset.to_json()
+                # dataset_json["inCollection"] = collection_uuid
+                # dataset_creation_endpoint = url_join("rest", self.database_name, "assets")
+                
                 response = self.create_resource(
-                    endpoint=collection_endpoint,
+                    endpoint=collection_href,#dataset_creation_endpoint, # TODO: !!!!!!!!!!!!!!!!!!!!!!
                     data=dataset.to_json(),
                     _type='Dataset'
                 )
                 
                 # Store the mapping for future reference
-                if ods_id and response.get('href') and response.get('uuid'):
-                    logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {response['uuid']} and href {response['href']}")
-                    self.mapping.add_entry(ods_id, response['uuid'], response['href'])
+                if ods_id:
+                    uuid, href = get_uuid_and_href_from_response(response)
+                    if uuid and href:
+                        logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {uuid} and href {href}")
+                        self.mapping.add_entry(ods_id, uuid, href)
+                    else:
+                        logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
                 
                 logging.info(f"Successfully created dataset '{title}'")
                 return response
@@ -316,7 +337,7 @@ class DNKClient(BaseDataspotClient):
         Assert that the DNK scheme exists and return its href. Throw an error if it doesn't.
 
         Returns:
-            str: The href of the DNK scheme
+            str: The href of the DNK scheme (starting with /rest/...)
 
         Raises:
             ValueError: If the DNK scheme doesn't exist
@@ -326,7 +347,7 @@ class DNKClient(BaseDataspotClient):
         scheme_response = self.get_resource_if_exists(dnk_scheme_path)
         if not scheme_response:
             raise ValueError(f"DNK scheme '{self.scheme_name}' does not exist")
-        return scheme_response['href']
+        return scheme_response['_links']['self']['href']
 
     def ensure_ods_imports_collection_exists(self) -> dict:
         """

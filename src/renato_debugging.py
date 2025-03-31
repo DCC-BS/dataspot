@@ -40,6 +40,78 @@ def main_2_test_ensure_ods_imports_collection_exists():
     ods_imports_collection = dataspot_client.ensure_ods_imports_collection_exists()
     print(f"ODS-Imports collection: {ods_imports_collection}")
 
+def main_3_test_create_or_update_dataset():
+    """
+    Test the create_or_update_dataset method of the DNKClient.
+    
+    This function:
+    1. Creates a test OGDDataset
+    2. Attempts to create it in Dataspot
+    3. Modifies the dataset and updates it
+    4. Tests different update strategies
+    
+    The results can be manually verified in the Dataspot UI.
+    """
+    logging.info("Testing create_or_update_dataset method...")
+    
+    
+    # Initialize client
+    dataspot_client = DNKClient()
+
+    ods_ids = ['100003', '100034', '100236']
+
+    # Create a test dataset
+    test_dataset = OGDDataset(
+        name="Test Dataset",
+        #beschreibung="This dataset was created to test the DNKClient's create_or_update_dataset method",
+        #schluesselwoerter=["test", "dataset", "api"],
+        datenportal_identifikation="test-dataset-001"  # Required for ODS ID
+    )
+    
+    # Test 1: Create a new dataset
+    logging.info("Test 1: Creating a new dataset...")
+    create_response = dataspot_client.create_or_update_dataset(
+        dataset=test_dataset,
+        update_strategy='create_only'
+    )
+    logging.info(f"Dataset created with UUID: {create_response.get('uuid')}")
+    logging.info(f"Dataset href: {create_response.get('href')}")
+    
+    # Wait briefly to allow the server to process
+    sleep(1)
+    
+    # Test 2: Update the dataset
+    logging.info("Test 2: Updating the dataset...")
+    test_dataset.kurzbeschreibung = "Updated test dataset description"
+    test_dataset.tags = ["updated", "test"]
+    
+    update_response = dataspot_client.create_or_update_dataset(
+        dataset=test_dataset,
+        update_strategy='update_only'
+    )
+    logging.info(f"Dataset updated with UUID: {update_response.get('uuid')}")
+    
+    # Wait briefly to allow the server to process
+    sleep(1)
+    
+    # Test 3: Create or update with force_replace
+    logging.info("Test 3: Create or update with complete replacement...")
+    test_dataset.beschreibung = "Complete replacement of the dataset"
+    
+    replace_response = dataspot_client.create_or_update_dataset(
+        dataset=test_dataset,
+        update_strategy='create_or_update',
+        force_replace=True
+    )
+    logging.info(f"Dataset replaced with UUID: {replace_response.get('uuid')}")
+    
+    logging.info("Tests completed. Check the Dataspot UI to verify the dataset was created and updated correctly.")
+    
+    # Return the dataset ID for potential manual cleanup
+    return test_dataset.datenportal_identifikation
+
+# TODO (large language model): Add a method to test the create_or_update_dataset method works as expected. I.e. do it, and I will check manually whether the resource actually exists.
+
 def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
@@ -125,6 +197,6 @@ def main_X_build_organization_structure_in_dnk():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_2_test_ensure_ods_imports_collection_exists()
+    main_3_test_create_or_update_dataset()
     logging.info('Job successful!')
     
