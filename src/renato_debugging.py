@@ -63,9 +63,12 @@ def main_3_test_create_or_update_dataset():
     # Create a test dataset
     test_dataset = OGDDataset(
         name="Test Dataset",
-        #beschreibung="This dataset was created to test the DNKClient's create_or_update_dataset method",
-        #schluesselwoerter=["test", "dataset", "api"],
-        datenportal_identifikation="test-dataset-001"  # Required for ODS ID
+        beschreibung="This dataset was created to test the DNKClient's create_or_update_dataset method",
+        schluesselwoerter=["test", "dataset", "api"],
+        datenportal_identifikation="test-dataset-001",  # Required for ODS ID
+        # Add required custom properties for OGD stereotype
+        aktualisierungszyklus="http://publications.europa.eu/resource/authority/frequency/DAILY",
+        tags=["test", "api", "documentation"]
     )
     
     # Test 1: Create a new dataset
@@ -74,7 +77,7 @@ def main_3_test_create_or_update_dataset():
         dataset=test_dataset,
         update_strategy='create_only'
     )
-    logging.info(f"Dataset created with UUID: {create_response.get('uuid')}")
+    logging.info(f"Dataset created with UUID: {create_response.get('id')}")
     logging.info(f"Dataset href: {create_response.get('href')}")
     
     # Wait briefly to allow the server to process
@@ -82,14 +85,14 @@ def main_3_test_create_or_update_dataset():
     
     # Test 2: Update the dataset
     logging.info("Test 2: Updating the dataset...")
-    test_dataset.kurzbeschreibung = "Updated test dataset description"
+    test_dataset.beschreibung = "Updated test dataset description"
     test_dataset.tags = ["updated", "test"]
     
     update_response = dataspot_client.create_or_update_dataset(
         dataset=test_dataset,
         update_strategy='update_only'
     )
-    logging.info(f"Dataset updated with UUID: {update_response.get('uuid')}")
+    logging.info(f"Dataset updated with UUID: {update_response.get('id')}")
     
     # Wait briefly to allow the server to process
     sleep(1)
@@ -103,14 +106,12 @@ def main_3_test_create_or_update_dataset():
         update_strategy='create_or_update',
         force_replace=True
     )
-    logging.info(f"Dataset replaced with UUID: {replace_response.get('uuid')}")
+    logging.info(f"Dataset replaced with UUID: {replace_response.get('id')}")
     
     logging.info("Tests completed. Check the Dataspot UI to verify the dataset was created and updated correctly.")
     
     # Return the dataset ID for potential manual cleanup
     return test_dataset.datenportal_identifikation
-
-# TODO (large language model): Add a method to test the create_or_update_dataset method works as expected. I.e. do it, and I will check manually whether the resource actually exists.
 
 def main_X_build_organization_structure_in_dnk():
     """

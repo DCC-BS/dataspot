@@ -81,7 +81,7 @@ class DNKClient(BaseDataspotClient):
             raise ValueError(f"Invalid update_strategy: {update_strategy}. Must be one of {valid_strategies}")
         
         # Get ODS ID from dataset
-        ods_id = dataset.to_json().get('datenportal_identifikation')
+        ods_id = dataset.to_json().get('customProperties', {}).get('ID')
         if not ods_id:
             logging.error("Dataset missing 'ID' property required for ODS ID")
             raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
@@ -161,20 +161,10 @@ class DNKClient(BaseDataspotClient):
             
             if update_strategy in ['create_only', 'create_or_update']:
                 # Create a new dataset
-                # We have two options:
-                # 1. Use the collection's datasets endpoint
-                # 2. Use the global assets endpoint and specify inCollection
-                
-                # Option 1: Use the collection's datasets endpoint
                 dataset_creation_endpoint = url_join(collection_href, "datasets")
                 
-                # Option 2 (alternative): Create via assets endpoint with inCollection
-                # dataset_json = dataset.to_json()
-                # dataset_json["inCollection"] = collection_uuid
-                # dataset_creation_endpoint = url_join("rest", self.database_name, "assets")
-                
                 response = self.create_resource(
-                    endpoint=collection_href,#dataset_creation_endpoint, # TODO: !!!!!!!!!!!!!!!!!!!!!!
+                    endpoint=dataset_creation_endpoint,
                     data=dataset.to_json(),
                     _type='Dataset'
                 )

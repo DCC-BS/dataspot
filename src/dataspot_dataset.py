@@ -171,7 +171,7 @@ class OGDDataset(BasicDataset):
     # TODO: referenz
     # TODO: zuschreibungen
     #publizierende_organisation - GELÖSCHT
-    datenportal_identifikation: Optional[str] = field(default=None, metadata={'json_key': 'datenportal_identifikation'})
+    datenportal_identifikation: Optional[str] = field(default=None, metadata={'json_key': 'ID', 'custom_property': True})
     tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
 
     # Immutable fields
