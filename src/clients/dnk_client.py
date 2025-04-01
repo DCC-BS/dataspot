@@ -185,13 +185,12 @@ class DNKClient(BaseDataspotClient):
         logging.error("Unexpected error in create_or_update_dataset")
         raise RuntimeError("Unexpected error in create_or_update_dataset")
 
-    # TODO: Implement me
-    def delete_dataset(self, title: str, fail_if_not_exists: bool = False) -> bool:
+    def delete_dataset(self, ods_id: str, fail_if_not_exists: bool = False) -> bool:
         """
         Delete a dataset from the DNK.
         
         Args:
-            title (str): The title/name of the dataset to delete
+            ods_id (str): The ODS ID of the dataset to delete
             fail_if_not_exists (bool): Whether to raise an error if the dataset doesn't exist
             
         Returns:
@@ -201,7 +200,25 @@ class DNKClient(BaseDataspotClient):
             ValueError: If the dataset doesn't exist and fail_if_not_exists is True
             HTTPError: If API requests fail
         """
-        pass
+        # Check if the dataset exists in the mapping
+        entry = self.mapping.get_entry(ods_id)
+        
+        if not entry:
+            if fail_if_not_exists:
+                raise ValueError(f"Dataset with ODS ID '{ods_id}' does not exist")
+            return False
+        
+        # Extract UUID and href from the mapping
+        _, href = entry
+        
+        # Delete the dataset
+        logging.info(f"Deleting dataset with ODS ID '{ods_id}' at {href}")
+        self.delete_resource(href)
+        
+        # Remove entry from mapping
+        self.mapping.remove_entry(ods_id)
+        
+        return True
     
     # TODO: Do NOT implement me
     def build_organization_hierarchy_from_ods(self, org_data: Dict[str, Any]):

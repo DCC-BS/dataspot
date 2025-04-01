@@ -51,7 +51,7 @@ proxies = {
 
 def _print_potential_error_messages(response: requests.Response) -> None:
     try:
-        if response.status_code not in [200, 201]:
+        if response.status_code not in [200, 201, 204]: # 200 is normal, 201 is ???, 204 is normal return code for delete
             error_message_detailed = json.loads(response.content.decode(response.apparent_encoding))
             logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
             violations = error_message_detailed.get('violations', [])

@@ -49,6 +49,7 @@ def main_3_test_create_or_update_dataset():
     2. Attempts to create it in Dataspot
     3. Modifies the dataset and updates it
     4. Tests different update strategies
+    5. Deletes the dataset
     
     The results can be manually verified in the Dataspot UI.
     """
@@ -108,7 +109,18 @@ def main_3_test_create_or_update_dataset():
     )
     logging.info(f"Dataset replaced with UUID: {replace_response.get('id')}")
     
-    logging.info("Tests completed. Check the Dataspot UI to verify the dataset was created and updated correctly.")
+    # Wait briefly to allow the server to process
+    sleep(1)
+    
+    # Test 4: Delete the dataset
+    logging.info("Test 4: Deleting the dataset...")
+    delete_success = dataspot_client.delete_dataset(
+        ods_id=test_dataset.datenportal_identifikation,
+        fail_if_not_exists=True
+    )
+    logging.info(f"Dataset deletion successful: {delete_success}")
+    
+    logging.info("Tests completed. Check the Dataspot UI to verify all operations were performed correctly.")
     
     # Return the dataset ID for potential manual cleanup
     return test_dataset.datenportal_identifikation
