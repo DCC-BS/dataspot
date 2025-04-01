@@ -51,7 +51,6 @@ class BaseDataspotClient(ABC):
         response = requests_post(full_url, headers=headers, json=data_to_send)
         return response.json()
     
-    # TODO (large language model): Please check that we never set _type of the data directly outside of base_client. We should always use the _type parameter.
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False, _type: str = "Asset") -> Dict[str, Any]:
         """
         Update an existing resource via PUT or PATCH request.
