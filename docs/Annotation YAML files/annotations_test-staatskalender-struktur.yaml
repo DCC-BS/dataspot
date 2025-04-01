@@ -428,24 +428,24 @@ Dataset:
               order: 100
             TAG:
               label: Tags
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 110
               cardinality: MANY
-              
+
 ## GEO UND OGD ##
         GEOUNDOGD:
           label: Geo- und OGD-Datensatz
           icon: earth-europe
-          
+
           customProperties:
             GEOCAT:
               label: Geokategorie
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
               group: GEO
               order: 10
-              cardinality: MANY              
+              cardinality: MANY
               literals:
                 "001":
                   label: Basiskarten
@@ -553,7 +553,7 @@ Dataset:
                 "001":
                   label: CC0 1.0
                 "002":
-                  label: CC BY                  
+                  label: CC BY
                 "003":
                   label: CC BY 3.0 CH
                 "004":
@@ -564,7 +564,7 @@ Dataset:
                   label: CC BY 4.0 + OpenStreetMap
             RECHT:
               label: Rechte
-              title: 
+              title:
               group: OGD
               order: 30
               literals:
@@ -578,7 +578,7 @@ Dataset:
                   label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
             THEMA:
               label: Themen
-              title: 
+              title:
               group: OGD
               order: 40
               cardinality: MANY
@@ -602,7 +602,7 @@ Dataset:
                 "009":
                   label: Arbeit, Erwerb
                 "010":
-                  label: Volkswirtschaft 
+                  label: Volkswirtschaft
                 "011":
                   label: Verwaltung
                 "012":
@@ -633,37 +633,37 @@ Dataset:
                   label: Tourismus
             HGEBER:
               label: Herausgeber
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 50
             REF:
               label: Referenz
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 60
             ZUSCH:
               label: Zuschreibungen
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 70
             PORG:
               label: Publizierende Organisation
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 80
             ID:
               label: Datenportal-Identifikation
-              title: 
+              title:
               baseType: INTEGER
               group: OGD
               order: 100
             TAG:
               label: Tags
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 110
