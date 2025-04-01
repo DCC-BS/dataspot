@@ -369,7 +369,6 @@ class DNKClient(BaseDataspotClient):
         logging.info("ODS-Imports collection doesn't exist, creating it")
         collections_endpoint = url_join('rest', self.database_name, 'schemes', self.scheme_name, 'collections')
         collection_data = {
-            "_type": "Collection",
             "label": self.ods_imports_collection_name
         }
         try:
