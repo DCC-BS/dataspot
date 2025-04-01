@@ -51,6 +51,7 @@ class BaseDataspotClient(ABC):
         response = requests_post(full_url, headers=headers, json=data_to_send)
         return response.json()
     
+    # TODO (large language model): Please check that we never set _type of the data directly outside of base_client. We should always use the _type parameter.
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False, _type: str = "Asset") -> Dict[str, Any]:
         """
         Update an existing resource via PUT or PATCH request.
@@ -67,6 +68,12 @@ class BaseDataspotClient(ABC):
             
         Raises:
             HTTPError: If the request fails
+            ValueError: If the resource does not exist when using replace=True
+            
+        Notes:
+            - All resources will have their status set to 'WORKING' regardless of their previous status.
+            - When using replace=True for Datasets, the method will preserve the dataset's location
+              (inCollection field).
         """
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
@@ -74,8 +81,19 @@ class BaseDataspotClient(ABC):
         # Clone the data to avoid modifying the original
         data_to_send = dict(data)
         
+        data_to_send['status'] = 'WORKING'
+        
         # Add or override _type
         data_to_send["_type"] = _type
+        
+        if replace and _type == "Dataset":
+            # When completely replacing a Dataset with PUT, we need to preserve its location
+            current_resource = self.get_resource_if_exists(endpoint)
+            if current_resource is None:
+                raise ValueError(f"Cannot update resource at {endpoint}: Resource does not exist")
+            
+            if 'inCollection' in current_resource:
+                data_to_send['inCollection'] = current_resource['inCollection']
         
         if replace:
             # Use PUT to completely replace the resource
