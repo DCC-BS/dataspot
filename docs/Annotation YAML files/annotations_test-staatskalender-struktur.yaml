@@ -423,7 +423,7 @@ Dataset:
             ID:
               label: Datenportal-Identifikation
               title: 
-              baseType: INTEGER
+              baseType: STRING
               group: OGD
               order: 100
             TAG:
@@ -658,7 +658,7 @@ Dataset:
             ID:
               label: Datenportal-Identifikation
               title:
-              baseType: INTEGER
+              baseType: STRING
               group: OGD
               order: 100
             TAG:
