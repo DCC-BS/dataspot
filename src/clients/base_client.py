@@ -120,6 +120,6 @@ class BaseDataspotClient(ABC):
             response = requests_get(full_url, headers=headers)
             return response.json()
         except HTTPError as e:
-            if e.response.status_code == 404:
+            if e.response.status_code == 410:
                 return None
             raise
