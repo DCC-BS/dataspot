@@ -1,14 +1,12 @@
 import logging
-import os
 from requests import RequestException, ConnectionError, Timeout
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any
 
 from requests import HTTPError
 
 from src import config
 from src.clients.base_client import BaseDataspotClient
-from src.clients.helpers import url_join, escape_special_chars, generate_potential_staatskalender_url, get_uuid_and_href_from_response
-from src.dataspot_auth import DataspotAuth
+from src.clients.helpers import url_join, generate_potential_staatskalender_url, get_uuid_and_href_from_response
 from src.dataspot_dataset import Dataset
 from src.common import requests_get # BUT DO NOT IMPORT THESE: requests_post, requests_put, requests_patch
 from src.ods_dataspot_mapping import ODSDataspotMapping
@@ -32,20 +30,6 @@ class DNKClient(BaseDataspotClient):
         # Set up mapping
         self.mapping = ODSDataspotMapping(mapping_file)
 
-    # TODO: Do NOT implement me
-    def teardown_dnk(self, delete_empty_collections: bool = False) -> None:
-        """
-        Delete all OGD datasets and optionally empty collections from the DNK.
-        
-        Args:
-            delete_empty_collections (bool): Whether to delete empty collections (default: False)
-            
-        Raises:
-            HTTPError: If the API request fails
-        """
-        pass
-
-    # TODO (large language model): Check with docs. Try to access the dataset from the mapping. If it already exists, directly access it through the href. NEVER use the name to access a dataset.
     def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update',
                                      force_replace: bool = False) -> dict:
         """
