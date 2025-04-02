@@ -53,12 +53,22 @@ def _print_potential_error_messages(response: requests.Response) -> None:
     try:
         if response.status_code not in [200, 201, 204]: # 200 is normal, 201 is ???, 204 is normal return code for delete
             error_message_detailed = json.loads(response.content.decode(response.apparent_encoding))
-            logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+            try:
+                logging.error(f"{error_message_detailed['method']} unsuccessful: {error_message_detailed['message']}")
+            except KeyError:
+                logging.error(f"Call unsuccessful: {error_message_detailed['message']}")
+
             violations = error_message_detailed.get('violations', [])
             if violations:
                 logging.error(f"Found {len(violations)} violations:")
                 for violation in violations:
                     logging.error(violation)
+
+            errors = error_message_detailed.get('errors', [])
+            if errors:
+                logging.error(f"Found {len(errors)} errors:")
+                for error in errors:
+                    logging.error(error)
 
     except JSONDecodeError or HTTPError:
         exit(f"Error {response.status_code}: Cannot perform {response.request.method} because  '{response.reason}' for url {response.url}")
