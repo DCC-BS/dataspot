@@ -130,7 +130,7 @@ def main_4_test_bulk_create_dataset():
     
     This function:
     1. Creates multiple test datasets
-    2. Uploads them in a bulk operation
+    2. Uploads them in a bulk operation to the scheme level, placing them in the ODS-Imports collection
     3. Tests different options (operations, dry run)
     4. Cleans up by deleting the datasets
     

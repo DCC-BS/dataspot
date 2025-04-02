@@ -94,6 +94,8 @@ class DNKClient(BaseDataspotClient):
                             operation: str = "ADD", dry_run: bool = False) -> dict:
         """
         Create multiple datasets in bulk in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
+        The datasets will be created at the scheme level, but each dataset will have its inCollection
+        field set to place it within the ODS-Imports collection.
         
         Args:
             datasets (List[Dataset]): List of dataset instances to be uploaded.
@@ -110,6 +112,19 @@ class DNKClient(BaseDataspotClient):
             ValueError: If any dataset is missing required properties
             HTTPError: If API requests fail
         """
+        # Ensure ODS-Imports collection exists and get its UUID
+        logging.debug(f"Ensuring ODS-Imports collection exists")
+        collection_data = self.ensure_ods_imports_collection_exists()
+        
+        # Get the collection UUID
+        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
+
+        if not collection_uuid or not collection_href:
+            logging.error("Failed to get collection UUID or href")
+            raise ValueError("Could not retrieve collection information required for dataset creation")
+
+        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
+        
         # Validate and log datasets
         dataset_jsons = []
         for dataset in datasets:
@@ -121,28 +136,19 @@ class DNKClient(BaseDataspotClient):
             
             # Read the dataset title
             title = dataset.to_json()['label']
-            dataset_jsons.append(dataset.to_json())
+            
+            # Modify the dataset to include inCollection field referencing the ODS-Imports collection
+            dataset_json = dataset.to_json()
+            dataset_json['inCollection'] = collection_uuid
+            dataset_jsons.append(dataset_json)
             
         # Count of datasets
         num_datasets = len(datasets)
         logging.info(f"Bulk creating {num_datasets} datasets (operation: {operation}, dry_run: {dry_run})")
         
-        # Ensure ODS-Imports collection exists
-        logging.debug(f"Ensuring ODS-Imports collection exists")
-        collection_data = self.ensure_ods_imports_collection_exists()
-        
-        # Get the collection UUID and href
-        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
-
-        if not collection_uuid or not collection_href:
-            logging.error("Failed to get collection UUID or href")
-            raise ValueError("Could not retrieve collection information required for dataset creation")
-
-        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
-        
-        # Bulk create datasets
+        # Bulk create datasets using the scheme name
         response = self.bulk_create_resource(
-            endpoint=collection_href,
+            scheme_name=self.scheme_name,
             data=dataset_jsons,
             _type='Dataset',
             operation=operation,
