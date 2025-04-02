@@ -1,6 +1,8 @@
 from typing import Dict, Any, List
 from abc import ABC, abstractmethod
 import logging
+import json
+import os
 
 from src import config
 from src.dataspot_auth import DataspotAuth
@@ -51,14 +53,15 @@ class BaseDataspotClient(ABC):
         
         response = requests_post(full_url, headers=headers, json=data_to_send)
         return response.json()
-    
+
+    # TODO (Renato): Is this name accurate?
     def bulk_create_resource(self, scheme_name: str, data: List[Dict[str, Any]], _type: str = "Asset", 
                              operation: str = "ADD", dry_run: bool = False) -> Dict[str, Any]:
         """
         Create or update multiple resources in bulk via the upload API.
         
         Args:
-            scheme_name (str): Name of the scheme to upload to (e.g. 'MyModel')
+            scheme_name (str): Name of the scheme to upload to (e.g. 'Datennutzungskatalog')
             data (List[Dict[str, Any]]): List of JSON data for resources to create/update
             _type (str, optional): The type of resources to create (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
                                   If provided, it will override any existing '_type' in each data item
@@ -107,14 +110,60 @@ class BaseDataspotClient(ABC):
         # Prepare HTTP headers
         headers = self.auth.get_headers()
         
+        # Remove Content-Type from headers as requests will set it automatically for multipart/form-data
+        if 'Content-Type' in headers:
+            del headers['Content-Type']
+        
         # Create full URL
         full_url = url_join(self.base_url, upload_path)
         logging.debug(f"Upload endpoint URL: {full_url}")
         
-        # Synchronous upload using PUT
-        response = requests_put(full_url, headers=headers, json=data_to_send)
+        # Create tmp directory if it doesn't exist
+        tmp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        # TODO (large language model): Add a random part to the filename so we don't use the wrong file accidentally
+        tmp_filename = 'data_upload.json'
+
+        # Create a temporary JSON file
+        tmp_file_path = os.path.join(tmp_dir, tmp_filename)
+        try:
+            # Write JSON data to the temporary file
+            with open(tmp_file_path, 'w', encoding='utf-8') as f:
+                json.dump(data_to_send, f, ensure_ascii=False, indent=2)
+            
+            logging.debug(f"Saved JSON data to temporary file: {tmp_file_path}")
+            
+            # Open the file in binary mode for the multipart request
+            with open(tmp_file_path, 'rb') as file_object:
+                # Use requests' built-in multipart support by passing a files dict
+                # The key 'import.json' is the form field name expected by the Dataspot API
+                files = {'import.json': (tmp_filename, file_object, 'application/json')}
+                
+                logging.debug(f"Sending file as multipart/form-data with import.json field")
+                
+                response = requests_put(
+                    full_url,
+                    headers=headers,
+                    files=files
+                )
+                
+                # Raise HTTPError for bad responses
+                response.raise_for_status()
+            
+        finally:
+            # Clean up: Delete the temporary file
+            if os.path.exists(tmp_file_path):
+                os.remove(tmp_file_path)
+                logging.debug(f"Deleted temporary file: {tmp_file_path}")
         
-        return response.json()
+        # Try to parse response as JSON
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            # If response is not JSON, return the text content
+            logging.warning(f"Response was not valid JSON. Content: {response.text[:1000]}...")
+            return {"response_text": response.text}
     
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False, _type: str = "Asset") -> Dict[str, Any]:
         """

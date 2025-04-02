@@ -139,7 +139,7 @@ class DNKClient(BaseDataspotClient):
             
             # Modify the dataset to include inCollection field referencing the ODS-Imports collection
             dataset_json = dataset.to_json()
-            dataset_json['inCollection'] = collection_uuid
+            dataset_json['inCollection'] = self.ods_imports_collection_name
             dataset_jsons.append(dataset_json)
             
         # Count of datasets
