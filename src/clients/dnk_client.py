@@ -30,6 +30,114 @@ class DNKClient(BaseDataspotClient):
         # Set up mapping
         self.mapping = ODSDataspotMapping(mapping_file)
 
+    def create_dataset(self, dataset: Dataset) -> dict:
+        """
+        Create a new dataset in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
+        
+        Args:
+            dataset (Dataset): The dataset instance to be uploaded.
+            
+        Returns:
+            dict: The JSON response from the API containing the dataset data
+            
+        Raises:
+            ValueError: If the dataset is missing required properties
+            HTTPError: If API requests fail
+            json.JSONDecodeError: If response parsing fails
+        """
+        # Get ODS ID from dataset
+        ods_id = dataset.to_json().get('customProperties', {}).get('ID')
+        if not ods_id:
+            logging.error("Dataset missing 'ID' property required for ODS ID")
+            raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
+        
+        # Read the dataset title
+        title = dataset.to_json()['label']
+        logging.info(f"Creating dataset: '{title}' with ODS ID: {ods_id}")
+        
+        # Ensure ODS-Imports collection exists
+        logging.debug(f"Ensuring ODS-Imports collection exists")
+        collection_data = self.ensure_ods_imports_collection_exists()
+        logging.debug(f"Collection info: {collection_data}")
+
+        # Get the collection UUID and href
+        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
+
+        if not collection_uuid or not collection_href:
+            logging.error("Failed to get collection UUID or href")
+            raise ValueError("Could not retrieve collection information required for dataset creation")
+
+        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
+        
+        # Create a new dataset
+        dataset_creation_endpoint = url_join(collection_href, "datasets")
+        
+        response = self.create_resource(
+            endpoint=dataset_creation_endpoint,
+            data=dataset.to_json(),
+            _type='Dataset'
+        )
+        
+        # Store the mapping for future reference
+        if ods_id:
+            uuid, href = get_uuid_and_href_from_response(response)
+            if uuid and href:
+                logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {uuid} and href {href}")
+                self.mapping.add_entry(ods_id, uuid, href)
+            else:
+                logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
+        
+        logging.info(f"Successfully created dataset '{title}'")
+        return response
+    
+    def update_dataset(self, dataset: Dataset, href: str, force_replace: bool = False) -> dict:
+        """
+        Update an existing dataset in the DNK.
+        
+        Args:
+            dataset (Dataset): The dataset instance with updated data
+            href (str): The href of the dataset to update
+            force_replace (bool): Whether to completely replace the dataset (True) or just update properties (False)
+            
+        Returns:
+            dict: The JSON response from the API containing the updated dataset data
+            
+        Raises:
+            ValueError: If the dataset is missing required properties
+            HTTPError: If API requests fail
+            json.JSONDecodeError: If response parsing fails
+        """
+        # Get ODS ID from dataset
+        ods_id = dataset.to_json().get('customProperties', {}).get('ID')
+        if not ods_id:
+            logging.error("Dataset missing 'ID' property required for ODS ID")
+            raise ValueError("Dataset must have an 'ID' property to use as ODS ID")
+        
+        # Read the dataset title
+        title = dataset.to_json()['label']
+        logging.info(f"Updating dataset: '{title}' with ODS ID: {ods_id}")
+        
+        # Update the existing dataset
+        logging.debug(f"Update method: {'PUT (replace)' if force_replace else 'PATCH (partial update)'}")
+        response = self.update_resource(
+            endpoint=href,
+            data=dataset.to_json(),
+            replace=force_replace,
+            _type='Dataset'
+        )
+        
+        # Ensure the mapping is updated
+        if ods_id:
+            uuid, href = get_uuid_and_href_from_response(response)
+            if uuid and href:
+                logging.debug(f"Updating mapping for ODS ID {ods_id} with UUID {uuid} and href {href}")
+                self.mapping.add_entry(ods_id, uuid, href)
+            else:
+                logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
+        
+        logging.info(f"Successfully updated dataset '{title}'")
+        return response
+
     def create_or_update_dataset(self, dataset: Dataset, update_strategy: str = 'create_or_update',
                                      force_replace: bool = False) -> dict:
         """
@@ -74,21 +182,6 @@ class DNKClient(BaseDataspotClient):
         title = dataset.to_json()['label']
         logging.info(f"Processing dataset: '{title}' with ODS ID: {ods_id}")
         
-        # TODO (Renato): Think about whether it would make sense to also have a lookup table for the schemes.
-        # Construct base endpoint for the collection where datasets are stored
-        logging.debug(f"Ensuring ODS-Imports collection exists")
-        collection_data = self.ensure_ods_imports_collection_exists()
-        logging.debug(f"Collection info: {collection_data}")
-
-        # Get the collection UUID and href
-        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
-
-        if not collection_uuid or not collection_href:
-            logging.error("Failed to get collection UUID or href")
-            raise ValueError("Could not retrieve collection information required for dataset creation")
-
-        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
-        
         # Check if dataset exists in Dataspot
         dataset_exists = False
         href = None
@@ -118,26 +211,7 @@ class DNKClient(BaseDataspotClient):
             
             if update_strategy in ['update_only', 'create_or_update']:
                 # Update the existing dataset
-                logging.info(f"Updating existing dataset '{title}' at {href}")
-                logging.debug(f"Update method: {'PUT (replace)' if force_replace else 'PATCH (partial update)'}")
-                response = self.update_resource(
-                    endpoint=href,
-                    data=dataset.to_json(),
-                    replace=force_replace,
-                    _type='Dataset'
-                )
-                
-                # Ensure the mapping is updated
-                if ods_id:
-                    uuid, href = get_uuid_and_href_from_response(response)
-                    if uuid and href:
-                        logging.debug(f"Updating mapping for ODS ID {ods_id} with UUID {uuid} and href {href}")
-                        self.mapping.add_entry(ods_id, uuid, href)
-                    else:
-                        logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
-                
-                logging.info(f"Successfully updated dataset '{title}'")
-                return response
+                return self.update_dataset(dataset, href, force_replace)
         else:
             if update_strategy == 'update_only':
                 logging.error(f"Dataset '{title}' does not exist and update_strategy is 'update_only'")
@@ -145,25 +219,7 @@ class DNKClient(BaseDataspotClient):
             
             if update_strategy in ['create_only', 'create_or_update']:
                 # Create a new dataset
-                dataset_creation_endpoint = url_join(collection_href, "datasets")
-                
-                response = self.create_resource(
-                    endpoint=dataset_creation_endpoint,
-                    data=dataset.to_json(),
-                    _type='Dataset'
-                )
-                
-                # Store the mapping for future reference
-                if ods_id:
-                    uuid, href = get_uuid_and_href_from_response(response)
-                    if uuid and href:
-                        logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {uuid} and href {href}")
-                        self.mapping.add_entry(ods_id, uuid, href)
-                    else:
-                        logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
-                
-                logging.info(f"Successfully created dataset '{title}'")
-                return response
+                return self.create_dataset(dataset)
         
         # This should not happen if the code is correct
         logging.error("Unexpected error in create_or_update_dataset")
