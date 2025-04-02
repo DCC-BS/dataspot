@@ -1,5 +1,6 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from abc import ABC, abstractmethod
+import logging
 
 from src import config
 from src.dataspot_auth import DataspotAuth
@@ -49,6 +50,74 @@ class BaseDataspotClient(ABC):
         data_to_send["_type"] = _type
         
         response = requests_post(full_url, headers=headers, json=data_to_send)
+        return response.json()
+    
+    def bulk_create_resource(self, endpoint: str, data: List[Dict[str, Any]], _type: str = "Asset", 
+                             operation: str = "ADD", dry_run: bool = False) -> Dict[str, Any]:
+        """
+        Create or update multiple resources in bulk via the upload API.
+        
+        Args:
+            endpoint (str): API endpoint path (will be joined with base_url)
+            data (List[Dict[str, Any]]): List of JSON data for resources to create/update
+            _type (str, optional): The type of resources to create (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
+                                  If provided, it will override any existing '_type' in each data item
+            operation (str, optional): Upload operation mode. Defaults to "ADD".
+                                      "ADD": Add or update only. Existing items not in the upload remain unchanged.
+                                      "REPLACE": Reconcile elements. Items not in the upload are considered obsolete.
+                                      "FULL_LOAD": Reconcile model. Completely replaces with the uploaded data.
+            dry_run (bool, optional): Whether to perform a test run without changing data. Defaults to False.
+            
+        Returns:
+            Dict[str, Any]: JSON response from the API
+            
+        Raises:
+            HTTPError: If the request fails
+            ValueError: If operation parameter is invalid
+        """
+        # Validate operation parameter
+        valid_operations = ["ADD", "REPLACE", "FULL_LOAD"]
+        if operation not in valid_operations:
+            raise ValueError(f"Invalid operation: {operation}. Must be one of {valid_operations}")
+        
+        # Clone the data to avoid modifying the original and add _type to each item
+        data_to_send = []
+        for item in data:
+            item_copy = dict(item)
+            item_copy["_type"] = _type
+            data_to_send.append(item_copy)
+        
+        # Handle the URL path difference between regular API and upload API
+        # Normal hrefs use "/rest/..." but the upload API expects "/api/..."
+        upload_path = endpoint
+        if upload_path.startswith("/rest/"):
+            # Convert "/rest/..." path to "/api/..." for upload API
+            upload_path = "/api/" + upload_path[6:]
+            logging.debug(f"Converting REST path to API path for upload: {endpoint} -> {upload_path}")
+        
+        # Prepare upload endpoint and query parameters
+        upload_endpoint = url_join(upload_path, "upload")
+        query_params = []
+        
+        if operation != "ADD":
+            query_params.append(f"operation={operation}")
+        
+        if dry_run:
+            query_params.append("dryRun=true")
+        
+        if query_params:
+            upload_endpoint = f"{upload_endpoint}?{'&'.join(query_params)}"
+        
+        # Prepare HTTP headers
+        headers = self.auth.get_headers()
+        
+        # Create full URL
+        full_url = url_join(self.base_url, upload_endpoint)
+        logging.debug(f"Upload endpoint URL: {full_url}")
+        
+        # Synchronous upload using PUT
+        response = requests_put(full_url, headers=headers, json=data_to_send)
+        
         return response.json()
     
     def update_resource(self, endpoint: str, data: Dict[str, Any], replace: bool = False, _type: str = "Asset") -> Dict[str, Any]:

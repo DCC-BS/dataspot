@@ -1,6 +1,6 @@
 import logging
 from requests import RequestException, ConnectionError, Timeout
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from requests import HTTPError
 
@@ -88,6 +88,88 @@ class DNKClient(BaseDataspotClient):
                 logging.warning(f"Could not extract UUID and href from response for dataset '{title}'")
         
         logging.info(f"Successfully created dataset '{title}'")
+        return response
+
+    def bulk_create_dataset(self, datasets: List[Dataset], 
+                            operation: str = "ADD", dry_run: bool = False) -> dict:
+        """
+        Create multiple datasets in bulk in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
+        
+        Args:
+            datasets (List[Dataset]): List of dataset instances to be uploaded.
+            operation (str, optional): Upload operation mode. Defaults to "ADD".
+                                      "ADD": Add or update only. Existing datasets not in the upload remain unchanged.
+                                      "REPLACE": Reconcile elements. Datasets not in the upload are considered obsolete.
+                                      "FULL_LOAD": Reconcile model. Completely replaces with the uploaded datasets.
+            dry_run (bool, optional): Whether to perform a test run without changing data. Defaults to False.
+            
+        Returns:
+            dict: The JSON response from the API containing the upload results
+            
+        Raises:
+            ValueError: If any dataset is missing required properties
+            HTTPError: If API requests fail
+        """
+        # Validate and log datasets
+        dataset_jsons = []
+        for dataset in datasets:
+            # Get ODS ID from dataset
+            ods_id = dataset.to_json().get('customProperties', {}).get('ID')
+            if not ods_id:
+                logging.error("Dataset missing 'ID' property required for ODS ID")
+                raise ValueError("All datasets must have an 'ID' property to use as ODS ID")
+            
+            # Read the dataset title
+            title = dataset.to_json()['label']
+            dataset_jsons.append(dataset.to_json())
+            
+        # Count of datasets
+        num_datasets = len(datasets)
+        logging.info(f"Bulk creating {num_datasets} datasets (operation: {operation}, dry_run: {dry_run})")
+        
+        # Ensure ODS-Imports collection exists
+        logging.debug(f"Ensuring ODS-Imports collection exists")
+        collection_data = self.ensure_ods_imports_collection_exists()
+        
+        # Get the collection UUID and href
+        collection_uuid, collection_href = get_uuid_and_href_from_response(collection_data)
+
+        if not collection_uuid or not collection_href:
+            logging.error("Failed to get collection UUID or href")
+            raise ValueError("Could not retrieve collection information required for dataset creation")
+
+        logging.debug(f"Using collection UUID: {collection_uuid} and href: {collection_href}")
+        
+        # Bulk create datasets
+        response = self.bulk_create_resource(
+            endpoint=collection_href,
+            data=dataset_jsons,
+            _type='Dataset',
+            operation=operation,
+            dry_run=dry_run
+        )
+        
+        # TODO (large language model): Implement mapping update from response
+        # Update mapping for each dataset (only for non-dry runs)
+        if not dry_run:
+            # The response structure varies based on operation success/failure
+            # Here we're making a simplistic assumption that the response contains dataset information
+            # A more robust implementation would need to parse the response structure correctly
+            try:
+                for dataset in datasets:
+                    ods_id = dataset.to_json().get('customProperties', {}).get('ID')
+                    if ods_id:
+                        # For simplicity, this assumes datasets can be found in embedded or directly in response
+                        # A real implementation would need to properly traverse the response structure
+                        # and match datasets to their respective responses
+                        # This is a placeholder for actual implementation
+                        logging.debug(f"Adding mapping entry for ODS ID {ods_id}")
+                        # TODO: Implement proper mapping update from response
+            except Exception as e:
+                logging.warning(f"Failed to update mapping from bulk response: {str(e)}")
+        
+        logging.info(f"Bulk dataset creation completed")
+        
         return response
     
     def update_dataset(self, dataset: Dataset, href: str, force_replace: bool = False) -> dict:

@@ -4,7 +4,6 @@ from time import sleep
 from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
 from dataspot_dataset import OGDDataset
-import json
 
 import ods_utils_py as ods_utils
 
@@ -125,6 +124,99 @@ def main_3_test_create_or_update_dataset():
     # Return the dataset ID for potential manual cleanup
     return test_dataset.datenportal_identifikation
 
+def main_4_test_bulk_create_dataset():
+    """
+    Test the bulk_create_dataset method of the DNKClient.
+    
+    This function:
+    1. Creates multiple test datasets
+    2. Uploads them in a bulk operation
+    3. Tests different options (operations, dry run)
+    4. Cleans up by deleting the datasets
+    
+    The results can be manually verified in the Dataspot UI.
+    """
+    logging.info("Testing bulk_create_dataset method...")
+    
+    # Initialize client
+    dataspot_client = DNKClient()
+    
+    # Create test datasets
+    test_datasets = []
+    dataset_ids = []
+    
+    # Create 5 test datasets
+    for i in range(1, 6):
+        dataset_id = f"test-bulk-dataset-{i:03d}"
+        dataset_ids.append(dataset_id)
+        
+        test_dataset = OGDDataset(
+            name=f"Test Bulk Dataset {i}",
+            beschreibung=f"This is test dataset #{i} for bulk upload testing",
+            schluesselwoerter=["test", "bulk", "api"],
+            datenportal_identifikation=dataset_id,  # Required for ODS ID
+            # Add required custom properties for OGD stereotype
+            aktualisierungszyklus="http://publications.europa.eu/resource/authority/frequency/DAILY",
+            tags=["test", "bulk", f"dataset-{i}"]
+        )
+        test_datasets.append(test_dataset)
+    
+    try:
+        # Test 1: Dry run with operation (ADD)
+        logging.info("Test 1: Performing dry run with operation (ADD)...")
+        dry_run_response = dataspot_client.bulk_create_dataset(
+            datasets=test_datasets,
+            operation="ADD",
+            dry_run=True
+        )
+        logging.info(f"Dry run completed. Response: {dry_run_response}")
+        
+        # Wait briefly to allow the server to process
+        sleep(2)
+        
+        # Test 2: Actual creation with operation (ADD)
+        logging.info("Test 2: Bulk creating datasets with operation (ADD)...")
+        create_response = dataspot_client.bulk_create_dataset(
+            datasets=test_datasets,
+            operation="ADD",
+            dry_run=False
+        )
+        logging.info(f"Bulk creation completed. Response summary: {create_response}")
+        
+        # Wait briefly to allow the server to process
+        sleep(2)
+        
+        # Test 3: Update with operation (REPLACE)
+        # Modify some dataset properties
+        for dataset in test_datasets:
+            dataset.beschreibung = f"{dataset.beschreibung} - UPDATED"
+            dataset.tags.append("updated")
+        
+        logging.info("Test 3: Updating datasets with operation (REPLACE)...")
+        update_response = dataspot_client.bulk_create_dataset(
+            datasets=test_datasets,
+            operation="REPLACE",
+            dry_run=False
+        )
+        logging.info(f"Bulk update completed. Response summary: {update_response}")
+        
+    finally:
+        # Clean up: Delete all test datasets
+        logging.info("Cleaning up: Deleting test datasets...")
+        for dataset_id in dataset_ids:
+            try:
+                delete_success = dataspot_client.delete_dataset(
+                    ods_id=dataset_id,
+                    fail_if_not_exists=False
+                )
+                logging.info(f"Deleted dataset {dataset_id}: {delete_success}")
+            except Exception as e:
+                logging.warning(f"Failed to delete dataset {dataset_id}: {str(e)}")
+        
+    logging.info("Bulk dataset tests completed. Check the Dataspot UI to verify all operations were performed correctly.")
+    
+    return dataset_ids
+
 def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
@@ -210,6 +302,6 @@ def main_X_build_organization_structure_in_dnk():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_3_test_create_or_update_dataset()
+    main_4_test_bulk_create_dataset()
     logging.info('Job successful!')
     
