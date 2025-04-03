@@ -34,7 +34,7 @@ class BaseDataspotClient(ABC):
             endpoint (str): API endpoint path (will be joined with base_url)
             data (Dict[str, Any]): JSON data for the resource
             _type (str, optional): The type of resource to create (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
-                                  If provided, it will override any existing '_type' in data
+                                  This value will override any existing '_type' in data
             
         Returns:
             Dict[str, Any]: JSON response from the API
@@ -63,7 +63,7 @@ class BaseDataspotClient(ABC):
             scheme_name (str): Name of the scheme to upload to (e.g. 'Datennutzungskatalog')
             data (List[Dict[str, Any]]): List of JSON data for resources to create/update
             _type (str, optional): The type of resources to create (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
-                                  If provided, it will override any existing '_type' in each data item
+                                  This value will override any existing '_type' in each data item
             operation (str, optional): Upload operation mode. Defaults to "ADD".
                                       "ADD": Add or update only. Existing items not in the upload remain unchanged.
                                       "REPLACE": Reconcile elements. Items not in the upload are considered obsolete.
@@ -173,7 +173,7 @@ class BaseDataspotClient(ABC):
             data (Dict[str, Any]): JSON data for the resource
             replace (bool): Whether to completely replace (PUT) or partially update (PATCH)
             _type (str, optional): The type of resource to update (e.g. 'Dataset', 'Collection'). Defaults to "Asset".
-                                  If provided, it will override any existing '_type' in data
+                                  This value will override any existing '_type' in data
             
         Returns:
             Dict[str, Any]: JSON response from the API
