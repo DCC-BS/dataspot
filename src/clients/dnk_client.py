@@ -147,7 +147,7 @@ class DNKClient(BaseDataspotClient):
         logging.info(f"Bulk creating {num_datasets} datasets (operation: {operation}, dry_run: {dry_run})")
         
         # Bulk create datasets using the scheme name
-        response = self.bulk_create_resource(
+        response = self.bulk_create_or_update_resource(
             scheme_name=self.scheme_name,
             data=dataset_jsons,
             _type='Dataset',
