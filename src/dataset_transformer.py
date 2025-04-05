@@ -8,8 +8,52 @@ from src.dataspot_dataset import OGDDataset
 
 # Map of ODS geographic reference codes to human-readable locations
 # TODO (Renato): Load these codes from the RDM after adding them there
+# TODO (Renato): IMPORTANT, URGENT: Find out what the other codes mean, or even better, where I can look them up
+"""
+INFO:root:Processing dataset 100304...
+WARNING:root:Multiple geographic references found in ODS metadata: ['ch_80_2761', '', 'ch_80_2763', 'ch_80_2822', '', '', '', 'ch_80_2473', 'ch_80_4161', 'ch_80_2768', 'ch_80_2824', 'ch_80_4163', 'ch_80_2825', 'ch_80_4165', 'ch_80_4252', 'ch_80_2828', 'ch_80_2829', 'ch_80_4254', 'ch_80_2769', 'ch_80_2770', 'ch_80_4175', 'ch_80_2772', 'ch_80_2831', 'ch_80_2773', 'ch_80_4258', 'ch_80_2775', 'ch_80_4261']
+Aesch (BL) , Arlesheim , Augst , Füllinsdorf , Kaiseraugst , Lausen , Münchenstein , Dornach , Eiken , Ettingen , Frenkendorf , Rheinfelden , Wallbach , Frick, Gipf-Oberfrick , Liestal , Möhlin , Muttenz , Oeschgen , Pratteln , Pfeffingen , Reinach (BL) , Therwil 
+
+100187
+'ch_80_2762', 'ch_80_2766', 'ch_80_2767', 'ch_80_2774'
+Allschwil , Schönenbuch , Birsfelden , Bottmingen
+"""
 GEOGRAPHIC_REFERENCE_MAP = {
+    "world_ch": "Schweiz",
+    "ch_80_2703": "Riehen",
+    "ch_80_2702": "Bettingen",
+    "ch_80_2701": "Basel",
+    "ch_80_2765": "Binningen",
+    "ch_80_2762": "???-ch_80_2762",
+    "ch_80_2766": "???-ch_80_2766",
+    "ch_80_2767": "???-ch_80_2767",
+    "ch_80_2774": "???-ch_80_2774",
     "ch_40_12": "Basel-Stadt",
+    "ch_40_13": "Basel-Landschaft",
+    "ch_80_2761": "???-ch_80_2761",
+    "ch_80_2763": "???-ch_80_2763",
+    "ch_80_2822": "???-ch_80_2822",
+    "ch_80_2473": "???-ch_80_2473",
+    "ch_80_4161": "???-ch_80_4161",
+    "ch_80_2768": "???-ch_80_2768",
+    "ch_80_2824": "???-ch_80_2824",
+    "ch_80_4163": "???-ch_80_4163",
+    "ch_80_2825": "???-ch_80_2825",
+    "ch_80_4165": "???-ch_80_4165",
+    "ch_80_4252": "???-ch_80_4252",
+    "ch_80_2828": "???-ch_80_2828",
+    "ch_80_2829": "???-ch_80_2829",
+    "ch_80_4254": "???-ch_80_4254",
+    "ch_80_2769": "???-ch_80_2769",
+    "ch_80_2770": "???-ch_80_2770",
+    "ch_80_2771": "Oberwil (BL)",
+    "ch_80_4175": "???-ch_80_4175",
+    "ch_80_2772": "???-ch_80_2772",
+    "ch_80_2831": "???-ch_80_2831",
+    "ch_80_2773": "???-ch_80_2773",
+    "ch_80_4258": "???-ch_80_4258",
+    "ch_80_2775": "???-ch_80_2775",
+    "ch_80_4261": "???-ch_80_4261"
     # Add more mappings as needed
 }
 
@@ -39,14 +83,28 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     if 'default' in ods_metadata and 'geographic_reference' in ods_metadata['default']:
         geo_refs = get_field_value(ods_metadata['default']['geographic_reference'])
         if geo_refs and isinstance(geo_refs, list) and len(geo_refs) > 0:
-            geo_code = geo_refs[0]  # Use the first code if multiple are provided
-            if len(geo_refs) > 1:
-                logging.warning(f"Multiple geographic references found in ODS metadata: {geo_refs}. Used the first one: {geo_code}")
-            if geo_code in GEOGRAPHIC_REFERENCE_MAP:
-                geographical_dimension = GEOGRAPHIC_REFERENCE_MAP[geo_code]
-            elif geo_code is not None:
+            # Check if all codes are in the map
+            all_codes_in_map = True
+            unknown_codes = []
+            for geo_code in geo_refs:
+                if geo_code is not None and geo_code not in GEOGRAPHIC_REFERENCE_MAP:
+                    all_codes_in_map = False
+                    unknown_codes.append(geo_code)
+            
+            if unknown_codes:
                 # Only throw an error for unknown codes (not for None)
-                raise ValueError(f"Unknown geographic reference code: {geo_code}")
+                raise ValueError(f"Unknown geographic reference code(s): {unknown_codes}")
+            
+            # If all codes are in the map, add all of them
+            if all_codes_in_map:
+                # Create a list of geo dimensions for valid codes, filter out None values
+                geo_dimensions = [GEOGRAPHIC_REFERENCE_MAP[geo_code] for geo_code in geo_refs if geo_code is not None]
+                
+                # Join the values into a single string with comma and space separator
+                geographical_dimension = ", ".join(geo_dimensions) if geo_dimensions else None
+                
+                if len(geo_refs) > 1:
+                    logging.info(f"Multiple geographic references found in ODS metadata: {geo_refs}. Joined as: {geographical_dimension}")
     
     # TODO (Renato): Map dcat_ap_ch.rights to appropriate field (example: "NonCommercialAllowed-CommercialAllowed-ReferenceRequired")
     

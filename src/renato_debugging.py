@@ -454,11 +454,10 @@ def main_8_test_bulk_ods_datasets_upload():
     
     This function:
     1. Retrieves all public dataset IDs from ODS
-    2. Processes datasets in batches
-    3. Transforms each dataset using transform_ods_to_dnk
-    4. Calls bulk_create_or_update_datasets with the batches
-    5. Includes delay between API calls to be kind to servers
-    6. Provides options to limit the number of datasets processed
+    2. Transforms each dataset using transform_ods_to_dnk
+    3. Collects all datasets and uploads them at once
+    4. Includes progress reporting with counters
+    5. Provides options to limit the number of datasets processed
     
     Returns:
         List[str]: The list of dataset IDs that were uploaded
@@ -469,7 +468,6 @@ def main_8_test_bulk_ods_datasets_upload():
     dataspot_client = DNKClient()
     
     # Configuration
-    batch_size = 500  # Number of datasets to process in a batch
     max_datasets = None  # Maximum number of datasets to process (set to None for all)
     request_delay = 1.0  # Delay in seconds between API calls
     cleanup_after_test = True  # Whether to delete datasets after testing
@@ -483,70 +481,54 @@ def main_8_test_bulk_ods_datasets_upload():
         
     logging.info(f"Found {len(ods_ids)} datasets to process")
     
-    # Process datasets in batches
+    # Process all datasets
     total_processed = 0
     total_successful = 0
     total_failed = 0
     processed_ids = []
+    all_datasets = []
     
-    # Process each batch
-    for batch_start in range(0, len(ods_ids), batch_size):
-        batch_end = min(batch_start + batch_size, len(ods_ids))
-        batch_ids = ods_ids[batch_start:batch_end]
-        
-        logging.info(f"Processing batch {batch_start//batch_size + 1}/{(len(ods_ids)-1)//batch_size + 1} with {len(batch_ids)} datasets")
-        
-        # Retrieve and transform datasets in this batch
-        batch_datasets = []
-        batch_processed_ids = []
-        
-        for ods_id in batch_ids:
-            try:
-                logging.info(f"Processing dataset {ods_id}...")
-                
-                # Get metadata from ODS
-                ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-                
-                # Transform to Dataspot dataset
-                dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
-                
-                # Add to batch
-                batch_datasets.append(dataset)
-                batch_processed_ids.append(ods_id)
-                
-                logging.info(f"Successfully transformed dataset {ods_id}: {dataset.name}")
-                total_successful += 1
-                
-            except Exception as e:
-                logging.error(f"Error processing dataset {ods_id}: {str(e)}")
-                total_failed += 1
+    # Process each dataset
+    for idx, ods_id in enumerate(ods_ids):
+        try:
+            logging.info(f"[{idx+1}/{len(ods_ids)}] Processing dataset {ods_id}...")
             
-            total_processed += 1
+            # Get metadata from ODS
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            
+            # Transform to Dataspot dataset
+            dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
+            
+            # Add to collection
+            all_datasets.append(dataset)
+            processed_ids.append(ods_id)
+            
+            logging.info(f"[{idx+1}/{len(ods_ids)}] Successfully transformed dataset {ods_id}: {dataset.name}")
+            total_successful += 1
+            
+        except Exception as e:
+            logging.error(f"[{idx+1}/{len(ods_ids)}] Error processing dataset {ods_id}: {str(e)}")
+            total_failed += 1
         
-        # If we have datasets to upload, do it
-        if batch_datasets:
-            try:
-                # Bulk create the batch
-                logging.info(f"Bulk uploading batch of {len(batch_datasets)} datasets...")
-                
-                # Perform the bulk upload
-                create_response = dataspot_client.bulk_create_or_update_datasets(
-                    datasets=batch_datasets,
-                    operation="ADD",
-                    dry_run=False
-                )
-                
-                logging.info(f"Bulk upload completed. Response summary: {create_response}")
-                processed_ids.extend(batch_processed_ids)
-                
-            except Exception as e:
-                logging.error(f"Error during bulk upload: {str(e)}")
-                logging.warning("Continuing with next batch...")
-        
-        logging.info(f"Progress: {total_processed}/{len(ods_ids)} datasets processed ({total_successful} successful, {total_failed} failed)")
-        
-        # Be extra kind to the server between batches
-        sleep(request_delay * 2)
+        total_processed += 1
+    
+    # Upload all datasets at once if we have any
+    if all_datasets:
+        try:
+            # Bulk create all datasets
+            logging.info(f"Bulk uploading all {len(all_datasets)} datasets...")
+            
+            # Perform the bulk upload
+            create_response = dataspot_client.bulk_create_or_update_datasets(
+                datasets=all_datasets,
+                operation="ADD",
+                dry_run=False
+            )
+            
+            logging.info(f"Bulk upload completed. Response summary: {create_response}")
+            
+        except Exception as e:
+            logging.error(f"Error during bulk upload: {str(e)}")
     
     logging.info(f"Completed processing {total_processed} datasets: {total_successful} successful, {total_failed} failed")
     
@@ -554,17 +536,17 @@ def main_8_test_bulk_ods_datasets_upload():
     if cleanup_after_test and processed_ids:
         logging.info(f"Cleaning up {len(processed_ids)} uploaded datasets...")
         
-        for dataset_id in processed_ids:
+        for idx, dataset_id in enumerate(processed_ids):
             try:
                 delete_success = dataspot_client.delete_dataset(
                     ods_id=dataset_id,
                     fail_if_not_exists=False
                 )
-                logging.info(f"Deleted dataset {dataset_id}: {delete_success}")
+                logging.info(f"[{idx+1}/{len(processed_ids)}] Deleted dataset {dataset_id}: {delete_success}")
                 # Be kind to the server during cleanup
                 sleep(request_delay)
             except Exception as e:
-                logging.warning(f"Failed to delete dataset {dataset_id}: {str(e)}")
+                logging.warning(f"[{idx+1}/{len(processed_ids)}] Failed to delete dataset {dataset_id}: {str(e)}")
         
         logging.info("Cleanup completed")
     

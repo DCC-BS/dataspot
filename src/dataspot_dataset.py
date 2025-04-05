@@ -80,7 +80,7 @@ class BasicDataset(Dataset):
     identifikation: Optional[str] = field(default=None, metadata={'json_key': 'identifier'}) # TODO: REMOVE ME
     # TODO: zeitliche_dimension_beginn
     # TODO: zeitliche_dimension_ende
-    geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'}) # TODO: Check
+    geographische_dimension: Optional[str] = field(default=None, metadata={'json_key': 'spatial'})
     # TODO: vertraulichkeit -> Immer öffentlich bei OGD
     #schutzbedarfsstufen -> ???
     #letzte_aktualisierung -> ???
