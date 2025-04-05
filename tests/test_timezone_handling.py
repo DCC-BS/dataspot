@@ -1,5 +1,5 @@
 import unittest
-from src.metadata_translator import iso_8601_to_unix_timestamp
+from src.dataset_transformer import iso_8601_to_unix_timestamp
 
 class TestTimezoneHandling(unittest.TestCase):
     def test_utc_timezone_in_string(self):

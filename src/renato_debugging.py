@@ -1,13 +1,13 @@
 import logging
 from time import sleep
+import json
 
 from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
-from dataspot_dataset import OGDDataset
-
+from src.dataspot_dataset import OGDDataset
 import ods_utils_py as ods_utils
 
-from deprecated_metadata_translator import ods_to_dataspot
+from src.dataset_transformer import transform_ods_to_dnk
 
 
 def main_X():
@@ -24,7 +24,7 @@ def main_X():
         logging.info(f"Processing dataset {ods_id}...")
 
         ods_metadata = ods_utils.get_dataset_metadata(dataset_id = ods_id)
-        dataset = ods_to_dataspot(ods_metadata=ods_metadata, ods_dataset_id=ods_id, dataspot_client=dataspot_client)
+        dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
 
         #dataspot_client. ...
     pass
@@ -292,6 +292,53 @@ def main_5_test_mapping_update():
     logging.info("Mapping update test completed")
     return dataset_ids
 
+def main_6_analyze_ods_metadata():
+    """
+    Analyzes and displays the structure of ODS metadata for a sample dataset.
+    
+    This function:
+    1. Retrieves metadata for a specific dataset from ODS
+    2. Prints the full metadata structure for analysis
+    3. Tests the transform_ods_to_dnk function
+    4. Displays the resulting OGDDataset
+    """
+    logging.info("Starting ODS metadata analysis...")
+
+    dataset_id = '100397'
+    
+    # Get metadata from ODS
+    logging.info(f"Retrieving metadata for dataset {dataset_id}...")
+    ods_metadata = ods_utils.get_dataset_metadata(dataset_id=dataset_id)
+    
+    # Print the metadata structure
+    logging.info("Full ODS metadata structure:")
+    print(json.dumps(ods_metadata, indent=2))
+    
+    # Transform to Dataspot dataset
+    logging.info("Transforming ODS metadata to Dataspot dataset...")
+    dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=dataset_id)
+    
+    # Print the resulting dataset
+    logging.info("Resulting OGDDataset:")
+    print(f"Dataset name: {dataset.name}")
+    print(f"Kurzbeschreibung: {dataset.kurzbeschreibung}")
+    print(f"Beschreibung: {dataset.beschreibung}")
+    print(f"Schlüsselwörter: {dataset.schluesselwoerter}")
+    print(f"Synonyme: {dataset.synonyme}")
+    print(f"Aktualisierungszyklus: {dataset.aktualisierungszyklus}")
+    print(f"Publikationsdatum: {dataset.publikationsdatum}")
+    print(f"Geographische Dimension: {dataset.geographische_dimension}")
+    print(f"Datenportal-ID: {dataset.datenportal_identifikation}")
+    print(f"Tags: {dataset.tags}")
+    
+    # Convert to JSON representation
+    logging.info("Dataset JSON representation:")
+    dataset_json = dataset.to_json()
+    print(json.dumps(dataset_json, indent=2))
+    
+    logging.info("ODS metadata analysis completed")
+    return dataset
+
 def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
@@ -375,8 +422,8 @@ def main_X_build_organization_structure_in_dnk():
         logging.info("Organization structure build process finished")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_4_test_bulk_create_dataset()
+    main_6_analyze_ods_metadata()
     logging.info('Job successful!')
     
