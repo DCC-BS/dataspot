@@ -337,6 +337,117 @@ def main_6_analyze_ods_metadata():
     logging.info("ODS metadata analysis completed")
     return dataset
 
+def main_7_test_bulk_few_ods_datasets_upload():
+    """
+    Test the bulk upload of specific ODS datasets to Dataspot.
+    
+    This function:
+    1. Retrieves metadata for specific ODS dataset IDs
+    2. Transforms each dataset using transform_ods_to_dnk
+    3. Creates a list of transformed datasets
+    4. Calls bulk_create_or_update_datasets with this list
+    5. Includes sleep statements for manual verification
+    6. Cleans up datasets at the end
+    
+    Returns:
+        List[str]: The list of dataset IDs that were uploaded
+    """
+    logging.info("Testing bulk upload of specific ODS datasets...")
+    
+    # Initialize clients
+    dataspot_client = DNKClient()
+    
+    # Specific ODS dataset IDs to test
+    ods_ids = ['100003', '100034', '100236', '100397']
+    datasets = []
+    
+    # Retrieve and transform each dataset
+    logging.info(f"Retrieving and transforming {len(ods_ids)} datasets...")
+    for ods_id in ods_ids:
+        try:
+            logging.info(f"Processing dataset {ods_id}...")
+            
+            # Get metadata from ODS
+            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            
+            # Transform to Dataspot dataset
+            dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
+            
+            # Add to list
+            datasets.append(dataset)
+            logging.info(f"Successfully transformed dataset {ods_id}: {dataset.name}")
+            
+        except Exception as e:
+            logging.error(f"Error processing dataset {ods_id}: {str(e)}")
+    
+    if not datasets:
+        logging.error("No datasets were successfully transformed. Aborting test.")
+        return []
+    
+    dataset_ids = [dataset.datenportal_identifikation for dataset in datasets]
+    logging.info(f"Successfully transformed {len(datasets)} datasets: {dataset_ids}")
+    
+    try:
+        # Test 1: Dry run to check for any issues
+        logging.info("Performing dry run of bulk upload...")
+        dry_run_response = dataspot_client.bulk_create_or_update_datasets(
+            datasets=datasets,
+            operation="ADD",
+            dry_run=True
+        )
+        logging.info(f"Dry run completed. Response: {dry_run_response}")
+        
+        # Wait for manual verification
+        sleep(2)
+        
+        # Test 2: Actual creation with operation (ADD)
+        logging.info("Bulk uploading datasets...")
+        create_response = dataspot_client.bulk_create_or_update_datasets(
+            datasets=datasets,
+            operation="ADD",
+            dry_run=False
+        )
+        logging.info(f"Bulk upload completed. Response summary: {create_response}")
+        
+        # Wait for manual verification
+        sleep(3)
+        
+        # Test 3: Update with operation (REPLACE)
+        # Modify some dataset properties for testing updates
+        for dataset in datasets:
+            dataset.beschreibung = f"{dataset.beschreibung} - UPDATED VIA BULK API"
+            if dataset.tags:
+                dataset.tags.append("bulk-updated")
+            else:
+                dataset.tags = ["bulk-updated"]
+        
+        logging.info("Updating datasets with operation (REPLACE)...")
+        update_response = dataspot_client.bulk_create_or_update_datasets(
+            datasets=datasets,
+            operation="REPLACE",
+            dry_run=False
+        )
+        logging.info(f"Bulk update completed. Response summary: {update_response}")
+        
+        # Wait for manual verification
+        sleep(3)
+        
+        return dataset_ids
+        
+    finally:
+        # Clean up: Delete all test datasets
+        logging.info("Cleaning up: Deleting uploaded datasets...")
+        for dataset_id in dataset_ids:
+            try:
+                delete_success = dataspot_client.delete_dataset(
+                    ods_id=dataset_id,
+                    fail_if_not_exists=False
+                )
+                logging.info(f"Deleted dataset {dataset_id}: {delete_success}")
+            except Exception as e:
+                logging.warning(f"Failed to delete dataset {dataset_id}: {str(e)}")
+        logging.info("Cleanup completed")
+
 def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
@@ -422,6 +533,6 @@ def main_X_build_organization_structure_in_dnk():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logging.info(f'Executing {__file__}...')
-    main_6_analyze_ods_metadata()
+    main_7_test_bulk_few_ods_datasets_upload()
     logging.info('Job successful!')
     
