@@ -217,6 +217,81 @@ def main_4_test_bulk_create_dataset():
     
     return dataset_ids
 
+def main_5_test_mapping_update():
+    """
+    Test the ability to update mappings after bulk dataset upload.
+
+    This function:
+    1. Creates multiple test datasets
+    2. Uploads them using the bulk_create_dataset method
+    3. Verifies that mappings are correctly updated
+    4. Cleans up by deleting the test datasets
+    """
+    logging.info("Testing mapping update after bulk upload...")
+
+    # Initialize client
+    dataspot_client = DNKClient()
+
+    # Create test datasets
+    test_datasets = []
+    dataset_ids = []
+
+    # Create 3 test datasets with unique IDs
+    for i in range(1, 4):
+        dataset_id = f"test-mapping-{i:03d}"
+        dataset_ids.append(dataset_id)
+
+        test_dataset = OGDDataset(
+            name=f"Test Mapping Dataset {i}",
+            beschreibung=f"This is test dataset #{i} for mapping update testing",
+            schluesselwoerter=["test", "mapping", "api"],
+            datenportal_identifikation=dataset_id,  # Required for ODS ID
+            aktualisierungszyklus="http://publications.europa.eu/resource/authority/frequency/DAILY",
+            tags=["test", "mapping", f"dataset-{i}"]
+        )
+        test_datasets.append(test_dataset)
+
+    try:
+        # Upload the datasets in bulk
+        logging.info("Creating datasets in bulk...")
+        create_response = dataspot_client.bulk_create_or_update_datasets(
+            datasets=test_datasets,
+            operation="ADD",
+            dry_run=False
+        )
+        logging.info(f"Bulk creation completed. Response: {create_response}")
+
+        # Check if mappings were updated
+        logging.info("Checking if mappings were updated...")
+        mappings_updated = 0
+
+        for dataset_id in dataset_ids:
+            entry = dataspot_client.mapping.get_entry(dataset_id)
+            if entry:
+                uuid, href = entry
+                logging.info(f"Mapping for {dataset_id}: UUID={uuid}, href={href}")
+                mappings_updated += 1
+            else:
+                logging.warning(f"No mapping found for dataset ID: {dataset_id}")
+
+        logging.info(f"Found mappings for {mappings_updated} out of {len(dataset_ids)} datasets")
+
+    finally:
+        # Clean up: Delete all test datasets
+        logging.info("Cleaning up: Deleting test datasets...")
+        for dataset_id in dataset_ids:
+            try:
+                delete_success = dataspot_client.delete_dataset(
+                    ods_id=dataset_id,
+                    fail_if_not_exists=False
+                )
+                logging.info(f"Deleted dataset {dataset_id}: {delete_success}")
+            except Exception as e:
+                logging.warning(f"Failed to delete dataset {dataset_id}: {str(e)}")
+
+    logging.info("Mapping update test completed")
+    return dataset_ids
+
 def main_X_build_organization_structure_in_dnk():
     """
     Build the organization structure in Dataspot's DNK scheme based on data from the ODS API.
@@ -299,84 +374,9 @@ def main_X_build_organization_structure_in_dnk():
     finally:
         logging.info("Organization structure build process finished")
 
-def main_5_test_mapping_update():
-    """
-    Test the ability to update mappings after bulk dataset upload.
-    
-    This function:
-    1. Creates multiple test datasets
-    2. Uploads them using the bulk_create_dataset method
-    3. Verifies that mappings are correctly updated
-    4. Cleans up by deleting the test datasets
-    """
-    logging.info("Testing mapping update after bulk upload...")
-    
-    # Initialize client
-    dataspot_client = DNKClient()
-    
-    # Create test datasets
-    test_datasets = []
-    dataset_ids = []
-    
-    # Create 3 test datasets with unique IDs
-    for i in range(1, 4):
-        dataset_id = f"test-mapping-{i:03d}"
-        dataset_ids.append(dataset_id)
-        
-        test_dataset = OGDDataset(
-            name=f"Test Mapping Dataset {i}",
-            beschreibung=f"This is test dataset #{i} for mapping update testing",
-            schluesselwoerter=["test", "mapping", "api"],
-            datenportal_identifikation=dataset_id,  # Required for ODS ID
-            aktualisierungszyklus="http://publications.europa.eu/resource/authority/frequency/DAILY",
-            tags=["test", "mapping", f"dataset-{i}"]
-        )
-        test_datasets.append(test_dataset)
-    
-    try:
-        # Upload the datasets in bulk
-        logging.info("Creating datasets in bulk...")
-        create_response = dataspot_client.bulk_create_or_update_datasets(
-            datasets=test_datasets,
-            operation="ADD",
-            dry_run=False
-        )
-        logging.info(f"Bulk creation completed. Response: {create_response}")
-        
-        # Check if mappings were updated
-        logging.info("Checking if mappings were updated...")
-        mappings_updated = 0
-        
-        for dataset_id in dataset_ids:
-            entry = dataspot_client.mapping.get_entry(dataset_id)
-            if entry:
-                uuid, href = entry
-                logging.info(f"Mapping for {dataset_id}: UUID={uuid}, href={href}")
-                mappings_updated += 1
-            else:
-                logging.warning(f"No mapping found for dataset ID: {dataset_id}")
-        
-        logging.info(f"Found mappings for {mappings_updated} out of {len(dataset_ids)} datasets")
-        
-    finally:
-        # Clean up: Delete all test datasets
-        logging.info("Cleaning up: Deleting test datasets...")
-        for dataset_id in dataset_ids:
-            try:
-                delete_success = dataspot_client.delete_dataset(
-                    ods_id=dataset_id,
-                    fail_if_not_exists=False
-                )
-                logging.info(f"Deleted dataset {dataset_id}: {delete_success}")
-            except Exception as e:
-                logging.warning(f"Failed to delete dataset {dataset_id}: {str(e)}")
-    
-    logging.info("Mapping update test completed")
-    return dataset_ids
-
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logging.info(f'Executing {__file__}...')
-    main_5_test_mapping_update()
+    main_4_test_bulk_create_dataset()
     logging.info('Job successful!')
     
