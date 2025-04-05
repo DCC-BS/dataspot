@@ -5,6 +5,7 @@ tmp/
 **/__pycache__/
 **/*.mdc
 **/*.txt
+**/*.csv
 **/config.py
 !requirements.txt
 !**/README.txt
