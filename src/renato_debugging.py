@@ -321,10 +321,8 @@ def main_6_analyze_ods_metadata():
     # Print the resulting dataset
     logging.info("Resulting OGDDataset:")
     print(f"Dataset name: {dataset.name}")
-    print(f"Kurzbeschreibung: {dataset.kurzbeschreibung}")
     print(f"Beschreibung: {dataset.beschreibung}")
     print(f"Schlüsselwörter: {dataset.schluesselwoerter}")
-    print(f"Synonyme: {dataset.synonyme}")
     print(f"Aktualisierungszyklus: {dataset.aktualisierungszyklus}")
     print(f"Publikationsdatum: {dataset.publikationsdatum}")
     print(f"Geographische Dimension: {dataset.geographische_dimension}")

@@ -6,6 +6,13 @@ from dateutil import parser
 from src.dataspot_dataset import OGDDataset
 
 
+# Map of ODS geographic reference codes to human-readable locations
+# TODO (Renato): Load these codes from the RDM after adding them there
+GEOGRAPHIC_REFERENCE_MAP = {
+    "ch_40_12": "Basel-Stadt",
+    # Add more mappings as needed
+}
+
 def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> OGDDataset:
     """
     Transforms metadata from OpenDataSoft (ODS) format to Dataspot DNK format.
@@ -29,19 +36,42 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     
     # Extract geographical/spatial information if available
     geographical_dimension = None
-    if 'dcat' in ods_metadata and 'spatial' in ods_metadata['dcat']:
-        geographical_dimension = get_field_value(ods_metadata['dcat']['spatial'])
+    if 'default' in ods_metadata and 'geographic_reference' in ods_metadata['default']:
+        geo_refs = get_field_value(ods_metadata['default']['geographic_reference'])
+        if geo_refs and isinstance(geo_refs, list) and len(geo_refs) > 0:
+            geo_code = geo_refs[0]  # Use the first code if multiple are provided
+            if len(geo_refs) > 1:
+                logging.warning(f"Multiple geographic references found in ODS metadata: {geo_refs}. Used the first one: {geo_code}")
+            if geo_code in GEOGRAPHIC_REFERENCE_MAP:
+                geographical_dimension = GEOGRAPHIC_REFERENCE_MAP[geo_code]
+            elif geo_code is not None:
+                # Only throw an error for unknown codes (not for None)
+                raise ValueError(f"Unknown geographic reference code: {geo_code}")
+    
+    # TODO (Renato): Map dcat_ap_ch.rights to appropriate field (example: "NonCommercialAllowed-CommercialAllowed-ReferenceRequired")
+    
+    # TODO (Renato): Map internal.license_id to appropriate field (example: "cc_by")
+    
+    # TODO (Renato): Map temporal coverage information (example: "1939-08-01/2025-03-31" or "2024-02-10/2032-08-08")
+    
+    # TODO (Renato): Map dcat.creator to appropriate field (example: "Erziehungsdepartement" or "Statistisches Amt")
+    # Note: Will need to add this field to dataspot_dataset.py annotations YAML
+    
+    # TODO (Renato): Map default.publisher to appropriate field (example: "Generalsekretariat" or "Statistisches Amt")
+    # Note: Will need to add this field to dataspot_dataset.py annotations YAML
+    
+    # TODO (Renato): Map default.references to appropriate field (example: "https://statistik.bs.ch/unterthema/9#Preise")
+    
+    # TODO (Renato): Consider if it makes sense to import creation date (dcat.created) and modification date (default.modified)
     
     # Create the OGDDataset with mapped fields
     ogd_dataset = OGDDataset(
         # Basic information
         name=get_field_value(ods_metadata['default']['title']),
         beschreibung=get_field_value(ods_metadata['default'].get('description', {})),
-        kurzbeschreibung=extract_short_description(ods_metadata),
         
         # Keywords and categorization
         schluesselwoerter=get_field_value(ods_metadata['default'].get('keyword', {})),
-        synonyme=extract_synonyms(ods_metadata),
         
         # Time and update information
         aktualisierungszyklus=get_field_value(
@@ -64,62 +94,6 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
     return ogd_dataset
-
-
-def extract_short_description(ods_metadata: Dict[str, Any]) -> Optional[str]:
-    """
-    Extract a short description from the ODS metadata.
-    
-    Args:
-        ods_metadata: The ODS metadata dictionary
-        
-    Returns:
-        Optional[str]: A short description if available, otherwise None
-    """
-    # TODO (Renato): I don't think we need this method as there is no short description in the ODS metadata I THINK. Please check and remove.
-    return None
-    # Try to get a short description from various places in the metadata
-    if 'default' in ods_metadata:
-        # Check if there's a field specifically for short description
-        if 'short_description' in ods_metadata['default']:
-            return get_field_value(ods_metadata['default']['short_description'])
-        
-        # If there's a description, take the first sentence or first 100 chars
-        if 'description' in ods_metadata['default']:
-            desc = get_field_value(ods_metadata['default']['description'])
-            if desc:
-                # Return first sentence (up to .) or first 100 chars
-                first_sentence = desc.split('. ')[0]
-                if len(first_sentence) > 100:
-                    return first_sentence[:97] + '...'
-                return first_sentence
-    
-    return None
-
-
-def extract_synonyms(ods_metadata: Dict[str, Any]) -> Optional[List[str]]:
-    """
-    Extract synonyms from the ODS metadata if available.
-    
-    Args:
-        ods_metadata: The ODS metadata dictionary
-        
-    Returns:
-        Optional[List[str]]: List of synonyms if available, otherwise None
-    """
-    # Check various places where synonyms might be stored
-    if 'default' in ods_metadata and 'synonyms' in ods_metadata['default']:
-        return get_field_value(ods_metadata['default']['synonyms'])
-    
-    # Could also extract from 'alternate_title' if available
-    if 'default' in ods_metadata and 'alternate_title' in ods_metadata['default']:
-        alt_title = get_field_value(ods_metadata['default']['alternate_title'])
-        if alt_title:
-            if isinstance(alt_title, list):
-                return alt_title
-            return [alt_title]
-    
-    return None
 
 
 def iso_8601_to_unix_timestamp(datetime_str: str, dataset_timezone: str = None) -> Optional[int]:
