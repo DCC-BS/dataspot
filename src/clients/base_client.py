@@ -54,8 +54,8 @@ class BaseDataspotClient(ABC):
         response = requests_post(full_url, headers=headers, json=data_to_send)
         return response.json()
 
-    def bulk_create_or_update_resource(self, scheme_name: str, data: List[Dict[str, Any]], _type: str = "Asset", 
-                             operation: str = "ADD", dry_run: bool = False) -> Dict[str, Any]:
+    def bulk_create_or_update_resources(self, scheme_name: str, data: List[Dict[str, Any]], _type: str = "Asset",
+                                        operation: str = "ADD", dry_run: bool = False) -> Dict[str, Any]:
         """
         Create or update multiple resources in bulk via the upload API.
         

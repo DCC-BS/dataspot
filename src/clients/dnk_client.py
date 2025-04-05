@@ -1,6 +1,7 @@
 import logging
 from requests import RequestException, ConnectionError, Timeout
 from typing import Dict, Any, List
+from time import sleep
 
 from requests import HTTPError
 
@@ -90,8 +91,8 @@ class DNKClient(BaseDataspotClient):
         logging.info(f"Successfully created dataset '{title}'")
         return response
 
-    def bulk_create_dataset(self, datasets: List[Dataset], 
-                            operation: str = "ADD", dry_run: bool = False) -> dict:
+    def bulk_create_or_update_datasets(self, datasets: List[Dataset],
+                                       operation: str = "ADD", dry_run: bool = False) -> dict:
         """
         Create multiple datasets in bulk in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
         The datasets will be created at the scheme level, but each dataset will have its inCollection
@@ -127,12 +128,15 @@ class DNKClient(BaseDataspotClient):
         
         # Validate and log datasets
         dataset_jsons = []
+        ods_ids = []
         for dataset in datasets:
             # Get ODS ID from dataset
             ods_id = dataset.to_json().get('customProperties', {}).get('ID')
             if not ods_id:
                 logging.error("Dataset missing 'ID' property required for ODS ID")
                 raise ValueError("All datasets must have an 'ID' property to use as ODS ID")
+            
+            ods_ids.append(ods_id)
             
             # Read the dataset title
             title = dataset.to_json()['label']
@@ -147,7 +151,7 @@ class DNKClient(BaseDataspotClient):
         logging.info(f"Bulk creating {num_datasets} datasets (operation: {operation}, dry_run: {dry_run})")
         
         # Bulk create datasets using the scheme name
-        response = self.bulk_create_or_update_resource(
+        response = self.bulk_create_or_update_resources(
             scheme_name=self.scheme_name,
             data=dataset_jsons,
             _type='Dataset',
@@ -155,29 +159,97 @@ class DNKClient(BaseDataspotClient):
             dry_run=dry_run
         )
         
-        # TODO (large language model): Implement mapping update from response
         # Update mapping for each dataset (only for non-dry runs)
         if not dry_run:
-            # The response structure varies based on operation success/failure
-            # Here we're making a simplistic assumption that the response contains dataset information
-            # A more robust implementation would need to parse the response structure correctly
             try:
-                for dataset in datasets:
-                    ods_id = dataset.to_json().get('customProperties', {}).get('ID')
-                    if ods_id:
-                        # For simplicity, this assumes datasets can be found in embedded or directly in response
-                        # A real implementation would need to properly traverse the response structure
-                        # and match datasets to their respective responses
-                        # This is a placeholder for actual implementation
-                        logging.debug(f"Adding mapping entry for ODS ID {ods_id}")
-                        # TODO: Implement proper mapping update from response
+                # After bulk upload, retrieve the datasets and update mapping
+                self.update_mappings_from_upload(ods_ids)
             except Exception as e:
-                logging.warning(f"Failed to update mapping from bulk response: {str(e)}")
+                logging.warning(f"Failed to update mapping after bulk upload: {str(e)}")
         
         logging.info(f"Bulk dataset creation completed")
         
         return response
     
+    def update_mappings_from_upload(self, ods_ids: List[str]) -> None:
+        """
+        Updates the mapping between ODS IDs and Dataspot UUIDs/hrefs after uploading datasets.
+        Uses the download API to retrieve all datasets and then updates the mapping for matching ODS IDs.
+        
+        Args:
+            ods_ids (List[str]): List of ODS IDs to update in the mapping
+            
+        Raises:
+            HTTPError: If API requests fail
+            ValueError: If unable to retrieve dataset information
+        """
+        logging.info(f"Updating mappings for {len(ods_ids)} datasets using download API")
+        
+        try:
+            # Use the download API to retrieve datasets from the scheme
+            # This is a synchronous GET request to the download API
+            download_path = f"/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON"
+            full_url = url_join(self.base_url, download_path)
+            
+            logging.debug(f"Downloading datasets from: {full_url}")
+            response = requests_get(full_url, headers=self.auth.get_headers())
+            
+            # Parse the JSON response
+            try:
+                datasets = response.json()
+                
+                # If we got a list directly, use it
+                if isinstance(datasets, list):
+                    # Filter to only include datasets
+                    datasets = [item for item in datasets if item.get('_type') == 'Dataset']
+                    logging.info(f"Downloaded {len(datasets)} datasets from scheme")
+                else:
+                    # We might have received a job ID instead
+                    logging.warning("Received unexpected response format. Expected a list of datasets.")
+                    logging.debug(f"Response: {datasets}")
+                    return
+                
+                if not datasets:
+                    logging.warning("No datasets found in download response")
+                    return
+                
+                # Process each dataset and update the mapping
+                updated_count = 0
+                for dataset in datasets:
+                    # Only consider datasets of stereotype 'OGD'
+                    if dataset.get('stereotype') != 'OGD':
+                        continue
+
+                    # Extract the ID from customProperties
+                    ods_id = dataset.get('ID')
+                    
+                    # Skip if this dataset doesn't have an ODS ID or isn't in our target list
+                    if not ods_id or ods_id not in ods_ids:
+                        continue
+                    
+                    # Extract UUID and href
+                    uuid = dataset.get('id')
+                    
+                    # The REST API href is in the format /rest/<database>/datasets/<uuid>
+                    href = f"/rest/{self.database_name}/datasets/{uuid}"
+                    
+                    if uuid and href:
+                        logging.debug(f"Adding mapping entry for ODS ID {ods_id} with UUID {uuid} and href {href}")
+                        self.mapping.add_entry(ods_id, uuid, href)
+                        updated_count += 1
+                    else:
+                        logging.warning(f"Missing UUID or href for dataset with ODS ID: {ods_id}")
+                
+                logging.info(f"Updated mappings for {updated_count} datasets")
+                
+            except Exception as e:
+                logging.error(f"Error parsing download response: {str(e)}")
+                raise
+                
+        except Exception as e:
+            logging.error(f"Error updating mappings: {str(e)}")
+            raise
+
     def update_dataset(self, dataset: Dataset, href: str, force_replace: bool = False) -> dict:
         """
         Update an existing dataset in the DNK.
