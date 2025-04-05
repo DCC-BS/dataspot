@@ -503,11 +503,11 @@ def main_8_test_bulk_ods_datasets_upload():
             all_datasets.append(dataset)
             processed_ids.append(ods_id)
             
-            logging.info(f"[{idx+1}/{len(ods_ids)}] Successfully transformed dataset {ods_id}: {dataset.name}")
+            logging.info(f"Successfully transformed dataset {ods_id}: {dataset.name}")
             total_successful += 1
             
         except Exception as e:
-            logging.error(f"[{idx+1}/{len(ods_ids)}] Error processing dataset {ods_id}: {str(e)}")
+            logging.error(f"Error processing dataset {ods_id}: {str(e)}")
             total_failed += 1
         
         total_processed += 1

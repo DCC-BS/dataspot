@@ -7,53 +7,43 @@ from src.dataspot_dataset import OGDDataset
 
 
 # Map of ODS geographic reference codes to human-readable locations
-# TODO (Renato): Load these codes from the RDM after adding them there
-# TODO (Renato): IMPORTANT, URGENT: Find out what the other codes mean, or even better, where I can look them up
-"""
-INFO:root:Processing dataset 100304...
-WARNING:root:Multiple geographic references found in ODS metadata: ['ch_80_2761', '', 'ch_80_2763', 'ch_80_2822', '', '', '', 'ch_80_2473', 'ch_80_4161', 'ch_80_2768', 'ch_80_2824', 'ch_80_4163', 'ch_80_2825', 'ch_80_4165', 'ch_80_4252', 'ch_80_2828', 'ch_80_2829', 'ch_80_4254', 'ch_80_2769', 'ch_80_2770', 'ch_80_4175', 'ch_80_2772', 'ch_80_2831', 'ch_80_2773', 'ch_80_4258', 'ch_80_2775', 'ch_80_4261']
-Aesch (BL) , Arlesheim , Augst , Füllinsdorf , Kaiseraugst , Lausen , Münchenstein , Dornach , Eiken , Ettingen , Frenkendorf , Rheinfelden , Wallbach , Frick, Gipf-Oberfrick , Liestal , Möhlin , Muttenz , Oeschgen , Pratteln , Pfeffingen , Reinach (BL) , Therwil 
-
-100187
-'ch_80_2762', 'ch_80_2766', 'ch_80_2767', 'ch_80_2774'
-Allschwil , Schönenbuch , Birsfelden , Bottmingen
-"""
+# TODO (Renato): Add these codes to the RDM manually, and then use them instead of this map
 GEOGRAPHIC_REFERENCE_MAP = {
     "world_ch": "Schweiz",
     "ch_80_2703": "Riehen",
     "ch_80_2702": "Bettingen",
     "ch_80_2701": "Basel",
     "ch_80_2765": "Binningen",
-    "ch_80_2762": "???-ch_80_2762",
-    "ch_80_2766": "???-ch_80_2766",
-    "ch_80_2767": "???-ch_80_2767",
-    "ch_80_2774": "???-ch_80_2774",
+    "ch_80_2762": "Allschwil",
+    "ch_80_2766": "Birsfelden",
+    "ch_80_2767": "Bottmingen",
+    "ch_80_2774": "Schönenbuch",
     "ch_40_12": "Basel-Stadt",
     "ch_40_13": "Basel-Landschaft",
-    "ch_80_2761": "???-ch_80_2761",
-    "ch_80_2763": "???-ch_80_2763",
-    "ch_80_2822": "???-ch_80_2822",
-    "ch_80_2473": "???-ch_80_2473",
-    "ch_80_4161": "???-ch_80_4161",
-    "ch_80_2768": "???-ch_80_2768",
-    "ch_80_2824": "???-ch_80_2824",
-    "ch_80_4163": "???-ch_80_4163",
-    "ch_80_2825": "???-ch_80_2825",
-    "ch_80_4165": "???-ch_80_4165",
-    "ch_80_4252": "???-ch_80_4252",
-    "ch_80_2828": "???-ch_80_2828",
-    "ch_80_2829": "???-ch_80_2829",
-    "ch_80_4254": "???-ch_80_4254",
-    "ch_80_2769": "???-ch_80_2769",
-    "ch_80_2770": "???-ch_80_2770",
+    "ch_80_2761": "Aesch (BL)",
+    "ch_80_2763": "Arlesheim",
+    "ch_80_2822": "Augst",
+    "ch_80_2473": "Dornach",
+    "ch_80_4161": "Eiken",
+    "ch_80_2768": "Ettingen",
+    "ch_80_2824": "Frenkendorf",
+    "ch_80_4163": "Frick",
+    "ch_80_2825": "Füllinsdorf",
+    "ch_80_4165": "Gipf-Oberfrick",
+    "ch_80_4252": "Kaiseraugst",
+    "ch_80_2828": "Lausen",
+    "ch_80_2829": "Liestal",
+    "ch_80_4254": "Möhlin",
+    "ch_80_2769": "Münchenstein",
+    "ch_80_2770": "Muttenz",
     "ch_80_2771": "Oberwil (BL)",
-    "ch_80_4175": "???-ch_80_4175",
-    "ch_80_2772": "???-ch_80_2772",
-    "ch_80_2831": "???-ch_80_2831",
-    "ch_80_2773": "???-ch_80_2773",
-    "ch_80_4258": "???-ch_80_4258",
-    "ch_80_2775": "???-ch_80_2775",
-    "ch_80_4261": "???-ch_80_4261"
+    "ch_80_4175": "Oeschgen",
+    "ch_80_2772": "Pfeffingen",
+    "ch_80_2831": "Pratteln",
+    "ch_80_2773": "Reinach (BL)",
+    "ch_80_4258": "Rheinfelden",
+    "ch_80_2775": "Therwil",
+    "ch_80_4261": "Wallbach"
     # Add more mappings as needed
 }
 
