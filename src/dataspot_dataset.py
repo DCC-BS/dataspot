@@ -163,9 +163,8 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    #anhaefungsperiodizität__TMP - GELÖSCHT
-    # TODO: lizenz
-    # TODO: rechte
+    lizenz: Optional[List[str]] = field(default=None, metadata={'json_key': 'LIZENZ', 'custom_property': True})
+    nutzungsrechte: Optional[str] = field(default=None, metadata={'json_key': 'RECHT', 'custom_property': True})
     # TODO: themen
     #herausgeber - GELÖSCHT
     # TODO: referenz

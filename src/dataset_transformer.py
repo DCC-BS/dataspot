@@ -47,6 +47,26 @@ GEOGRAPHIC_REFERENCE_MAP = {
     # Add more mappings as needed
 }
 
+# TODO (Renato): URGENT! IMPORTANT! Lizenz und Rechte referenzdatenmodell updaten. Dann hier anpassen.
+# Map of ODS rights values to human-readable descriptions
+NUTZUNGSRECHTE_MAP = {
+    "NonCommercialAllowed-CommercialAllowed-ReferenceRequired": "Creative Commons Attribution (CC BY)",
+    # Add more license mappings as needed
+}
+
+# Map of ODS license_id values to human-readable license URLs
+LIZENZ_MAP = {
+    "4bj8ceb": ["https://creativecommons.org/publicdomain/zero/1.0/"],    # CC0 1.0
+    "cc_by": ["https://creativecommons.org/licenses/by/3.0/ch/"],         # CC BY 3.0 CH
+    "5sylls5": ["https://creativecommons.org/licenses/by/4.0/ch/"],       # CC BY 4.0 CH
+    "t2kf10u": ["https://creativecommons.org/licenses/by/3.0/ch/", "https://opendatacommons.org/licenses/odbl/1-0/"],       # CC BY 3.0 CH + OpenStreetMap
+    "353v4r": ["https://creativecommons.org/licenses/by/4.0/ch/", "https://opendatacommons.org/licenses/odbl/1-0/"],        # CC BY 4.0 CH + OpenStreetMap
+    "vzo5u7j": ["https://www.gnu.org/licenses/gpl-3.0"],                 # GNU General Public License 3
+    "r617wgj": ["https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb"], # Nutzungsbedingungen für Geo…
+    "hmpvfpp": ["https://opendata.swiss/de/terms-of-use/"], # Freie Nutzung. Kommerzielle …  # TODO: CC_ASK
+    "ce0mv1b": ["https://opendata.swiss/de/terms-of-use/"], # Freue Nutzung. Quellenangab... # TODO: CC_BY_ASK
+}
+
 def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> OGDDataset:
     """
     Transforms metadata from OpenDataSoft (ODS) format to Dataspot DNK format.
@@ -96,9 +116,28 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
                 if len(geo_refs) > 1:
                     logging.info(f"Multiple geographic references found in ODS metadata: {geo_refs}. Joined as: {geographical_dimension}")
     
-    # TODO (Renato): Map dcat_ap_ch.rights to appropriate field (example: "NonCommercialAllowed-CommercialAllowed-ReferenceRequired")
-    
-    # TODO (Renato): Map internal.license_id to appropriate field (example: "cc_by")
+    lizenz = None
+    nutzungsrechte = None
+    if False:   # TODO (Renato): Add this once it's settled how we want it.
+        # Extract license/rights information
+        
+        # Get Nutzungsrechte from dcat_ap_ch.rights
+        if 'dcat_ap_ch' in ods_metadata and 'rights' in ods_metadata['dcat_ap_ch']:
+            rechte_wert = get_field_value(ods_metadata['dcat_ap_ch']['rights'])
+            if rechte_wert and rechte_wert not in NUTZUNGSRECHTE_MAP:
+                raise ValueError(f"Unknown rights value: {rechte_wert}")
+            elif rechte_wert:
+                nutzungsrechte = rechte_wert
+                logging.info(f"Found rights value: {nutzungsrechte}")
+        
+        # Get Lizenz from internal.license_id
+        if 'internal' in ods_metadata and 'license_id' in ods_metadata['internal']:
+            license_id = get_field_value(ods_metadata['internal']['license_id'])
+            if license_id and license_id not in LIZENZ_MAP:
+                raise ValueError(f"Unknown license ID: {license_id}")
+            elif license_id:
+                lizenz = LIZENZ_MAP[license_id]
+                logging.info(f"Mapped license ID '{license_id}' to '{lizenz}'")
     
     # TODO (Renato): Map temporal coverage information (example: "1939-08-01/2025-03-31" or "2024-02-10/2032-08-08")
     
@@ -132,6 +171,11 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
         
         # Geographic information
         geographische_dimension=geographical_dimension,
+        
+        # License information
+        lizenz=lizenz,
+        
+        nutzungsrechte=nutzungsrechte,
         
         # Identifiers
         datenportal_identifikation=ods_dataset_id,
