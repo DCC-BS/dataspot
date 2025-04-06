@@ -981,11 +981,6 @@ Dataset:
        title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
        order: 40
        baseType: DATE
-     PD2:
-       label: Publikationsdatum
-       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
-       order: 40
-       baseType: DATE
      PERSOND:
        label: Personendaten
        title: Hat es Personendaten im Datensatz?
