@@ -83,12 +83,28 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     Returns:
         OGDDataset: A dataset object containing the metadata in Dataspot format.
     """
+    # Extract basic metadata fields
+    title = get_field_value(ods_metadata['default']['title'])
+    description = get_field_value(ods_metadata['default'].get('description', {}))
+    keywords = get_field_value(ods_metadata['default'].get('keyword', {}))
+    tags = get_field_value(ods_metadata.get('custom', {}).get('tags', {}))
+    
     # Get the dataset timezone if available, otherwise default to UTC
     dataset_timezone = None
     if 'default' in ods_metadata and 'timezone' in ods_metadata['default']:
         dataset_timezone = get_field_value(ods_metadata['default']['timezone'])
     
-    # Extract geographical/spatial information if available
+    # Extract update and publication information
+    accrualperiodicity = get_field_value(
+        ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
+    )
+    
+    publication_date = iso_8601_to_unix_timestamp(
+        get_field_value(ods_metadata.get('dcat', {}).get('issued')), 
+        dataset_timezone
+    )
+    
+    # Extract geographical/spatial information
     geographical_dimension = None
     if 'default' in ods_metadata and 'geographic_reference' in ods_metadata['default']:
         geo_refs = get_field_value(ods_metadata['default']['geographic_reference'])
@@ -154,20 +170,15 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     # Create the OGDDataset with mapped fields
     ogd_dataset = OGDDataset(
         # Basic information
-        name=get_field_value(ods_metadata['default']['title']),
-        beschreibung=get_field_value(ods_metadata['default'].get('description', {})),
+        name=title,
+        beschreibung=description,
         
         # Keywords and categorization
-        schluesselwoerter=get_field_value(ods_metadata['default'].get('keyword', {})),
+        schluesselwoerter=keywords,
         
         # Time and update information
-        aktualisierungszyklus=get_field_value(
-            ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
-        ),
-        publikationsdatum=iso_8601_to_unix_timestamp(
-            get_field_value(ods_metadata.get('dcat', {}).get('issued')), 
-            dataset_timezone
-        ),
+        aktualisierungszyklus=accrualperiodicity,
+        publikationsdatum=publication_date,
         
         # Geographic information
         geographische_dimension=geographical_dimension,
@@ -181,7 +192,7 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
         datenportal_identifikation=ods_dataset_id,
         
         # Custom properties
-        tags=get_field_value(ods_metadata.get('custom', {}).get('tags', {}))
+        tags=tags
     )
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
