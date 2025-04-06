@@ -406,7 +406,7 @@ Dataset:
                   order: 8
 
             RECHT:
-              label: Rechte
+              label: Nutzungsrechte
               title:
               group: OGD
               order: 30
@@ -638,7 +638,7 @@ Dataset:
                   label: GNU General Public License 3
                   order: 6
                 https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
-                  label: Nutzungsbedingungen für Geo…
+                  label: Nutzungsbedingungen für Geodatensätze
                   order: 7
                 https://opendata.swiss/de/terms-of-use/:
                   label: opendata.swiss
@@ -696,7 +696,7 @@ Dataset:
                   order: 8
 
             RECHT:
-              label: Rechte
+              label: Nutzungsrechte
               title:
               group: OGD
               order: 30
