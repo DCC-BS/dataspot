@@ -60,13 +60,13 @@ Dataset:
       title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
     temporalStart:
       title: Datum, an dem der Datensatz ursprünglich erstellt wurde
-    accrualPeriodicity: 
+    accrualPeriodicity:
       label: Aktualisierungszyklus
       labelEn: Accrual periodicity
       title: Frequenz der Aktualisierung der Attribute im Datensatz
       titleEn: The frequency at which dataset is published
       cardinality: ONE
-       
+
       literals:
         001:
           label: deprecated-001
@@ -307,9 +307,9 @@ Dataset:
         http://publications.europa.eu/resource/authority/frequency/NEVER:
           label: niemals
           title: Die Daten werden niemals aktualisiert
-          order: 39       
+          order: 39
 
-## DATENSATZ-TYP ##             
+## DATENSATZ-TYP ##
     stereotype:
       label: Datensatztyp
       title: Der Datensatztyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
@@ -321,27 +321,93 @@ Dataset:
           icon: globe
 
           customProperties:
-            LICENSE:
+            LIZENZ:
               label: Lizenz
-              title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
+              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
               group: OGD
               order: 20
+              cardinality: MANY
+              literals:
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/2.0/:
+                  label: CC BY 2.0
+                  order: 2
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 3
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 4
+                https://opendatacommons.org/licenses/odbl/1-0/:
+                  label: OpenStreetMap Lizenz 1.0
+                  order: 5
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 6
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geo…
+                  order: 7
+                https://opendata.swiss/de/terms-of-use/:
+                  label: opendata.swiss
+                  order: 8
+
+            LICENSE:
+              label: Lizenz
+              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
+              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              group: OGD
+              order: 20
+              hidden: true
               literals:
                 "001":
-                  label: CC0 1.0
+                  label: deprecated-CC0 1.0
+                  order: 107
                 "002":
-                  label: CC BY                  
+                  label: deprecated-CC BY
+                  order: 106
                 "003":
-                  label: CC BY 3.0 CH
+                  label: deprecated-CC BY 3.0 CH
+                  order: 108
                 "004":
-                  label: CC BY 3.0 CH + OpenStreetMap
+                  label: deprecated-CC BY 3.0 CH + OpenStreetMap
+                  order: 110
                 "005":
-                  label: CC BY 4.0
+                  label: deprecated-CC BY 4.0
+                  order: 109
                 "006":
-                  label: CC BY 4.0 + OpenStreetMap                  
+                  label: deprecated-CC BY 4.0 + OpenStreetMap
+                  order: 11
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/2.0/:
+                  label: CC BY 2.0
+                  order: 2
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 3
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 4
+                https://opendatacommons.org/licenses/odbl/1-0/:
+                  label: OpenStreetMap Lizenz 1.0
+                  order: 5
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 6
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geo…
+                  order: 7
+                https://opendata.swiss/de/terms-of-use/:
+                  label: opendata.swiss
+                  order: 8
+
             RECHT:
               label: Rechte
-              title: 
+              title:
               group: OGD
               order: 30
               literals:
@@ -355,7 +421,7 @@ Dataset:
                   label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
             THEMA:
               label: Themen
-              title: 
+              title:
               group: OGD
               order: 40
               cardinality: MANY
@@ -379,7 +445,7 @@ Dataset:
                 "009":
                   label: Arbeit, Erwerb
                 "010":
-                  label: Volkswirtschaft 
+                  label: Volkswirtschaft
                 "011":
                   label: Verwaltung
                 "012":
@@ -410,19 +476,19 @@ Dataset:
                   label: Tourismus
             REF:
               label: Referenz
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 60
             ZUSCH:
               label: Zuschreibungen
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 70
             ID:
               label: Datenportal-Identifikation
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 100
@@ -544,24 +610,91 @@ Dataset:
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
               group: GEO
-            LICENSE:
+
+            LIZENZ:
               label: Lizenz
-              title: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
+              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
               group: OGD
               order: 20
+              cardinality: MANY
+              literals:
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/2.0/:
+                  label: CC BY 2.0
+                  order: 2
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 3
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 4
+                https://opendatacommons.org/licenses/odbl/1-0/:
+                  label: OpenStreetMap 1.0
+                  order: 5
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 6
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geo…
+                  order: 7
+                https://opendata.swiss/de/terms-of-use/:
+                  label: opendata.swiss
+                  order: 8
+
+            LICENSE:
+              label: Lizenz
+              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
+              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              group: OGD
+              order: 20
+              hidden: true
               literals:
                 "001":
-                  label: CC0 1.0
+                  label: deprecated-CC0 1.0
+                  order: 107
                 "002":
-                  label: CC BY
+                  label: deprecated-CC BY
+                  order: 106
                 "003":
-                  label: CC BY 3.0 CH
+                  label: deprecated-CC BY 3.0 CH
+                  order: 108
                 "004":
-                  label: CC BY 3.0 CH + OpenStreetMap
+                  label: deprecated-CC BY 3.0 CH + OpenStreetMap
+                  order: 110
                 "005":
-                  label: CC BY 4.0
+                  label: deprecated-CC BY 4.0
+                  order: 109
                 "006":
-                  label: CC BY 4.0 + OpenStreetMap
+                  label: deprecated-CC BY 4.0 + OpenStreetMap
+                  order: 11
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/2.0/:
+                  label: CC BY 2.0
+                  order: 2
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 3
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 4
+                https://opendatacommons.org/licenses/odbl/1-0/:
+                  label: OpenStreetMap 1.0
+                  order: 5
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 6
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geodaten
+                  order: 7
+                https://opendata.swiss/de/terms-of-use/:
+                  label: opendata.swiss
+                  order: 8
+
             RECHT:
               label: Rechte
               title:
