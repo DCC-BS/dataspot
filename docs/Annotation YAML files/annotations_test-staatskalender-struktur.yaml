@@ -970,7 +970,7 @@ Dataset:
            #label: xx    
          #"4":
            #label: xx           
-     LASTACTl:
+     LASTACTL:
        label: Letzte Aktualisierung
        title: Letzte Aktualisierung des Datensatzes
        #title:
