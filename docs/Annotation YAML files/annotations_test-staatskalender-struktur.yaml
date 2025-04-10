@@ -1576,3 +1576,12 @@ Deployment:
         EXKL:
           label: exkludiert
           labelEn: excluded
+
+Theme:
+  instances:
+    DARK:
+      appBarBackgroundColor: 167a3e
+      colorScheme: DARK
+    LIGHT:
+      appBarBackgroundColor: 167a3e
+      colorScheme: LIGHT
