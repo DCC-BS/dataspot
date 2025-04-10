@@ -163,7 +163,7 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    lizenz: Optional[List[str]] = field(default=None, metadata={'json_key': 'LIZENZ', 'custom_property': True})
+    lizenz: Optional[List[str]] = field(default=None, metadata={'json_key': 'LICENSE', 'custom_property': True})
     nutzungsrechte: Optional[str] = field(default=None, metadata={'json_key': 'RECHT', 'custom_property': True})
     # TODO: themen
     #herausgeber - GELÖSCHT

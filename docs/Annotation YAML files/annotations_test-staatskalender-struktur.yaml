@@ -321,46 +321,12 @@ Dataset:
           icon: globe
 
           customProperties:
-            LIZENZ:
-              label: Lizenz
-              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
-              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
-              group: OGD
-              order: 20
-              cardinality: MANY
-              literals:
-                https://creativecommons.org/publicdomain/zero/1.0/:
-                  label: CC0 1.0
-                  order: 1
-                https://creativecommons.org/licenses/by/2.0/:
-                  label: CC BY 2.0
-                  order: 2
-                https://creativecommons.org/licenses/by/3.0/ch/:
-                  label: CC BY 3.0 CH
-                  order: 3
-                https://creativecommons.org/licenses/by/4.0/:
-                  label: CC BY 4.0
-                  order: 4
-                https://opendatacommons.org/licenses/odbl/1-0/:
-                  label: OpenStreetMap Lizenz 1.0
-                  order: 5
-                https://www.gnu.org/licenses/gpl-3.0:
-                  label: GNU General Public License 3
-                  order: 6
-                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
-                  label: Nutzungsbedingungen für Geo…
-                  order: 7
-                https://opendata.swiss/de/terms-of-use/:
-                  label: opendata.swiss
-                  order: 8
-
             LICENSE:
               label: Lizenz
               title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
               titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
               group: OGD
               order: 20
-              hidden: true
               literals:
                 "001":
                   label: deprecated-CC0 1.0
@@ -379,46 +345,89 @@ Dataset:
                   order: 109
                 "006":
                   label: deprecated-CC BY 4.0 + OpenStreetMap
-                  order: 11
-                https://creativecommons.org/publicdomain/zero/1.0/:
+                  order: 111
+                "https://creativecommons.org/publicdomain/zero/1.0/":
                   label: CC0 1.0
                   order: 1
-                https://creativecommons.org/licenses/by/2.0/:
-                  label: CC BY 2.0
-                  order: 2
-                https://creativecommons.org/licenses/by/3.0/ch/:
+                "https://creativecommons.org/licenses/by/3.0/ch/":
                   label: CC BY 3.0 CH
-                  order: 3
-                https://creativecommons.org/licenses/by/4.0/:
+                  order: 2
+                "https://creativecommons.org/licenses/by/4.0/":
                   label: CC BY 4.0
+                  order: 3
+                "https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf":
+                  label: CC BY 3.0 CH + OpenStreetMap
                   order: 4
-                https://opendatacommons.org/licenses/odbl/1-0/:
-                  label: OpenStreetMap Lizenz 1.0
+                "https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf":
+                  label: CC BY 4.0 + OpenStreetMap
                   order: 5
-                https://www.gnu.org/licenses/gpl-3.0:
-                  label: GNU General Public License 3
+                "https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb":
+                  label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
                   order: 6
-                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
-                  label: Nutzungsbedingungen für Geo…
+                "https://opendata.swiss/de/terms-of-use/":
+                  label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
                   order: 7
-                https://opendata.swiss/de/terms-of-use/:
-                  label: opendata.swiss
+                "https://www.gnu.org/licenses/gpl-3.0":
+                  label: GNU General Public License 3
                   order: 8
-
             RECHT:
-              label: Nutzungsrechte
+              label: Rechte
               title:
               group: OGD
               order: 30
               literals:
                 "001":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_open
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_open
+                  order: 100
                 "002":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_by
+                  order: 101
                 "003":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                  order: 102
                 "004":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+                  order: 103
+                N/A:
+                  label: N/A
+                  order: 0
+                NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 1
+                NonCommercialAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceRequired
+                  order: 2
+                NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 3
+                NonCommercialAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 4
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 5
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 6
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 7
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 8
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 9
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired
+                  order: 10
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 11
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 12
+
             THEMA:
               label: Themen
               title:
@@ -611,38 +620,6 @@ Dataset:
               baseType: STRING
               group: GEO
 
-            LIZENZ:
-              label: Lizenz
-              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
-              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
-              group: OGD
-              order: 20
-              cardinality: MANY
-              literals:
-                https://creativecommons.org/publicdomain/zero/1.0/:
-                  label: CC0 1.0
-                  order: 1
-                https://creativecommons.org/licenses/by/2.0/:
-                  label: CC BY 2.0
-                  order: 2
-                https://creativecommons.org/licenses/by/3.0/ch/:
-                  label: CC BY 3.0 CH
-                  order: 3
-                https://creativecommons.org/licenses/by/4.0/:
-                  label: CC BY 4.0
-                  order: 4
-                https://opendatacommons.org/licenses/odbl/1-0/:
-                  label: OpenStreetMap 1.0
-                  order: 5
-                https://www.gnu.org/licenses/gpl-3.0:
-                  label: GNU General Public License 3
-                  order: 6
-                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
-                  label: Nutzungsbedingungen für Geodatensätze
-                  order: 7
-                https://opendata.swiss/de/terms-of-use/:
-                  label: opendata.swiss
-                  order: 8
 
             LICENSE:
               label: Lizenz
@@ -650,7 +627,6 @@ Dataset:
               titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
               group: OGD
               order: 20
-              hidden: true
               literals:
                 "001":
                   label: deprecated-CC0 1.0
@@ -669,46 +645,90 @@ Dataset:
                   order: 109
                 "006":
                   label: deprecated-CC BY 4.0 + OpenStreetMap
-                  order: 11
-                https://creativecommons.org/publicdomain/zero/1.0/:
+                  order: 111
+                "https://creativecommons.org/publicdomain/zero/1.0/":
                   label: CC0 1.0
                   order: 1
-                https://creativecommons.org/licenses/by/2.0/:
-                  label: CC BY 2.0
-                  order: 2
-                https://creativecommons.org/licenses/by/3.0/ch/:
+                "https://creativecommons.org/licenses/by/3.0/ch/":
                   label: CC BY 3.0 CH
-                  order: 3
-                https://creativecommons.org/licenses/by/4.0/:
+                  order: 2
+                "https://creativecommons.org/licenses/by/4.0/":
                   label: CC BY 4.0
+                  order: 3
+                "https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf":
+                  label: CC BY 3.0 CH + OpenStreetMap
                   order: 4
-                https://opendatacommons.org/licenses/odbl/1-0/:
-                  label: OpenStreetMap 1.0
+                "https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf":
+                  label: CC BY 4.0 + OpenStreetMap
                   order: 5
-                https://www.gnu.org/licenses/gpl-3.0:
-                  label: GNU General Public License 3
+                "https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb":
+                  label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
                   order: 6
-                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
-                  label: Nutzungsbedingungen für Geodaten
+                "https://opendata.swiss/de/terms-of-use/":
+                  label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
                   order: 7
-                https://opendata.swiss/de/terms-of-use/:
-                  label: opendata.swiss
+                "https://www.gnu.org/licenses/gpl-3.0":
+                  label: GNU General Public License 3
                   order: 8
 
             RECHT:
-              label: Nutzungsrechte
+              label: Rechte
               title:
               group: OGD
               order: 30
               literals:
                 "001":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_open
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_open
+                  order: 100
                 "002":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_by
+                  order: 101
                 "003":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_ask
+                  order: 102
                 "004":
-                  label: http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+                  label: deprecated - http://dcat-ap.ch/vocabulary/licenses/terms_by_ask
+                  order: 103
+                N/A:
+                  label: N/A
+                  order: 0
+                NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 1
+                NonCommercialAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceRequired
+                  order: 2
+                NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 3
+                NonCommercialAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 4
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 5
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 6
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 7
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 8
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 9
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired
+                  order: 10
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 11
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 12
+
             THEMA:
               label: Themen
               title:
