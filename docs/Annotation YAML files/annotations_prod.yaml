@@ -1148,17 +1148,40 @@ ReferenceObject:
 UmlClass:
   properties:
     stereotype:
-      label: File-Format
-      #title:
+      label: Typ
       literals:
-        "1":
-          label: json
-        "2":
-          label: xml
-        "3":
-          label: shape
-        "4":
-          label: csv
+
+        file:
+          label: Datei
+          labelEn: file
+          customProperties:
+            fileFormat:
+              label: Dateiformat
+              labelEn: file format
+              literals:
+                json:
+                  label: json
+                xml:
+                  label: xml
+                shape:
+                  label: shape
+                csv:
+                  label: csv
+
+        ogd_dataset_component:
+          label: Spalte von OGD-Datensatz
+          labelEn: OGD dataset component
+          customProperties:
+            ODS_LINK:
+              label: Datenportal-Link
+              baseType: STRING
+              order: 50
+              readOnly: true
+            ODS_ID:
+              label: Datenportal-Identifikation
+              baseType: STRING
+              order: 60
+              readOnly: true
 
 
 #500 - SYSTEMKATALOG

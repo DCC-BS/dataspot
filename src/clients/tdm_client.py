@@ -54,13 +54,17 @@ class TDMClient(BaseDataspotClient):
         """
         # Ensure collection exists
         collection_data = self.ensure_ods_imports_collection_exists()
-        
+
+        ods_link = f"https://data.bs.ch/explore/dataset/{ods_id}/"
+
         # Prepare dataobject data
         dataobject = {
             "_type": "UmlClass",
             "label": name,
+            "stereotype": "ogd_dataset_component",
             "customProperties": {
-                "ODS_ID": ods_id
+                "ODS_ID": ods_id,
+                "ODS_LINK": ods_link
             }
         }
         
