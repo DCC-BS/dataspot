@@ -4,7 +4,7 @@ import config
 from src.clients.base_client import BaseDataspotClient
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
-class KZVClient(BaseDataspotClient):
+class KVClient(BaseDataspotClient):
     """Client for interacting with your new data scheme."""
     
     def __init__(self):
@@ -13,8 +13,8 @@ class KZVClient(BaseDataspotClient):
         """
         super().__init__(base_url=config.base_url,
                          database_name=config.database_name,
-                         scheme_name=config.kzv_scheme_name,
-                         scheme_name_short=config.kzv_scheme_name_short,
+                         scheme_name=config.kv_scheme_name,
+                         scheme_name_short=config.kv_scheme_name_short,
                          ods_imports_collection_name=config.ods_imports_collection_name,
                          ods_imports_collection_path=config.ods_imports_collection_path)
         

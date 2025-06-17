@@ -8,7 +8,7 @@ from src.clients.fdm_client import FDMClient
 from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
 from src.clients.rdm_client import RDMClient
-from src.clients.kzv_client import KZVClient
+from src.clients.kv_client import KVClient
 from src.common import email_helpers as email_helpers
 
 
@@ -22,8 +22,8 @@ def main():
     rdm_client = RDMClient()
     sync_org_structures(dataspot_client=rdm_client)
 
-    kzv_client = KZVClient()
-    sync_org_structures(kzv_client)
+    kv_client = KVClient()
+    sync_org_structures(dataspot_client=kv_client)
 
     #tdm_client = TDMClient()
 
