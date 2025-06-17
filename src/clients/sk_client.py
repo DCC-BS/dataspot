@@ -14,9 +14,7 @@ class SKClient(BaseDataspotClient):
         super().__init__(base_url=config.base_url,
                          database_name=config.database_name,
                          scheme_name=config.sk_scheme_name,
-                         scheme_name_short=config.sk_scheme_name_short,
-                         ods_imports_collection_name=config.ods_imports_collection_name,
-                         ods_imports_collection_path=config.ods_imports_collection_path)
+                         scheme_name_short=config.sk_scheme_name_short)
         
         # Initialize the handlers
         self.org_handler = OrgStructureHandler(self)

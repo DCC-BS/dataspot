@@ -23,9 +23,18 @@ class BaseDataspotClient():
        parameter applied to all assets in the operation.
     """
 
-    def __init__(self, base_url: str, database_name: str, scheme_name: str, scheme_name_short: str, ods_imports_collection_name: str, ods_imports_collection_path: str):
+    def __init__(self, base_url: str, database_name: str, scheme_name: str, scheme_name_short: str, 
+                 ods_imports_collection_name: str = None, ods_imports_collection_path: List[str] = None):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
+        
+        Args:
+            base_url: The base URL of the Dataspot API
+            database_name: The name of the database
+            scheme_name: The name of the scheme
+            scheme_name_short: The short name of the scheme
+            ods_imports_collection_name: Optional. The name of the default imports collection
+            ods_imports_collection_path: Optional. The path of the default imports collection
         """
         self.auth = DataspotAuth()
 

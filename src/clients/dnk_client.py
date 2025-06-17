@@ -18,8 +18,8 @@ class DNKClient(BaseDataspotClient):
                          database_name=config.database_name,
                          scheme_name=config.dnk_scheme_name,
                          scheme_name_short=config.dnk_scheme_name_short,
-                         ods_imports_collection_name=config.ods_imports_collection_name,
-                         ods_imports_collection_path=config.ods_imports_collection_path)
+                         ods_imports_collection_name=config.dnk_ods_imports_collection_name,
+                         ods_imports_collection_path=config.dnk_ods_imports_collection_path)
         
         # Initialize the handlers
         self.org_handler = OrgStructureHandler(self)
