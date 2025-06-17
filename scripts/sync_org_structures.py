@@ -5,6 +5,7 @@ import datetime
 
 from src.clients.base_client import BaseDataspotClient
 from src.clients.fdm_client import FDMClient
+from src.clients.sk_client import SKClient
 from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
 from src.clients.rdm_client import RDMClient
@@ -24,6 +25,9 @@ def main():
 
     kv_client = KVClient()
     sync_org_structures(dataspot_client=kv_client)
+
+    sk_client = SKClient()
+    sync_org_structures(dataspot_client=sk_client)
 
     #tdm_client = TDMClient()
 

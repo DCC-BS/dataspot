@@ -20,6 +20,8 @@ datatype_scheme_name = 'Datentypmodell (technisch)'
 datatype_scheme_name_short = 'DTM'
 tdm_scheme_name = 'Technische Datenmodelle'
 tdm_scheme_name_short = 'TDM'
+sk_scheme_name = 'Systemkatalog'
+sk_scheme_name_short = 'SK'
 
 # Default ODS Imports collection name
 ods_imports_collection_name = 'OGD-Datensätze aus ODS'
