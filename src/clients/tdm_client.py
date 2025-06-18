@@ -115,7 +115,7 @@ class TDMClient(BaseDataspotClient):
                 raise ValueError(f"Failed to create dataobject for {ods_id}")
         
         # Process attributes (columns)
-        attributes_endpoint = f"/rest/{self.database_name}/assets/{asset_uuid}/attributes"
+        attributes_endpoint = f"/rest/{self.database_name}/classifiers/{asset_uuid}/attributes"
         
         # Get existing attributes to determine what to update vs create
         existing_attributes = {}
@@ -125,9 +125,9 @@ class TDMClient(BaseDataspotClient):
             if attrs_response and '_embedded' in attrs_response and 'attributes' in attrs_response['_embedded']:
                 for attr in attrs_response['_embedded']['attributes']:
                     existing_attributes[attr['label']] = attr
-        except Exception:
-            # Continue if there was an error getting attributes
-            pass
+        except Exception as e:
+            # Log the error but continue with empty existing_attributes
+            logging.warning(f"Failed to retrieve existing attributes for {ods_id}: {str(e)}")
         
         # Track changes
         created_attrs = []
@@ -212,7 +212,7 @@ class TDMClient(BaseDataspotClient):
         """
         # Map ODS types to UML data types
         type_mapping = {
-            'text': '/Datentypmodell/Zeichenkette',
+            'text': '/Datentypmodell/Text',
             'int': '/Datentypmodell/Ganzzahl',
             'boolean': '/Datentypmodell/Wahrheitswert',
             'double': '/Datentypmodell/Dezimalzahl',
@@ -221,15 +221,15 @@ class TDMClient(BaseDataspotClient):
             'geo_point_2d': '/Datentypmodell/geo_point_2d',
             'geo_shape': '/Datentypmodell/geo_shape',
             'file': '/Datentypmodell/Binärdaten',
-            'json_blob': '/Datentypmodell/Zeichenkette',
+            'json_blob': '/Datentypmodell/Text',
             'identifier': '/Datentypmodell/Identifier'
         }
         
         # Get datatype path
-        datatype_path = type_mapping.get(ods_type.lower(), '/Datentypmodell/Zeichenkette')
+        datatype_path = type_mapping[ods_type.lower()]
         
         # Use the last part as the type name
-        parts = datatype_path.split('/')
+        parts = datatype_path.strip('/').split('/')
         type_name = parts[-1]
         
         # Build path to datatype
@@ -238,11 +238,6 @@ class TDMClient(BaseDataspotClient):
         # Get datatype UUID
         response = self._get_asset(dtype_endpoint)
         if not response:
-            # Default to Zeichenkette (string) if type not found
-            dtype_endpoint = f"/rest/{self.database_name}/schemes/{config.datatype_scheme_name}/datatypes/Zeichenkette"
-            response = self._get_asset(dtype_endpoint)
-            
-            if not response:
-                raise ValueError(f"Could not find datatype for {ods_type}")
+            raise ValueError(f"Could not find datatype for {ods_type}")
         
         return response.get('id')
