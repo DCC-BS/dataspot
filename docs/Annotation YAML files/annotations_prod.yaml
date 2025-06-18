@@ -1420,7 +1420,7 @@ Asset:
         PUBLISHED:
           label: Öffentlich
           labelEn: Published
-          icon: globe
+          icon: circle-check
           order: 40
           group: PUBLIC
         PUBLISHEDDCC:
