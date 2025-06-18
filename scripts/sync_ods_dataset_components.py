@@ -15,7 +15,7 @@ def main():
     sync_ods_dataset_components()
 
 
-def sync_ods_dataset_components(max_datasets: int = 5, batch_size: int = 50):
+def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
     """
     Synchronize ODS dataset components (columns) with Dataspot using TDMClient.
     
