@@ -61,7 +61,7 @@ class TDMClient(BaseDataspotClient):
         dataobject = {
             "_type": "UmlClass",
             "label": name,
-            "stereotype": "ogd_dataset_component",
+            "stereotype": "ogd_dataset",
             "customProperties": {
                 "ODS_ID": ods_id,
                 "ODS_LINK": ods_link

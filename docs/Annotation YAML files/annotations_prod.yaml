@@ -1168,9 +1168,9 @@ UmlClass:
                 csv:
                   label: csv
 
-        ogd_dataset_component:
-          label: Spalte von OGD-Datensatz
-          labelEn: OGD dataset component
+        ogd_dataset:
+          label: OGD-Datensatz
+          labelEn: OGD dataset
           customProperties:
             ODS_LINK:
               label: Datenportal-Link
