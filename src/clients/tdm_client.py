@@ -142,8 +142,8 @@ class TDMClient(BaseDataspotClient):
             
             attribute = {
                 "_type": "UmlAttribute",
-                "title": column['label'],
-                "label": column['name'],
+                "label": column['label'],
+                "physicalName": column['name'],
                 "hasRange": datatype_uuid
             }
             
