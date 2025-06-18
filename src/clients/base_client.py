@@ -51,7 +51,7 @@ class BaseDataspotClient():
                                         
         Args:
             filter_function: Optional function that takes an asset and returns True if it should be included.
-                Note that the filter is applied on flat asset, i.e. no customProperties field is present!
+                **IMPORTANT:** Note that the filter is applied on flat asset, i.e. no customProperties field is present!
 
         Returns:
             List[Dict[str, Any]]: List of assets from the scheme (filtered if filter_function provided)
