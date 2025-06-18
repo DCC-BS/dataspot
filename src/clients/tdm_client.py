@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Any, List
 
 import config
@@ -75,12 +76,16 @@ class TDMClient(BaseDataspotClient):
         # Check if asset already exists with this ODS_ID
         asset_filter = lambda asset: (
             asset.get('_type') == 'UmlClass' and
-            asset.get('customProperties', {}).get('ODS_ID') == ods_id
+            asset.get('stereotype') == 'ogd_dataset' and
+            asset.get('ODS_ID') == ods_id
         )
         
         existing_assets = self.get_all_assets_from_scheme(filter_function=asset_filter)
-        
+
         if existing_assets:
+            if len(existing_assets) > 1:
+                logging.error(f"Found {len(existing_assets)} assets with ods_id {ods_id} in the {self.scheme_name_short} when only one should exist!")
+
             # Asset exists, update it
             is_new = False
             asset = existing_assets[0]
