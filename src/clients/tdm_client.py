@@ -49,6 +49,7 @@ class TDMClient(BaseDataspotClient):
                 - label: Human-readable label
                 - name: Technical column name
                 - type: Data type of the column
+                - description: Description of the column
                 
         Returns:
             Dict[str, Any]: Result of the operation with status and details
@@ -147,6 +148,10 @@ class TDMClient(BaseDataspotClient):
                 "hasRange": datatype_uuid
             }
             
+            # Add description if available
+            if 'description' in column and column['description']:
+                attribute['description'] = column['description']
+            
             # Check if attribute exists to determine if update or create
             if column['name'] in existing_attributes:
                 # Get existing attribute data
@@ -155,9 +160,11 @@ class TDMClient(BaseDataspotClient):
                 
                 # Check if anything changed
                 if (existing_attr.get('title') == column['label'] and
-                    existing_attr.get('hasRange') == datatype_uuid):
+                    existing_attr.get('hasRange') == datatype_uuid and
+                    existing_attr.get('description') == column.get('description')):
                     # Attribute is unchanged
                     unchanged_attrs.append(column['name'])
+                    # TODO: Track exactly what has changed for logging and email purposes
                 else:
                     # Update the attribute
                     attr_endpoint = f"/rest/{self.database_name}/attributes/{attr_uuid}"

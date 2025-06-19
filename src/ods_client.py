@@ -41,10 +41,12 @@ class ODSClient:
             column_data = {
                 'label': field.get('label'),
                 'name': field.get('name'),
-                'type': field.get('type')
+                'type': field.get('type'),
+                'description': field.get('description')
             }
             if field.get('type') == 'text' and 'semantic_type' in field and field.get('semantic_type') == 'identifier':
                 column_data['type'] = 'identifier'
+
             column_info.append(column_data)
 
         return column_info
