@@ -57,6 +57,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         'message': '',
         'counts': {
             'total_processed': 0,
+            'total_changes': 0,
             'created': 0,
             'updated': 0,
             'unchanged': 0,
@@ -126,24 +127,26 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                 result = tdm_client.sync_dataset_components(ods_id=ods_id, name=dataset_title, columns=columns)
                 
                 # Parse result
-                is_new = "Created new" in result.get('message', '')
+                is_new = result.get('is_new', False)
                 
                 # Update counts based on result
                 if is_new:
                     sync_results['counts']['created'] += 1
+                    sync_results['counts']['total_changes'] += 1
                     sync_results['details']['creations']['count'] += 1
                     logging.info(f"Created new dataobject for dataset {ods_id}: '{dataset_title}' with {len(columns)} columns")
                     
                     # Store creation details
-                    sync_results['details']['creations']['items'].append({
+                    creation_item = {
                         'ods_id': ods_id,
                         'title': dataset_title,
-                        'columns_count': len(columns)
-                    })
+                        'uuid': result.get('uuid'),
+                        'link': result.get('link', ''),
+                        'columns_count': len(columns),
+                        'attributes_created': result.get('counts', {}).get('created_attributes', 0)
+                    }
+                    sync_results['details']['creations']['items'].append(creation_item)
                 else:
-                    sync_results['counts']['updated'] += 1
-                    sync_results['details']['updates']['count'] += 1
-                    
                     # Check if any attributes were actually modified
                     attrs_created = result.get('counts', {}).get('created_attributes', 0)
                     attrs_updated = result.get('counts', {}).get('updated_attributes', 0)
@@ -152,9 +155,12 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     
                     if attrs_modified == 0:
                         sync_results['counts']['unchanged'] += 1
-                        sync_results['counts']['updated'] -= 1  # Adjust count since no actual changes
                         logging.info(f"Dataobject for dataset {ods_id}: '{dataset_title}' is unchanged (all {len(columns)} columns match)")
                     else:
+                        sync_results['counts']['updated'] += 1
+                        sync_results['counts']['total_changes'] += 1
+                        sync_results['details']['updates']['count'] += 1
+                        
                         # Log the changes
                         changes = []
                         if attrs_created > 0:
@@ -166,16 +172,25 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                             
                         logging.info(f"Updated dataobject for dataset {ods_id}: '{dataset_title}' with changes: {', '.join(changes)}")
                     
-                    # Store update details
-                    sync_results['details']['updates']['items'].append({
-                        'ods_id': ods_id,
-                        'title': dataset_title,
-                        'columns_count': len(columns),
-                        'created_attrs': result.get('counts', {}).get('created_attributes', 0),
-                        'updated_attrs': result.get('counts', {}).get('updated_attributes', 0),
-                        'deleted_attrs': result.get('counts', {}).get('deleted_attributes', 0),
-                        'unchanged_attrs': result.get('counts', {}).get('unchanged_attributes', 0)
-                    })
+                        # Store update details in a more structured format similar to other handlers
+                        update_item = {
+                            'ods_id': ods_id,
+                            'title': dataset_title,
+                            'uuid': result.get('uuid'),
+                            'link': result.get('link', ''),
+                            'columns_count': len(columns),
+                            'created_attrs': attrs_created,
+                            'updated_attrs': attrs_updated,
+                            'deleted_attrs': attrs_deleted,
+                            'unchanged_attrs': result.get('counts', {}).get('unchanged_attributes', 0)
+                        }
+                        
+                        # Include detailed field changes if available
+                        field_changes = result.get('details', {}).get('field_changes', {})
+                        if field_changes:
+                            update_item['changed_fields'] = field_changes
+                            
+                        sync_results['details']['updates']['items'].append(update_item)
                 
                 # Update attribute counts
                 sync_results['counts']['attributes_created'] += result.get('counts', {}).get('created_attributes', 0)
@@ -205,11 +220,13 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
     # Update final report status and message
     sync_results['status'] = 'success'
     sync_results['message'] = (
-        f"ODS dataset components synchronization completed with {total_successful} successful, "
-        f"{total_failed} failed out of {total_processed} datasets. "
-        f"Created {sync_results['counts']['created']} new dataobjects, "
-        f"updated {sync_results['counts']['updated']} existing dataobjects, "
-        f"and {sync_results['counts']['unchanged']} were unchanged."
+        f"ODS dataset components synchronization completed with {sync_results['counts']['total_changes']} changes: "
+        f"{sync_results['counts']['created']} new dataobjects created, "
+        f"{sync_results['counts']['updated']} existing dataobjects updated, "
+        f"and {sync_results['counts']['unchanged']} were unchanged. "
+        f"Attribute changes: {sync_results['counts']['attributes_created']} created, "
+        f"{sync_results['counts']['attributes_updated']} updated, "
+        f"{sync_results['counts']['attributes_deleted']} deleted."
     )
     
     # Update final counts
@@ -306,12 +323,27 @@ def log_detailed_sync_report(sync_results):
                 
             ods_id = update.get('ods_id', 'Unknown')
             title = update.get('title', 'Unknown')
+            uuid = update.get('uuid', 'Unknown')
+            link = update.get('link', '')
             
             logging.info(f"Updated dataobject for ODS dataset {ods_id}: {title}")
+            if link:
+                logging.info(f"  - Link: {link}")
+            
             logging.info(f"  - Created attributes: {update['created_attrs']}")
             logging.info(f"  - Updated attributes: {update['updated_attrs']}")
             logging.info(f"  - Deleted attributes: {update['deleted_attrs']}")
             logging.info(f"  - Unchanged attributes: {update['unchanged_attrs']}")
+            
+            # Display detailed field changes if available
+            if 'changed_fields' in update and update['changed_fields']:
+                logging.info("  - Changed fields:")
+                for attr_name, changes in update['changed_fields'].items():
+                    logging.info(f"    - Attribute: {attr_name}")
+                    for field, values in changes.items():
+                        old_val = values.get('old_value', 'None')
+                        new_val = values.get('new_value', 'None')
+                        logging.info(f"      - {field}: '{old_val}' → '{new_val}'")
     
     # Log information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
@@ -321,8 +353,12 @@ def log_detailed_sync_report(sync_results):
             ods_id = creation.get('ods_id', 'Unknown')
             title = creation.get('title', 'Unknown')
             columns_count = creation.get('columns_count', 0)
+            uuid = creation.get('uuid', 'Unknown')
+            link = creation.get('link', '')
             
             logging.info(f"Created dataobject for ODS dataset {ods_id}: {title} with {columns_count} columns")
+            if link:
+                logging.info(f"  - Link: {link}")
     
     # Log information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -349,7 +385,7 @@ def create_email_content(sync_results, scheme_name_short):
         tuple: (email_subject, email_text, should_send)
     """
     counts = sync_results['counts']
-    total_changes = counts['created'] + counts['updated']
+    total_changes = counts['total_changes']
     
     # Only create email if there were changes
     if total_changes == 0 and counts.get('errors', 0) == 0:
@@ -379,7 +415,7 @@ def create_email_content(sync_results, scheme_name_short):
     email_text += f"- Deleted: {counts['attributes_deleted']} attributes\n"
     email_text += f"- Unchanged: {counts['attributes_unchanged']} attributes\n"
     
-    # Add information about updated dataobjects if there are significant changes
+    # Add information about updated dataobjects with significant changes
     significant_updates = []
     for update in sync_results['details']['updates']['items']:
         if update['created_attrs'] > 0 or update['updated_attrs'] > 0 or update['deleted_attrs'] > 0:
@@ -390,12 +426,51 @@ def create_email_content(sync_results, scheme_name_short):
         for update in significant_updates[:10]:  # Limit to 10 for readability
             ods_id = update.get('ods_id', 'Unknown')
             title = update.get('title', 'Unknown')
+            link = update.get('link', '')
             
             email_text += f"\n- {title} (ODS ID: {ods_id})\n"
+            if link:
+                email_text += f"  Link: {link}\n"
             email_text += f"  Created: {update['created_attrs']}, Updated: {update['updated_attrs']}, Deleted: {update['deleted_attrs']}\n"
+            
+            # Include some field change details if available
+            if 'changed_fields' in update and update['changed_fields']:
+                field_count = 0
+                for attr_name, changes in update['changed_fields'].items():
+                    if field_count >= 3:  # Limit to 3 changed fields per update for readability
+                        email_text += f"  ... and more attribute changes\n"
+                        break
+                    
+                    email_text += f"  Attribute '{attr_name}' changes:\n"
+                    for field, values in changes.items():
+                        old_val = values.get('old_value', 'None')
+                        new_val = values.get('new_value', 'None')
+                        old_val_short = old_val[:30] + "..." if isinstance(old_val, str) and len(old_val) > 30 else old_val
+                        new_val_short = new_val[:30] + "..." if isinstance(new_val, str) and len(new_val) > 30 else new_val
+                        email_text += f"    - {field}: '{old_val_short}' → '{new_val_short}'\n"
+                    
+                    field_count += 1
             
         if len(significant_updates) > 10:
             email_text += f"\n... and {len(significant_updates) - 10} more updated dataobjects.\n"
+    
+    # Include information about created dataobjects
+    if sync_results['details']['creations']['count'] > 0:
+        creations = sync_results['details']['creations']['items']
+        email_text += "\nNEWLY CREATED DATAOBJECTS:\n"
+        for creation in creations[:10]:  # Limit to 10 for readability # TODO: Remove limit
+            ods_id = creation.get('ods_id', 'Unknown')
+            title = creation.get('title', 'Unknown')
+            columns_count = creation.get('columns_count', 0)
+            link = creation.get('link', '')
+            
+            email_text += f"\n- {title} (ODS ID: {ods_id})\n"
+            if link:
+                email_text += f"  Link: {link}\n"
+            email_text += f"  Created with {columns_count} columns\n"
+            
+        if len(creations) > 10:
+            email_text += f"\n... and {len(creations) - 10} more created dataobjects.\n"
     
     # Include some error information if any
     if sync_results['details']['errors']['count'] > 0:

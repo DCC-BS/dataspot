@@ -148,6 +148,9 @@ class TDMClient(BaseDataspotClient):
         unchanged_attrs = []
         deleted_attrs = []
         
+        # Store detailed field changes
+        field_changes = {}
+        
         # Process each column as an attribute
         logging.info(f"Processing {len(columns)} columns as attributes...")
         for column in columns:
@@ -179,16 +182,41 @@ class TDMClient(BaseDataspotClient):
                     unchanged_attrs.append(column['name'])
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
                 else:
-                    # Log what changed
-                    changes = []
-                    if existing_attr.get('label') != column['label']:
-                        changes.append(f"label: '{existing_attr.get('label')}' → '{column['label']}'")
-                    if existing_attr.get('hasRange') != datatype_uuid:
-                        changes.append(f"datatype changed from '{existing_attr.get('hasRange')}' to '{datatype_uuid}'")
-                    if existing_attr.get('description') != column.get('description'):
-                        changes.append(f"description changed")
+                    # Track changes in detail with before/after values
+                    attr_changes = {}
                     
-                    logging.info(f"Updating attribute '{column['name']}': {', '.join(changes)}")
+                    if existing_attr.get('label') != column['label']:
+                        attr_changes['label'] = {
+                            'old_value': existing_attr.get('label'),
+                            'new_value': column['label']
+                        }
+                    
+                    if existing_attr.get('hasRange') != datatype_uuid:
+                        attr_changes['datatype'] = {
+                            'old_value': existing_attr.get('hasRange'),
+                            'new_value': datatype_uuid
+                        }
+                    
+                    if existing_attr.get('description') != column.get('description'):
+                        attr_changes['description'] = {
+                            'old_value': existing_attr.get('description'),
+                            'new_value': column.get('description')
+                        }
+                    
+                    # Store changes for this attribute
+                    if attr_changes:
+                        field_changes[column['name']] = attr_changes
+                    
+                    # Log the changes
+                    changes_desc = []
+                    if 'label' in attr_changes:
+                        changes_desc.append(f"label: '{attr_changes['label']['old_value']}' → '{attr_changes['label']['new_value']}'")
+                    if 'datatype' in attr_changes:
+                        changes_desc.append(f"datatype changed")
+                    if 'description' in attr_changes:
+                        changes_desc.append(f"description changed")
+                    
+                    logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
                     
                     # Update the attribute
                     attr_endpoint = f"/rest/{self.database_name}/attributes/{attr_uuid}"
@@ -215,23 +243,32 @@ class TDMClient(BaseDataspotClient):
                 self._delete_asset(attr_endpoint)
                 deleted_attrs.append(attr_name)
         
+        # Asset link for reference in results
+        dataspot_link = f"{self.base_url}/web/{self.database_name}/assets/{asset_uuid}" if asset_uuid else ""
+        
         # Prepare result
         result = {
             "status": "success",
             "message": f"{'Created new' if is_new else 'Updated existing'} dataobject for dataset {ods_id}",
             "uuid": asset_uuid,
+            "link": dataspot_link,
+            "ods_id": ods_id,
+            "title": name,
             "counts": {
                 "created_attributes": len(created_attrs),
                 "updated_attributes": len(updated_attrs),
                 "unchanged_attributes": len(unchanged_attrs),
-                "deleted_attributes": len(deleted_attrs)
+                "deleted_attributes": len(deleted_attrs),
+                "total_changes": len(created_attrs) + len(updated_attrs) + len(deleted_attrs)
             },
             "details": {
                 "created_attributes": created_attrs,
                 "updated_attributes": updated_attrs,
                 "unchanged_attributes": unchanged_attrs,
-                "deleted_attributes": deleted_attrs
-            }
+                "deleted_attributes": deleted_attrs,
+                "field_changes": field_changes
+            },
+            "is_new": is_new
         }
         
         # Log summary of changes
