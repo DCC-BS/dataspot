@@ -125,7 +125,7 @@ class TDMClient(BaseDataspotClient):
             attrs_response = self._get_asset(attributes_endpoint)
             if attrs_response and '_embedded' in attrs_response and 'attributes' in attrs_response['_embedded']:
                 for attr in attrs_response['_embedded']['attributes']:
-                    existing_attributes[attr['label']] = attr
+                    existing_attributes[attr['physicalName']] = attr
         except Exception as e:
             # Log the error but continue with empty existing_attributes
             logging.warning(f"Failed to retrieve existing attributes for {ods_id}: {str(e)}")
