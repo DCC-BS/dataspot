@@ -81,11 +81,15 @@ class TDMClient(BaseDataspotClient):
             asset.get('ODS_ID') == ods_id
         )
         
+        logging.info(f"Checking if dataobject for dataset {ods_id} already exists...")
         existing_assets = self.get_all_assets_from_scheme(filter_function=asset_filter)
 
         if existing_assets:
             if len(existing_assets) > 1:
                 logging.error(f"Found {len(existing_assets)} assets with ods_id {ods_id} in the {self.scheme_name_short} when only one should exist!")
+                raise
+            else:
+                logging.info(f"Found existing dataobject for dataset {ods_id} (UUID: {existing_assets[0].get('id')})")
 
             # Asset exists, update it
             is_new = False
@@ -97,6 +101,7 @@ class TDMClient(BaseDataspotClient):
                 
             # Update the existing dataobject
             endpoint = f"/rest/{self.database_name}/assets/{asset_uuid}"
+            logging.info(f"Updating existing dataobject properties for dataset {ods_id}...")
             response = self._update_asset(endpoint=endpoint, data=dataobject, replace=False)
         else:
             # Create new dataobject in the ODS-Imports collection
@@ -108,12 +113,15 @@ class TDMClient(BaseDataspotClient):
             # The collection is implicitly set by the endpoint we're using
             
             # Create the dataobject
+            logging.info(f"Creating new dataobject for dataset {ods_id} in collection {self.ods_imports_collection_name}...")
             endpoint = f"/rest/{self.database_name}/collections/{collection_uuid}/assets"
             response = self._create_asset(endpoint=endpoint, data=dataobject)
             asset_uuid = response.get('id')
             
             if not asset_uuid:
                 raise ValueError(f"Failed to create dataobject for {ods_id}")
+            else:
+                logging.info(f"Successfully created new dataobject (UUID: {asset_uuid})")
         
         # Process attributes (columns)
         attributes_endpoint = f"/rest/{self.database_name}/classifiers/{asset_uuid}/attributes"
@@ -122,10 +130,14 @@ class TDMClient(BaseDataspotClient):
         existing_attributes = {}
         
         try:
+            logging.info(f"Retrieving existing attributes for dataset {ods_id}...")
             attrs_response = self._get_asset(attributes_endpoint)
             if attrs_response and '_embedded' in attrs_response and 'attributes' in attrs_response['_embedded']:
                 for attr in attrs_response['_embedded']['attributes']:
                     existing_attributes[attr['physicalName']] = attr
+                logging.info(f"Found {len(existing_attributes)} existing attributes")
+            else:
+                logging.info(f"No existing attributes found for dataset {ods_id}")
         except Exception as e:
             # Log the error but continue with empty existing_attributes
             logging.warning(f"Failed to retrieve existing attributes for {ods_id}: {str(e)}")
@@ -137,6 +149,7 @@ class TDMClient(BaseDataspotClient):
         deleted_attrs = []
         
         # Process each column as an attribute
+        logging.info(f"Processing {len(columns)} columns as attributes...")
         for column in columns:
             # Map ODS types to UML data types
             datatype_uuid = self._get_datatype_uuid(column['type'])
@@ -159,13 +172,24 @@ class TDMClient(BaseDataspotClient):
                 attr_uuid = existing_attr.get('id')
                 
                 # Check if anything changed
-                if (existing_attr.get('title') == column['label'] and
+                if (existing_attr.get('label') == column['label'] and
                     existing_attr.get('hasRange') == datatype_uuid and
                     existing_attr.get('description') == column.get('description')):
                     # Attribute is unchanged
                     unchanged_attrs.append(column['name'])
-                    # TODO: Track exactly what has changed for logging and email purposes
+                    logging.debug(f"Attribute '{column['name']}' is unchanged")
                 else:
+                    # Log what changed
+                    changes = []
+                    if existing_attr.get('label') != column['label']:
+                        changes.append(f"label: '{existing_attr.get('label')}' → '{column['label']}'")
+                    if existing_attr.get('hasRange') != datatype_uuid:
+                        changes.append(f"datatype changed from '{existing_attr.get('hasRange')}' to '{datatype_uuid}'")
+                    if existing_attr.get('description') != column.get('description'):
+                        changes.append(f"description changed")
+                    
+                    logging.info(f"Updating attribute '{column['name']}': {', '.join(changes)}")
+                    
                     # Update the attribute
                     attr_endpoint = f"/rest/{self.database_name}/attributes/{attr_uuid}"
                     self._update_asset(endpoint=attr_endpoint, data=attribute, replace=False)
@@ -175,13 +199,18 @@ class TDMClient(BaseDataspotClient):
                 del existing_attributes[column['name']]
             else:
                 # Create new attribute
+                logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
                 self._create_asset(endpoint=attributes_endpoint, data=attribute)
                 created_attrs.append(column['name'])
         
         # Handle deletions - any attributes still in existing_attributes need to be removed
+        if existing_attributes:
+            logging.info(f"Found {len(existing_attributes)} attributes to delete")
+            
         for attr_name, attr_data in existing_attributes.items():
             attr_uuid = attr_data.get('id')
             if attr_uuid:
+                logging.info(f"Deleting unused attribute '{attr_name}'")
                 attr_endpoint = f"/rest/{self.database_name}/attributes/{attr_uuid}"
                 self._delete_asset(attr_endpoint)
                 deleted_attrs.append(attr_name)
@@ -204,6 +233,25 @@ class TDMClient(BaseDataspotClient):
                 "deleted_attributes": deleted_attrs
             }
         }
+        
+        # Log summary of changes
+        if is_new:
+            logging.info(f"Created new dataobject for dataset {ods_id} with {len(created_attrs)} attributes")
+        else:
+            changes = []
+            if created_attrs:
+                changes.append(f"{len(created_attrs)} attributes created")
+            if updated_attrs:
+                changes.append(f"{len(updated_attrs)} attributes updated")
+            if deleted_attrs:
+                changes.append(f"{len(deleted_attrs)} attributes deleted")
+            if unchanged_attrs:
+                changes.append(f"{len(unchanged_attrs)} attributes unchanged")
+                
+            if changes:
+                logging.info(f"Updated dataobject for dataset {ods_id} with changes: {', '.join(changes)}")
+            else:
+                logging.info(f"No changes made to dataobject for dataset {ods_id}")
         
         return result
     

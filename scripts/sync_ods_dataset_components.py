@@ -92,7 +92,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         logging.info(f"Processing batch {batch_num}/{total_batches} with {len(current_batch)} datasets...")
         
         for idx, ods_id in enumerate(current_batch):
-            logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing components for dataset {ods_id}...")
+            logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
             
             try:
                 # Get dataset title
@@ -111,13 +111,18 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     total_failed += 1
                     continue
                 
+                logging.info(f"Retrieved dataset title: '{dataset_title}'")
+                
                 # Get dataset columns
                 columns = ods_client.get_dataset_columns(dataset_id=ods_id)
                 if not columns:
                     logging.warning(f"No columns found for dataset {ods_id}: {dataset_title}")
                     columns = []  # Use empty list to create dataobject without attributes
+                else:
+                    logging.info(f"Retrieved {len(columns)} columns for dataset {ods_id}")
                 
                 # Sync dataset components
+                logging.info(f"Synchronizing dataset components for {ods_id}: '{dataset_title}'")
                 result = tdm_client.sync_dataset_components(ods_id=ods_id, name=dataset_title, columns=columns)
                 
                 # Parse result
@@ -127,6 +132,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                 if is_new:
                     sync_results['counts']['created'] += 1
                     sync_results['details']['creations']['count'] += 1
+                    logging.info(f"Created new dataobject for dataset {ods_id}: '{dataset_title}' with {len(columns)} columns")
                     
                     # Store creation details
                     sync_results['details']['creations']['items'].append({
@@ -139,15 +145,26 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     sync_results['details']['updates']['count'] += 1
                     
                     # Check if any attributes were actually modified
-                    attrs_modified = (
-                        result.get('counts', {}).get('created_attributes', 0) +
-                        result.get('counts', {}).get('updated_attributes', 0) +
-                        result.get('counts', {}).get('deleted_attributes', 0)
-                    )
+                    attrs_created = result.get('counts', {}).get('created_attributes', 0)
+                    attrs_updated = result.get('counts', {}).get('updated_attributes', 0)
+                    attrs_deleted = result.get('counts', {}).get('deleted_attributes', 0)
+                    attrs_modified = attrs_created + attrs_updated + attrs_deleted
                     
                     if attrs_modified == 0:
                         sync_results['counts']['unchanged'] += 1
                         sync_results['counts']['updated'] -= 1  # Adjust count since no actual changes
+                        logging.info(f"Dataobject for dataset {ods_id}: '{dataset_title}' is unchanged (all {len(columns)} columns match)")
+                    else:
+                        # Log the changes
+                        changes = []
+                        if attrs_created > 0:
+                            changes.append(f"{attrs_created} columns created")
+                        if attrs_updated > 0:
+                            changes.append(f"{attrs_updated} columns updated")
+                        if attrs_deleted > 0:
+                            changes.append(f"{attrs_deleted} columns deleted")
+                            
+                        logging.info(f"Updated dataobject for dataset {ods_id}: '{dataset_title}' with changes: {', '.join(changes)}")
                     
                     # Store update details
                     sync_results['details']['updates']['items'].append({
