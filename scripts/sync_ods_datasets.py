@@ -326,6 +326,18 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['errors']} errors")
     
+    # Log detailed information about deleted datasets
+    if sync_results['details']['deletions']['count'] > 0:
+        logging.info("")
+        logging.info("--- DELETED DATASETS ---")
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            dataspot_link = deletion.get('link', '')
+            
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
+    
     # Log detailed information about updated datasets
     if sync_results['details']['updates']['count'] > 0:
         logging.info("")
@@ -338,8 +350,8 @@ def log_detailed_sync_report(sync_results):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else update.get('link', '')
 
-            logging.info("")
-            logging.info(f"Changed OGD dataset {ods_id}: {title} (Link: {dataspot_link})")
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
             
             # Log field changes
             if 'changes' in update:
@@ -360,19 +372,8 @@ def log_detailed_sync_report(sync_results):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else creation.get('link', '')
             
-            logging.info(f"Created OGD dataset {ods_id}: {title} (Link: {dataspot_link})")
-    
-    # Log detailed information about deleted datasets
-    if sync_results['details']['deletions']['count'] > 0:
-        logging.info("")
-        logging.info("--- DELETED DATASETS ---")
-        for deletion in sync_results['details']['deletions']['items']:
-            ods_id = deletion.get('ods_id', 'Unknown')
-            title = deletion.get('title', 'Unknown')
-            dataspot_link = deletion.get('link', '')
-            link_info = f" (Link: {dataspot_link})" if dataspot_link else ""
-            
-            logging.info(f"Marked for deletion OGD dataset {ods_id}: {title}{link_info}")
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
     
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -425,6 +426,19 @@ def create_email_content(sync_results, scheme_name_short):
     email_text += f"\nTotal datasets processed: {counts['processed']}\n\n"
     
     # Add detailed information if available
+    
+    # Add information about deleted datasets FIRST
+    if sync_results['details']['deletions']['count'] > 0:
+        email_text += "\nDELETED DATASETS:\n"
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            dataspot_link = deletion.get('link', '')
+            
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+    
+    # Then show updated datasets
     if sync_results['details']['updates']['count'] > 0:
         email_text += "\nUPDATED DATASETS:\n"
         for update in sync_results['details']['updates']['items']:
@@ -435,7 +449,8 @@ def create_email_content(sync_results, scheme_name_short):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else update.get('link', '')
             
-            email_text += f"\nChanged OGD dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
             
             # Add field changes
             if 'changes' in update:
@@ -444,16 +459,19 @@ def create_email_content(sync_results, scheme_name_short):
                     email_text += f"  - Old value: {values.get('old_value', 'None')}\n"
                     email_text += f"  - New value: {values.get('new_value', 'None')}\n"
     
-    # Add information about deleted datasets
-    if sync_results['details']['deletions']['count'] > 0:
-        email_text += "\nDELETED DATASETS:\n"
-        for deletion in sync_results['details']['deletions']['items']:
-            ods_id = deletion.get('ods_id', 'Unknown')
-            title = deletion.get('title', 'Unknown')
-            dataspot_link = deletion.get('link', '')
-            link_info = f" (Link: {dataspot_link})" if dataspot_link else ""
+    # Finally show created datasets LAST
+    if sync_results['details']['creations']['count'] > 0:
+        email_text += "\nCREATED DATASETS:\n"
+        for creation in sync_results['details']['creations']['items']:
+            ods_id = creation.get('ods_id', 'Unknown')
+            title = creation.get('title', 'Unknown')
+            uuid = creation.get('uuid', '')
             
-            email_text += f"\nMarked for deletion OGD dataset {ods_id}: {title}{link_info}\n"
+            # Create Dataspot link instead of ODS source link
+            dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else creation.get('link', '')
+            
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
     
     email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
     email_text += "Best regards,\n"

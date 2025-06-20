@@ -153,7 +153,9 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
                 for field_name, changes in update.get('changed_fields', {}).items():
                     old_value = changes.get('old_value', '')
                     new_value = changes.get('new_value', '')
-                    logging.info(f"   - {field_name}: '{old_value}' → '{new_value}'")
+                    logging.info(f"   - {field_name}:")
+                    logging.info(f"     - Old value: '{old_value}'")
+                    logging.info(f"     - New value: '{new_value}'")
 
         # Process deletions
         if 'deletions' in details:
@@ -304,7 +306,9 @@ def create_email_content(sync_result, base_url, database_name) -> (str | None, s
             for field_name, changes in update.get('changed_fields', {}).items():
                 old_value = changes.get('old_value', '')
                 new_value = changes.get('new_value', '')
-                email_text += f"  {field_name}: '{old_value}' → '{new_value}'\n"
+                email_text += f"  {field_name}:\n"
+                email_text += f"    - Old value: '{old_value}'\n"
+                email_text += f"    - New value: '{new_value}'\n"
         email_text += "\n"
 
     if counts.get('created', 0) > 0 and 'creations' in details:

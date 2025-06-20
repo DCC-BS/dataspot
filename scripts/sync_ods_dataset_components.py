@@ -326,9 +326,8 @@ def log_detailed_sync_report(sync_results):
             uuid = update.get('uuid', 'Unknown')
             link = update.get('link', '')
             
-            logging.info(f"Updated dataobject for ODS dataset {ods_id}: {title}")
-            if link:
-                logging.info(f"  - Link: {link}")
+            # Display title and link
+            logging.info(f"Updated dataobject for ODS dataset {ods_id}: {title} (Link: {link})")
             
             logging.info(f"  - Created attributes: {update['created_attrs']}")
             logging.info(f"  - Updated attributes: {update['updated_attrs']}")
@@ -344,8 +343,8 @@ def log_detailed_sync_report(sync_results):
                         old_val = values.get('old_value', 'None')
                         new_val = values.get('new_value', 'None')
                         logging.info(f"      - {field}:")
-                        logging.info(f"        - old value: '{old_val}'")
-                        logging.info(f"        - new value: '{new_val}'")
+                        logging.info(f"        - Old value: '{old_val}'")
+                        logging.info(f"        - New value: '{new_val}'")
     
     # Log information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
@@ -358,9 +357,8 @@ def log_detailed_sync_report(sync_results):
             uuid = creation.get('uuid', 'Unknown')
             link = creation.get('link', '')
             
-            logging.info(f"Created dataobject for ODS dataset {ods_id}: {title} with {columns_count} columns")
-            if link:
-                logging.info(f"  - Link: {link}")
+            # Display link right after title
+            logging.info(f"Created dataobject for ODS dataset {ods_id}: {title} with {columns_count} columns (Link: {link})")
     
     # Log information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -430,9 +428,8 @@ def create_email_content(sync_results, scheme_name_short):
             title = update.get('title', 'Unknown')
             link = update.get('link', '')
             
-            email_text += f"\n- {title} (ODS ID: {ods_id})\n"
-            if link:
-                email_text += f"  Link: {link}\n"
+            # Display link right after title
+            email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
             email_text += f"  Created: {update['created_attrs']}, Updated: {update['updated_attrs']}, Deleted: {update['deleted_attrs']}\n"
             
             # Include some field change details if available
@@ -443,8 +440,8 @@ def create_email_content(sync_results, scheme_name_short):
                         old_val = values.get('old_value', 'None')
                         new_val = values.get('new_value', 'None')
                         email_text += f"    - {field}:\n"
-                        email_text += f"      - old value: '{old_val}'\n"
-                        email_text += f"      - new value: '{new_val}'\n"
+                        email_text += f"      - Old value: '{old_val}'\n"
+                        email_text += f"      - New value: '{new_val}'\n"
 
     
     # Include information about created dataobjects
@@ -457,9 +454,8 @@ def create_email_content(sync_results, scheme_name_short):
             columns_count = creation.get('columns_count', 0)
             link = creation.get('link', '')
             
-            email_text += f"\n- {title} (ODS ID: {ods_id})\n"
-            if link:
-                email_text += f"  Link: {link}\n"
+            # Display link right after title
+            email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
             email_text += f"  Created with {columns_count} columns\n"
 
     
