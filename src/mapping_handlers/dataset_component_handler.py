@@ -67,6 +67,9 @@ class DatasetComponentHandler(BaseDataspotHandler):
             self.default_component_path_full = self.client.ods_imports_collection_name
 
         logging.debug(f"Default component path: {self.default_component_path_full}")
+        
+        # Update mappings during initialization to ensure fresh data
+        self.update_mappings_before_upload()
 
     def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -354,6 +357,9 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 logging.info(f"Updated dataobject for dataset {ods_id} with changes: {', '.join(changes)}")
             else:
                 logging.info(f"No changes made to dataobject for dataset {ods_id}")
+        
+        # Update mappings after changes
+        self.update_mappings_after_upload([ods_id])
         
         # Save mapping to CSV
         self.mapping.save_to_csv()
