@@ -343,7 +343,9 @@ def log_detailed_sync_report(sync_results):
                     for field, values in changes.items():
                         old_val = values.get('old_value', 'None')
                         new_val = values.get('new_value', 'None')
-                        logging.info(f"      - {field}: '{old_val}' → '{new_val}'")
+                        logging.info(f"      - {field}:")
+                        logging.info(f"        - old value: '{old_val}'")
+                        logging.info(f"        - new value: '{new_val}'")
     
     # Log information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
@@ -423,7 +425,7 @@ def create_email_content(sync_results, scheme_name_short):
             
     if significant_updates:
         email_text += "\nUPDATED DATAOBJECTS WITH SIGNIFICANT CHANGES:\n"
-        for update in significant_updates[:10]:  # Limit to 10 for readability
+        for update in significant_updates:
             ods_id = update.get('ods_id', 'Unknown')
             title = update.get('title', 'Unknown')
             link = update.get('link', '')
@@ -435,30 +437,21 @@ def create_email_content(sync_results, scheme_name_short):
             
             # Include some field change details if available
             if 'changed_fields' in update and update['changed_fields']:
-                field_count = 0
                 for attr_name, changes in update['changed_fields'].items():
-                    if field_count >= 3:  # Limit to 3 changed fields per update for readability
-                        email_text += f"  ... and more attribute changes\n"
-                        break
-                    
                     email_text += f"  Attribute '{attr_name}' changes:\n"
                     for field, values in changes.items():
                         old_val = values.get('old_value', 'None')
                         new_val = values.get('new_value', 'None')
-                        old_val_short = old_val[:30] + "..." if isinstance(old_val, str) and len(old_val) > 30 else old_val
-                        new_val_short = new_val[:30] + "..." if isinstance(new_val, str) and len(new_val) > 30 else new_val
-                        email_text += f"    - {field}: '{old_val_short}' → '{new_val_short}'\n"
-                    
-                    field_count += 1
-            
-        if len(significant_updates) > 10:
-            email_text += f"\n... and {len(significant_updates) - 10} more updated dataobjects.\n"
+                        email_text += f"    - {field}:\n"
+                        email_text += f"      - old value: '{old_val}'\n"
+                        email_text += f"      - new value: '{new_val}'\n"
+
     
     # Include information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
         creations = sync_results['details']['creations']['items']
         email_text += "\nNEWLY CREATED DATAOBJECTS:\n"
-        for creation in creations[:10]:  # Limit to 10 for readability # TODO: Remove limit
+        for creation in creations:
             ods_id = creation.get('ods_id', 'Unknown')
             title = creation.get('title', 'Unknown')
             columns_count = creation.get('columns_count', 0)
@@ -468,21 +461,16 @@ def create_email_content(sync_results, scheme_name_short):
             if link:
                 email_text += f"  Link: {link}\n"
             email_text += f"  Created with {columns_count} columns\n"
-            
-        if len(creations) > 10:
-            email_text += f"\n... and {len(creations) - 10} more created dataobjects.\n"
+
     
     # Include some error information if any
     if sync_results['details']['errors']['count'] > 0:
         email_text += "\nERRORS:\n"
-        for error in sync_results['details']['errors']['items'][:5]:  # Limit to 5 for readability
+        for error in sync_results['details']['errors']['items']:
             ods_id = error.get('ods_id', 'Unknown')
             message = error.get('message', 'Unknown error')
             
-            email_text += f"\n- ODS ID {ods_id}: {message[:100]+'...' if len(message) > 100 else message}\n"
-            
-        if len(sync_results['details']['errors']['items']) > 5:
-            email_text += f"\n... and {len(sync_results['details']['errors']['items']) - 5} more errors.\n"
+            email_text += f"\n- ODS ID {ods_id}: {message}\n"
     
     email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
     email_text += "Best regards,\n"
