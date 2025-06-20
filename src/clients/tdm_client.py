@@ -134,6 +134,10 @@ class TDMClient(BaseDataspotClient):
             attrs_response = self._get_asset(attributes_endpoint)
             if attrs_response and '_embedded' in attrs_response and 'attributes' in attrs_response['_embedded']:
                 for attr in attrs_response['_embedded']['attributes']:
+                    technical_name = attr.get('physicalName')
+                    if not technical_name:
+                        logging.error(f"Attribute {attr['label']} is missing a physicalName (technical name)! Skipping...")
+                        raise ValueError(f"Attribute {attr['label']} is missing a physicalName (technical name)! Skipping...")
                     existing_attributes[attr['physicalName']] = attr
                 logging.info(f"Found {len(existing_attributes)} existing attributes")
             else:
