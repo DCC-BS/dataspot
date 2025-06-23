@@ -110,11 +110,11 @@ class OrgStructureUpdater:
         # First, handle deletions
         self._process_deletions(changes_by_type["delete"], stats)
         
-        # Then handle creations
-        self._process_creations(changes_by_type["create"], stats, status)
-        
-        # Finally handle updates
+        # Then handle updates
         self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
+        
+        #  Finallyhandle creations
+        self._process_creations(changes_by_type["create"], stats, status)
         
         
         logging.info(f"Change application complete: {stats['created']} created, {stats['updated']} updated, "
