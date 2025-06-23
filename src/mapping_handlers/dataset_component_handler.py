@@ -53,6 +53,23 @@ class DatasetComponentHandler(BaseDataspotHandler):
                                                 asset.get('stereotype') == 'ogd_dataset' and 
                                                 asset.get(self.asset_id_field) is not None)
 
+        # Define the datatype mapping
+        self._datatype_mapping = {
+            'text': '/Datentypmodell/Text',
+            'int': '/Datentypmodell/Ganzzahl',
+            'boolean': '/Datentypmodell/Wahrheitswert',
+            'double': '/Datentypmodell/Dezimalzahl',
+            'datetime': '/Datentypmodell/Zeitpunkt',
+            'date': '/Datentypmodell/Datum',
+            'geo_point_2d': '/Datentypmodell/geo_point_2d',
+            'geo_shape': '/Datentypmodell/geo_shape',
+            'file': '/Datentypmodell/Binärdaten',
+            'json_blob': '/Datentypmodell/Text'
+        }
+
+        # Initialize cache for datatype UUIDs
+        self._datatype_uuid_cache = {}
+        
         # Check for special characters in the default path and name
         if any('/' in folder for folder in self.client.ods_imports_collection_path) \
             or any('.' in folder for folder in self.client.ods_imports_collection_path) \
@@ -68,8 +85,37 @@ class DatasetComponentHandler(BaseDataspotHandler):
 
         logging.debug(f"Default component path: {self.default_component_path_full}")
         
+        # Prefetch all datatype UUIDs
+        self._prefetch_datatype_uuids()
+        
         # Update mappings during initialization to ensure fresh data
         self.update_mappings_before_upload()
+
+    def _prefetch_datatype_uuids(self):
+        """
+        Prefetch all datatype UUIDs and store them in the cache to reduce API calls.
+        """
+        import config
+        
+        logging.info("Prefetching datatype UUIDs...")
+        
+        for ods_type, datatype_path in self._datatype_mapping.items():
+            # Use the last part as the type name
+            parts = datatype_path.strip('/').split('/')
+            type_name = parts[-1]
+            
+            # Build path to datatype
+            dtype_endpoint = f"/rest/{self.client.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
+            
+            # Get datatype UUID
+            response = self.client._get_asset(dtype_endpoint)
+            if response:
+                self._datatype_uuid_cache[ods_type.lower()] = response.get('id')
+                logging.debug(f"Cached datatype UUID for {ods_type}: {self._datatype_uuid_cache[ods_type.lower()]}")
+            else:
+                logging.warning(f"Could not find datatype for {ods_type}")
+        
+        logging.info(f"Prefetched {len(self._datatype_uuid_cache)} datatype UUIDs")
 
     def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -376,30 +422,26 @@ class DatasetComponentHandler(BaseDataspotHandler):
         Returns:
             str: UUID of the corresponding datatype in Dataspot
         """
-        # Map ODS types to UML data types
-        type_mapping = {
-            'text': '/Datentypmodell/Text',
-            'int': '/Datentypmodell/Ganzzahl',
-            'boolean': '/Datentypmodell/Wahrheitswert',
-            'double': '/Datentypmodell/Dezimalzahl',
-            'datetime': '/Datentypmodell/Zeitpunkt',
-            'date': '/Datentypmodell/Datum',
-            'geo_point_2d': '/Datentypmodell/geo_point_2d',
-            'geo_shape': '/Datentypmodell/geo_shape',
-            'file': '/Datentypmodell/Binärdaten',
-            'json_blob': '/Datentypmodell/Text',
-            'identifier': '/Datentypmodell/Identifier'
-        }
+        ods_type_lower = ods_type.lower()
+        
+        # Check if UUID is in cache
+        if ods_type_lower in self._datatype_uuid_cache:
+            return self._datatype_uuid_cache[ods_type_lower]
+        
+        # If not in cache (should not happen if prefetch worked correctly),
+        # fetch it and add to cache
+        import config
         
         # Get datatype path
-        datatype_path = type_mapping[ods_type.lower()]
+        datatype_path = self._datatype_mapping.get(ods_type_lower)
+        if not datatype_path:
+            raise ValueError(f"Unknown ODS data type: {ods_type}")
         
         # Use the last part as the type name
         parts = datatype_path.strip('/').split('/')
         type_name = parts[-1]
         
         # Build path to datatype
-        import config
         dtype_endpoint = f"/rest/{self.client.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
         
         # Get datatype UUID
@@ -407,4 +449,8 @@ class DatasetComponentHandler(BaseDataspotHandler):
         if not response:
             raise ValueError(f"Could not find datatype for {ods_type}")
         
-        return response.get('id') 
+        # Cache the result
+        uuid = response.get('id')
+        self._datatype_uuid_cache[ods_type_lower] = uuid
+        
+        return uuid
