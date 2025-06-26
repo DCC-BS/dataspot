@@ -387,6 +387,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                     attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
                     self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False)
                     updated_attrs.append(column['name'])
+                    time.sleep(1)
                 
                 # Remove from existing_attributes to track what's left for deletion
                 del existing_attributes[column['name']]
@@ -395,6 +396,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
                 self.client._create_asset(endpoint=attributes_endpoint, data=attribute)
                 created_attrs.append(column['name'])
+                time.sleep(1)
         
         # Handle deletions - any attributes still in existing_attributes need to be removed
         if existing_attributes:
