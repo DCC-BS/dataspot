@@ -279,8 +279,9 @@ class DatasetComponentHandler(BaseDataspotHandler):
             }
             
             # Add description if available
+            # Note: We write the description as title to make it globally visible in dataspot.
             if 'description' in column and column['description']:
-                attribute['description'] = column['description']
+                attribute['title'] = column['description']
             
             # Check if attribute exists to determine if update or create
             if column['name'] in existing_attributes:
@@ -291,7 +292,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 # Check if anything changed
                 if (existing_attr.get('label') == column['label'] and
                     existing_attr.get('hasRange') == datatype_uuid and
-                    existing_attr.get('description') == column.get('description')):
+                    existing_attr.get('title') == column.get('description')):
                     # Attribute is unchanged
                     unchanged_attrs.append(column['name'])
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
@@ -311,9 +312,9 @@ class DatasetComponentHandler(BaseDataspotHandler):
                             'new_value': datatype_uuid
                         }
                     
-                    if existing_attr.get('description') != column.get('description'):
+                    if existing_attr.get('title') != column.get('description'):
                         attr_changes['description'] = {
-                            'old_value': existing_attr.get('description'),
+                            'old_value': existing_attr.get('title'),
                             'new_value': column.get('description')
                         }
                     
