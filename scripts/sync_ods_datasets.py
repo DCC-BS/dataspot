@@ -440,6 +440,21 @@ def link_datasets_to_components(ods_ids):
             created_compositions = 0
             skipped_compositions = 0
             
+            # Fetch all existing compositions for this dataset in one call
+            all_compositions_response = dnk_client._get_asset(compositions_endpoint)
+            existing_compositions_by_label = {}
+            
+            # Create a lookup map of existing compositions by label
+            if (all_compositions_response and '_embedded' in all_compositions_response 
+                and 'compositions' in all_compositions_response['_embedded']):
+                all_compositions = all_compositions_response['_embedded']['compositions']
+                for comp in all_compositions:
+                    comp_label = comp.get('label')
+                    if comp_label:
+                        existing_compositions_by_label[comp_label] = comp
+                
+                logging.debug(f"Found {len(existing_compositions_by_label)} existing compositions for dataset '{dataset_title}'")
+            
             # Step 5: Add a composition for each attribute
             for attribute in tdm_attributes:
                 attribute_label = attribute.get('label')
@@ -449,26 +464,17 @@ def link_datasets_to_components(ods_ids):
                     logging.warning(f"Skipping attribute with missing label or ID: {attribute}")
                     continue
                 
+                # Check if composition already exists using the lookup map
+                if attribute_label in existing_compositions_by_label:
+                    logging.debug(f"Composition for '{attribute_label}' already exists. Skipping...")
+                    skipped_compositions += 1
+                    continue
+                
                 # Create composition object
                 composition_data = {
                     "_type": "Composition",
                     "composedOf": attribute_id
                 }
-                
-                # Check if composition already exists
-                try:
-                    if "/" in attribute_label:
-                        # FIXME: Solve slashes in labels
-                        logging.warning("TODO: Handle case where attribute_label contains a slash; access through business key does not seem to be possible.")
-                    composition_check_endpoint = f"{compositions_endpoint}/{attribute_label}"
-                    existing_composition = dnk_client._get_asset(composition_check_endpoint)
-                    if existing_composition:
-                        logging.debug(f"Composition for '{attribute_label}' already exists. Skipping...")
-                        skipped_compositions += 1
-                        continue
-                except Exception:
-                    # Assume composition doesn't exist if we get an error
-                    pass
                 
                 # Add the composition
                 dnk_client._create_asset(compositions_endpoint, data=composition_data)
