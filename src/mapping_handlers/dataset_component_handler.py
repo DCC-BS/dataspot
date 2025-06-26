@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import List, Dict, Any
 
 from src.clients.base_client import BaseDataspotClient
@@ -406,6 +407,11 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
                 self.client._delete_asset(attr_endpoint)
                 deleted_attrs.append(attr_name)
+        
+        # Add a delay if any attributes were created to avoid hitting API rate limits
+        if created_attrs or updated_attrs:
+            logging.info(f"Added {len(created_attrs)} new attributes and {len(updated_attrs)} updated attributes. Waiting 10 seconds to avoid API rate limits...")
+            time.sleep(10)
         
         # Asset link for reference in results
         dataspot_link = f"{self.client.base_url}/web/{self.client.database_name}/assets/{asset_uuid}" if asset_uuid else ""
