@@ -44,6 +44,13 @@ class BaseDataspotClient():
         self.scheme_name_short = scheme_name_short
         self.ods_imports_collection_name = ods_imports_collection_name
         self.ods_imports_collection_path = ods_imports_collection_path
+        
+        # Initialize cache for ODS imports collection
+        self._ods_imports_collection = None
+        
+        # If ods_imports_collection_name is provided, initialize the collection
+        if self.ods_imports_collection_name:
+            self._ods_imports_collection = self.ensure_ods_imports_collection_exists()
 
     def get_all_assets_from_scheme(self, filter_function=None) -> List[Dict[str, Any]]:
         """
@@ -345,6 +352,11 @@ class BaseDataspotClient():
             ValueError: If the scheme does not exist or the configured path contains a '/' or the configured path doesn't exist
             HTTPError: If API requests fail
         """
+        # Return cached result if available
+        if self._ods_imports_collection:
+            logging.debug("Using cached ODS-Imports collection from initialization")
+            return self._ods_imports_collection
+
         logging.info("Ensuring ODS-Imports collection exists")
         # Assert that the scheme exists.
         self.require_scheme_exists()
@@ -450,6 +462,7 @@ class BaseDataspotClient():
                 logging.debug(f"ODS-Imports collection already exists under the correct parent, using it as is")
                 path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
                 logging.info(f"ODS-Imports collection found at: {path_str}")
+                self._ods_imports_collection = existing_collection
                 return existing_collection
             else:
                 logging.debug(f"ODS-Imports collection does not exist under the correct parent, creating it")
@@ -463,6 +476,7 @@ class BaseDataspotClient():
                 )
                 path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
                 logging.info(f"Created ODS-Imports collection at: {path_str}")
+                self._ods_imports_collection = response_json
                 return response_json
 
         except HTTPError as create_error:

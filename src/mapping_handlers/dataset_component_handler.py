@@ -133,9 +133,6 @@ class DatasetComponentHandler(BaseDataspotHandler):
         Returns:
             Dict[str, Any]: Result of the operation with status and details
         """
-        # Ensure collection exists
-        collection_data = self.client.ensure_ods_imports_collection_exists()
-
         ods_link = f"https://data.bs.ch/explore/dataset/{ods_id}/"
 
         # Prepare dataobject data
@@ -216,7 +213,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # If still no asset_uuid, create a new dataobject
         if not asset_uuid:
             # Create new dataobject in the ODS-Imports collection
-            collection_uuid = collection_data.get('id')
+            collection_uuid = self.client._ods_imports_collection.get('id')
             if not collection_uuid:
                 raise ValueError("Failed to get collection UUID")
             

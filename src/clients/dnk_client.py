@@ -38,11 +38,8 @@ class DNKClient(BaseDataspotClient):
         Returns:
             dict: The JSON response containing the dataset data
         """
-        # Ensure ODS-Imports collection exists
-        collection_data = self.ensure_ods_imports_collection_exists()
-        
         # Create dataset endpoint
-        collection_uuid = collection_data.get('id')
+        collection_uuid = self._ods_imports_collection.get('id')
         if not collection_uuid:
             raise ValueError("Failed to get collection UUID")
             

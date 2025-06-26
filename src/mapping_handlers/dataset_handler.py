@@ -385,17 +385,14 @@ class DatasetHandler(BaseDataspotHandler):
     def bulk_create_or_update_datasets(self, datasets: List[Dataset],
                                       operation: str = "ADD", dry_run: bool = False) -> dict:
         """
-        Create multiple datasets in bulk in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
+        Bulk create or update datasets in the DNK scheme using the bulk upload API.
         The datasets will be created at the scheme level, but each dataset will have its inCollection
         field set to place it within the ODS-Imports collection or the collection stored in the mapping.
         
         Args:
-            datasets (List[Dataset]): List of dataset instances to be uploaded.
-            operation (str, optional): Upload operation mode. Defaults to "ADD".
-                                      "ADD": Add or update only. Existing datasets not in the upload remain unchanged.
-                                      "REPLACE": Reconcile elements. Datasets not in the upload are considered obsolete.
-                                      "FULL_LOAD": Reconcile model. Completely replaces with the uploaded datasets.
-            dry_run (bool, optional): Whether to perform a test run without changing data. Defaults to False.
+            datasets (List[Dataset]): The dataset instances to be uploaded
+            operation (str): The operation to perform. Can be "ADD" (add/update), "REPLACE" (replace) or "FULL_LOAD" (completely replace)
+            dry_run (bool): Whether to do a dry run (not actually modify the data)
             
         Returns:
             dict: The JSON response from the API containing the upload results
@@ -408,13 +405,9 @@ class DatasetHandler(BaseDataspotHandler):
         if not datasets:
             logging.warning("No datasets provided for bulk upload")
             return {"status": "error", "message": "No datasets provided"}
-
-        # Ensure ODS-Imports collection exists and get its UUID
-        logging.debug("Ensuring ODS-Imports collection exists")
-        collection_data = self.client.ensure_ods_imports_collection_exists()
         
-        # Get the collection UUID
-        collection_uuid = get_uuid_from_response(collection_data)
+        # Get the ODS-Imports collection UUID
+        collection_uuid = self.client._ods_imports_collection.get('id')
 
         if not collection_uuid:
             error_msg = "Failed to get collection UUID"
@@ -523,14 +516,9 @@ class DatasetHandler(BaseDataspotHandler):
         # Read the dataset title
         title = dataset.to_json()['label']
         logging.info(f"Creating dataset: '{title}' with ODS ID: {ods_id}")
-        
-        # Ensure ODS-Imports collection exists
-        logging.debug(f"Ensuring ODS-Imports collection exists")
-        collection_data = self.client.ensure_ods_imports_collection_exists()
-        logging.debug(f"Collection info: {collection_data}")
 
         # Get the collection UUID
-        collection_uuid = get_uuid_from_response(collection_data)
+        collection_uuid = self.client._ods_imports_collection.get('id')
 
         if not collection_uuid:
             error_msg = "Failed to get collection UUID"

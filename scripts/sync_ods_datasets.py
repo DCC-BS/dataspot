@@ -45,8 +45,6 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
     logging.info(f"Found {len(ods_ids)} datasets to process")
     
-    dataspot_client.ensure_ods_imports_collection_exists()
-    
     # Process datasets
     logging.info("Step 2: Processing datasets - downloading metadata and transforming...")
     total_processed = 0
