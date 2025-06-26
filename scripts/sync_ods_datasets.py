@@ -457,6 +457,9 @@ def link_datasets_to_components(ods_ids):
                 
                 # Check if composition already exists
                 try:
+                    if "/" in attribute_label:
+                        # FIXME: Solve slashes in labels
+                        logging.warning("TODO: Handle case where attribute_label contains a slash; access through business key does not seem to be possible.")
                     composition_check_endpoint = f"{compositions_endpoint}/{attribute_label}"
                     existing_composition = dnk_client._get_asset(composition_check_endpoint)
                     if existing_composition:
