@@ -4,7 +4,7 @@
 database_name = 'prod'
 
 # Base URL
-base_url = 'https://bs.dataspot.io'
+base_url = 'https://datenkatalog.bs.ch'
 database_name_prod = 'prod'
 
 # Scheme names
