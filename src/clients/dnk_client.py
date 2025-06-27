@@ -18,8 +18,8 @@ class DNKClient(BaseDataspotClient):
                          database_name=config.database_name,
                          scheme_name=config.dnk_scheme_name,
                          scheme_name_short=config.dnk_scheme_name_short,
-                         ods_imports_collection_name=config.ods_imports_collection_name,
-                         ods_imports_collection_path=config.ods_imports_collection_path)
+                         ods_imports_collection_name=config.dnk_ods_imports_collection_name,
+                         ods_imports_collection_path=config.dnk_ods_imports_collection_path)
         
         # Initialize the handlers
         self.org_handler = OrgStructureHandler(self)
@@ -38,11 +38,8 @@ class DNKClient(BaseDataspotClient):
         Returns:
             dict: The JSON response containing the dataset data
         """
-        # Ensure ODS-Imports collection exists
-        collection_data = self.ensure_ods_imports_collection_exists()
-        
         # Create dataset endpoint
-        collection_uuid = collection_data.get('id')
+        collection_uuid = self._ods_imports_collection.get('id')
         if not collection_uuid:
             raise ValueError("Failed to get collection UUID")
             

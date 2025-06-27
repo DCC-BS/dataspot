@@ -1,8 +1,11 @@
-from typing import Dict, Any
+import logging
+from typing import Dict, Any, List
 
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
+from src.mapping_handlers.dataset_component_handler import DatasetComponentHandler
+from src.ods_client import ODSClient
 
 class TDMClient(BaseDataspotClient):
     """Client for interacting with your new data scheme."""
@@ -15,11 +18,12 @@ class TDMClient(BaseDataspotClient):
                          database_name=config.database_name,
                          scheme_name=config.tdm_scheme_name,
                          scheme_name_short=config.tdm_scheme_name_short,
-                         ods_imports_collection_name=config.ods_imports_collection_name,
-                         ods_imports_collection_path=config.ods_imports_collection_path)
+                         ods_imports_collection_name=config.tdm_ods_imports_collection_name,
+                         ods_imports_collection_path=config.tdm_ods_imports_collection_path)
         
         # Initialize the handlers
         self.org_handler = OrgStructureHandler(self)
+        self.component_handler = DatasetComponentHandler(self)
 
     # Synchronization methods
     def sync_org_units(self, org_data: Dict[str, Any], status: str = "WORKING") -> Dict[str, Any]:
@@ -35,3 +39,21 @@ class TDMClient(BaseDataspotClient):
             Dict: Summary of the synchronization process
         """
         return self.org_handler.sync_org_units(org_data, status=status)
+        
+    def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create or update a TDM dataobject for a dataset with its columns as attributes.
+        
+        Args:
+            ods_id (str): The ODS ID of the dataset
+            name (str): The name of the dataset/dataobject
+            columns (List[Dict[str, Any]]): List of column definitions, each containing:
+                - label: Human-readable label
+                - name: Technical column name
+                - type: Data type of the column
+                - description: Description of the column
+                
+        Returns:
+            Dict[str, Any]: Result of the operation with status and details
+        """
+        return self.component_handler.sync_dataset_components(ods_id, name, columns)

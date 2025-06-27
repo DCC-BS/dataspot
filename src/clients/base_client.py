@@ -23,9 +23,18 @@ class BaseDataspotClient():
        parameter applied to all assets in the operation.
     """
 
-    def __init__(self, base_url: str, database_name: str, scheme_name: str, scheme_name_short: str, ods_imports_collection_name: str, ods_imports_collection_path: str):
+    def __init__(self, base_url: str, database_name: str, scheme_name: str, scheme_name_short: str, 
+                 ods_imports_collection_name: str = None, ods_imports_collection_path: List[str] = None):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
+        
+        Args:
+            base_url: The base URL of the Dataspot API
+            database_name: The name of the database
+            scheme_name: The name of the scheme
+            scheme_name_short: The short name of the scheme
+            ods_imports_collection_name: Optional. The name of the default imports collection
+            ods_imports_collection_path: Optional. The path of the default imports collection
         """
         self.auth = DataspotAuth()
 
@@ -35,6 +44,13 @@ class BaseDataspotClient():
         self.scheme_name_short = scheme_name_short
         self.ods_imports_collection_name = ods_imports_collection_name
         self.ods_imports_collection_path = ods_imports_collection_path
+        
+        # Initialize cache for ODS imports collection
+        self._ods_imports_collection = None
+        
+        # If ods_imports_collection_name is provided, initialize the collection
+        if self.ods_imports_collection_name:
+            self._ods_imports_collection = self.ensure_ods_imports_collection_exists()
 
     def get_all_assets_from_scheme(self, filter_function=None) -> List[Dict[str, Any]]:
         """
@@ -42,7 +58,7 @@ class BaseDataspotClient():
                                         
         Args:
             filter_function: Optional function that takes an asset and returns True if it should be included.
-                Note that the filter is applied on flat asset, i.e. no customProperties field is present!
+                **IMPORTANT:** Note that the filter is applied on flat asset, i.e. no customProperties field is present!
 
         Returns:
             List[Dict[str, Any]]: List of assets from the scheme (filtered if filter_function provided)
@@ -336,6 +352,11 @@ class BaseDataspotClient():
             ValueError: If the scheme does not exist or the configured path contains a '/' or the configured path doesn't exist
             HTTPError: If API requests fail
         """
+        # Return cached result if available
+        if self._ods_imports_collection:
+            logging.debug("Using cached ODS-Imports collection from initialization")
+            return self._ods_imports_collection
+
         logging.info("Ensuring ODS-Imports collection exists")
         # Assert that the scheme exists.
         self.require_scheme_exists()
@@ -441,6 +462,7 @@ class BaseDataspotClient():
                 logging.debug(f"ODS-Imports collection already exists under the correct parent, using it as is")
                 path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
                 logging.info(f"ODS-Imports collection found at: {path_str}")
+                self._ods_imports_collection = existing_collection
                 return existing_collection
             else:
                 logging.debug(f"ODS-Imports collection does not exist under the correct parent, creating it")
@@ -454,6 +476,7 @@ class BaseDataspotClient():
                 )
                 path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
                 logging.info(f"Created ODS-Imports collection at: {path_str}")
+                self._ods_imports_collection = response_json
                 return response_json
 
         except HTTPError as create_error:

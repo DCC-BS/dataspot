@@ -2,9 +2,11 @@ import logging
 import json
 import os
 import datetime
+import time
 
 import config
 from src.clients.dnk_client import DNKClient
+from src.clients.tdm_client import TDMClient
 from src.common import email_helpers as email_helpers
 import ods_utils_py as ods_utils
 from src.dataset_transformer import transform_ods_to_dnk
@@ -28,6 +30,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     6. Processes deletions by identifying datasets no longer in ODS
     7. Provides a summary of changes and logs a detailed report
     8. Sends an email notification if there were changes
+    9. Links datasets to their corresponding components in TDM
     
     Args:
         max_datasets (int, optional): Maximum number of datasets to process. Defaults to None (all datasets).
@@ -42,8 +45,6 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
     ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
     logging.info(f"Found {len(ods_ids)} datasets to process")
-    
-    dataspot_client.ensure_ods_imports_collection_exists()
     
     # Process datasets
     logging.info("Step 2: Processing datasets - downloading metadata and transforming...")
@@ -64,7 +65,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'deleted': 0,
             'unchanged': 0,
             'errors': 0,
-            'processed': 0
+            'processed': 0,
+            'linked': 0,
+            'link_errors': 0
         },
         'details': {
             'creations': {
@@ -80,6 +83,14 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                 'items': []
             },
             'errors': {
+                'count': 0,
+                'items': []
+            },
+            'links': {
+                'count': 0,
+                'items': []
+            },
+            'link_errors': {
                 'count': 0,
                 'items': []
             }
@@ -237,13 +248,26 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                 })
     else:
         logging.info("No datasets found for deletion")
+    
+    # Step 5: Link datasets to their components in TDM
+    logging.info("Step 5: Linking datasets to their components in TDM...")
+    link_results = link_datasets_to_components(all_processed_ods_ids)
+    
+    # Update sync results with link results
+    sync_results['counts']['linked'] = link_results.get('linked', 0)
+    sync_results['counts']['link_errors'] = link_results.get('errors', 0)
+    sync_results['details']['links']['count'] = len(link_results.get('successful_links', []))
+    sync_results['details']['links']['items'] = link_results.get('successful_links', [])
+    sync_results['details']['link_errors']['count'] = len(link_results.get('failed_links', []))
+    sync_results['details']['link_errors']['items'] = link_results.get('failed_links', [])
 
     # Update final report status and message
     sync_results['status'] = 'success'
     sync_results['message'] = (
         f"ODS datasets synchronization completed with {sync_results['counts']['total']} changes: "
         f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
-        f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted."
+        f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
+        f"Linked {sync_results['counts']['linked']} datasets to components."
     )
     
     # Update final counts (processed may differ from total changes)
@@ -308,6 +332,194 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     return processed_ids
 
 
+def link_datasets_to_components(ods_ids):
+    """
+    Links DNK datasets to TDM components by creating composition objects.
+    This function creates connections (compositions) between datasets in DNK
+    and their corresponding components in TDM that have the same ODS_ID.
+    
+    Args:
+        ods_ids (set or list): Collection of ODS IDs to process
+        
+    Returns:
+        dict: Summary of linking operation with counts of successful and failed links
+    """
+    logging.info("Starting to link datasets to their components...")
+    
+    # Initialize clients
+    dnk_client = DNKClient()
+    tdm_client = TDMClient()
+    
+    # Initialize results
+    result = {
+        'linked': 0,
+        'errors': 0,
+        'successful_links': [],
+        'failed_links': []
+    }
+    
+    # Skip if no ODS IDs provided
+    if not ods_ids:
+        logging.warning("No ODS IDs provided for linking datasets to components")
+        return result
+    
+    logging.info(f"Processing {len(ods_ids)} datasets for linking to components...")
+    
+    # Step 1: Get all DNK datasets with ODS_ID
+    logging.info("Getting all DNK datasets with ODS_ID...")
+    dnk_filter = lambda asset: (
+        asset.get('_type') == 'Dataset' and
+        asset.get('ODS_ID') is not None and
+        asset.get('status') not in ['INTERMINATION2']  # Ignore archived assets
+    )
+    dnk_datasets = dnk_client.get_all_assets_from_scheme(filter_function=dnk_filter)
+    
+    # Create lookup dictionary for DNK datasets by ODS_ID
+    dnk_datasets_by_ods_id = {}
+    for dataset in dnk_datasets:
+        ods_id = dataset.get('ODS_ID')
+        if ods_id:
+            dnk_datasets_by_ods_id[ods_id] = dataset
+    
+    # Step 2: Get all TDM components with ODS_ID
+    logging.info("Getting all TDM components with ODS_ID...")
+    tdm_filter = lambda asset: (
+        asset.get('_type') == 'UmlClass' and
+        asset.get('stereotype') == 'ogd_dataset' and
+        asset.get('ODS_ID') is not None
+    )
+    tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+    
+    # Create lookup dictionary for TDM components by ODS_ID
+    tdm_components_by_ods_id = {}
+    for component in tdm_components:
+        ods_id = component.get('ODS_ID')
+        if ods_id:
+            tdm_components_by_ods_id[ods_id] = component
+    
+    # Sort ODS IDs alphabetically before processing
+    sorted_ods_ids = sorted(ods_ids)
+    
+    # Process each ODS ID provided
+    for idx, ods_id in enumerate(sorted_ods_ids):
+        if ods_id not in dnk_datasets_by_ods_id:
+            logging.warning(f"DNK dataset with ODS_ID {ods_id} not found, skipping link creation")
+            continue
+            
+        if ods_id not in tdm_components_by_ods_id:
+            logging.warning(f"TDM component with ODS_ID {ods_id} not found, skipping link creation")
+            continue
+        
+        # Get dataset and component
+        dataset = dnk_datasets_by_ods_id[ods_id]
+        component = tdm_components_by_ods_id[ods_id]
+        
+        dataset_uuid = dataset.get('id')
+        component_uuid = component.get('id')
+        dataset_title = dataset.get('label', f"<Unnamed Dataset {ods_id}>")
+        
+        logging.info(f"[{idx+1}/{len(sorted_ods_ids)}] Linking DNK dataset '{dataset_title}' (ODS_ID: {ods_id}) to TDM component...")
+        
+        try:
+            # Step 3: Get all TDM attributes for this component
+            attributes_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{component_uuid}/attributes"
+            attributes_response = tdm_client._get_asset(attributes_endpoint)
+            
+            if not attributes_response or '_embedded' not in attributes_response or 'attributes' not in attributes_response['_embedded']:
+                logging.warning(f"No attributes found for TDM component with ODS_ID {ods_id}, skipping link creation")
+                continue
+                
+            tdm_attributes = attributes_response['_embedded']['attributes']
+            logging.info(f"Found {len(tdm_attributes)} attributes for TDM component with ODS_ID {ods_id}")
+            
+            # Step 4: Create compositions endpoint for linking
+            compositions_endpoint = f"/rest/{dnk_client.database_name}/datasets/{dataset_uuid}/compositions"
+            
+            # Track counts for this dataset
+            created_compositions = 0
+            skipped_compositions = 0
+            
+            # Fetch all existing compositions for this dataset in one call
+            all_compositions_response = dnk_client._get_asset(compositions_endpoint)
+            existing_compositions_by_label = {}
+            
+            # Create a lookup map of existing compositions by label
+            if (all_compositions_response and '_embedded' in all_compositions_response 
+                and 'compositions' in all_compositions_response['_embedded']):
+                all_compositions = all_compositions_response['_embedded']['compositions']
+                for comp in all_compositions:
+                    comp_label = comp.get('label')
+                    if comp_label:
+                        existing_compositions_by_label[comp_label] = comp
+                
+                logging.debug(f"Found {len(existing_compositions_by_label)} existing compositions for dataset '{dataset_title}'")
+            
+            # Step 5: Add a composition for each attribute
+            for attribute in tdm_attributes:
+                attribute_label = attribute.get('label')
+                attribute_id = attribute.get('id')
+                
+                if not attribute_label or not attribute_id:
+                    logging.warning(f"Skipping attribute with missing label or ID: {attribute}")
+                    continue
+                
+                # Check if composition already exists using the lookup map
+                if attribute_label in existing_compositions_by_label:
+                    logging.debug(f"Composition for '{attribute_label}' already exists. Skipping...")
+                    skipped_compositions += 1
+                    continue
+                
+                # Create composition object
+                composition_data = {
+                    "_type": "Composition",
+                    "composedOf": attribute_id
+                }
+                
+                # Add the composition
+                dnk_client._create_asset(compositions_endpoint, data=composition_data)
+                logging.debug(f"Created composition for attribute '{attribute_label}'")
+                created_compositions += 1
+                time.sleep(1)
+            
+            # If we created at least one composition, count this as a successful link
+            if created_compositions > 0:
+                # Create Dataspot link
+                dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{dataset_uuid}" if dataset_uuid else ''
+                
+                # Track successful link
+                result['linked'] += 1
+                result['successful_links'].append({
+                    'ods_id': ods_id,
+                    'title': dataset_title,
+                    'uuid': dataset_uuid,
+                    'link': dataspot_link,
+                    'compositions_created': created_compositions,
+                    'compositions_skipped': skipped_compositions
+                })
+                
+                logging.info(f"Successfully linked dataset '{dataset_title}' (ODS_ID: {ods_id}) to TDM component: "
+                           f"{created_compositions} compositions created, {skipped_compositions} already existed")
+            else:
+                logging.info(f"No new compositions needed for dataset '{dataset_title}' (ODS_ID: {ods_id})")
+                
+        except Exception as e:
+            error_msg = f"Error linking dataset with ODS_ID {ods_id} to TDM component: {str(e)}"
+            logging.error(error_msg)
+            
+            result['errors'] += 1
+            result['failed_links'].append({
+                'ods_id': ods_id,
+                'title': dataset_title,
+                'uuid': dataset_uuid,
+                'message': error_msg
+            })
+    
+    logging.info(f"Finished linking datasets to components. "
+               f"Linked {result['linked']} datasets with {result['errors']} errors.")
+    
+    return result
+
+
 def log_detailed_sync_report(sync_results):
     """
     Log a detailed report of the synchronization results.
@@ -325,6 +537,20 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['unchanged']} unchanged, "
                f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['errors']} errors")
+    logging.info(f"Dataset links: {sync_results['counts']['linked']} linked to components, "
+               f"{sync_results['counts']['link_errors']} link errors")
+    
+    # Log detailed information about deleted datasets
+    if sync_results['details']['deletions']['count'] > 0:
+        logging.info("")
+        logging.info("--- DELETED DATASETS ---")
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            dataspot_link = deletion.get('link', '')
+            
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
     
     # Log detailed information about updated datasets
     if sync_results['details']['updates']['count'] > 0:
@@ -338,8 +564,8 @@ def log_detailed_sync_report(sync_results):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else update.get('link', '')
 
-            logging.info("")
-            logging.info(f"Changed OGD dataset {ods_id}: {title} (Link: {dataspot_link})")
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
             
             # Log field changes
             if 'changes' in update:
@@ -360,19 +586,23 @@ def log_detailed_sync_report(sync_results):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else creation.get('link', '')
             
-            logging.info(f"Created OGD dataset {ods_id}: {title} (Link: {dataspot_link})")
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
     
-    # Log detailed information about deleted datasets
-    if sync_results['details']['deletions']['count'] > 0:
+    # Log detailed information about linked datasets
+    if sync_results['details']['links']['count'] > 0:
         logging.info("")
-        logging.info("--- DELETED DATASETS ---")
-        for deletion in sync_results['details']['deletions']['items']:
-            ods_id = deletion.get('ods_id', 'Unknown')
-            title = deletion.get('title', 'Unknown')
-            dataspot_link = deletion.get('link', '')
-            link_info = f" (Link: {dataspot_link})" if dataspot_link else ""
+        logging.info("--- LINKED DATASETS ---")
+        for link in sync_results['details']['links']['items']:
+            ods_id = link.get('ods_id', 'Unknown')
+            title = link.get('title', 'Unknown')
+            dataspot_link = link.get('link', '')
+            compositions_created = link.get('compositions_created', 0)
+            compositions_skipped = link.get('compositions_skipped', 0)
             
-            logging.info(f"Marked for deletion OGD dataset {ods_id}: {title}{link_info}")
+            # Show link directly after title in brackets
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
+            logging.info(f"  - Created {compositions_created} compositions, {compositions_skipped} already existed")
     
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -383,6 +613,17 @@ def log_detailed_sync_report(sync_results):
             message = error.get('message', 'Unknown error')
             
             logging.info(f"Error processing dataset {ods_id}: {message}")
+    
+    # Log detailed information about link errors
+    if sync_results['details']['link_errors']['count'] > 0:
+        logging.info("")
+        logging.info("--- LINK ERRORS ---")
+        for error in sync_results['details']['link_errors']['items']:
+            ods_id = error.get('ods_id', 'Unknown')
+            title = error.get('title', 'Unknown')
+            message = error.get('message', 'Unknown error')
+            
+            logging.info(f"Error linking dataset {ods_id} ({title}): {message}")
     
     logging.info("=============================================")
 
@@ -402,7 +643,7 @@ def create_email_content(sync_results, scheme_name_short):
     total_changes = counts['total']
     
     # Only create email if there were changes
-    if total_changes == 0 and counts.get('errors', 0) == 0:
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0:
         return None, None, False
     
     # Create email subject with summary following the requested format
@@ -422,9 +663,25 @@ def create_email_content(sync_results, scheme_name_short):
     email_text += f"- Deleted: {counts['deleted']} datasets\n"
     if counts.get('errors', 0) > 0:
         email_text += f"- Errors: {counts['errors']}\n"
-    email_text += f"\nTotal datasets processed: {counts['processed']}\n\n"
+    email_text += f"\nDataset links: {counts['linked']} datasets linked to components"
+    if counts.get('link_errors', 0) > 0:
+        email_text += f", {counts['link_errors']} link errors"
+    email_text += f"\n\nTotal datasets processed: {counts['processed']}\n\n"
     
     # Add detailed information if available
+    
+    # Add information about deleted datasets FIRST
+    if sync_results['details']['deletions']['count'] > 0:
+        email_text += "\nDELETED DATASETS:\n"
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            dataspot_link = deletion.get('link', '')
+            
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+    
+    # Then show updated datasets
     if sync_results['details']['updates']['count'] > 0:
         email_text += "\nUPDATED DATASETS:\n"
         for update in sync_results['details']['updates']['items']:
@@ -435,7 +692,8 @@ def create_email_content(sync_results, scheme_name_short):
             # Create Dataspot link instead of ODS source link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else update.get('link', '')
             
-            email_text += f"\nChanged OGD dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
             
             # Add field changes
             if 'changes' in update:
@@ -444,16 +702,33 @@ def create_email_content(sync_results, scheme_name_short):
                     email_text += f"  - Old value: {values.get('old_value', 'None')}\n"
                     email_text += f"  - New value: {values.get('new_value', 'None')}\n"
     
-    # Add information about deleted datasets
-    if sync_results['details']['deletions']['count'] > 0:
-        email_text += "\nDELETED DATASETS:\n"
-        for deletion in sync_results['details']['deletions']['items']:
-            ods_id = deletion.get('ods_id', 'Unknown')
-            title = deletion.get('title', 'Unknown')
-            dataspot_link = deletion.get('link', '')
-            link_info = f" (Link: {dataspot_link})" if dataspot_link else ""
+    # Then show created datasets 
+    if sync_results['details']['creations']['count'] > 0:
+        email_text += "\nCREATED DATASETS:\n"
+        for creation in sync_results['details']['creations']['items']:
+            ods_id = creation.get('ods_id', 'Unknown')
+            title = creation.get('title', 'Unknown')
+            uuid = creation.get('uuid', '')
             
-            email_text += f"\nMarked for deletion OGD dataset {ods_id}: {title}{link_info}\n"
+            # Create Dataspot link instead of ODS source link
+            dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else creation.get('link', '')
+            
+            # Show link directly after title in brackets
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+    
+    # Finally show linked datasets
+    if sync_results['details']['links']['count'] > 0:
+        email_text += "\nLINKED DATASETS (to TDM components):\n"
+        for link in sync_results['details']['links']['items']:
+            ods_id = link.get('ods_id', 'Unknown')
+            title = link.get('title', 'Unknown')
+            dataspot_link = link.get('link', '')
+            compositions_created = link.get('compositions_created', 0)
+            compositions_skipped = link.get('compositions_skipped', 0)
+            
+            # Show link directly after title in brackets with composition stats
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+            email_text += f"Created {compositions_created} compositions, {compositions_skipped} already existed\n"
     
     email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
     email_text += "Best regards,\n"

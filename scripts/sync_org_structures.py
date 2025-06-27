@@ -5,10 +5,11 @@ import datetime
 
 from src.clients.base_client import BaseDataspotClient
 from src.clients.fdm_client import FDMClient
+from src.clients.sk_client import SKClient
 from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
 from src.clients.rdm_client import RDMClient
-from src.clients.kzv_client import KZVClient
+from src.clients.kv_client import KVClient
 from src.common import email_helpers as email_helpers
 
 
@@ -22,8 +23,11 @@ def main():
     rdm_client = RDMClient()
     sync_org_structures(dataspot_client=rdm_client)
 
-    kzv_client = KZVClient()
-    sync_org_structures(kzv_client)
+    kv_client = KVClient()
+    sync_org_structures(dataspot_client=kv_client)
+
+    sk_client = SKClient()
+    sync_org_structures(dataspot_client=sk_client)
 
     #tdm_client = TDMClient()
 
@@ -149,7 +153,9 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
                 for field_name, changes in update.get('changed_fields', {}).items():
                     old_value = changes.get('old_value', '')
                     new_value = changes.get('new_value', '')
-                    logging.info(f"   - {field_name}: '{old_value}' → '{new_value}'")
+                    logging.info(f"   - {field_name}:")
+                    logging.info(f"     - Old value: '{old_value}'")
+                    logging.info(f"     - New value: '{new_value}'")
 
         # Process deletions
         if 'deletions' in details:
@@ -300,7 +306,9 @@ def create_email_content(sync_result, base_url, database_name) -> (str | None, s
             for field_name, changes in update.get('changed_fields', {}).items():
                 old_value = changes.get('old_value', '')
                 new_value = changes.get('new_value', '')
-                email_text += f"  {field_name}: '{old_value}' → '{new_value}'\n"
+                email_text += f"  {field_name}:\n"
+                email_text += f"    - Old value: '{old_value}'\n"
+                email_text += f"    - New value: '{new_value}'\n"
         email_text += "\n"
 
     if counts.get('created', 0) > 0 and 'creations' in details:
