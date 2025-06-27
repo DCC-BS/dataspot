@@ -2,6 +2,7 @@ import logging
 import json
 import os
 import datetime
+import time
 
 import config
 from src.clients.dnk_client import DNKClient
@@ -478,6 +479,7 @@ def link_datasets_to_components(ods_ids):
                 dnk_client._create_asset(compositions_endpoint, data=composition_data)
                 logging.debug(f"Created composition for attribute '{attribute_label}'")
                 created_compositions += 1
+                time.sleep(1)
             
             # If we created at least one composition, count this as a successful link
             if created_compositions > 0:
