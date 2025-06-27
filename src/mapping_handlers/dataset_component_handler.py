@@ -194,7 +194,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 
                 # Update the existing dataobject
                 logging.info(f"Updating existing dataobject properties for dataset {ods_id}...")
-                response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False)
+                response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False, status="PUBLISHED")
             else:
                 # Asset doesn't exist in Dataspot anymore, remove from mapping
                 logging.warning(f"Dataobject for dataset {ods_id} found in mapping but not in Dataspot. Removing from mapping.")
@@ -230,7 +230,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 # Update the existing dataobject
                 endpoint = f"/rest/{self.client.database_name}/assets/{asset_uuid}"
                 logging.info(f"Updating existing dataobject properties for dataset {ods_id}...")
-                response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False)
+                response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False, status="PUBLISHED")
                 
                 # Add to mapping
                 self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_component_path_full)
@@ -245,7 +245,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
             # Create the dataobject
             logging.info(f"Creating new dataobject for dataset {ods_id} in collection {self.client.ods_imports_collection_name}...")
             endpoint = f"/rest/{self.client.database_name}/collections/{collection_uuid}/assets"
-            response = self.client._create_asset(endpoint=endpoint, data=dataobject)
+            response = self.client._create_asset(endpoint=endpoint, data=dataobject, status="PUBLISHED")
             asset_uuid = response.get('id')
             
             if not asset_uuid:
@@ -385,7 +385,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                     
                     # Update the attribute
                     attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
-                    self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False)
+                    self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
                     updated_attrs.append(column['name'])
                     time.sleep(1)
                 
@@ -394,7 +394,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
             else:
                 # Create new attribute
                 logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
-                self.client._create_asset(endpoint=attributes_endpoint, data=attribute)
+                self.client._create_asset(endpoint=attributes_endpoint, data=attribute, status="PUBLISHED")
                 created_attrs.append(column['name'])
                 time.sleep(1)
         
