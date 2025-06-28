@@ -1,3 +1,16 @@
+############################################################
+#####                   Header-Farbe                   #####
+############################################################
+Theme:
+  instances:
+    DARK:
+      #appBarBackgroundColor: 167a3e # Grün
+      #appBarBackgroundColor: ff0000 # Rot
+    LIGHT:
+      #appBarBackgroundColor: 167a3e # Grün
+      #appBarBackgroundColor: ff0000 # Rot
+############################################################
+
 ##INHALTSVERZEICHNIS##
 
 #100 - DATENKATALOG
@@ -16,6 +29,7 @@
 #060 - KENNZEICHNUNG VON HERKUNFT
 
 ############################################################
+
 
 #100 - DATENKATALOG
 SubDataset:
@@ -315,14 +329,14 @@ Dataset:
 
             HERAUSGEBER:
               label: Herausgeber
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 35
 
             PUB_ORG:
               label: Publizierende Organisation
-              title: 
+              title:
               baseType: STRING
               group: OGD
               order: 36
@@ -1509,20 +1523,3 @@ Deployment:
         EXKL:
           label: exkludiert
           labelEn: excluded
-
-
-# Uncomment these lines when working in an `feature` (or 'dev') environment
-#Theme:
-#  instances:
-#    DARK:
-#      appBarBackgroundColor: 167a3e
-#    LIGHT:
-#      appBarBackgroundColor: 167a3e
-
-# Uncomment these lines when working in an `int` (integration) environment
-#Theme:
-#  instances:
-#    DARK:
-#      appBarBackgroundColor: ff0000
-#    LIGHT:
-#      appBarBackgroundColor: ff0000
