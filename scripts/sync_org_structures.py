@@ -3,6 +3,7 @@ import json
 import os
 import datetime
 
+import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.fdm_client import FDMClient
 from src.clients.sk_client import SKClient
@@ -337,5 +338,6 @@ if __name__ == '__main__':
         level=logging.INFO,
         format='%(levelname)s:%(name)s:[%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
     )
+    logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')
     main()

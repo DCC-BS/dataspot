@@ -13,7 +13,6 @@ from src.dataset_transformer import transform_ods_to_dnk
 
 
 def main():
-    logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     sync_ods_datasets()
 
 
@@ -742,5 +741,6 @@ if __name__ == '__main__':
         level=logging.INFO,
         format='%(levelname)s:%(name)s:[%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
     )
+    logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')
     main()
