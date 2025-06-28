@@ -10,3 +10,4 @@ tmp/
 !requirements.txt
 !**/README.txt
 **/_basic_annotations.yaml
+config.py
