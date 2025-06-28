@@ -138,7 +138,26 @@ class OrgStructureComparer:
                 "old": dataspot_url,
                 "new": source_url
             }
+        
+        # Check for parent_id_im_staatskalender in source and target
+        source_parent_id = source_unit.get("customProperties", {}).get("parent_id_im_staatskalender", None)
+        dataspot_parent_id = dataspot_unit.get("parent_id_im_staatskalender", None)
+        
+        # Convert both to string for comparison
+        source_parent_id_str = str(source_parent_id) if source_parent_id is not None else None
+        dataspot_parent_id_str = str(dataspot_parent_id) if dataspot_parent_id is not None else None
+        
+        # Check if parent ID is missing or different
+        if source_parent_id_str != dataspot_parent_id_str:
+            if "customProperties" not in changes:
+                changes["customProperties"] = {}
             
+            changes["customProperties"]["parent_id_im_staatskalender"] = {
+                "old": dataspot_parent_id,
+                "new": source_parent_id
+            }
+            logging.info(f"Detected parent ID change for '{dataspot_unit.get('label', '')}': '{dataspot_parent_id}' → '{source_parent_id}'")
+        
         # Check inCollection to detect if a collection has been moved
         # Source has the correct path based on ODS data, Dataspot has current path
         source_path = source_unit.get("inCollection", "")

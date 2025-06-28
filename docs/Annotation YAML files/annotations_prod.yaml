@@ -1248,6 +1248,14 @@ Collection:
               width: 1
               order: 2
               readOnly: true
+            parent_id_im_staatskalender:
+              label: Parent ID im Staatskalender
+              baseType: INTEGER
+              title: Die interne ID der übergeordneten Einheit im Staatskalender
+              width: 1
+              order: 3
+              readOnly: true
+              hidden: true
 
 #020 - HERKUNFT
 Derivation:
