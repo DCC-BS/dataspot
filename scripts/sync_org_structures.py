@@ -203,7 +203,8 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         email_subject, email_content, should_send = create_email_content(
             sync_result=sync_result,
             base_url=base_url,
-            database_name=database_name
+            database_name=database_name,
+            scheme_name_short=dataspot_client.scheme_name_short
         )
 
         # Send email if there were changes
@@ -249,7 +250,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
     logging.info("Organization structure synchronization process finished")
     logging.info("===============================================")
 
-def create_email_content(sync_result, base_url, database_name) -> (str | None, str | None, bool):
+def create_email_content(sync_result, base_url, database_name, scheme_name_short) -> (str | None, str | None, bool):
     """
     Create email content based on synchronization results.
 
@@ -257,6 +258,7 @@ def create_email_content(sync_result, base_url, database_name) -> (str | None, s
         sync_result (dict): Synchronization result data
         base_url (str): Base URL for asset links
         database_name (str): Database name for asset links
+        scheme_name_short (str): Short name of the scheme
 
     Returns:
         tuple: (email_subject, email_text, should_send)
@@ -270,7 +272,7 @@ def create_email_content(sync_result, base_url, database_name) -> (str | None, s
         return None, None, False
 
     # Create email subject with summary of changes
-    email_subject = f"[{database_name}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
+    email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
 
     email_text = f"Hi there,\n\n"
     email_text += f"I've just updated the organization structure in Dataspot.\n"
