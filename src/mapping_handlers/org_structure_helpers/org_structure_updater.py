@@ -73,6 +73,40 @@ class OrgStructureUpdater:
         """
         self.client = client
         self.database_name = client.database_name
+        self._org_units_cache = None
+    
+    def _fetch_all_org_units(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch all organizational units from Dataspot.
+        
+        Returns:
+            Dict mapping org unit label to its full data, including UUID
+        """
+        if self._org_units_cache is not None:
+            return self._org_units_cache
+            
+        # Define the filter function for org units
+        org_filter = lambda asset: (
+            asset.get('_type') == 'Collection' and 
+            asset.get('stereotype') == 'Organisationseinheit' and
+            asset.get('id_im_staatskalender') is not None
+        )
+        
+        # Fetch all org units
+        logging.info("Pre-fetching all organizational units from Dataspot...")
+        org_units = self.client.get_all_assets_from_scheme(org_filter)
+        
+        # Build lookup dictionaries by UUID and by label
+        self._org_units_cache = {
+            'by_uuid': {unit.get('id'): unit for unit in org_units if 'id' in unit},
+            'by_label': {unit.get('label'): unit for unit in org_units if 'label' in unit},
+            'by_sk_id': {str(unit.get('id_im_staatskalender')): unit 
+                        for unit in org_units 
+                        if 'id_im_staatskalender' in unit and unit.get('id_im_staatskalender') is not None}
+        }
+        
+        logging.info(f"Cached {len(org_units)} organizational units for quick lookup")
+        return self._org_units_cache
     
     def apply_changes(self, changes: List[OrgUnitChange], is_initial_run: bool = False, status: str = "WORKING") -> Dict[str, int]:
         """
@@ -92,6 +126,9 @@ class OrgStructureUpdater:
             return {"created": 0, "updated": 0, "deleted": 0, "errors": 0}
             
         logging.info(f"Applying {len(changes)} changes...")
+        
+        # Pre-fetch all org units for efficient lookups
+        self._fetch_all_org_units()
         
         stats = {
             "created": 0,
@@ -113,7 +150,7 @@ class OrgStructureUpdater:
         # Then handle updates
         self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
         
-        #  Finallyhandle creations
+        # Finally handle creations
         self._process_creations(changes_by_type["create"], stats, status)
         
         
@@ -294,36 +331,42 @@ class OrgStructureUpdater:
                         logging.error(error_msg)
                         raise ValueError(error_msg)
                 else:
-                    # Build the endpoint to fetch the parent asset
-                    components = ["rest", self.database_name, "schemes", self.client.scheme_name]
+                    # Improved approach: Find parent by its path components via our cached units
+                    # We'll convert the path to components and find each unit by label
                     
-                    if '"' in parent_path:
-                        # Extract components correctly; doing the opposite of what "helpers.escape_special_chars" does
-                        path_parts = unescape_path_components(parent_path)
-                    else:
-                        # Simple case - just split by slashes
-                        path_parts = parent_path.split('/')
+                    # First, get all the path components
+                    # Extract components correctly for all paths
+                    path_components = unescape_path_components(parent_path)
                     
-                    # Add each path component as a collection
-                    for part in path_parts:
-                        components.append("collections")
-                        components.append(escape_special_chars(part))
+                    # The last component is the immediate parent we need to find
+                    parent_label = path_components[-1] if path_components else ""
                     
-                    parent_endpoint = '/'.join(components)
-                    logging.info(f"Looking up parent collection at: {parent_endpoint}")
+                    # Look up the parent collection by its label in our cache
+                    org_units = self._fetch_all_org_units()
+                    parent_found = False
                     
-                    # When the parent collection is not found, we HAVE TO throw an error and not catch it!
-                    parent_collection = self.client._get_asset(parent_endpoint)
-                    if not parent_collection or "id" not in parent_collection:
-                        error_msg = f"Failed to find parent collection at path: {parent_path}"
+                    # Find the parent Staatskalender ID from the source_unit
+                    # This is available in the source data from ODS and avoids lookups by label
+                    parent_sk_id = None
+                    source_unit = change.details.get("source_unit", {})
+                    if "parent_id_im_staatskalender" in source_unit.get("customProperties"):
+                        parent_sk_id = str(source_unit["customProperties"]["parent_id_im_staatskalender"])
+                    
+                    # First try to find parent by Staatskalender ID which is more reliable
+                    if parent_sk_id and parent_sk_id in org_units['by_sk_id']:
+                        parent_unit = org_units['by_sk_id'][parent_sk_id]
+                        parent_uuid = parent_unit.get('id')
+                        if parent_uuid:
+                            update_data["inCollection"] = parent_uuid
+                            update_data["inScheme"] = None
+                            logging.info(f"Found parent UUID: {parent_uuid} using Staatskalender ID: {parent_sk_id}")
+                            parent_found = True
+                    
+                    # If parent not found, raise an error
+                    if not parent_found:
+                        error_msg = f"Failed to find parent collection. Parent SK ID: {parent_sk_id}, Parent label: '{parent_label}', Path: {parent_path}"
                         logging.error(error_msg)
                         raise ValueError(error_msg)
-                    
-                    # Use UUID for inCollection reference
-                    parent_uuid = parent_collection["id"]
-                    logging.info(f"Found parent UUID: {parent_uuid} for path: {parent_path}")
-                    update_data["inCollection"] = parent_uuid
-                    update_data["inScheme"] = None
             else:
                 # For simple fields, use the new value
                 update_data[field] = change_info["new"]
