@@ -164,7 +164,8 @@ class OrgStructureHandler(BaseDataspotHandler):
         
         # Process each depth level in order
         for depth in sorted(units_by_depth.keys()):
-            level_units = units_by_depth[depth]
+            # Sort units by staatskalender_id within this depth level
+            level_units = sorted(units_by_depth[depth], key=lambda unit: str(unit.get("id_im_staatskalender", "")))
             if not level_units:
                 logging.info(f"No units to upload at depth level {depth}, skipping")
                 continue

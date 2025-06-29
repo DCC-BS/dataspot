@@ -156,7 +156,7 @@ class OrgStructureComparer:
                 "old": dataspot_parent_id,
                 "new": source_parent_id
             }
-            logging.info(f"Detected parent ID change for '{dataspot_unit.get('label', '')}': '{dataspot_parent_id}' → '{source_parent_id}'")
+            logging.info(f"Detected parent ID change for '{dataspot_unit.get('label', '')} (ID: {dataspot_unit['id_im_staatskalender']})': '{dataspot_parent_id}' → '{source_parent_id}'")
         
         # Check inCollection to detect if a collection has been moved
         # Source has the correct path based on ODS data, Dataspot has current path
