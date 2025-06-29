@@ -147,12 +147,18 @@ class OrgStructureUpdater:
         # First, handle deletions
         self._process_deletions(changes_by_type["delete"], stats)
         
-        # Then handle updates
-        self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
-        
-        # Finally handle creations
+        # Process creations before updates to ensure parent organizations exist
+        # This fixes the issue where an update refers to a parent that needs to be created first
         self._process_creations(changes_by_type["create"], stats, status)
         
+        # Refresh org units cache after creations to ensure new units are available for updates
+        if changes_by_type["create"]:
+            logging.info("Refreshing organization units cache after creating new units...")
+            self._org_units_cache = None
+            self._fetch_all_org_units()
+        
+        # Finally handle updates
+        self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
         
         logging.info(f"Change application complete: {stats['created']} created, {stats['updated']} updated, "
                      f"{stats['deleted']} deleted, {stats['errors']} errors")
