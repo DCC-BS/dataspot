@@ -283,8 +283,24 @@ class OrgStructureUpdater:
                 self.client._update_asset(endpoint, update_data, replace=False, status=status)
                 stats["updated"] += 1
             except Exception as e:
-                logging.error(f"Error updating org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
-                stats["errors"] += 1
+                # Check if this is a 401 Unauthorized error
+                if "401" in str(e) and "Unauthorized" in str(e):
+                    logging.warning(f"Received 401 Unauthorized error updating org unit '{change.title}' (ID: {change.staatskalender_id}). Waiting 60 seconds and retrying...")
+                    import time
+                    time.sleep(60)
+                    try:
+                        # Try once more after waiting
+                        self.client._update_asset(endpoint, update_data, replace=False, status=status)
+                        logging.info(f"Successfully updated org unit '{change.title}' after retry")
+                        stats["updated"] += 1
+                    except Exception as retry_error:
+                        # If retry also fails, log error and continue
+                        logging.error(f"Error updating org unit '{change.title}' (ID: {change.staatskalender_id}) after retry: {str(retry_error)}")
+                        stats["errors"] += 1
+                else:
+                    # For other errors, just log and continue
+                    logging.error(f"Error updating org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
+                    stats["errors"] += 1
     
     def _create_update_data(self, change: OrgUnitChange) -> Dict[str, Any]:
         """
