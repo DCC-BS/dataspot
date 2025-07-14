@@ -141,6 +141,21 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         'columns_count': len(columns),
                         'attributes_created': result.get('counts', {}).get('created_attributes', 0)
                     }
+                    
+                    # Add created attributes details if available
+                    if 'details' in result and 'created_attributes' in result['details']:
+                        creation_item['created_fields'] = {}
+                        for attr in result['details']['created_attributes']:
+                            attr_name = attr.get('name', 'unknown')
+                            creation_item['created_fields'][attr_name] = {
+                                'description': {
+                                    'new_value': attr.get('description', '')
+                                },
+                                'type': {
+                                    'new_value': attr.get('type', '')
+                                }
+                            }
+                    
                     sync_results['details']['creations']['items'].append(creation_item)
                 else:
                     # Check if any attributes were actually modified
@@ -185,6 +200,22 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         field_changes = result.get('details', {}).get('field_changes', {})
                         if field_changes:
                             update_item['changed_fields'] = field_changes
+                        
+                        # Include newly created attributes if available
+                        if attrs_created > 0 and 'details' in result and 'created_attributes' in result['details']:
+                            if 'changed_fields' not in update_item:
+                                update_item['changed_fields'] = {}
+                            
+                            for attr in result['details']['created_attributes']:
+                                attr_name = attr.get('name', 'unknown')
+                                update_item['changed_fields'][attr_name] = {
+                                    'description': {
+                                        'new_value': attr.get('description', '')
+                                    },
+                                    'type': {
+                                        'new_value': attr.get('type', '')
+                                    }
+                                }
                             
                         sync_results['details']['updates']['items'].append(update_item)
                 
@@ -355,6 +386,16 @@ def log_detailed_sync_report(sync_results):
             
             # Display link right after title
             logging.info(f"Created dataobject for ODS dataset {ods_id}: {title} with {columns_count} columns (Link: {link})")
+            
+            # Display detailed created field information if available
+            if 'created_fields' in creation and creation['created_fields']:
+                logging.info("  - Created fields:")
+                for attr_name, details in creation['created_fields'].items():
+                    logging.info(f"    - Attribute: {attr_name}")
+                    for field, values in details.items():
+                        new_val = values.get('new_value', 'None')
+                        logging.info(f"      - {field}:")
+                        logging.info(f"        - Value: '{new_val}'")
     
     # Log information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -453,6 +494,14 @@ def create_email_content(sync_results, scheme_name_short):
             # Display link right after title
             email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
             email_text += f"  Created with {columns_count} columns\n"
+            
+            # Include details about created fields if available
+            if 'created_fields' in creation and creation['created_fields']:
+                for attr_name, details in creation['created_fields'].items():
+                    email_text += f"  Attribute '{attr_name}' details:\n"
+                    for field, values in details.items():
+                        new_val = values.get('new_value', 'None')
+                        email_text += f"    - {field}: '{new_val}'\n"
 
     
     # Include some error information if any
