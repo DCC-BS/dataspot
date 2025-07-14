@@ -1,5 +1,6 @@
 import ods_utils_py as ods_utils
 import logging
+from typing import Dict, List, Any
 
 class ODSClient:
     """Client for interacting with the ODS API."""
@@ -98,7 +99,7 @@ class ODSClient:
             HTTPError: If any API request fails
         """
         logging.info("Fetching all organization data from ODS API...")
-        all_organizations = {"results": []}
+        all_organizations: Dict[str, List[Any]] = {"results": []}
         batch_count = 0
         total_retrieved = 0
         
