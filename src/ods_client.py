@@ -42,7 +42,7 @@ class ODSClient:
                 'label': field.get('label'),
                 'name': field.get('name'),
                 'type': field.get('type'),
-                'description': field.get('description')
+                'description': None if field.get('description') == '' else field.get('description'),
             }
             if field.get('type') == 'text' and 'semantic_type' in field and field.get('semantic_type') == 'identifier':
                 column_data['type'] = 'identifier'
