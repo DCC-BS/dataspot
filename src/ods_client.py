@@ -51,8 +51,7 @@ class ODSClient:
 
         return column_info
 
-    # TODO (Renato): Move this to a staatskalender_client or something like this.
-    def get_organization_data(self, limit: int = 100, offset: int = 0) -> dict:
+    def _get_organization_data_batch(self, limit: int = 100, offset: int = 0) -> dict:
         """
         Get organization data from a specific dataset using the Explore API.
         
@@ -106,7 +105,7 @@ class ODSClient:
         while True:
             # Get the next batch of organization data
             offset = batch_count * batch_size
-            batch_data = self.get_organization_data(limit=batch_size, offset=offset)
+            batch_data = self._get_organization_data_batch(limit=batch_size, offset=offset)
             
             # Check if we received any results
             batch_results = batch_data.get('results', [])

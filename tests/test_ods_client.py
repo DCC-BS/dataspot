@@ -113,7 +113,7 @@ def test_get_organization_data(client, sample_org_data_response):
         mock_get.return_value = mock_response
         
         # Execute the function
-        result = client.get_organization_data(limit=50, offset=10)
+        result = client._get_organization_data_batch(limit=50, offset=10)
         
         # Verify the results
         assert result == sample_org_data_response
@@ -135,7 +135,7 @@ def test_get_organization_data_api_error(client):
         mock_get.return_value = mock_response
         
         with pytest.raises(requests.HTTPError):
-            client.get_organization_data()
+            client._get_organization_data_batch()
 
 
 def test_get_all_organization_data(client, sample_org_data_response):
@@ -195,7 +195,7 @@ def test_empty_response_handling(client):
         mock_get.return_value = mock_response
         
         # Execute the function
-        result = client.get_organization_data()
+        result = client._get_organization_data_batch()
         
         # Verify the results
         assert result == {"results": []}
