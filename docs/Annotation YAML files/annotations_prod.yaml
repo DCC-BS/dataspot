@@ -15,10 +15,14 @@ Theme:
 
 #100 - DATENKATALOG
 #200 - GESCHÄFTSOBJEKTMODELL
-#300 - REFERENZDATEN (RDM)
-#400 - TECHNISCHE DATENMODEllE
-#500 - SYSTEMKATALOG
-#600 - PROJEKTVERZEICHNIS
+#300 - REFERENZDATENMODELL
+#400 - QUALITÄTSMODELL
+#500 - DATENTYPMODELL
+#600 - KENNZAHLENVERZEICHNIS
+#700 - PROJEKTVERZEICHNIS
+#800 - PROZESSVERZEICHNIS
+#900 - SYSTEMKATALOG
+#A00 - DATENOBJEKTVERZEICHNIS
 
 #000 - ÜBERGREIFENDE ANPASSUNGEN
 #010 - SAMMLUNGEN
@@ -30,8 +34,11 @@ Theme:
 
 ############################################################
 
-
+############################################################
 #100 - DATENKATALOG
+DataCatalog:
+  label: Datennutzungskatalog
+
 SubDataset:
   label: Subdatensatz
   ling: s1p1um
@@ -1017,8 +1024,11 @@ Distribution:
         Shapefile:
           label: Shapefile
 
-
+############################################################
 #200 - GESCHÄFTSOBJEKTMODELL
+BusinessDataModel:
+  label: Fachdatenmodell
+
 BusinessObject:
 
   properties:
@@ -1128,6 +1138,8 @@ BusinessAttribute:
 
 #300 - REFERENZDATEN (RDM)
 ReferenceDataModel:
+  label: Referenzdatenmodell
+
   properties:
     stereotype:
       label: Modelltyp
@@ -1144,21 +1156,23 @@ ReferenceDataModel:
 ReferenceObject:
   label: Element
   ling: s1p1n
-
-## STEREOPTYPE TYP ##
   properties:
     stereotype:
       label: Typ
       literals:
-
-## TYPE RECHTSGRUNDLAGE ##
         RECHTSGRUNDLAGE:
           label: Rechtsgrundlage
           ling: s3p3f
           icon: section
 
+#400 - QUALITÄTSMODELL
+QualityModel:
+  label: Qualitätsmodell
 
-#400 - TECHNISCHE DATENMODEllE
+#500 - DATENTYPMODELL
+DataDomainModel:
+  label: Datentypmodell
+
 UmlClass:
   properties:
     stereotype:
@@ -1201,8 +1215,13 @@ UmlClass:
 #500 - SYSTEMKATALOG
 
 
-#600 - PROJEKTVERZEICHNIS
+#600 - KENNZAHLENVERZEICHNIS
+MeasuresCatalog:
+  label: Kennzahlenverzeichnis
+
+#700 - PROJEKTVERZEICHNIS
 ProjectDirectory:
+  label: Projektverzeichnis
   properties:
     stereotype:
       label: Projektmodell-Typ
@@ -1212,6 +1231,20 @@ ProjectDirectory:
           icon: cat-space
 
 
+
+
+#800 - PROZESSVERZEICHNIS
+ProcessingRecords:
+  label: Prozessverzeichnis
+
+#900 - SYSTEMKATALOG
+SystemCatalog:
+  label: Systemkatalog
+
+
+#A00 - DATENOBJEKTVERZEICHNIS
+UmlModel:
+  label: Datenobjektverzeichnis
 
 
 #000 - ÜBERGREIFENDE ANPASSUNGEN
