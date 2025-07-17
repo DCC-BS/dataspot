@@ -1136,9 +1136,10 @@ BusinessAttribute:
           order: 3
 
 
-#300 - REFERENZDATEN (RDM)
+#300 - REFERENZDATENMODELL
 ReferenceDataModel:
   label: Referenzdatenmodell
+  icon: square-list
 
   properties:
     stereotype:
