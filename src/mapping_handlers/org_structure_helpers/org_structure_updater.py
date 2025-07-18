@@ -123,7 +123,7 @@ class OrgStructureUpdater:
         """
         if not changes:
             logging.info("No changes to apply")
-            return {"created": 0, "updated": 0, "deleted": 0, "errors": 0}
+            return {"created": 0, "updated": 0, "deleted": 0, "errors": 0, "directly_deleted": 0, "marked_for_deletion": 0}
             
         logging.info(f"Applying {len(changes)} changes...")
         
@@ -134,7 +134,9 @@ class OrgStructureUpdater:
             "created": 0,
             "updated": 0,
             "deleted": 0,
-            "errors": 0
+            "errors": 0,
+            "directly_deleted": 0,
+            "marked_for_deletion": 0
         }
         
         # Group changes by type for clearer processing
@@ -144,8 +146,8 @@ class OrgStructureUpdater:
             "delete": [c for c in changes if c.change_type == "delete"]
         }
         
-        # First, handle deletions
-        self._process_deletions(changes_by_type["delete"], stats)
+        # Process deletions first
+        self._process_deletions(list(reversed(changes_by_type["delete"])), stats)
         
         # Process creations before updates to ensure parent organizations exist
         # This fixes the issue where an update refers to a parent that needs to be created first
@@ -161,7 +163,8 @@ class OrgStructureUpdater:
         self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
         
         logging.info(f"Change application complete: {stats['created']} created, {stats['updated']} updated, "
-                     f"{stats['deleted']} deleted, {stats['errors']} errors")
+                     f"{stats['deleted']} deleted ({stats['directly_deleted']} empty collections directly deleted, "
+                     f"{stats['marked_for_deletion']} non-empty collections marked for deletion), {stats['errors']} errors")
         
         return stats
     
@@ -185,24 +188,49 @@ class OrgStructureUpdater:
             
             # First check if the asset still exists
             try:
-                asset_exists = self.client._get_asset(endpoint) is not None
+                # Get the full asset data to check if it's empty
+                asset_data = self.client._get_asset(endpoint)
                 
-                if asset_exists:
-                    # Asset exists, mark it for deletion review
-                    logging.info(f"Marking org unit '{change.title}' (ID: {change.staatskalender_id}) for review at {endpoint}")
-                    try:
-                        # Use the new method specifically for marking assets for deletion
-                        self.client._mark_asset_for_deletion(endpoint)
-                        stats["deleted"] += 1
-                    except Exception as e:
-                        logging.error(f"Error marking org unit '{change.title}' (ID: {change.staatskalender_id}) for review: {str(e)}")
-                        stats["errors"] += 1
-                else:
+                if asset_data is None:
                     # Asset doesn't exist anymore, just log and count it
                     logging.info(f"Org unit '{change.title}' (ID: {change.staatskalender_id}) already deleted in Dataspot, updating local mapping only")
                     stats["deleted"] += 1
+                    continue
+                
+                # Check if the collection is empty based on _links field
+                # Collection is empty if _links has exactly 2 entries: "self" and either "inCollection" or "inScheme"
+                is_empty = False
+                if "_links" in asset_data:
+                    links = asset_data["_links"]
+                    if len(links) == 2 and "self" in links and ("inCollection" in links or "inScheme" in links):
+                        is_empty = True
+                
+                # Store whether the collection is empty in the change object for reporting
+                change.details["is_empty"] = is_empty
+                
+                if is_empty:
+                    # Collection is empty - directly delete it
+                    logging.info(f"Directly deleting empty org unit '{change.title}' (ID: {change.staatskalender_id})")
+                    try:
+                        # Delete the collection
+                        self.client._delete_asset(endpoint, force_delete=True)
+                        stats["deleted"] += 1
+                        stats["directly_deleted"] += 1
+                    except Exception as e:
+                        logging.error(f"Error deleting empty org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
+                        stats["errors"] += 1
+                else:
+                    # Collection is not empty - mark it for deletion review
+                    logging.info(f"Marking non-empty org unit '{change.title}' (ID: {change.staatskalender_id}) for review")
+                    try:
+                        self.client._mark_asset_for_deletion(endpoint)
+                        stats["deleted"] += 1
+                        stats["marked_for_deletion"] += 1
+                    except Exception as e:
+                        logging.error(f"Error marking org unit '{change.title}' (ID: {change.staatskalender_id}) for review: {str(e)}")
+                        stats["errors"] += 1
             except Exception as e:
-                logging.error(f"Error checking existence of org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
+                logging.error(f"Error processing deletion for org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
                 stats["errors"] += 1
     
     def _process_updates(self, update_changes: List[OrgUnitChange], is_initial_run: bool, stats: Dict[str, int], status: str) -> None:

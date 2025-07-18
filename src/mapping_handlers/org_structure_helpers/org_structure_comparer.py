@@ -247,13 +247,14 @@ class OrgStructureComparer:
         return summary
     
     @staticmethod
-    def generate_detailed_sync_report(changes: List[OrgUnitChange]) -> Dict[str, Any]:
+    def generate_detailed_sync_report(changes: List[OrgUnitChange], stats: Dict[str, int] = None) -> Dict[str, Any]:
         """
         Generate a detailed report of all synchronization changes.
         Includes complete information about every change with old and new values.
         
         Args:
             changes: List of changes that were identified
+            stats: Optional dictionary with additional statistics (like directly_deleted and marked_for_deletion)
             
         Returns:
             Dict[str, Any]: Detailed report dictionary with complete information
@@ -266,9 +267,21 @@ class OrgStructureComparer:
             "deleted": sum(1 for c in changes if c.change_type == "delete")
         }
         
+        # Add extra statistics if provided
+        if stats:
+            for key, value in stats.items():
+                if key not in counts:  # Don't override existing counts
+                    counts[key] = value
+        
+        # Ensure we always have values for these fields
+        directly_deleted = counts.get('directly_deleted', 0)
+        marked_for_deletion = counts.get('marked_for_deletion', 0)
+        
         # Generate report text
         report_text = f"Organizational structure synchronization completed with {counts['total']} changes: " \
-                      f"{counts['created']} creations, {counts['updated']} updates, {counts['deleted']} deletions."
+                      f"{counts['created']} creations, {counts['updated']} updates, {counts['deleted']} deletions " \
+                      f"({directly_deleted} empty collections directly deleted, " \
+                      f"{marked_for_deletion} non-empty collections marked for review)."
         
         # Prepare detailed information for each change type
         details = {}
@@ -349,7 +362,8 @@ class OrgStructureComparer:
                     "title": c.title,
                     "staatskalender_id": c.staatskalender_id,
                     "uuid": c.details.get("uuid", ""),
-                    "inCollection": current_unit.get("inCollection", "")
+                    "inCollection": current_unit.get("inCollection", ""),
+                    "is_empty": c.details.get("is_empty", False)
                 })
             
             details["deletions"] = {

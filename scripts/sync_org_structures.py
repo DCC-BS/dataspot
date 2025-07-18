@@ -91,8 +91,15 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         # Display details if available
         if 'counts' in sync_result:
             counts = sync_result['counts']
+            # Get detailed deletion counts
+            directly_deleted = counts.get('directly_deleted', 0)
+            marked_for_deletion = counts.get('marked_for_deletion', 0)
+            
+            # Show all details in the log output
             logging.info(f"Changes: {counts['total']} total - {counts['created']} created, "
-                         f"{counts['updated']} updated, {counts['deleted']} deleted")
+                        f"{counts['updated']} updated, {counts['deleted']} deleted "
+                        f"({directly_deleted} empty directly deleted, "
+                        f"{marked_for_deletion} non-empty marked for review)")
 
         # Show detailed information for each change type - LOG ORDER: creations, updates, deletions
         details = sync_result.get('details', {})
@@ -161,19 +168,33 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         # Process deletions
         if 'deletions' in details:
             deletions = details['deletions'].get('items', [])
-            logging.info(f"\n=== DELETED UNITS ({len(deletions)}) ===")
-            for i, deletion in enumerate(deletions, 1):
+            
+            # Split deletions into direct deletions and marked for review
+            direct_deletions = [d for d in deletions if d.get('is_empty', False)]
+            review_deletions = [d for d in deletions if not d.get('is_empty', False)]
+            
+            # Log information about both types of deletions
+            logging.info(f"\n=== DELETED UNITS ({len(deletions)} total) ===")
+            
+            # Always show both sections for consistency, even if counts are 0
+            logging.info(f"--- Directly Deleted Empty Collections ({len(direct_deletions)}) ---")
+            for i, deletion in enumerate(direct_deletions, 1):
                 title = deletion.get('title', '(Unknown)')
                 staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
                 uuid = deletion.get('uuid', '(Unknown)')
-
-                # Create asset link
                 asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
-
-                # Display in new format with link in the first line
                 logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
                 logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
-
+            
+            logging.info(f"--- Non-Empty Collections Marked for Deletion Review ({len(review_deletions)}) ---")
+            for i, deletion in enumerate(review_deletions, 1):
+                title = deletion.get('title', '(Unknown)')
+                staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
+                uuid = deletion.get('uuid', '(Unknown)')
+                asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
+                logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
+                
         # Write detailed report to file for email/reference purposes
         report_filename = None
         try:
@@ -271,6 +292,10 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     if total_changes == 0:
         return None, None, False
 
+    # Get more detailed deletion counts if available
+    directly_deleted = counts.get('directly_deleted', 0)
+    marked_for_deletion = counts.get('marked_for_deletion', 0)
+    
     # Create email subject with summary of changes
     email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
 
@@ -282,19 +307,41 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     email_text += f"- Total: {counts.get('total', 0)} changes\n"
     email_text += f"- Created: {counts.get('created', 0)} organizational units\n"
     email_text += f"- Updated: {counts.get('updated', 0)} organizational units\n"
-    email_text += f"- Deleted: {counts.get('deleted', 0)} organizational units\n\n"
+    email_text += f"- Deleted: {counts.get('deleted', 0)} organizational units\n"
+    email_text += f"  * {marked_for_deletion} non-empty collections marked for deletion review\n"
+    email_text += f"  * {directly_deleted} empty collections directly deleted\n"
+    
+    email_text += "\n"
 
     # Add details about each change type - EMAIL ORDER: deletions, updates, creations
     if counts.get('deleted', 0) > 0 and 'deletions' in details:
         deletions = details['deletions'].get('items', [])
-        email_text += f"Deleted organizational units ({len(deletions)}):\n"
-        for deletion in deletions:
+        
+        # Split deletions into direct deletions and marked for review
+        direct_deletions = [d for d in deletions if d.get('is_empty', False)]
+        review_deletions = [d for d in deletions if not d.get('is_empty', False)]
+        
+        # Update email content with more detailed information
+        email_text += f"Deleted organizational units ({len(deletions)} total):\n"
+        
+        # Show marked for review first
+        email_text += f"- Non-Empty Collections Marked for Deletion Review ({len(review_deletions)}):\n"
+        for deletion in review_deletions:
             title = deletion.get('title', '(Unknown)')
             staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
             uuid = deletion.get('uuid', '(Unknown)')
             asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
-            email_text += f"- {title} (ID: {staatskalender_id}, link: {asset_link})\n"
-            email_text += f"  Path: '{deletion.get('inCollection', '')}'\n"
+            email_text += f"  * {title} (ID: {staatskalender_id}, link: {asset_link})\n"
+            email_text += f"    Path: '{deletion.get('inCollection', '')}'\n"
+        
+        # Then show directly deleted (without links)
+        email_text += f"- Directly Deleted Empty Collections ({len(direct_deletions)}):\n"
+        for deletion in direct_deletions:
+            title = deletion.get('title', '(Unknown)')
+            staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
+            email_text += f"  * {title} (ID: {staatskalender_id})\n"
+            email_text += f"    Path: '{deletion.get('inCollection', '')}'\n"
+        
         email_text += "\n"
 
     if counts.get('updated', 0) > 0 and 'updates' in details:

@@ -339,7 +339,7 @@ class OrgStructureHandler(BaseDataspotHandler):
             }
         
         # Apply changes with the specified status
-        self.updater.apply_changes(changes, is_initial_run=False, status=status)
+        stats = self.updater.apply_changes(changes, is_initial_run=False, status=status)
         
         # Update mappings after changes
         if changes:
@@ -348,7 +348,7 @@ class OrgStructureHandler(BaseDataspotHandler):
             self.mapping.save_to_csv()
         
         # Generate detailed report with all changes
-        detailed_report = OrgStructureComparer.generate_detailed_sync_report(changes)
+        detailed_report = OrgStructureComparer.generate_detailed_sync_report(changes, stats=stats)
         
         return detailed_report
     
