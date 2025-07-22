@@ -844,6 +844,104 @@ Dataset:
               baseType: STRING
               group: GEO
 
+## Geo-Datenpaket ##
+        GEOPaket:
+          label: Geo-Datensatz-Paket
+          icon: layer-group
+
+          customProperties:
+          #GROUP WEITERE GEO INFOS
+            GEOCAT:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Basiskarten, Landschaftsmodelle
+                "002":
+                  label: Bodenbedeckung, Bodennutzung
+                "003":
+                  label: Luft-, Satellitenbilder
+                "004":
+                  label: Ortsangaben, Referenzsysteme
+                "005":
+                  label: Höhen
+                "006":
+                  label: Politische und administrative Grenzen
+                "007":
+                  label: Raumplanung, Raumentwicklung
+                "008":
+                  label: Grundstückskataster
+                "009":
+                  label: Geologie
+                "010":
+                  label: Boden
+                "011":
+                  label: Naturbedingte Risiken
+                "012":
+                  label: Wald, Flora, Fauna
+                "013":
+                  label: Gewässer
+                "014":
+                  label: Atmosphäre, Luft, Klima
+                "015":
+                  label: Umweltschutz, Lärm
+                "016":
+                  label: Natur- und Landschaftsschutz
+                "017":
+                  label: Bevölkerung, Gesellschaft, Kultur
+                "018":
+                  label: Gesundheit
+                "019":
+                  label: Gebäude, Anlagen
+                "020":
+                  label: Verkehr
+                "021":
+                  label: Energie
+                "022":
+                  label: Wasser- und Abfallsysteme
+                "023":
+                  label: Kommunikation
+                "024":
+                  label: Militär, Sicherheit
+                "025":
+                  label: Landwirtschaft
+                "026":
+                  label: Wirtschaftliche Aktivitäten
+                "027":
+                  label: Leitungskataster
+            AUSDBESCHR:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            GEOID:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: ID
+              group: GEO
+              order: 50
+            LAYERNAME:
+              label: Technischer Dateiname
+              title: Dateiname des Datenprodukts
+              baseType: STRING
+              group: GEO
+
 ## CUSTOM PROPERTIES ##
 
   customProperties:
