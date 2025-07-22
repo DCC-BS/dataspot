@@ -405,6 +405,15 @@ class DatasetComponentHandler(BaseDataspotHandler):
         for attr_name, attr_data in existing_attributes.items():
             attr_uuid = attr_data.get('id')
             if attr_uuid:
+                attr_composed_by = attr_data.get('_links', []).get('composedBy', []).get('href')
+                compositions_asset = self.client._get_asset(endpoint=attr_composed_by)
+                compositions_list = compositions_asset.get('_embedded', {}).get('composedBy', {})
+                for composition_asset in compositions_list:
+                    composition_endpoint = composition_asset.get('_links', {}).get('self', {}).get('href')
+                    if composition_endpoint:
+                        logging.info(f"Deleting link from dataset composition to dataobject attribute '{attr_name}'")
+                        # Note: Here, we use the TDMClient to delete an asset from the DNK, but I think this is fine.
+                        self.client._delete_asset(endpoint=composition_endpoint)
                 logging.info(f"Deleting unused attribute '{attr_name}'")
                 attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
                 self.client._delete_asset(attr_endpoint)
