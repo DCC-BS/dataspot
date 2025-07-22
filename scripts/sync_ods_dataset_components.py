@@ -287,7 +287,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
     # Create email content
     email_subject, email_content, should_send = create_email_content(
         sync_results=sync_results,
-        scheme_name_short=tdm_client.scheme_name_short
+        database_name=tdm_client.database_name
     )
     
     # Print a detailed report to the logs
@@ -410,13 +410,13 @@ def log_detailed_sync_report(sync_results):
     logging.info("=============================================")
 
 
-def create_email_content(sync_results, scheme_name_short):
+def create_email_content(sync_results, database_name):
     """
     Create email content based on synchronization results.
 
     Args:
         sync_results (dict): Synchronization result data
-        scheme_name_short (str): Short name of the scheme (database name)
+        database_name (str): Name of the database
 
     Returns:
         tuple: (email_subject, email_text, should_send)
@@ -429,7 +429,7 @@ def create_email_content(sync_results, scheme_name_short):
         return None, None, False
     
     # Create email subject with summary
-    email_subject = f"[{scheme_name_short}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated"
+    email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated"
     if counts.get('errors', 0) > 0:
         email_subject += f", {counts['errors']} errors"
     
