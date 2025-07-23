@@ -387,7 +387,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         for attr_name, attr_data in existing_attributes.items():
             attr_uuid = attr_data.get('id')
             if attr_uuid:
-                attr_composed_by = attr_data.get('_links', []).get('composedBy', []).get('href')
+                attr_composed_by = attr_data.get('_links', {}).get('composedBy', {}).get('href')
                 compositions_asset = self.client._get_asset(endpoint=attr_composed_by)
                 compositions_list = compositions_asset.get('_embedded', {}).get('composedBy', {})
                 for composition_asset in compositions_list:
