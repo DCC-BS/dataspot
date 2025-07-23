@@ -147,7 +147,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 return ""
             cleaned = clean_description(desc)
             if len(cleaned) > 60:
-                return cleaned[:60] + "..."
+                return cleaned[:60].rsplit(' ', 1)[0] + "..."
             return cleaned
         
         ods_link = f"https://data.bs.ch/explore/dataset/{ods_id}/"
