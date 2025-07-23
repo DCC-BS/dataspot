@@ -36,30 +36,6 @@ class DatasetComponentHandler(BaseDataspotHandler):
     # Set configuration values for the base handler
     asset_id_field = 'ODS_ID'
     
-    def compare_truncated_title(self, existing_title, description):
-        """
-        Compare an existing title with a processed description that would be used for the title.
-        Handles truncation and newline removal for accurate comparison.
-        
-        Args:
-            existing_title (str): The existing title from Dataspot
-            description (str): The raw description that would be processed
-            
-        Returns:
-            bool: True if the titles would be the same after processing
-        """
-        if not description:
-            return not existing_title
-            
-        # Process description the same way as in sync_dataset_components
-        clean_description = str(description).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-        
-        # Apply the same truncation
-        if len(clean_description) > 60:
-            clean_description = clean_description[:60] + "..."
-            
-        return existing_title == clean_description
-    
     def __init__(self, client: BaseDataspotClient):
         """
         Initialize the DatasetComponentHandler.
@@ -158,6 +134,22 @@ class DatasetComponentHandler(BaseDataspotHandler):
         Returns:
             Dict[str, Any]: Result of the operation with status and details
         """
+        # Define helper functions for cleaning and truncating descriptions
+        def clean_description(desc):
+            """Clean description by replacing newlines with spaces"""
+            if not desc:
+                return ""
+            return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+        
+        def clean_description_short(desc):
+            """Create shortened version of the description"""
+            if not desc:
+                return ""
+            cleaned = clean_description(desc)
+            if len(cleaned) > 60:
+                return cleaned[:60] + "..."
+            return cleaned
+        
         ods_link = f"https://data.bs.ch/explore/dataset/{ods_id}/"
 
         # Prepare dataobject data
@@ -306,14 +298,8 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 # Store original description with newlines in description field
                 attribute['description'] = column['description']
                 
-                # Remove newline characters (\n, \r, \r\n) from description before setting as title
-                clean_description = str(column['description']).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-                
-                # Limit title to 60 characters with "..." suffix if longer
-                if len(clean_description) > 60:
-                    clean_description = clean_description[:60] + "..."
-                    
-                attribute['title'] = clean_description
+                # Create clean and shortened version of the description for title
+                attribute['title'] = clean_description_short(column['description'])
             
             # Check if attribute exists to determine if update or create
             if column['name'] in existing_attributes:
@@ -325,7 +311,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 if (existing_attr.get('label') == column['label'] and
                     existing_attr.get('hasRange') == datatype_uuid and
                     existing_attr.get('description') == column.get('description') and
-                    self.compare_truncated_title(existing_attr.get('title'), column.get('description'))):
+                    existing_attr.get('title') == clean_description_short(column.get('description'))):
                     # Attribute is unchanged
                     unchanged_attrs.append(column['name'])
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
@@ -345,18 +331,14 @@ class DatasetComponentHandler(BaseDataspotHandler):
                             'new_value': datatype_uuid
                         }
                     
-                    # Process description for title field as it would be done during creation
-                    clean_description = None
-                    if column.get('description'):
-                        clean_description = str(column.get('description')).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-                        if len(clean_description) > 60:
-                            clean_description = clean_description[:60] + "..."
+                    # Calculate cleaned description for comparison
+                    cleaned_short = clean_description_short(column.get('description'))
                     
                     # Check changes in title (cleaned/truncated description)
-                    if existing_attr.get('title') != clean_description:
+                    if existing_attr.get('title') != cleaned_short:
                         attr_changes['title'] = {
                             'old_value': existing_attr.get('title'),
-                            'new_value': clean_description
+                            'new_value': cleaned_short
                         }
                     
                     # Check changes in actual description (raw with newlines)
