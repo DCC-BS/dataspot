@@ -485,6 +485,13 @@ def link_datasets_to_components(ods_ids):
                 # Create Dataspot link
                 dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{dataset_uuid}" if dataset_uuid else ''
                 
+                # Get list of newly created attribute compositions
+                created_attribute_names = []
+                for attribute in tdm_attributes:
+                    attr_label = attribute.get('label')
+                    if attr_label and attr_label not in existing_compositions_by_label:
+                        created_attribute_names.append(attr_label)
+                
                 # Track successful link
                 result['linked'] += 1
                 result['successful_links'].append({
@@ -493,7 +500,8 @@ def link_datasets_to_components(ods_ids):
                     'uuid': dataset_uuid,
                     'link': dataspot_link,
                     'compositions_created': created_compositions,
-                    'compositions_skipped': skipped_compositions
+                    'compositions_skipped': skipped_compositions,
+                    'created_attribute_names': created_attribute_names
                 })
                 
                 logging.info(f"Successfully linked dataset '{dataset_title}' (ODS_ID: {ods_id}) to TDM component: "
@@ -602,6 +610,11 @@ def log_detailed_sync_report(sync_results):
             # Show link directly after title in brackets
             logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
             logging.info(f"  - Created {compositions_created} compositions, {compositions_skipped} already existed")
+            
+            # Show the names of the attributes for which compositions were created
+            created_attribute_names = link.get('created_attribute_names', [])
+            if created_attribute_names:
+                logging.info(f"  - Created compositions for attributes: {', '.join(created_attribute_names)}")
     
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -728,6 +741,11 @@ def create_email_content(sync_results, database_name):
             # Show link directly after title in brackets with composition stats
             email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
             email_text += f"Created {compositions_created} compositions, {compositions_skipped} already existed\n"
+            
+            # Show the names of the attributes for which compositions were created
+            created_attribute_names = link.get('created_attribute_names', [])
+            if created_attribute_names:
+                email_text += f"Created compositions for attributes: {', '.join(created_attribute_names)}\n"
     
     email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
     email_text += "Best regards,\n"
