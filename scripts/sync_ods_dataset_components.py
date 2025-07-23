@@ -471,6 +471,35 @@ def create_email_content(sync_results, database_name):
             
             # Include some field change details if available
             if 'changed_fields' in update and update['changed_fields']:
+                deleted_attrs = []
+                updated_attrs = []
+                created_attrs = []
+                
+                # Categorize attributes by change type
+                for attr_name, changes in update['changed_fields'].items():
+                    # Check if this is a deleted attribute (has old_value but no new_value for description)
+                    if 'description' in changes and 'old_value' in changes['description'] and 'new_value' not in changes['description']:
+                        deleted_attrs.append(attr_name)
+                    # Check if this is a created attribute (has new_value but no old_value for description)
+                    elif 'description' in changes and 'new_value' in changes['description'] and 'old_value' not in changes['description']:
+                        created_attrs.append(attr_name)
+                    # Otherwise it's an updated attribute
+                    else:
+                        updated_attrs.append(attr_name)
+                
+                # List deleted attributes
+                if deleted_attrs:
+                    email_text += f"  Deleted attributes: {', '.join(deleted_attrs)}\n"
+                
+                # List created attributes
+                if created_attrs:
+                    email_text += f"  Created attributes: {', '.join(created_attrs)}\n"
+                
+                # List updated attributes
+                if updated_attrs:
+                    email_text += f"  Updated attributes: {', '.join(updated_attrs)}\n"
+                
+                # Show detailed changes for all attributes
                 for attr_name, changes in update['changed_fields'].items():
                     email_text += f"  Attribute '{attr_name}' changes:\n"
                     for field, values in changes.items():
@@ -497,6 +526,11 @@ def create_email_content(sync_results, database_name):
             
             # Include details about created fields if available
             if 'created_fields' in creation and creation['created_fields']:
+                # First, list all attribute names in a summary
+                attr_names = list(creation['created_fields'].keys())
+                email_text += f"  Created attributes: {', '.join(attr_names)}\n"
+                
+                # Show detailed info for all attributes
                 for attr_name, details in creation['created_fields'].items():
                     email_text += f"  Attribute '{attr_name}' details:\n"
                     for field, values in details.items():
