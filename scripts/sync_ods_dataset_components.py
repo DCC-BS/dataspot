@@ -2,6 +2,7 @@ import logging
 import json
 import os
 import datetime
+import traceback
 
 import config
 from src.clients.tdm_client import TDMClient
@@ -35,17 +36,6 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
     # Initialize clients
     tdm_client = TDMClient()
     ods_client = ODSClient()
-
-    # Get all public dataset IDs
-    logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
-    ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
-    logging.info(f"Found {len(ods_ids)} datasets to process")
-    
-    # Process datasets
-    logging.info("Step 2: Processing dataset components - downloading column information and creating TDM objects...")
-    total_processed = 0
-    total_successful = 0
-    total_failed = 0
     
     # Store sync results for reporting
     sync_results = {
@@ -79,23 +69,173 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         }
     }
     
-    # Process datasets in batches
-    for batch_start in range(0, len(ods_ids), batch_size):
-        batch_end = min(batch_start + batch_size, len(ods_ids))
-        current_batch = ods_ids[batch_start:batch_end]
-        batch_num = batch_start // batch_size + 1
-        total_batches = (len(ods_ids) + batch_size - 1) // batch_size
+    # Track processing
+    total_processed = 0
+    total_successful = 0
+    total_failed = 0
+    report_filename = None
+    
+    try:
+        # Get all public dataset IDs
+        logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
+        ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
+        logging.info(f"Found {len(ods_ids)} datasets to process")
         
-        logging.info(f"Processing batch {batch_num}/{total_batches} with {len(current_batch)} datasets...")
+        # Process datasets
+        logging.info("Step 2: Processing dataset components - downloading column information and creating TDM objects...")
         
-        for idx, ods_id in enumerate(current_batch):
-            logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
+        # Process datasets in batches
+        for batch_start in range(0, len(ods_ids), batch_size):
+            batch_end = min(batch_start + batch_size, len(ods_ids))
+            current_batch = ods_ids[batch_start:batch_end]
+            batch_num = batch_start // batch_size + 1
+            total_batches = (len(ods_ids) + batch_size - 1) // batch_size
             
-            try:
-                # Get dataset title
-                dataset_title = ods_utils.get_dataset_title(dataset_id=ods_id)
-                if not dataset_title:
-                    error_msg = f"Could not retrieve title for dataset {ods_id}"
+            logging.info(f"Processing batch {batch_num}/{total_batches} with {len(current_batch)} datasets...")
+            
+            for idx, ods_id in enumerate(current_batch):
+                logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
+                
+                try:
+                    # Get dataset title
+                    dataset_title = ods_utils.get_dataset_title(dataset_id=ods_id)
+                    if not dataset_title:
+                        error_msg = f"Could not retrieve title for dataset {ods_id}"
+                        logging.error(error_msg)
+                        
+                        # Track error
+                        sync_results['counts']['errors'] += 1
+                        sync_results['details']['errors']['count'] += 1
+                        sync_results['details']['errors']['items'].append({
+                            'ods_id': ods_id,
+                            'message': error_msg
+                        })
+                        total_failed += 1
+                        continue
+                    
+                    logging.info(f"Retrieved dataset title: '{dataset_title}'")
+                    
+                    # Get dataset columns
+                    columns = ods_client.get_dataset_columns(dataset_id=ods_id)
+                    if not columns:
+                        logging.warning(f"No columns found for dataset {ods_id}: {dataset_title}")
+                        columns = []  # Use empty list to create dataobject without attributes
+                    else:
+                        logging.info(f"Retrieved {len(columns)} columns for dataset {ods_id}")
+                    
+                    # Sync dataset components
+                    logging.info(f"Synchronizing dataset components for {ods_id}: '{dataset_title}'")
+                    result = tdm_client.sync_dataset_components(ods_id=ods_id, name=dataset_title, columns=columns)
+                    
+                    # Parse result
+                    is_new = result.get('is_new', False)
+                    
+                    # Update counts based on result
+                    if is_new:
+                        sync_results['counts']['created'] += 1
+                        sync_results['counts']['total_changes'] += 1
+                        sync_results['details']['creations']['count'] += 1
+                        logging.info(f"Created new dataobject for dataset {ods_id}: '{dataset_title}' with {len(columns)} columns")
+                        
+                        # Store creation details
+                        creation_item = {
+                            'ods_id': ods_id,
+                            'title': dataset_title,
+                            'uuid': result.get('uuid'),
+                            'link': result.get('link', ''),
+                            'columns_count': len(columns),
+                            'attributes_created': result.get('counts', {}).get('created_attributes', 0)
+                        }
+                        
+                        # Add created attributes details if available
+                        if 'details' in result and 'created_attributes' in result['details']:
+                            creation_item['created_fields'] = {}
+                            for attr in result['details']['created_attributes']:
+                                attr_name = attr.get('name', 'unknown')
+                                creation_item['created_fields'][attr_name] = {
+                                    'description': {
+                                        'new_value': attr.get('description', '')
+                                    },
+                                    'type': {
+                                        'new_value': attr.get('type', '')
+                                    }
+                                }
+                        
+                        sync_results['details']['creations']['items'].append(creation_item)
+                    else:
+                        # Check if any attributes were actually modified
+                        attrs_created = result.get('counts', {}).get('created_attributes', 0)
+                        attrs_updated = result.get('counts', {}).get('updated_attributes', 0)
+                        attrs_deleted = result.get('counts', {}).get('deleted_attributes', 0)
+                        attrs_modified = attrs_created + attrs_updated + attrs_deleted
+                        
+                        if attrs_modified == 0:
+                            sync_results['counts']['unchanged'] += 1
+                            logging.info(f"Dataobject for dataset {ods_id}: '{dataset_title}' is unchanged (all {len(columns)} columns match)")
+                        else:
+                            sync_results['counts']['updated'] += 1
+                            sync_results['counts']['total_changes'] += 1
+                            sync_results['details']['updates']['count'] += 1
+                            
+                            # Log the changes
+                            changes = []
+                            if attrs_created > 0:
+                                changes.append(f"{attrs_created} columns created")
+                            if attrs_updated > 0:
+                                changes.append(f"{attrs_updated} columns updated")
+                            if attrs_deleted > 0:
+                                changes.append(f"{attrs_deleted} columns deleted")
+                                
+                            logging.info(f"Updated dataobject for dataset {ods_id}: '{dataset_title}' with changes: {', '.join(changes)}")
+                        
+                            # Store update details in a more structured format similar to other handlers
+                            update_item = {
+                                'ods_id': ods_id,
+                                'title': dataset_title,
+                                'uuid': result.get('uuid'),
+                                'link': result.get('link', ''),
+                                'columns_count': len(columns),
+                                'created_attrs': attrs_created,
+                                'updated_attrs': attrs_updated,
+                                'deleted_attrs': attrs_deleted,
+                                'unchanged_attrs': result.get('counts', {}).get('unchanged_attributes', 0)
+                            }
+                            
+                            # Include detailed field changes if available
+                            field_changes = result.get('details', {}).get('field_changes', {})
+                            if field_changes:
+                                update_item['changed_fields'] = field_changes
+                            
+                            # Include newly created attributes if available
+                            if attrs_created > 0 and 'details' in result and 'created_attributes' in result['details']:
+                                if 'changed_fields' not in update_item:
+                                    update_item['changed_fields'] = {}
+                                
+                                for attr in result['details']['created_attributes']:
+                                    attr_name = attr.get('name', 'unknown')
+                                    update_item['changed_fields'][attr_name] = {
+                                        'description': {
+                                            'new_value': attr.get('description', '')
+                                        },
+                                        'type': {
+                                            'new_value': attr.get('type', '')
+                                        }
+                                    }
+                                
+                            sync_results['details']['updates']['items'].append(update_item)
+                    
+                    # Update attribute counts
+                    sync_results['counts']['attributes_created'] += result.get('counts', {}).get('created_attributes', 0)
+                    sync_results['counts']['attributes_updated'] += result.get('counts', {}).get('updated_attributes', 0)
+                    sync_results['counts']['attributes_deleted'] += result.get('counts', {}).get('deleted_attributes', 0)
+                    sync_results['counts']['attributes_unchanged'] += result.get('counts', {}).get('unchanged_attributes', 0)
+                    
+                    # Log success
+                    logging.info(f"Successfully processed components for dataset {ods_id}: {dataset_title}")
+                    total_successful += 1
+                    
+                except Exception as e:
+                    error_msg = f"Error processing components for dataset {ods_id}: {str(e)}"
                     logging.error(error_msg)
                     
                     # Track error
@@ -106,212 +246,103 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         'message': error_msg
                     })
                     total_failed += 1
-                    continue
                 
-                logging.info(f"Retrieved dataset title: '{dataset_title}'")
-                
-                # Get dataset columns
-                columns = ods_client.get_dataset_columns(dataset_id=ods_id)
-                if not columns:
-                    logging.warning(f"No columns found for dataset {ods_id}: {dataset_title}")
-                    columns = []  # Use empty list to create dataobject without attributes
-                else:
-                    logging.info(f"Retrieved {len(columns)} columns for dataset {ods_id}")
-                
-                # Sync dataset components
-                logging.info(f"Synchronizing dataset components for {ods_id}: '{dataset_title}'")
-                result = tdm_client.sync_dataset_components(ods_id=ods_id, name=dataset_title, columns=columns)
-                
-                # Parse result
-                is_new = result.get('is_new', False)
-                
-                # Update counts based on result
-                if is_new:
-                    sync_results['counts']['created'] += 1
-                    sync_results['counts']['total_changes'] += 1
-                    sync_results['details']['creations']['count'] += 1
-                    logging.info(f"Created new dataobject for dataset {ods_id}: '{dataset_title}' with {len(columns)} columns")
-                    
-                    # Store creation details
-                    creation_item = {
-                        'ods_id': ods_id,
-                        'title': dataset_title,
-                        'uuid': result.get('uuid'),
-                        'link': result.get('link', ''),
-                        'columns_count': len(columns),
-                        'attributes_created': result.get('counts', {}).get('created_attributes', 0)
-                    }
-                    
-                    # Add created attributes details if available
-                    if 'details' in result and 'created_attributes' in result['details']:
-                        creation_item['created_fields'] = {}
-                        for attr in result['details']['created_attributes']:
-                            attr_name = attr.get('name', 'unknown')
-                            creation_item['created_fields'][attr_name] = {
-                                'description': {
-                                    'new_value': attr.get('description', '')
-                                },
-                                'type': {
-                                    'new_value': attr.get('type', '')
-                                }
-                            }
-                    
-                    sync_results['details']['creations']['items'].append(creation_item)
-                else:
-                    # Check if any attributes were actually modified
-                    attrs_created = result.get('counts', {}).get('created_attributes', 0)
-                    attrs_updated = result.get('counts', {}).get('updated_attributes', 0)
-                    attrs_deleted = result.get('counts', {}).get('deleted_attributes', 0)
-                    attrs_modified = attrs_created + attrs_updated + attrs_deleted
-                    
-                    if attrs_modified == 0:
-                        sync_results['counts']['unchanged'] += 1
-                        logging.info(f"Dataobject for dataset {ods_id}: '{dataset_title}' is unchanged (all {len(columns)} columns match)")
-                    else:
-                        sync_results['counts']['updated'] += 1
-                        sync_results['counts']['total_changes'] += 1
-                        sync_results['details']['updates']['count'] += 1
-                        
-                        # Log the changes
-                        changes = []
-                        if attrs_created > 0:
-                            changes.append(f"{attrs_created} columns created")
-                        if attrs_updated > 0:
-                            changes.append(f"{attrs_updated} columns updated")
-                        if attrs_deleted > 0:
-                            changes.append(f"{attrs_deleted} columns deleted")
-                            
-                        logging.info(f"Updated dataobject for dataset {ods_id}: '{dataset_title}' with changes: {', '.join(changes)}")
-                    
-                        # Store update details in a more structured format similar to other handlers
-                        update_item = {
-                            'ods_id': ods_id,
-                            'title': dataset_title,
-                            'uuid': result.get('uuid'),
-                            'link': result.get('link', ''),
-                            'columns_count': len(columns),
-                            'created_attrs': attrs_created,
-                            'updated_attrs': attrs_updated,
-                            'deleted_attrs': attrs_deleted,
-                            'unchanged_attrs': result.get('counts', {}).get('unchanged_attributes', 0)
-                        }
-                        
-                        # Include detailed field changes if available
-                        field_changes = result.get('details', {}).get('field_changes', {})
-                        if field_changes:
-                            update_item['changed_fields'] = field_changes
-                        
-                        # Include newly created attributes if available
-                        if attrs_created > 0 and 'details' in result and 'created_attributes' in result['details']:
-                            if 'changed_fields' not in update_item:
-                                update_item['changed_fields'] = {}
-                            
-                            for attr in result['details']['created_attributes']:
-                                attr_name = attr.get('name', 'unknown')
-                                update_item['changed_fields'][attr_name] = {
-                                    'description': {
-                                        'new_value': attr.get('description', '')
-                                    },
-                                    'type': {
-                                        'new_value': attr.get('type', '')
-                                    }
-                                }
-                            
-                        sync_results['details']['updates']['items'].append(update_item)
-                
-                # Update attribute counts
-                sync_results['counts']['attributes_created'] += result.get('counts', {}).get('created_attributes', 0)
-                sync_results['counts']['attributes_updated'] += result.get('counts', {}).get('updated_attributes', 0)
-                sync_results['counts']['attributes_deleted'] += result.get('counts', {}).get('deleted_attributes', 0)
-                sync_results['counts']['attributes_unchanged'] += result.get('counts', {}).get('unchanged_attributes', 0)
-                
-                # Log success
-                logging.info(f"Successfully processed components for dataset {ods_id}: {dataset_title}")
-                total_successful += 1
-                
-            except Exception as e:
-                error_msg = f"Error processing components for dataset {ods_id}: {str(e)}"
-                logging.error(error_msg)
-                
-                # Track error
-                sync_results['counts']['errors'] += 1
-                sync_results['details']['errors']['count'] += 1
-                sync_results['details']['errors']['items'].append({
-                    'ods_id': ods_id,
-                    'message': error_msg
-                })
-                total_failed += 1
-            
-            total_processed += 1
-    
-    # Update final report status and message
-    sync_results['status'] = 'success'
-    sync_results['message'] = (
-        f"ODS dataset components synchronization completed with {sync_results['counts']['total_changes']} changes: "
-        f"{sync_results['counts']['created']} new dataobjects created, "
-        f"{sync_results['counts']['updated']} existing dataobjects updated, "
-        f"and {sync_results['counts']['unchanged']} were unchanged. "
-        f"Attribute changes: {sync_results['counts']['attributes_created']} created, "
-        f"{sync_results['counts']['attributes_updated']} updated, "
-        f"{sync_results['counts']['attributes_deleted']} deleted."
-    )
-    
-    # Update final counts
-    sync_results['counts']['total_processed'] = total_processed
-    
-    # Log final summary
-    logging.info(f"Completed processing components for {total_processed} datasets: {total_successful} successful, {total_failed} failed")
-    
-    # Write detailed report to file for email/reference purposes
-    # Get project root directory (one level up from scripts)
-    current_file_path = os.path.abspath(__file__)
-    project_root = os.path.dirname(os.path.dirname(current_file_path))
-    
-    # Define reports directory in project root
-    reports_dir = os.path.join(project_root, "reports")
-    
-    # Create reports directory if it doesn't exist
-    os.makedirs(reports_dir, exist_ok=True)
-    
-    # Generate filename with timestamp
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_filename = os.path.join(reports_dir, f"ods_dataset_components_sync_report_{timestamp}.json")
-    
-    # Write report to file
-    with open(report_filename, 'w', encoding='utf-8') as f:
-        json.dump(sync_results, f, indent=2, ensure_ascii=False)
+                total_processed += 1
+        
+        # Update final report status and message
+        sync_results['status'] = 'success'
+        sync_results['message'] = (
+            f"ODS dataset components synchronization completed with {sync_results['counts']['total_changes']} changes: "
+            f"{sync_results['counts']['created']} new dataobjects created, "
+            f"{sync_results['counts']['updated']} existing dataobjects updated, "
+            f"and {sync_results['counts']['unchanged']} were unchanged. "
+            f"Attribute changes: {sync_results['counts']['attributes_created']} created, "
+            f"{sync_results['counts']['attributes_updated']} updated, "
+            f"{sync_results['counts']['attributes_deleted']} deleted."
+        )
+        
+    except Exception as e:
+        # Capture error information
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
+        logging.error(f"Exception occurred during synchronization: {error_message}")
+        logging.error(f"Traceback: {error_traceback}")
+        
+        # Update the sync_results with error status
+        sync_results['status'] = 'error'
+        sync_results['message'] = (
+            f"ODS dataset components synchronization failed after processing {total_processed} datasets. "
+            f"Error: {error_message}. "
+            f"Successfully processed: {total_successful}, errors: {total_failed}. "
+            f"Changes before failure: {sync_results['counts']['total_changes']} total - "
+            f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated."
+        )
 
-    logging.info("")
-    logging.info(f"Detailed report saved to {report_filename}")
-
-    # Create email content
-    email_subject, email_content, should_send = create_email_content(
-        sync_results=sync_results,
-        database_name=tdm_client.database_name
-    )
-    
-    # Print a detailed report to the logs
-    log_detailed_sync_report(sync_results)
-    
-    # Send email if there were datasets processed
-    if should_send:
+    finally:
+        # Update final counts (should happen whether successful or not)
+        sync_results['counts']['total_processed'] = total_processed
+        
+        # Log final summary
+        logging.info(f"Completed processing components for {total_processed} datasets: {total_successful} successful, {total_failed} failed")
+        
+        # Write detailed report to file for email/reference purposes
+        # Get project root directory (one level up from scripts)
+        current_file_path = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(current_file_path))
+        
+        # Define reports directory in project root
+        reports_dir = os.path.join(project_root, "reports")
+        
+        # Create reports directory if it doesn't exist
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_filename = os.path.join(reports_dir, f"ods_dataset_components_sync_report_{timestamp}.json")
+        
         try:
-            # Create and send email
-            attachment = report_filename if os.path.exists(report_filename) else None
-            msg = email_helpers.create_email_msg(
-                subject=email_subject,
-                text=email_content,
-                attachment=attachment
-            )
-            email_helpers.send_email(msg)
-            logging.info("Email notification sent successfully")
-        except Exception as e:
-            # Log error but continue execution
-            logging.error(f"Failed to send email notification: {str(e)}")
-            logging.info("Continuing execution despite email failure")
-    else:
-        logging.info("No datasets were processed - email notification not sent")
-    
+            # Write report to file
+            with open(report_filename, 'w', encoding='utf-8') as f:
+                json.dump(sync_results, f, indent=2, ensure_ascii=False)
+            logging.info("")
+            logging.info(f"Detailed report saved to {report_filename}")
+        except Exception as report_error:
+            logging.error(f"Failed to write report file: {str(report_error)}")
+
+        # Create email content
+        email_subject, email_content, should_send = create_email_content(
+            sync_results=sync_results,
+            database_name=tdm_client.database_name
+        )
+        
+        # Print a detailed report to the logs
+        log_detailed_sync_report(sync_results)
+        
+        # Send email if there were datasets processed or errors
+        if should_send:
+            try:
+                # Create and send email
+                attachment = report_filename if os.path.exists(report_filename) else None
+                msg = email_helpers.create_email_msg(
+                    subject=email_subject,
+                    text=email_content,
+                    attachment=attachment
+                )
+                email_helpers.send_email(msg)
+                logging.info("Email notification sent successfully")
+            except Exception as e:
+                # Log error but continue execution
+                logging.error(f"Failed to send email notification: {str(e)}")
+                logging.info("Continuing execution despite email failure")
+        else:
+            logging.info("No datasets were processed - email notification not sent")
+        
+        # Re-raise the exception if we had one
+        if sync_results['status'] == 'error':
+            logging.info("ODS dataset components synchronization process finished with errors")
+            logging.info("===============================================")
+            return total_processed
+
     logging.info("ODS dataset components synchronization process finished")
     logging.info("===============================================")
     
@@ -424,18 +455,30 @@ def create_email_content(sync_results, database_name):
     counts = sync_results['counts']
     total_changes = counts['total_changes']
     
-    # Only create email if there were changes
-    if total_changes == 0 and counts.get('errors', 0) == 0:
+    # Modified to send email on error or if changes happened
+    is_error = sync_results['status'] == 'error'
+    
+    # Send email if there were changes or errors
+    if total_changes == 0 and counts.get('errors', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary
-    email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated"
-    if counts.get('errors', 0) > 0:
-        email_subject += f", {counts['errors']} errors"
+    if is_error:
+        email_subject = f"[ERROR][{database_name}] ODS Dataset Components: Processing failed after {counts['total_processed']} datasets"
+    else:
+        email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated"
+        if counts.get('errors', 0) > 0:
+            email_subject += f", {counts['errors']} errors"
     
     email_text = f"Hi there,\n\n"
-    email_text += f"I've just synchronized ODS dataset components with Dataspot's TDM scheme.\n"
-    email_text += f"Here's a summary of the synchronization:\n\n"
+    
+    if is_error:
+        email_text += f"There was an error during the ODS dataset components synchronization.\n"
+        email_text += f"The process failed after processing {counts['total_processed']} datasets.\n"
+        email_text += f"Here's a summary of what was processed before the failure:\n\n"
+    else:
+        email_text += f"I've just synchronized ODS dataset components with Dataspot's TDM scheme.\n"
+        email_text += f"Here's a summary of the synchronization:\n\n"
     
     # Add summary counts
     email_text += f"Datasets processed: {counts['total_processed']} total\n"
@@ -547,7 +590,12 @@ def create_email_content(sync_results, database_name):
             
             email_text += f"\n- ODS ID {ods_id}: {message}\n"
     
-    email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
+    if is_error:
+        email_text += "\nThe synchronization process did not complete successfully. "
+        email_text += "Please check the logs for more details.\n\n"
+    else:
+        email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
+    
     email_text += "Best regards,\n"
     email_text += "Your Dataspot ODS Components Sync Assistant"
     

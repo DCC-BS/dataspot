@@ -2,6 +2,7 @@ import logging
 import json
 import os
 import datetime
+import traceback
 
 import config
 from src.clients.base_client import BaseDataspotClient
@@ -61,16 +62,40 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
 
     # Initialize clients
     ods_client = ODSClient()
-
-    # Fetch organization data
-    logging.info("Fetching organization data from ODS API...")
-    all_organizations = ods_client.get_all_organization_data(batch_size=100)
-    logging.info(
-        f"Total organizations retrieved: {len(all_organizations['results'])} (out of {all_organizations['total_count']})")
-
-    # Synchronize organization data
-    logging.info("Synchronizing organization data with Dataspot...")
+    
+    # Initialize variables outside the try block for use in the finally block
+    sync_result = {
+        'status': 'pending',
+        'message': 'Synchronization not started',
+        'counts': {
+            'total': 0,
+            'created': 0, 
+            'updated': 0,
+            'deleted': 0,
+            'directly_deleted': 0,
+            'marked_for_deletion': 0
+        },
+        'details': {
+            'creations': {'count': 0, 'items': []},
+            'updates': {'count': 0, 'items': []},
+            'deletions': {'count': 0, 'items': []}
+        }
+    }
+    
+    report_filename = None
+    all_organizations = None
+    error_info = None
+    
     try:
+        # Fetch organization data
+        logging.info("Fetching organization data from ODS API...")
+        all_organizations = ods_client.get_all_organization_data(batch_size=100)
+        logging.info(
+            f"Total organizations retrieved: {len(all_organizations['results'])} (out of {all_organizations['total_count']})")
+
+        # Synchronize organization data
+        logging.info("Synchronizing organization data with Dataspot...")
+        
         # Use the sync org units method
         # By default, updates use "WORKING" status (DRAFT group)
         # To automatically publish updates, use status="PUBLISHED"
@@ -80,123 +105,75 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             status="PUBLISHED"
         )
 
+    except ValueError as e:
+        if "Duplicate id_im_staatskalender values detected in Dataspot" in str(e):
+            error_info = {
+                'type': 'duplicate_ids_dataspot',
+                'message': str(e)
+            }
+            logging.error("============================================================")
+            logging.error("ERROR: SYNCHRONIZATION ABORTED - DUPLICATE IDs IN DATASPOT")
+            logging.error("------------------------------------------------------------")
+            logging.error(str(e))
+            logging.error("------------------------------------------------------------")
+            logging.error("Please fix the duplicate IDs in Dataspot before continuing.")
+            logging.error("You may need to manually delete one of the duplicate collections.")
+            logging.error("============================================================")
+            
+            # Update sync result with error information
+            sync_result['status'] = 'error'
+            sync_result['message'] = f"Synchronization failed: Duplicate id_im_staatskalender values detected in Dataspot. {str(e)}"
+            
+        elif "Duplicate id_im_staatskalender values detected" in str(e):
+            error_info = {
+                'type': 'duplicate_ids_ods',
+                'message': str(e)
+            }
+            logging.error("============================================================")
+            logging.error("ERROR: SYNCHRONIZATION ABORTED - DUPLICATE IDs IN ODS DATA")
+            logging.error("------------------------------------------------------------")
+            logging.error(str(e))
+            logging.error("------------------------------------------------------------")
+            logging.error("Please fix the duplicate IDs in the ODS source data before continuing.")
+            logging.error("============================================================")
+            
+            # Update sync result with error information
+            sync_result['status'] = 'error'
+            sync_result['message'] = f"Synchronization failed: Duplicate id_im_staatskalender values detected in ODS data. {str(e)}"
+            
+        else:
+            # Handle other ValueError exceptions
+            error_info = {
+                'type': 'value_error',
+                'message': str(e),
+                'traceback': traceback.format_exc()
+            }
+            logging.error(f"Error synchronizing organization structure: {str(e)}")
+            logging.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Update sync result with error information
+            sync_result['status'] = 'error'
+            sync_result['message'] = f"Synchronization failed: {str(e)}"
+            
+    except Exception as e:
+        error_info = {
+            'type': 'general_error',
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }
+        logging.error(f"Error synchronizing organization structure: {str(e)}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Update sync result with error information
+        sync_result['status'] = 'error'
+        sync_result['message'] = f"Synchronization failed: {str(e)}"
+
+    finally:
         # Get the base URL and database name for asset links
         base_url = dataspot_client.base_url
         database_name = dataspot_client.database_name
-
-        # Display sync results
-        logging.info(f"Synchronization {sync_result['status']}!")
-        logging.info(f"Message: {sync_result['message']}")
-
-        # Display details if available
-        if 'counts' in sync_result:
-            counts = sync_result['counts']
-            # Get detailed deletion counts
-            directly_deleted = counts.get('directly_deleted', 0)
-            marked_for_deletion = counts.get('marked_for_deletion', 0)
-            
-            # Show all details in the log output
-            logging.info(f"Changes: {counts['total']} total - {counts['created']} created, "
-                        f"{counts['updated']} updated, {counts['deleted']} deleted "
-                        f"({directly_deleted} empty directly deleted, "
-                        f"{marked_for_deletion} non-empty marked for review)")
-
-        # Show detailed information for each change type - LOG ORDER: creations, updates, deletions
-        details = sync_result.get('details', {})
         
-        # Fetch UUIDs for newly created organization units
-        if 'creations' in details and details['creations'].get('count', 0) > 0:
-            created_items = details['creations'].get('items', [])
-            created_ids = [str(item['staatskalender_id']) for item in created_items if 'staatskalender_id' in item]
-            
-            if created_ids:
-                logging.info(f"Fetching UUIDs for {len(created_ids)} newly created organizational units...")
-                created_units = dataspot_client.get_org_units_by_staatskalender_ids(created_ids)
-                
-                # Update each creation with its UUID
-                for i, item in enumerate(created_items):
-                    staatskalender_id = str(item.get('staatskalender_id', ''))
-                    if staatskalender_id in created_units:
-                        # Add UUID to the sync result
-                        details['creations']['items'][i]['uuid'] = created_units[staatskalender_id].get('id')
-
-        # Process creations
-        if 'creations' in details:
-            creations = details['creations'].get('items', [])
-            logging.info(f"\n=== CREATED UNITS ({len(creations)}) ===")
-            for i, creation in enumerate(creations, 1):
-                title = creation.get('title', '(Unknown)')
-                staatskalender_id = creation.get('staatskalender_id', '(Unknown)')
-                uuid = creation.get('uuid', '')  # UUID might be missing for newly created items
-                
-                # Create asset link if UUID is available
-                asset_link = f"{base_url}/web/{database_name}/collections/{uuid}" if uuid else "(Link not available)"
-                
-                # Display in new format with link in the first line
-                logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
-
-                # Show properties
-                props = creation.get('properties', {})
-                if props:
-                    for key, value in props.items():
-                        if value:  # Only show non-empty values
-                            logging.info(f"   - {key}: '{value}'")
-
-        # Process updates - show field changes with old and new values
-        if 'updates' in details:
-            updates = details['updates'].get('items', [])
-            logging.info(f"\n=== UPDATED UNITS ({len(updates)}) ===")
-            for i, update in enumerate(updates, 1):
-                title = update.get('title', '(Unknown)')
-                staatskalender_id = update.get('staatskalender_id', '(Unknown)')
-                uuid = update.get('uuid', '(Unknown)')
-
-                # Create asset link
-                asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
-
-                # Display in new format with link in the first line
-                logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
-
-                # Show each changed field
-                for field_name, changes in update.get('changed_fields', {}).items():
-                    old_value = changes.get('old_value', '')
-                    new_value = changes.get('new_value', '')
-                    logging.info(f"   - {field_name}:")
-                    logging.info(f"     - Old value: '{old_value}'")
-                    logging.info(f"     - New value: '{new_value}'")
-
-        # Process deletions
-        if 'deletions' in details:
-            deletions = details['deletions'].get('items', [])
-            
-            # Split deletions into direct deletions and marked for review
-            direct_deletions = [d for d in deletions if d.get('is_empty', False)]
-            review_deletions = [d for d in deletions if not d.get('is_empty', False)]
-            
-            # Log information about both types of deletions
-            logging.info(f"\n=== DELETED UNITS ({len(deletions)} total) ===")
-            
-            # Always show both sections for consistency, even if counts are 0
-            logging.info(f"--- Directly Deleted Empty Collections ({len(direct_deletions)}) ---")
-            for i, deletion in enumerate(direct_deletions, 1):
-                title = deletion.get('title', '(Unknown)')
-                staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
-                uuid = deletion.get('uuid', '(Unknown)')
-                asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
-                logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
-                logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
-            
-            logging.info(f"--- Non-Empty Collections Marked for Deletion Review ({len(review_deletions)}) ---")
-            for i, deletion in enumerate(review_deletions, 1):
-                title = deletion.get('title', '(Unknown)')
-                staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
-                uuid = deletion.get('uuid', '(Unknown)')
-                asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
-                logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
-                logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
-                
         # Write detailed report to file for email/reference purposes
-        report_filename = None
         try:
             # Get project root directory (one level up from src)
             current_file_path = os.path.abspath(__file__)
@@ -211,6 +188,10 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             # Generate filename with timestamp
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             report_filename = os.path.join(reports_dir, f"org_sync_report_{timestamp}.json")
+            
+            # Add error information to report if applicable
+            if error_info:
+                sync_result['error_info'] = error_info
 
             # Write report to file
             with open(report_filename, 'w', encoding='utf-8') as f:
@@ -219,8 +200,125 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             logging.info(f"\nDetailed report saved to {report_filename}")
         except Exception as e:
             logging.error(f"Failed to save detailed report to file: {str(e)}")
+        
+        # Display sync results (if successful)
+        if sync_result['status'] == 'success':
+            logging.info(f"Synchronization {sync_result['status']}!")
+            logging.info(f"Message: {sync_result['message']}")
 
-        # Create email content using the new function
+            # Display details if available
+            if 'counts' in sync_result:
+                counts = sync_result['counts']
+                # Get detailed deletion counts
+                directly_deleted = counts.get('directly_deleted', 0)
+                marked_for_deletion = counts.get('marked_for_deletion', 0)
+                
+                # Show all details in the log output
+                logging.info(f"Changes: {counts['total']} total - {counts['created']} created, "
+                            f"{counts['updated']} updated, {counts['deleted']} deleted "
+                            f"({directly_deleted} empty directly deleted, "
+                            f"{marked_for_deletion} non-empty marked for review)")
+
+            # Show detailed information for each change type - LOG ORDER: creations, updates, deletions
+            details = sync_result.get('details', {})
+            
+            # Fetch UUIDs for newly created organization units
+            if 'creations' in details and details['creations'].get('count', 0) > 0:
+                created_items = details['creations'].get('items', [])
+                created_ids = [str(item['staatskalender_id']) for item in created_items if 'staatskalender_id' in item]
+                
+                if created_ids:
+                    logging.info(f"Fetching UUIDs for {len(created_ids)} newly created organizational units...")
+                    created_units = dataspot_client.get_org_units_by_staatskalender_ids(created_ids)
+                    
+                    # Update each creation with its UUID
+                    for i, item in enumerate(created_items):
+                        staatskalender_id = str(item.get('staatskalender_id', ''))
+                        if staatskalender_id in created_units:
+                            # Add UUID to the sync result
+                            details['creations']['items'][i]['uuid'] = created_units[staatskalender_id].get('id')
+
+            # Process creations
+            if 'creations' in details:
+                creations = details['creations'].get('items', [])
+                logging.info(f"\n=== CREATED UNITS ({len(creations)}) ===")
+                for i, creation in enumerate(creations, 1):
+                    title = creation.get('title', '(Unknown)')
+                    staatskalender_id = creation.get('staatskalender_id', '(Unknown)')
+                    uuid = creation.get('uuid', '')  # UUID might be missing for newly created items
+                    
+                    # Create asset link if UUID is available
+                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}" if uuid else "(Link not available)"
+                    
+                    # Display in new format with link in the first line
+                    logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
+
+                    # Show properties
+                    props = creation.get('properties', {})
+                    if props:
+                        for key, value in props.items():
+                            if value:  # Only show non-empty values
+                                logging.info(f"   - {key}: '{value}'")
+
+            # Process updates - show field changes with old and new values
+            if 'updates' in details:
+                updates = details['updates'].get('items', [])
+                logging.info(f"\n=== UPDATED UNITS ({len(updates)}) ===")
+                for i, update in enumerate(updates, 1):
+                    title = update.get('title', '(Unknown)')
+                    staatskalender_id = update.get('staatskalender_id', '(Unknown)')
+                    uuid = update.get('uuid', '(Unknown)')
+
+                    # Create asset link
+                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+
+                    # Display in new format with link in the first line
+                    logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
+
+                    # Show each changed field
+                    for field_name, changes in update.get('changed_fields', {}).items():
+                        old_value = changes.get('old_value', '')
+                        new_value = changes.get('new_value', '')
+                        logging.info(f"   - {field_name}:")
+                        logging.info(f"     - Old value: '{old_value}'")
+                        logging.info(f"     - New value: '{new_value}'")
+
+            # Process deletions
+            if 'deletions' in details:
+                deletions = details['deletions'].get('items', [])
+                
+                # Split deletions into direct deletions and marked for review
+                direct_deletions = [d for d in deletions if d.get('is_empty', False)]
+                review_deletions = [d for d in deletions if not d.get('is_empty', False)]
+                
+                # Log information about both types of deletions
+                logging.info(f"\n=== DELETED UNITS ({len(deletions)} total) ===")
+                
+                # Always show both sections for consistency, even if counts are 0
+                logging.info(f"--- Directly Deleted Empty Collections ({len(direct_deletions)}) ---")
+                for i, deletion in enumerate(direct_deletions, 1):
+                    title = deletion.get('title', '(Unknown)')
+                    staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
+                    uuid = deletion.get('uuid', '(Unknown)')
+                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                    logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
+                    logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
+                
+                logging.info(f"--- Non-Empty Collections Marked for Deletion Review ({len(review_deletions)}) ---")
+                for i, deletion in enumerate(review_deletions, 1):
+                    title = deletion.get('title', '(Unknown)')
+                    staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
+                    uuid = deletion.get('uuid', '(Unknown)')
+                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                    logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
+                    logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
+        else:
+            # Log error details
+            logging.info(f"Synchronization failed: {sync_result['message']}")
+            if 'error_info' in sync_result:
+                logging.info(f"Error type: {sync_result['error_info']['type']}")
+
+        # Create email content
         email_subject, email_content, should_send = create_email_content(
             sync_result=sync_result,
             base_url=base_url,
@@ -228,48 +326,26 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             scheme_name_short=dataspot_client.scheme_name_short
         )
 
-        # Send email if there were changes
+        # Send email if there were changes or errors
         if should_send:
-            # Create and send email
-            attachment = report_filename if report_filename and os.path.exists(report_filename) else None
-            msg = email_helpers.create_email_msg(
-                subject=email_subject,
-                text=email_content,
-                attachment=attachment
-            )
-            email_helpers.send_email(msg)
-            logging.info("Email notification sent successfully")
+            try:
+                # Create and send email
+                attachment = report_filename if report_filename and os.path.exists(report_filename) else None
+                msg = email_helpers.create_email_msg(
+                    subject=email_subject,
+                    text=email_content,
+                    attachment=attachment
+                )
+                email_helpers.send_email(msg)
+                logging.info("Email notification sent successfully")
+            except Exception as email_error:
+                logging.error(f"Failed to send email notification: {str(email_error)}")
         else:
             logging.info("No changes detected - email notification not sent")
 
-    except ValueError as e:
-        if "Duplicate id_im_staatskalender values detected in Dataspot" in str(e):
-            logging.error("============================================================")
-            logging.error("ERROR: SYNCHRONIZATION ABORTED - DUPLICATE IDs IN DATASPOT")
-            logging.error("------------------------------------------------------------")
-            logging.error(str(e))
-            logging.error("------------------------------------------------------------")
-            logging.error("Please fix the duplicate IDs in Dataspot before continuing.")
-            logging.error("You may need to manually delete one of the duplicate collections.")
-            logging.error("============================================================")
-            exit()
-        elif "Duplicate id_im_staatskalender values detected" in str(e):
-            logging.error("============================================================")
-            logging.error("ERROR: SYNCHRONIZATION ABORTED - DUPLICATE IDs IN ODS DATA")
-            logging.error("------------------------------------------------------------")
-            logging.error(str(e))
-            logging.error("------------------------------------------------------------")
-            logging.error("Please fix the duplicate IDs in the ODS source data before continuing.")
-            logging.error("============================================================")
-            exit()
-        else:
-            # Re-raise other ValueError exceptions
-            raise
-    except Exception as e:
-        logging.error(f"Error synchronizing organization structure: {str(e)}")
+        logging.info("Organization structure synchronization process finished")
+        logging.info("===============================================")
 
-    logging.info("Organization structure synchronization process finished")
-    logging.info("===============================================")
 
 def create_email_content(sync_result, base_url, database_name, scheme_name_short) -> (str | None, str | None, bool):
     """
@@ -287,9 +363,10 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     counts = sync_result.get('counts', {})
     total_changes = counts.get('total', 0)
     details = sync_result.get('details', {})
+    is_error = sync_result.get('status') == 'error'
 
-    # Only create email if there were changes
-    if total_changes == 0:
+    # Send email if there were changes or errors
+    if total_changes == 0 and not is_error:
         return None, None, False
 
     # Get more detailed deletion counts if available
@@ -297,11 +374,25 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     marked_for_deletion = counts.get('marked_for_deletion', 0)
     
     # Create email subject with summary of changes
-    email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
+    if is_error:
+        email_subject = f"[ERROR][{database_name}/{scheme_name_short}] Org Structure: Sync failed"
+    else:
+        email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
 
     email_text = f"Hi there,\n\n"
-    email_text += f"I've just updated the organization structure in Dataspot.\n"
-    email_text += f"Please review the changes below. No action is needed if everything looks correct.\n\n"
+    
+    if is_error:
+        email_text += f"There was an error during the organization structure synchronization in Dataspot.\n"
+        email_text += f"Error: {sync_result.get('message', 'Unknown error')}\n\n"
+        
+        # Add details about what was processed before the error (if available)
+        if total_changes > 0:
+            email_text += f"Before the error occurred, the following changes were processed:\n\n"
+        else:
+            email_text += f"No changes were processed before the error occurred.\n\n"
+    else:
+        email_text += f"I've just updated the organization structure in Dataspot.\n"
+        email_text += f"Please review the changes below. No action is needed if everything looks correct.\n\n"
 
     email_text += f"Here's what changed:\n"
     email_text += f"- Total: {counts.get('total', 0)} changes\n"
@@ -377,6 +468,10 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
                         email_text += f"  {key}: '{value}'\n"
         email_text += "\n"
 
+    if is_error:
+        email_text += "Please check the logs for more details about the error.\n"
+        email_text += "You may need to address the issue before the next synchronization run.\n\n"
+        
     email_text += "Best regards,\n"
     email_text += "Your Dataspot Organization Structure Sync Assistant"
 
