@@ -1077,6 +1077,33 @@ Composition:
       label: Bezeichnung
     title:
       label: Technische Bezeichnung
+    qualifier:
+      literals:
+        GROUP:
+          label: Gruppierung
+          labelEn: Group
+        FILTER:
+          label: Filter
+          labelEn: Filter
+        IDENTIFIER:
+          label: Identifikator
+          labelEn: Identifier
+  customProperties:
+    required:
+      label: Muss/Kann
+      labelEn: Required
+      title: Gibt an, ob das Attribut erforderlich ist
+      titleEn: Indicates if the attribute is required
+      order: 10
+      literals:
+        OPTIONAL:
+          label: Kann
+          labelEn: Optional
+          order: 0
+        MANDATORY:
+          label: Muss
+          labelEn: Mandatory
+          order: 1
 
 ## DISTRIBUTION ##
 Distribution:
