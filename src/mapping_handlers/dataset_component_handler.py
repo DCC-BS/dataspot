@@ -144,7 +144,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         def clean_description_short(desc) -> Optional[str]:
             """Create shortened version of the description"""
             if not desc:
-                return ""
+                return None
             cleaned = clean_description(desc)
             if len(cleaned) > 60:
                 return cleaned[:60].rsplit(' ', 1)[0] + " ..."
