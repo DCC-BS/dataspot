@@ -1,9 +1,9 @@
 import logging
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from src.clients.base_client import BaseDataspotClient
-from src.clients.helpers import url_join, get_uuid_from_response
+from src.clients.helpers import url_join
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
 from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
 
@@ -135,13 +135,13 @@ class DatasetComponentHandler(BaseDataspotHandler):
             Dict[str, Any]: Result of the operation with status and details
         """
         # Define helper functions for cleaning and truncating descriptions
-        def clean_description(desc):
+        def clean_description(desc) -> str:
             """Clean description by replacing newlines with spaces"""
             if not desc:
                 return ""
             return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
         
-        def clean_description_short(desc):
+        def clean_description_short(desc) -> Optional[str]:
             """Create shortened version of the description"""
             if not desc:
                 return ""
