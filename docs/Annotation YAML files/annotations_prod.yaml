@@ -259,8 +259,7 @@ Dataset:
           customProperties:
             LICENSE:
               label: Lizenz
-              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
-              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
               order: 20
               literals:
@@ -290,7 +289,7 @@ Dataset:
                   order: 8
             RECHT:
               label: Rechte
-              title:
+              title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
               order: 30
               literals:
@@ -333,105 +332,47 @@ Dataset:
                 NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
                   label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
                   order: 12
-
             HERAUSGEBER:
               label: Herausgeber
-              title:
+              title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
               baseType: STRING
               group: OGD
-              order: 35
-
+              order: 45
             PUB_ORG:
               label: Publizierende Organisation
-              title:
+              title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
               baseType: STRING
               group: OGD
-              order: 36
-
-            THEMA:
-              label: Themen
-              title:
-              group: OGD
-              order: 40
-              cardinality: MANY
-              literals:
-                "001":
-                  label: Bevölkerung
-                "002":
-                  label: Gesetzgebung
-                "003":
-                  label: Geographie
-                "004":
-                  label: Gesundheit
-                "005":
-                  label: Kultur, Medien, Informationsgesellschaft, Sport
-                "006":
-                  label: Bildung, Wissenschaft
-                "007":
-                  label: Raum und Umwelt
-                "008":
-                  label: Mobilität und Verkehr
-                "009":
-                  label: Arbeit, Erwerb
-                "010":
-                  label: Volkswirtschaft
-                "011":
-                  label: Verwaltung
-                "012":
-                  label: Kriminalität, Strafrecht
-                "013":
-                  label: Bau- und Wohnungswesen
-                "014":
-                  label: Energie
-                "015":
-                  label: Soziale Sicherheit
-                "016":
-                  label: Finanzen
-                "017":
-                  label: Handel
-                "018":
-                  label: Industrie, Dienstleistungen
-                "019":
-                  label: Land- und Forstwirtschaft
-                "020":
-                  label: Öffentliche Ordnung und Sicherheit
-                "021":
-                  label: Politik
-                "022":
-                  label: Preise
-                "023":
-                  label: Statistische Grundlagen
-                "024":
-                  label: Tourismus
+              order: 48
             REF:
               label: Referenz
-              title:
+              title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
               baseType: STRING
               group: OGD
               order: 60
             ZUSCH:
               label: Zuschreibungen
-              title:
+              title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
               baseType: STRING
               group: OGD
               order: 70
             ODS_LINK:
               label: Datenportal-Link
-              title:
+              title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 90
               readOnly: true
             ODS_ID:
               label: Datenportal-Identifikation
-              title:
+              title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 100
               readOnly: true
             TAG:
               label: Tags
-              title:
+              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
               order: 110
@@ -551,8 +492,7 @@ Dataset:
               group: GEO
             LICENSE:
               label: Lizenz
-              title: "Die Nutzungsbedingungen geben an, für welche Zwecke und in welchem Kontext die Daten eines Verteilungssatzes verwendet werden können: für kommerzielle oder für nicht kommerzielle Zwecke. Muss es, wenn es verwendet wird, zitiert werden? Muss eine Erlaubnis für kommerzielle Nutzung erteilt werden? Diese Bedingungen sind in den Nutzungsbedingungen enthalten."
-              titleEn: "The terms of use indicates for what purpose and in what context the data of a distribution can be used: for commercial or for non commercial purposes. Does it need to be referenced, when it is used? Must permission be obtained for commercial use. These conditions are included in the terms of use statements."
+              title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
               order: 20
               literals:
@@ -580,10 +520,9 @@ Dataset:
                 "https://www.gnu.org/licenses/gpl-3.0":
                   label: GNU General Public License 3
                   order: 8
-
             RECHT:
               label: Rechte
-              title:
+              title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
               order: 30
               literals:
@@ -626,24 +565,33 @@ Dataset:
                 NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
                   label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
                   order: 12
-
             HERAUSGEBER:
               label: Herausgeber
-              title:
+              title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
               baseType: STRING
               group: OGD
-              order: 35
-
+              order: 120
             PUB_ORG:
               label: Publizierende Organisation
-              title:
+              title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
               baseType: STRING
               group: OGD
-              order: 36
-
+              order: 130
+            REF:
+              label: Referenz
+              title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
+              baseType: STRING
+              group: OGD
+              order: 140
+            ZUSCH:
+              label: Zuschreibungen
+              title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
+              baseType: STRING
+              group: OGD
+              order: 150
             THEMA:
               label: Themen
-              title:
+              title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
               group: OGD
               order: 40
               cardinality: MANY
@@ -710,21 +658,21 @@ Dataset:
               order: 70
             ODS_LINK:
               label: Datenportal-Link
-              title:
+              title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 90
               readOnly: true
             ODS_ID:
               label: Datenportal-Identifikation
-              title:
+              title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 100
               readOnly: true
-            TAG:
+            TAG: # TODO: Reorder
               label: Tags
-              title:
+              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
               order: 110
@@ -956,8 +904,9 @@ Dataset:
            #label: Geo
      VERTR:
        label: Vertraulichkeit
-       #title:
-       order: 10
+       title: Was ist die Vertraulichkeitsstufe des Datenprodukts?
+       order: 40
+       group: PERSOND
        literals:
          "1":
            label: Öffentlich
@@ -973,8 +922,9 @@ Dataset:
            order: 4
      SCHUBAN:
        label: Schutzbedarfsstufen
-       #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
-       order: 11
+       title: In welcher Schutzstufe ist das Datenprodukt eingestuft (gemäss Schutzbedarfsanalyse)?
+       order: 50
+       group: PERSOND
        literals:
          "1":
            label: Grundschutz (GS)
@@ -985,40 +935,18 @@ Dataset:
          "3":
            label: sehr hoher Schutzbedarf (SHS)
            order: 3
-     #ZWECK:
-      # label: Zweck
-       #title:
-       #order: 20
-       #literals:
-         #"1":
-           #label: xx
-         #"2":
-           #label: xx
-         #"3":
-           #label: xx
-         #"4":
-           #label: xx
-     LASTACTL:
-       label: Letzte Aktualisierung
-       title: Letzte Aktualisierung des Datensatzes
-       #title:
-       order: 30
-       baseType: DATE
-     PD:
-       label: Publikationsdatum
-       title: Datum der erstmaligen Veröffentlichung des Datensatzes oder der Bereitstellungsform
-       order: 40
-       baseType: DATE
-     PERSOND:
-       label: Personendaten
-       title: Hat es Personendaten im Datensatz?
+     NE:
+       label: Nutzungseinschränkung
+       title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
+       baseType: TEXT
+       order: 60
        group: PERSOND
        baseType: BOOLEAN
        order: 41
      HIST:
        label: Historisierung
-       title: Wird der Datensatz historisiert?
-       baseType: BOOLEAN
+       title: Wird das Datenprodukt historisiert?
+       baseType: BOOLEAN # TODO: Change to Ja/Nein literals
        group: HIST
        order: 50
      HISTFROM:
@@ -1158,6 +1086,7 @@ BusinessObject:
 
   properties:
     dataProtectionCategory:
+      label: Personendaten
       literals:
         "1":
           label: Personendaten natürlicher Personen
@@ -1167,7 +1096,6 @@ BusinessObject:
           label: besonders schützenswerte Personendaten
 
 BusinessAttribute:
-
   groups:
     AUFBEW:
       label: Archivierung
@@ -1186,6 +1114,7 @@ BusinessAttribute:
     identifying:
       label: Primärschlüssel
     dataProtectionCategory:
+      label: Personendaten
       literals:
         "1":
           label: Personendaten natürlicher Personen
