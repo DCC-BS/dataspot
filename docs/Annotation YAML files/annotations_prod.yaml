@@ -51,17 +51,17 @@ Dataset:
 
   groups:
     PERSOND:
-      label: Personendaten
+      label: Datenschutz und -sicherheit
       order: 20
-      icon: person
-    AUFBEW:
-      label: Archivierung
-      order: 30
-      icon: box-archive
+      icon: shield-halved
     HIST:
       label: Historisierung
-      order: 40
+      order: 30
       icon: bookmark
+    AUFBEW:
+      label: Archivierung
+      order: 40
+      icon: box-archive
     GEO:
       label: Geodaten
       order: 50
