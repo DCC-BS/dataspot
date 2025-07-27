@@ -74,20 +74,18 @@ Dataset:
   properties:
     label:
       label: Name
-      title: Name des mit den Metadaten beschriebenen Datensatzes.
+      title: Name des Datenprodukts
     title:
       label: Kurzbeschreibung
-      title: Kurzbeschreibung des Datensatzes. Diese wird in der Übersicht angezeigt und unterstützt die Auffindbarkeit, denn die Suchfunktion sucht auch in diesem Metadatenfeld.
+      title: Kurzbeschreibung des Datenprodukts. Diese wird in der Übersicht angezeigt und unterstützt die Auffindbarkeit, denn die Suchfunktion sucht auch in diesem Metadatenfeld.
     tags:
       label: Schlüsselwörter
       title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
     temporalStart:
-      title: Datum, an dem der Datensatz ursprünglich erstellt wurde
+      title: Datum, an dem das Datenprodukt ursprünglich erstellt wurde.
     accrualPeriodicity:
       label: Aktualisierungszyklus
-      labelEn: Accrual periodicity
-      title: Frequenz der Aktualisierung der Attribute im Datensatz
-      titleEn: The frequency at which dataset is published
+      title: Frequenz der Aktualisierung der Attribute im Datenprodukt
       cardinality: ONE
       literals:
         http://publications.europa.eu/resource/authority/frequency/CONT:
