@@ -6,9 +6,11 @@ Theme:
     DARK:
       #appBarBackgroundColor: 167a3e # Grün
       #appBarBackgroundColor: ff0000 # Rot
+      # appBarBackgroundColor: 40E0D0 # Türkis
     LIGHT:
       #appBarBackgroundColor: 167a3e # Grün
       #appBarBackgroundColor: ff0000 # Rot
+      #appBarBackgroundColor: 40E0D0 # Türkis
 ############################################################
 
 ##INHALTSVERZEICHNIS##
