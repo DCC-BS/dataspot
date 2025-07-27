@@ -644,18 +644,6 @@ Dataset:
                   label: Statistische Grundlagen
                 "024":
                   label: Tourismus
-            REF:
-              label: Referenz
-              title:
-              baseType: STRING
-              group: OGD
-              order: 60
-            ZUSCH:
-              label: Zuschreibungen
-              title:
-              baseType: STRING
-              group: OGD
-              order: 70
             ODS_LINK:
               label: Datenportal-Link
               title: Link des OGD-Datensatzes im kantonalen Datenportal
@@ -941,8 +929,6 @@ Dataset:
        baseType: TEXT
        order: 60
        group: PERSOND
-       baseType: BOOLEAN
-       order: 41
      HIST:
        label: Historisierung
        title: Wird das Datenprodukt historisiert?
@@ -973,12 +959,12 @@ Dataset:
        group: HIST
        baseType: TEXT
        order: 90
-     ARCH:
+     ARCH: # TODO: Als Ja/Nein literal
        label: Archivierung
-       title: Wird der Datensatz archiviert (Staatsarchiv?)
+       title: Wird das Datenprodukt archiviert (Staatsarchiv?)
        group: AUFBEW
-       baseType: BOOLEAN
-       order: 100
+       baseType: BOOLEAN # TODO: Als Ja/Nein literal
+       order: 120
      ARCHDET:
        label: Archivierung Details
        title: Nach welchen Kriterien wird der Datensatz archiviert?
