@@ -977,12 +977,6 @@ Dataset:
        group: AUFBEW
        baseType: TEXT
        order: 120
-     NE:
-       label: Nutzungseinschränkung
-       title: Beschreibung von Einschränkungen, welche für die Nutzung der Daten besteht (z.B. aufgrund der Qualität der Daten)
-       group: AUFBEW
-       baseType: TEXT
-       order: 130
 
 ## BESTANDTEILE ##
 Composition:
