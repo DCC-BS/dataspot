@@ -1143,7 +1143,7 @@ BusinessAttribute:
       order: 5
     VERTR:
       label: Vertraulichkeit
-      #title:
+      title: Was ist die Vertraulichkeitsstufe des Attributs?
       order: 10
       group: DP
       literals:
