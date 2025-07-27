@@ -967,7 +967,7 @@ Dataset:
        order: 120
      ARCHDET:
        label: Archivierung Details
-       title: Nach welchen Kriterien wird der Datensatz archiviert?
+       title: Nach welchen Kriterien wird das Datenprodukt archiviert?
        group: AUFBEW
        baseType: TEXT
        order: 110
@@ -1082,9 +1082,9 @@ BusinessAttribute:
       order: 30
       icon: box-archive
     DP:
-      label: Datenschutz
       order: 10
-      icon: shield-keyhole
+      label: Datenschutz und -sicherheit
+      icon: shield-halved
     HIST:
       label: Historisierung
       order: 40
@@ -1104,10 +1104,6 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
-    ID:
-      label: Identifikation
-      baseType: INTEGER
-      order: 10
     PRIM:
       label: Primärerhebung
       baseType: BOOLEAN
@@ -1136,6 +1132,7 @@ BusinessAttribute:
       baseType: STRING
       order: 5
     VERTR:
+    VERTR: # TODO: Reorder (move up)
       label: Vertraulichkeit
       title: Was ist die Vertraulichkeitsstufe des Attributs?
       order: 10
