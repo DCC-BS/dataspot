@@ -81,8 +81,6 @@ Dataset:
     tags:
       label: Schlüsselwörter
       title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
-    temporalStart: # TODO: Inspect this; this is the wrong title!
-      title: Datum, an dem das Datenprodukt ursprünglich erstellt wurde.
     accrualPeriodicity:
       label: Aktualisierungszyklus
       title: Frequenz der Aktualisierung der Attribute im Datenprodukt
