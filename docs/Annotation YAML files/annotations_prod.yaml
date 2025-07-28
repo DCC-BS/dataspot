@@ -255,61 +255,61 @@ Dataset:
           icon: globe
 
           customProperties:
-            #THEMA: # TODO: Rename then add (similar to GEOUNDOGD)
-            #  label: Themen
-            #  title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
-            #  group: OGD
-            #  order: 20
-            #  cardinality: MANY
-            #  literals:
-            #    "001":
-            #      label: Bevölkerung
-            #    "002":
-            #      label: Gesetzgebung
-            #    "003":
-            #      label: Geographie
-            #    "004":
-            #      label: Gesundheit
-            #    "005":
-            #      label: Kultur, Medien, Informationsgesellschaft, Sport
-            #    "006":
-            #      label: Bildung, Wissenschaft
-            #    "007":
-            #      label: Raum und Umwelt
-            #    "008":
-            #      label: Mobilität und Verkehr
-            #    "009":
-            #      label: Arbeit, Erwerb
-            #    "010":
-            #      label: Volkswirtschaft
-            #    "011":
-            #      label: Verwaltung
-            #    "012":
-            #      label: Kriminalität, Strafrecht
-            #    "013":
-            #      label: Bau- und Wohnungswesen
-            #    "014":
-            #      label: Energie
-            #    "015":
-            #      label: Soziale Sicherheit
-            #    "016":
-            #      label: Finanzen
-            #    "017":
-            #      label: Handel
-            #    "018":
-            #      label: Industrie, Dienstleistungen
-            #    "019":
-            #      label: Land- und Forstwirtschaft
-            #    "020":
-            #      label: Öffentliche Ordnung und Sicherheit
-            #    "021":
-            #      label: Politik
-            #    "022":
-            #      label: Preise
-            #    "023":
-            #      label: Statistische Grundlagen
-            #    "024":
-            #      label: Tourismus
+            THEMA:
+              label: Themen
+              title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
+              group: OGD
+              order: 20
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
             LICENSE:
               label: Lizenz
               title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
