@@ -1147,7 +1147,8 @@ BusinessAttribute:
 
   properties:
     identifying:
-      label: Primärschlüssel
+      label: Fachlicher Schlüssel
+      title: Das Kennzeichen, das angibt, ob das Attribut in einem Fachlichen Schlüssel vorkommt. Ein Fachlicher Schlüssel ist ein Attribut oder eine Kombination von Attributen eines Geschäftsobjekts, das jede Instanz dieses Geschäftsobjekts eindeutig identifiziert.
     dataProtectionCategory:
       label: Personendaten
       literals:
@@ -1161,6 +1162,7 @@ BusinessAttribute:
   customProperties:
     PRIM:
       label: Primärerhebung
+      title: Dieses Attribut enthält Daten aus eigener Erhebung.
       baseType: BOOLEAN # TODO: Als Ja/Nein literal
       order: 20
     HIST:
@@ -1257,6 +1259,24 @@ QualityModel:
 #500 - DATENTYPMODELL
 DataDomainModel:
   label: Datentypmodell
+
+UmlAttribute:
+  properties:
+    identifying:
+      label: Primärschlüssel
+      title: Das Kennzeichen, das angibt, ob dieses Attribut Teil eines Primärschlüssels ist. Der Primärschlüssel ist ein Attribut oder eine Kombination von Attributen eines Datenobjekts, das jeden Eintrag eindeutig identifiziert.
+      baseType: BOOLEAN
+  customProperties:
+    PRIMÄR:
+      label: Primärerhebung
+      title: Dieses Attribut enthält Daten aus eigener Erhebung.
+      literals:
+        YES:
+          label: Ja
+          order: 1
+        NO:
+          label: Nein
+          order: 2
 
 UmlClass:
   properties:
