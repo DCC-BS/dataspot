@@ -259,7 +259,7 @@ Dataset:
               label: Themen
               title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
               group: OGD
-              order: 20
+              order: 10
               cardinality: MANY
               literals:
                 "001":
@@ -314,7 +314,7 @@ Dataset:
               label: Lizenz
               title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
-              order: 20
+              order: 30
               literals:
                 "https://creativecommons.org/publicdomain/zero/1.0/":
                   label: CC0 1.0
@@ -344,7 +344,7 @@ Dataset:
               label: Rechte
               title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
-              order: 30
+              order: 40
               literals:
                 N/A:
                   label: N/A
@@ -402,33 +402,33 @@ Dataset:
               title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
               baseType: STRING
               group: OGD
-              order: 60
+              order: 50
             ZUSCH:
               label: Zuschreibungen
               title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
               baseType: STRING
               group: OGD
-              order: 70
+              order: 60
             ODS_LINK:
               label: Datenportal-Link
               title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
-              order: 90
+              order: 70
               readOnly: true
             ODS_ID:
               label: Datenportal-Identifikation
               title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
-              order: 100
+              order: 80
               readOnly: true
             TAG:
               label: Tags
               title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
-              order: 110
+              order: 90
               cardinality: MANY
 
 ## GEO UND OGD ##
@@ -547,7 +547,7 @@ Dataset:
               label: Lizenz
               title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
-              order: 20
+              order: 100
               literals:
                 "https://creativecommons.org/publicdomain/zero/1.0/":
                   label: CC0 1.0
@@ -577,7 +577,7 @@ Dataset:
               label: Rechte
               title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
-              order: 30
+              order: 110
               literals:
                 N/A:
                   label: N/A
@@ -646,7 +646,7 @@ Dataset:
               label: Themen
               title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
               group: OGD
-              order: 40
+              order: 160
               cardinality: MANY
               literals:
                 "001":
@@ -697,27 +697,27 @@ Dataset:
                   label: Statistische Grundlagen
                 "024":
                   label: Tourismus
+            TAG:
+              label: Tags
+              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
+              baseType: STRING
+              group: OGD
+              order: 170
+              cardinality: MANY
             ODS_LINK:
               label: Datenportal-Link
               title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
-              order: 90
+              order: 180
               readOnly: true
             ODS_ID:
               label: Datenportal-Identifikation
               title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
-              order: 100
+              order: 190
               readOnly: true
-            TAG: # TODO: Reorder
-              label: Tags
-              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
-              baseType: STRING
-              group: OGD
-              order: 110
-              cardinality: MANY
 
 ## GEO ##
         GEO:
@@ -1008,31 +1008,31 @@ Dataset:
        title: Wird das Datenprodukt historisiert?
        baseType: BOOLEAN # TODO: Change to Ja/Nein literals
        group: HIST
-       order: 50
+       order: 70
      HISTFROM:
        label: Historisierung seit wann
        title: Seit wann liegen historisierte Daten vor?
        baseType: DATE
        group: HIST
-       order: 60
+       order: 80
      HISTART:
        label: Art der Historisierung
        title: Wie wird historisiert (Snapshots etc.)?
        baseType: TEXT
        group: HIST
-       order: 70
+       order: 90
      ABF:
        label: Aufbewahrungsfrist (Jahre)
        title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
        group: HIST
        baseType: INTEGER
-       order: 80
+       order: 100
      BEGRABF:
        label: Begründung Aufbewahrungsfrist
        title: Begründung und Bemerkung zur Aufbewahrunsgfrist
        group: HIST
        baseType: TEXT
-       order: 90
+       order: 110
      ARCH: # TODO: Als Ja/Nein literal
        label: Archivierung
        title: Wird das Datenprodukt archiviert (Staatsarchiv?)
@@ -1044,13 +1044,13 @@ Dataset:
        title: Nach welchen Kriterien wird das Datenprodukt archiviert?
        group: AUFBEW
        baseType: TEXT
-       order: 110
+       order: 130
      ARCHBEGR:
        label: Archivierung Begründung
        title: Begründung der Archivwürdigkeit
        group: AUFBEW
        baseType: TEXT
-       order: 120
+       order: 140
 
 ## BESTANDTEILE ##
 Composition:
@@ -1151,18 +1151,18 @@ BusinessObject:
 
 BusinessAttribute:
   groups:
-    AUFBEW:
-      label: Archivierung
-      order: 30
-      icon: box-archive
     DP:
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
     HIST:
       label: Historisierung
-      order: 40
+      order: 30
       icon: bookmark
+    AUFBEW:
+      label: Archivierung
+      order: 40
+      icon: box-archive
 
   properties:
     identifying:
