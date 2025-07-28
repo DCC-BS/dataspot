@@ -945,6 +945,27 @@ Dataset:
            #label: Gebäude
          #"2":
            #label: Geo
+     LASTACTL:
+       label: Letzte Aktualisierung
+       title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
+       order: 10
+       baseType: DATE
+     ED:
+       label: Erstellungsdatum
+       title: Datum, an dem das Datenprodukt zum ersten Mal erstellt und gespeichert wurde
+       order: 20
+       baseType: DATE
+     PD:
+       label: Publikationsdatum
+       title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde
+       order: 25
+       baseType: DATE
+     PERSONENDATEN:
+       label: Personendaten
+       title: Hat es Personendaten im Datensatz?
+       order: 30
+       group: PERSOND
+       baseType: BOOLEAN # TODO: Als Ja/Nein literal
      VERTR:
        label: Vertraulichkeit
        title: Was ist die Vertraulichkeitsstufe des Datenprodukts?
