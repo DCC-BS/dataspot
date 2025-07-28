@@ -1161,17 +1161,17 @@ BusinessAttribute:
   customProperties:
     PRIM:
       label: Primärerhebung
-      baseType: BOOLEAN
+      baseType: BOOLEAN # TODO: Als Ja/Nein literal
       order: 20
     HIST:
       label: Historisierung
-      title: Wird der Datensatz historisiert?
-      baseType: BOOLEAN
+      title: Wird das Attribut historisiert?
+      baseType: BOOLEAN # TODO: Als Ja/Nein literal
       group: HIST
       order: 30
     HISTFROM:
       label: Historisierung seit wann
-      title: Seit wann liegen historisierte Daten vor?
+      title: Zeitlicher Beginn des historisierten Attributs
       baseType: DATE
       group: HIST
       order: 40
