@@ -1179,9 +1179,9 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
-    ID: # TODO: Check empty and delete
-      label: Identifikation
-      baseType: INTEGER
+    #ID: # TODO: Delete
+    #  label: Identifikation
+    #  baseType: INTEGER
     VERTR:
       label: Vertraulichkeit
       title: Was ist die Vertraulichkeitsstufe des Attributs?
@@ -1222,11 +1222,11 @@ BusinessAttribute:
       baseType: TEXT
       group: HIST
       order: 50
-    Identifikator: # TODO: Check empty and remove
-      label: Identifikator
-      title: tbd
-      baseType: STRING
-      order: 5
+    #Identifikator: # TODO: Remove
+    #  label: Identifikator
+    #  title: tbd
+    #  baseType: STRING
+    #  order: 5
     SCHUBAN: # TODO: Check empty and remove
       label: Schutzbedarfsstufen
       group: DP
