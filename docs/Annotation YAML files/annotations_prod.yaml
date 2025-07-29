@@ -1179,6 +1179,23 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
+    VERTR:
+      label: Vertraulichkeit
+      title: Was ist die Vertraulichkeitsstufe des Attributs?
+      order: 10
+      literals:
+        "1":
+          label: Öffentlich
+          order: 1
+        "2":
+          label: Intern
+          order: 2
+        "3":
+          label: Vertraulich
+          order: 3
+        "4":
+          label: Geheim
+          order: 4
     PRIM:
       label: Primärerhebung
       title: Dieses Attribut enthält Daten aus eigener Erhebung.
@@ -1207,23 +1224,6 @@ BusinessAttribute:
       title: tbd
       baseType: STRING
       order: 5
-    VERTR: # TODO: Reorder (move up)
-      label: Vertraulichkeit
-      title: Was ist die Vertraulichkeitsstufe des Attributs?
-      order: 10
-      literals:
-        "1":
-          label: Öffentlich
-          order: 1
-        "2":
-          label: Intern
-          order: 2
-        "3":
-          label: Vertraulich
-          order: 3
-        "4":
-          label: Geheim
-          order: 4
     SCHUBAN: # TODO: Check empty and remove
       label: Schutzbedarfsstufen
       group: DP
