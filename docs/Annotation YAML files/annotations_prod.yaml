@@ -958,7 +958,7 @@ Dataset:
        title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde
        order: 25
        baseType: DATE
-     PERSONENDATEN:
+     PERSOND: # TODO: Change Name
        label: Personendaten
        title: Hat es Personendaten im Datensatz?
        order: 30
@@ -1179,6 +1179,9 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
+    ID: # TODO: Check empty and delete
+      label: Identifikation
+      baseType: INTEGER
     VERTR:
       label: Vertraulichkeit
       title: Was ist die Vertraulichkeitsstufe des Attributs?
