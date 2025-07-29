@@ -1033,7 +1033,7 @@ Dataset:
        group: HIST
        baseType: TEXT
        order: 110
-     ARCH: # TODO: Als Ja/Nein literal
+     ARCH:
        label: Archivierung
        title: Wird das Datenprodukt archiviert (Staatsarchiv?)
        group: AUFBEW
