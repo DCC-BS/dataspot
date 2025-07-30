@@ -60,7 +60,7 @@ Dataset:
   ling: s1p1um
 
   groups:
-    PERSOND: # Bitte ändern zu "DATA_PRIVACY"
+    DATA_PRIVACY:
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
@@ -972,13 +972,13 @@ Dataset:
        label: Personendaten
        title: Hat es Personendaten im Datensatz?
        order: 30
-       group: PERSOND
+       group: DATA_PRIVACY
        baseType: BOOLEAN # TODO: Als Ja/Nein literal
      VERTR: # Bitte ändern zu "confidentiality"
        label: Vertraulichkeit
        title: Was ist die Vertraulichkeitsstufe des Datenprodukts?
        order: 40
-       group: PERSOND
+       group: DATA_PRIVACY
        literals:
          "1":
            label: Öffentlich
@@ -996,7 +996,7 @@ Dataset:
        label: Schutzbedarfsstufen
        title: In welcher Schutzstufe ist das Datenprodukt eingestuft (gemäss Schutzbedarfsanalyse)?
        order: 50
-       group: PERSOND
+       group: DATA_PRIVACY
        literals:
          "1":
            label: Grundschutz (GS)
@@ -1012,7 +1012,7 @@ Dataset:
        title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
        baseType: TEXT
        order: 60
-       group: PERSOND
+       group: DATA_PRIVACY
      HIST: # Bitte ändern zu "historicized"
        label: Historisierung
        title: Wird das Datenprodukt historisiert?
@@ -1161,7 +1161,7 @@ BusinessObject:
 
 BusinessAttribute:
   groups:
-    DP: # Bitte ändern zu "DATA_PRIVACY"
+    DP: # Bitte ändern zu "DATA_PRIVACY" - edit: nvm, gets deleted anyway, probably! If not, change it!
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
