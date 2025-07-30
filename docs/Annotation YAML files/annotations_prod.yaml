@@ -1189,9 +1189,6 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
-    #ID: # TODO: Delete
-    #  label: Identifikation
-    #  baseType: INTEGER
     VERTR: # Bitte ändern zu "confidentiality"
       label: Vertraulichkeit
       title: Was ist die Vertraulichkeitsstufe des Attributs?
@@ -1232,11 +1229,6 @@ BusinessAttribute:
       baseType: TEXT
       group: HISTORIOGRAPHY
       order: 50
-    #Identifikator: # TODO: Remove
-    #  label: Identifikator
-    #  title: tbd
-    #  baseType: STRING
-    #  order: 5
     SCHUBAN: # TODO: Check empty and remove; edit: nochmals anschauen. Falls das Feld bleibt bitte ändern zu "protectionLevel"
       label: Schutzbedarfsstufen
       group: DP
