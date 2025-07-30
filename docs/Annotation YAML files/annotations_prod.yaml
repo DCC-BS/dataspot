@@ -60,7 +60,7 @@ Dataset:
   ling: s1p1um
 
   groups:
-    PERSOND: # Bitte ändern zu "PERSONAL_DATA"
+    PERSOND: # Bitte ändern zu "DATA_PRIVACY"
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
@@ -1161,7 +1161,7 @@ BusinessObject:
 
 BusinessAttribute:
   groups:
-    DP: # Bitte ändern zu "PERSONAL_DATA"
+    DP: # Bitte ändern zu "DATA_PRIVACY"
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
