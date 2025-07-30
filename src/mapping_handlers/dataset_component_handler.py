@@ -260,8 +260,13 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 for attr in attrs_response['_embedded']['attributes']:
                     technical_name = attr.get('physicalName')
                     if not technical_name:
-                        logging.error(f"Attribute {attr['label']} is missing a physicalName (technical name)! Skipping...")
-                        raise ValueError(f"Attribute {attr['label']} is missing a physicalName (technical name)! Skipping...")
+                        # Handle missing physicalName gracefully
+                        attr_id = attr.get('id', 'unknown')
+                        attr_label = attr.get('label', 'unknown')
+                        logging.error(f"Attribute '{attr_label}' (ID: {attr_id}) is missing a physicalName (technical name). Using ID as the key.")
+                        # Use the ID as the key for deletion purposes
+                        existing_attributes[f"__id__{attr_id}"] = attr
+                        continue
                     existing_attributes[attr['physicalName']] = attr
                 logging.info(f"Found {len(existing_attributes)} existing attributes")
             else:
