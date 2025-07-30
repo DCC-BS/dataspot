@@ -1165,7 +1165,7 @@ BusinessAttribute:
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
-    HIST: # Bitte ändern zu "HISTORIOGRAPHY"
+    HISTORIOGRAPHY:
       label: Historisierung
       order: 30
       icon: bookmark
@@ -1218,19 +1218,19 @@ BusinessAttribute:
       label: Historisierung
       title: Wird das Attribut historisiert?
       baseType: BOOLEAN # TODO: Als Ja/Nein literal
-      group: HIST
+      group: HISTORIOGRAPHY
       order: 30
     HISTFROM: # Bitte ändern zu "historicizedSince"
       label: Historisierung seit wann
       title: Zeitlicher Beginn des historisierten Attributs
       baseType: DATE
-      group: HIST
+      group: HISTORIOGRAPHY
       order: 40
     HISTART: # Bitte ändern zu "historicizationType"
       label: Art der Historisierung
       title: Wie wird historisiert (Snapshots etc.)?
       baseType: TEXT
-      group: HIST
+      group: HISTORIOGRAPHY
       order: 50
     #Identifikator: # TODO: Remove
     #  label: Identifikator
