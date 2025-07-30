@@ -64,7 +64,7 @@ Dataset:
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
-    HIST: # Bitte ändern zu "HISTORIOGRAPHY"
+    HISTORIOGRAPHY:
       label: Historisierung
       order: 30
       icon: bookmark
@@ -1017,30 +1017,30 @@ Dataset:
        label: Historisierung
        title: Wird das Datenprodukt historisiert?
        baseType: BOOLEAN # TODO: Change to Ja/Nein literals
-       group: HIST
+       group: HISTORIOGRAPHY
        order: 70
      HISTFROM: # Bitte ändern zu "historicizedSince"
        label: Historisierung seit wann
        title: Seit wann liegen historisierte Daten vor?
        baseType: DATE
-       group: HIST
+       group: HISTORIOGRAPHY
        order: 80
      HISTART: # Bitte ändern zu "historicizationType"
        label: Art der Historisierung
        title: Wie wird historisiert (Snapshots etc.)?
        baseType: TEXT
-       group: HIST
+       group: HISTORIOGRAPHY
        order: 90
      ABF: # Bitte ändern zu "retentionPeriod"
        label: Aufbewahrungsfrist (Jahre)
        title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
-       group: HIST
+       group: HISTORIOGRAPHY
        baseType: INTEGER
        order: 100
      BEGRABF: # Bitte ändern zu "retentionJustification"
        label: Begründung Aufbewahrungsfrist
        title: Begründung und Bemerkung zur Aufbewahrunsgfrist
-       group: HIST
+       group: HISTORIOGRAPHY
        baseType: TEXT
        order: 110
      ARCH: # Bitte ändern zu "archived"
