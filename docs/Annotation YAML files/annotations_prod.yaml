@@ -68,7 +68,7 @@ Dataset:
       label: Historisierung
       order: 30
       icon: bookmark
-    AUFBEW: # Bitte ändern zu "ARCHIVING"
+    ARCHIVING:
       label: Archivierung
       order: 40
       icon: box-archive
@@ -1046,19 +1046,19 @@ Dataset:
      ARCH: # Bitte ändern zu "archived"
        label: Archivierung
        title: Wird das Datenprodukt archiviert (Staatsarchiv?)
-       group: AUFBEW
+       group: ARCHIVING
        baseType: BOOLEAN # TODO: Als Ja/Nein literal
        order: 120
      ARCHDET: # Bitte ändern zu "archiveDetails"
        label: Archivierung Details
        title: Nach welchen Kriterien wird das Datenprodukt archiviert?
-       group: AUFBEW
+       group: ARCHIVING
        baseType: TEXT
        order: 130
      ARCHBEGR: # Bitte ändern zu "archiveJustification"
        label: Archivierung Begründung
        title: Begründung der Archivwürdigkeit
-       group: AUFBEW
+       group: ARCHIVING
        baseType: TEXT
        order: 140
 
