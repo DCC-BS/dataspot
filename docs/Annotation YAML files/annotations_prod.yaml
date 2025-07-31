@@ -1693,3 +1693,20 @@ Deployment:
         EXKL:
           label: exkludiert
           labelEn: excluded
+
+#070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
+Post:
+  customProperties:
+    membership_id:
+      label: Mitgliedschaft-ID
+      baseType: STRING
+      title: Mitgliedschaft-ID aus Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/membership/79d2217c1d2241eda879d1cb1fe13753)
+      width: 1
+      order: 1
+
+  customFunctions:
+    viewMembershipDetails:
+      label: Mitgliedschaft im Staatskalender anzeigen
+      title: Ruft die Details dieser Mitgliedschaft im Staatskalender ab
+      icon: external-link
+      href: "https://staatskalender.bs.ch/membership/${this.membership_id}"
