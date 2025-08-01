@@ -723,12 +723,12 @@ def log_combined_results(combined_report):
                     issues_by_type[issue_type] = []
                 issues_by_type[issue_type].append(issue)
             
-                            # Log each issue type
-                for issue_type, issues in issues_by_type.items():
-                    logging.info(f"\n== {issue_type.upper().replace('_', ' ')} ({len(issues)}) ==")
-                    
-                    # Log all issues
-                    for idx, issue in enumerate(issues):
+            # Log each issue type
+            for issue_type, issues in issues_by_type.items():
+                logging.info(f"\n== {issue_type.upper().replace('_', ' ')} ({len(issues)}) ==")
+                
+                # Log all issues
+                for idx, issue in enumerate(issues):
                         post_label = issue.get('post_label', 'Unknown')
                         post_uuid = issue.get('post_uuid', 'Unknown')
                         message = issue.get('message', 'No message')
