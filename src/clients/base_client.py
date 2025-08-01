@@ -52,6 +52,41 @@ class BaseDataspotClient():
         if self.ods_imports_collection_name:
             self._ods_imports_collection = self.ensure_ods_imports_collection_exists()
 
+    def execute_query_api(self, sql_query):
+        """
+        Execute a query using the Dataspot Query API and return JSON results.
+
+        Args:
+            sql_query (str): The SQL query to execute
+
+        Returns:
+            dict: The query results
+        """
+        logging.info("Connecting to Dataspot Query API...")
+
+        # Prepare request data
+        query_data = {
+            "sql": sql_query
+        }
+
+        # API endpoint
+        # TODO: Remove base_url and database_name as arguments of the constructor! They are always config.*
+        #  then remove the following three lines.
+        import config
+        base_url = config.base_url
+        database = config.database_name
+        endpoint = f"{base_url}/api/{database}/queries/download?format=JSON"
+
+        logging.info(f"Sending query to endpoint: {endpoint}")
+
+        response = requests_put(
+            url=endpoint,
+            json=query_data,
+            headers=self.auth.get_headers()
+        )
+
+        return response.json()
+
     def get_all_assets_from_scheme(self, filter_function=None) -> List[Dict[str, Any]]:
         """
         Download all assets from a scheme using the Download API with optional filtering.
