@@ -8,7 +8,7 @@ from src.clients.helpers import url_join
 
 from requests import HTTPError
 
-class BaseDataspotClient():
+class BaseDataspotClient:
     """Base class for Dataspot API clients implementing common functionality.
     
     Status Handling Philosophy:
@@ -52,7 +52,7 @@ class BaseDataspotClient():
         if self.ods_imports_collection_name:
             self._ods_imports_collection = self.ensure_ods_imports_collection_exists()
 
-    def execute_query_api(self, sql_query):
+    def execute_query_api(self, sql_query) -> List[Dict[str, Any]]:
         """
         Execute a query using the Dataspot Query API and return JSON results.
 
@@ -62,7 +62,7 @@ class BaseDataspotClient():
         Returns:
             dict: The query results
         """
-        logging.info("Connecting to Dataspot Query API...")
+        logging.debug("Connecting to Dataspot Query API...")
 
         # Prepare request data
         query_data = {
@@ -77,7 +77,7 @@ class BaseDataspotClient():
         database = config.database_name
         endpoint = f"{base_url}/api/{database}/queries/download?format=JSON"
 
-        logging.info(f"Sending query to endpoint: {endpoint}")
+        logging.debug(f"Sending query to endpoint: {endpoint}")
 
         response = requests_put(
             url=endpoint,

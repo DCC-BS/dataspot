@@ -13,6 +13,10 @@ def main():
     """
     Main function to run all daily checks and generate a combined report.
     """
+    logging.info("")
+    logging.info("-----[ DATASPOT DAILY CHECKS STARTING ]" + "-" * 35)
+    logging.info("")
+    
     # Run all checks and collect results
     check_results = run_all_checks()
 
@@ -43,7 +47,9 @@ def run_all_checks():
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
     # Post occupation check
-    logging.info("Starting post occupation check...")
+    logging.info("")
+    logging.info("   Starting Post Occupation Check...")
+    logging.info("   " + "-" * 50)
     result = check_posts_occupation(dataspot_client=dataspot_base_client)
     check_results.append({
         'check_name': 'posts_occupation',
@@ -51,9 +57,14 @@ def run_all_checks():
         'description': 'Checks if all posts are assigned to at least one person.',
         'results': result
     })
+    logging.info("")
+    logging.info("   Post Occupation Check Completed.")
+    logging.info("")
 
     # Data owner correctness check
-    logging.info("Starting data owner correctness check...")
+    logging.info("")
+    logging.info("   Starting Data Owner Correctness Check...")
+    logging.info("   " + "-" * 50)
     result = check_correct_data_owners(dataspot_client=dataspot_base_client)
     check_results.append({
         'check_name': 'data_owner_correctness',
@@ -61,8 +72,15 @@ def run_all_checks():
         'description': 'Checks if all Data Owner posts have the correct person assignments.',
         'results': result
     })
+    logging.info("")
+    logging.info("   Data Owner Correctness Check Completed.")
+    logging.info("")
 
     # Additional checks can be added here
+    
+    logging.info("")
+    logging.info("-----[ All Checks Completed ]" + "-" * 45)
+    logging.info("")
 
     return check_results
 
@@ -202,7 +220,9 @@ def log_combined_results(combined_report):
     Args:
         combined_report (dict): The combined report
     """
-    logging.info("===== DATASPOT DAILY CHECKS SUMMARY REPORT =====")
+    logging.info("")
+    logging.info("--------[ DATASPOT DAILY CHECKS SUMMARY REPORT ]" + "-" * 21)
+    logging.info("")
 
     # Log summary
     summary = combined_report.get('summary', {})
@@ -213,12 +233,11 @@ def log_combined_results(combined_report):
     errors = summary.get('errors', 0)
     total_issues = summary.get('total_issues', 0)
 
-    logging.info(f"Overall Status: {overall_status}")
-    logging.info(f"Database: {combined_report.get('database_name')}")
-    logging.info(f"Time: {combined_report.get('timestamp')}")
-    logging.info(
-        f"Checks: {total_checks} total - {successful} successful, {warnings} with warnings, {errors} with errors")
-    logging.info(f"Issues: {total_issues} total")
+    logging.info(f" Overall Status: {overall_status}")
+    logging.info(f" Database: {combined_report.get('database_name')}")
+    logging.info(f" Time: {combined_report.get('timestamp')}")
+    logging.info(f" Checks: {total_checks} total - {successful} successful, {warnings} with warnings, {errors} with errors")
+    logging.info(f" Issues: {total_issues} total")
 
     # Log details for each check
     for check in combined_report.get('checks', []):
@@ -227,43 +246,47 @@ def log_combined_results(combined_report):
         status = check.get('status', 'unknown').upper()
         issues_count = check.get('issues_count', 0)
 
-        logging.info(f"\n--- {title.upper()} ({status}) ---")
-        logging.info(f"Message: {check.get('message', 'No message')}")
+        logging.info("")
+        logging.info(f"-  {title} ({status})")
+        logging.info(f"   Message: {check.get('message', 'No message')}")
 
         # Log issues for checks with issues
         if issues_count > 0:
-            logging.info(f"Issues: {issues_count}")
+            logging.info(f"   Issues: {issues_count}")
 
-            # Group issues by type for easier reading
-            issues_by_type = {}
-            for issue in check.get('issues', []):
-                issue_type = issue.get('type', 'unknown')
-                if issue_type not in issues_by_type:
-                    issues_by_type[issue_type] = []
-                issues_by_type[issue_type].append(issue)
+        # Group issues by type for easier reading
+        issues_by_type = {}
+        for issue in check.get('issues', []):
+            issue_type = issue.get('type', 'unknown')
+            if issue_type not in issues_by_type:
+                issues_by_type[issue_type] = []
+            issues_by_type[issue_type].append(issue)
 
-            # Log each issue type
-            for issue_type, issues in issues_by_type.items():
-                logging.info(f"\n== {issue_type.upper().replace('_', ' ')} ({len(issues)}) ==")
+        # Log each issue type
+        for issue_type, issues in issues_by_type.items():
+            logging.info("")
+            logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
 
-                # Log all issues
-                for idx, issue in enumerate(issues):
-                    post_label = issue.get('post_label', 'Unknown')
-                    post_uuid = issue.get('post_uuid', 'Unknown')
-                    message = issue.get('message', 'No message')
+            # Log all issues
+            for idx, issue in enumerate(issues):
+                post_label = issue.get('post_label', 'Unknown')
+                post_uuid = issue.get('post_uuid', 'Unknown')
+                message = issue.get('message', 'No message')
 
-                    logging.info(f"- {post_label}")
-                    logging.info(
-                        f"  URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
-                    logging.info(f"  Message: {message}")
+                logging.info(f"     - {post_label}")
+                logging.info(
+                    f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                logging.info(f"       Message: {message}")
 
         # Log error if any
         if check.get('error'):
-            logging.info("--- ERROR DETAILS ---")
-            logging.info(check.get('error'))
+            logging.info("")
+            logging.info("   ERROR DETAILS:")
+            logging.info(f"     {check.get('error')}")
 
-    logging.info("\nSee detailed report for more information.")
-    logging.info("=============================================")
+        logging.info("")
+        logging.info("-" * 78)
+        logging.info("")
 
 
 def send_combined_email(combined_report):
@@ -594,9 +617,11 @@ def create_data_owner_email(check_results, database_name):
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format='%(levelname)s:%(name)s:[%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
     )
     logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')
     main()
+    logging.info("")
+    logging.info("Execution completed.")

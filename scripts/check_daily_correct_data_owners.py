@@ -1,10 +1,12 @@
 import logging
 import traceback
+from typing import Any, Dict
+
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.common import requests_get
 
-def check_correct_data_owners(dataspot_client: BaseDataspotClient):
+def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, Any]:
     """
     Check if all Data Owner posts are assigned to the correct person according to Staatskalender.
 
@@ -16,8 +18,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient):
        - Compares the person in Dataspot with the person in Staatskalender
     3. Logs the results and generates a report
     """
-    logging.info("Starting Data Owner correctness check...")
-
     # Store results for reporting
     check_results = {
         'status': 'pending',
@@ -92,8 +92,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient):
                 membership_id = post_data.get('customProperties', {}).get('membership_id')
                 if not membership_id:
                     # Log the issue immediately
-                    logging.warning \
-                        (f"MISSING MEMBERSHIP: Post '{post_label}' (UUID: {post_uuid}) does not have a membership_id")
+                    logging.warning(f"MISSING MEMBERSHIP: {dataspot_client.base_url}/web/{dataspot_client.database_name}/posts/{post_uuid})")
 
                     issue = {
                         'type': 'missing_membership',
@@ -106,8 +105,9 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient):
                     continue
 
                 # Step 3: Check if membership exists in Staatskalender
-                logging.info(f"Checking membership_id {membership_id} in Staatskalender...")
                 membership_url = f"https://staatskalender.bs.ch/api/memberships/{membership_id}"
+                logging.info(f"Checking membership_id {membership_id} in Staatskalender...")
+                logging.info(f"Retrieving membership data from Staatskalender: {membership_url}")
                 membership_response = requests_get(url=membership_url)
 
                 if membership_response.status_code != 200:
@@ -153,31 +153,34 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient):
 
                     # Step 4: Get person data from Staatskalender
                     logging.info(f"Retrieving person data from Staatskalender: {person_link}")
-                    person_response = requests_get(url=person_link)
+                    person_staatskalender_response = requests_get(url=person_link, headers={}) # We don't need dataspot headers here
 
-                    if person_response.status_code != 200:
+                    if person_staatskalender_response.status_code != 200:
                         issue = {
                             'type': 'person_data_error',
                             'post_uuid': post_uuid,
                             'post_label': post_label,
                             'membership_id': membership_id,
-                            'message': f"Could not retrieve person data from Staatskalender. Status code: {person_response.status_code}"
+                            'message': f"Could not retrieve person data from Staatskalender. Status code: {person_staatskalender_response.status_code}"
                         }
                         check_results['issues'].append(issue)
                         issues_count += 1
                         continue
 
                     # Extract first and last name from Staatskalender person
-                    person_data = person_response.json()
+                    person_staatskalender_data = person_staatskalender_response.json()
                     sk_first_name = None
                     sk_last_name = None
 
-                    for item in person_data.get('collection', {}).get('items', []):
+                    for item in person_staatskalender_data.get('collection', {}).get('items', []):
                         for data_item in item.get('data', []):
                             if data_item.get('name') == 'first_name':
                                 sk_first_name = data_item.get('value')
                             elif data_item.get('name') == 'last_name':
                                 sk_last_name = data_item.get('value')
+                            elif data_item.get('name') == 'email':
+                                # TODO: Use email for User creation in dataspot
+                                pass
 
                     if not sk_first_name or not sk_last_name:
                         issue = {
@@ -349,13 +352,11 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient):
 
     finally:
         # Log a brief summary
+        logging.info("")
         logging.info(f"Data Owner check - Status: {check_results['status']}")
         logging.info(f"Data Owner check - Message: {check_results['message']}")
 
         if check_results['issues']:
             logging.info(f"Data Owner check - Found {len(check_results['issues'])} issues")
-
-        logging.info("Data Owner correctness check process finished")
-        logging.info("===============================================")
 
         return check_results

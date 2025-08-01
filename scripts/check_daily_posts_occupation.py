@@ -1,14 +1,16 @@
 import logging
 import traceback
+from typing import Any, Dict
+
+import config
 from src.clients.base_client import BaseDataspotClient
 
-def check_posts_occupation(dataspot_client: BaseDataspotClient):
+def check_posts_occupation(dataspot_client: BaseDataspotClient) -> Dict[str, Any]:
     """
     Check if all posts are assigned to at least one person.
 
     This method:
-    1. Connects to the Dataspot Query API
-    2. Executes a SQL query to find posts without any person assigned
+    1. Executes a SQL query to find posts without any person assigned
 
     Returns:
         dict: Check results in standardized format
@@ -49,6 +51,8 @@ def check_posts_occupation(dataspot_client: BaseDataspotClient):
             unoccupied_count = len(unoccupied_posts)
 
             logging.info(f"Found {unoccupied_count} unoccupied posts")
+            for unoccupied_post in unoccupied_posts:
+                logging.info(f" - {unoccupied_post['post_label']} ({dataspot_client.base_url}/web/{config.database_name}/posts/{unoccupied_post['uuid']})")
 
             # Store original unoccupied posts for backward compatibility
             check_results['unoccupied_posts'] = unoccupied_posts
@@ -88,13 +92,11 @@ def check_posts_occupation(dataspot_client: BaseDataspotClient):
 
     finally:
         # Log a brief summary
+        logging.info("")
         logging.info(f"Posts occupation check - Status: {check_results['status']}")
         logging.info(f"Posts occupation check - Message: {check_results['message']}")
 
         if check_results['issues']:
             logging.info(f"Posts occupation check - Found {len(check_results['issues'])} issues")
-
-        logging.info("Posts occupation check process finished")
-        logging.info("===============================================")
 
         return check_results
