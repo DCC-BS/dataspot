@@ -729,13 +729,13 @@ def log_combined_results(combined_report):
                 
                 # Log all issues
                 for idx, issue in enumerate(issues):
-                        post_label = issue.get('post_label', 'Unknown')
-                        post_uuid = issue.get('post_uuid', 'Unknown')
-                        message = issue.get('message', 'No message')
-                        
-                        logging.info(f"- {post_label}")
-                        logging.info(f"  URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
-                        logging.info(f"  Message: {message}")
+                    post_label = issue.get('post_label', 'Unknown')
+                    post_uuid = issue.get('post_uuid', 'Unknown')
+                    message = issue.get('message', 'No message')
+                    
+                    logging.info(f"- {post_label}")
+                    logging.info(f"  URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                    logging.info(f"  Message: {message}")
         
         # Log error if any
         if check.get('error'):
