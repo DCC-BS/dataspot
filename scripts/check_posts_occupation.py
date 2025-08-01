@@ -220,7 +220,7 @@ def log_detailed_check_report(check_results):
         for post in check_results['unoccupied_posts']:
             uuid = post.get('uuid', 'Unknown')
             name = post.get('post_label', 'Unknown')
-            logging.info(f"- {name} (UUID: {uuid})")
+            logging.info(f"- {name} (Link: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{uuid})")
     
     # Log error if any
     if check_results['error']:
@@ -271,7 +271,7 @@ def create_email_content(check_results, database_name):
             for post in check_results['unoccupied_posts']:
                 uuid = post.get('uuid', 'Unknown')
                 name = post.get('post_label', 'Unknown')
-                email_text += f"- {name} (UUID: {uuid})\n"
+                email_text += f"- {name} (Link: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{uuid})\n"
                 
             email_text += "\nPlease review these posts and assign them to appropriate persons.\n\n"
     
