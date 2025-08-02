@@ -1,10 +1,60 @@
 import logging
 import traceback
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.common import requests_get
+
+def build_persons_by_post_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Builds a mapping from post UUIDs to lists of person details.
+    
+    This function fetches all persons from Dataspot and creates a dictionary
+    where keys are post UUIDs and values are lists of person details.
+    Each post can have multiple persons assigned to it.
+    
+    Returns:
+        Dict[str, List[Dict[str, Any]]]: Mapping of post UUIDs to lists of person details
+    """
+    persons_by_post = {}
+
+    # Fetch all persons from Dataspot
+    persons_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons"
+    persons_response = requests_get(
+        url=persons_url,
+        headers=dataspot_client.auth.get_headers()
+    )
+
+    if persons_response.status_code != 200:
+        logging.error(f"Could not fetch persons data from Dataspot. Status code: {persons_response.status_code}")
+        return persons_by_post
+
+    persons_data = persons_response.json()
+
+    # Process each person to build the mapping
+    for person in persons_data.get('_embedded', {}).get('persons', []):
+        person_uuid = person.get('id')
+        given_name = person.get('givenName')
+        family_name = person.get('familyName')
+
+        # Get the posts this person holds
+        holds_posts = person.get('holdsPost', [])
+
+        # Add mapping for each post
+        for post_uuid in holds_posts:
+            if post_uuid not in persons_by_post:
+                persons_by_post[post_uuid] = []
+
+            persons_by_post[post_uuid].append({
+                'uuid': person_uuid,
+                'given_name': given_name,
+                'family_name': family_name,
+            })
+
+    logging.info(f"Built a mapping of {len(persons_by_post)} posts to their associated persons")
+    return persons_by_post
+
 
 def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, Any]:
     """
@@ -15,6 +65,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
     2. For each post:
        - Checks if it has a membership_id
        - Verifies the membership exists in Staatskalender
+       - Checks if it has exactly one person assigned to it in Dataspot
        - Compares the person in Dataspot with the person in Staatskalender
     3. Logs the results and generates a report
     """
@@ -55,6 +106,10 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
             post_count = len(data_owner_posts)
 
             logging.info(f"Found {post_count} Data Owner posts to check")
+            
+            # Build the mapping of posts to persons once at the beginning
+            logging.info("Fetching all persons data to build post-person mapping...")
+            persons_by_post = build_persons_by_post_mapping(dataspot_client)
 
             # Track issues
             issues_count = 0
@@ -194,30 +249,11 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         issues_count += 1
                         continue
 
-                    # Step 5: Find associated person in Dataspot
-                    # Get a list of persons holding this post
-                    person_query_url = f"{config.base_url}/api/{config.database_name}/posts/{post_uuid}/agentOf"
-                    person_query_response = requests_get(
-                        url=person_query_url,
-                        headers=dataspot_client.auth.get_headers()
-                    )
-
-                    if person_query_response.status_code != 200:
-                        issue = {
-                            'type': 'dataspot_person_error',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'membership_id': membership_id,
-                            'message': f"Could not retrieve associated person from Dataspot. Status code: {person_query_response.status_code}"
-                        }
-                        check_results['issues'].append(issue)
-                        issues_count += 1
-                        continue
-
-                    # Check if any person holds this post
-                    person_data = person_query_response.json()
-                    if not person_data or '_embedded' not in person_data or 'persons' not in person_data.get \
-                            ('_embedded', {}):
+                    # Step 5: Find associated person in Dataspot using the cached persons data
+                    # Find person for this post from our pre-built mapping
+                    dataspot_persons_info = persons_by_post.get(post_uuid, [])
+                    
+                    if not dataspot_persons_info:
                         issue = {
                             'type': 'no_person_assigned',
                             'post_uuid': post_uuid,
@@ -231,50 +267,28 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         issues_count += 1
                         continue
 
-                    # Get the first person (should be only one)
-                    dataspot_persons = person_data.get('_embedded', {}).get('persons', [])
-                    if not dataspot_persons:
+                    # Check if multiple persons are assigned to this Data Owner post
+                    if len(dataspot_persons_info) > 1:
+                        person_names = [f"{p.get('given_name', '')} {p.get('family_name', '')}" for p in dataspot_persons_info]
                         issue = {
-                            'type': 'no_person_assigned',
+                            'type': 'multiple_persons_assigned',
                             'post_uuid': post_uuid,
                             'post_label': post_label,
                             'membership_id': membership_id,
                             'sk_first_name': sk_first_name,
                             'sk_last_name': sk_last_name,
-                            'message': f"No person assigned to this post in Dataspot"
+                            'dataspot_persons': person_names,
+                            'message': f"Multiple persons assigned to this Data Owner post: {', '.join(person_names)}"
                         }
                         check_results['issues'].append(issue)
                         issues_count += 1
                         continue
 
-                    # Get the person's details
-                    dataspot_person = dataspot_persons[0]
-                    dataspot_person_uuid = dataspot_person.get('id')
-
-                    # Get detailed person information
-                    person_detail_url = f"{config.base_url}/api/{config.database_name}/persons/{dataspot_person_uuid}"
-                    person_detail_response = requests_get(
-                        url=person_detail_url,
-                        headers=dataspot_client.auth.get_headers()
-                    )
-
-                    if person_detail_response.status_code != 200:
-                        issue = {
-                            'type': 'dataspot_person_details_error',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'membership_id': membership_id,
-                            'dataspot_person_uuid': dataspot_person_uuid,
-                            'message': f"Could not retrieve person details from Dataspot. Status code: {person_detail_response.status_code}"
-                        }
-                        check_results['issues'].append(issue)
-                        issues_count += 1
-                        continue
-
-                    # Extract person details
-                    person_details = person_detail_response.json().get('asset', {})
-                    dataspot_first_name = person_details.get('givenName')
-                    dataspot_last_name = person_details.get('familyName')
+                    # Extract first person's details for comparison
+                    dataspot_person_info = dataspot_persons_info[0]
+                    dataspot_first_name = dataspot_person_info.get('given_name')
+                    dataspot_last_name = dataspot_person_info.get('family_name')
+                    dataspot_person_uuid = dataspot_person_info.get('uuid')
 
                     # Compare names
                     if not dataspot_first_name or not dataspot_last_name:
