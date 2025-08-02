@@ -258,7 +258,10 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
                     if props:
                         for key, value in props.items():
                             if value:  # Only show non-empty values
-                                logging.info(f"   - {key}: '{value}'")
+                                if value.startswith('http'):
+                                    logging.info(f"   - {key}: {value}")
+                                else:
+                                    logging.info(f"   - {key}: '{value}'")
 
             # Process updates - show field changes with old and new values
             if 'updates' in details:
