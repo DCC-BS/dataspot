@@ -43,7 +43,7 @@ def run_all_checks():
     check_results = []
 
     # Initialize client for sql calls
-    dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.base_url,
+    dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
     # Post occupation check
