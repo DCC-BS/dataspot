@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.common import requests_get
+import requests
 
 def build_persons_by_post_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -147,7 +148,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                 membership_id = post_data.get('customProperties', {}).get('membership_id')
                 if not membership_id:
                     # Log the issue immediately
-                    logging.warning(f"MISSING MEMBERSHIP: {dataspot_client.base_url}/web/{dataspot_client.database_name}/posts/{post_uuid})")
+                    logging.warning(f"MISSING MEMBERSHIP: {dataspot_client.base_url}/web/{dataspot_client.database_name}/posts/{post_uuid}")
 
                     issue = {
                         'type': 'missing_membership',
@@ -163,7 +164,8 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                 membership_url = f"https://staatskalender.bs.ch/api/memberships/{membership_id}"
                 logging.info(f"Checking membership_id {membership_id} in Staatskalender...")
                 logging.info(f"Retrieving membership data from Staatskalender: {membership_url}")
-                membership_response = requests_get(url=membership_url)
+
+                membership_response = requests.get(url=membership_url)
 
                 if membership_response.status_code != 200:
                     # Log the invalid membership ID immediately
@@ -175,7 +177,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'membership_id': membership_id,
-                        'message': f"Membership ID not found in Staatskalender. Status code: {membership_response.status_code}"
+                        'message': f"Membership ID not found in Staatskalender. Invalid URL: {membership_url}"
                     }
                     check_results['issues'].append(issue)
                     issues_count += 1
