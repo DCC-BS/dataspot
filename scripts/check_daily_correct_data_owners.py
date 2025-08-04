@@ -7,6 +7,40 @@ from src.clients.base_client import BaseDataspotClient
 from src.common import requests_get
 import requests
 
+def build_users_by_email_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, Dict[str, Any]]:
+    """
+    Builds a mapping from user email addresses to user details.
+    
+    This function fetches all users from Dataspot and creates a dictionary
+    where keys are email addresses (loginId) and values are user details.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: Mapping of email addresses to user details
+    """
+    users_by_email = {}
+    
+    # Fetch users from dataspot
+    users_url = f"{dataspot_client.base_url}/api/{dataspot_client.database_name}/tenants/{config.tenant_name}/download?format=JSON"
+    users_response = requests_get(
+        url=users_url,
+        headers=dataspot_client.auth.get_headers()
+    )
+    
+    if users_response.status_code != 200:
+        logging.error(f"Could not fetch users data from Dataspot. Status code: {users_response.status_code}")
+        return users_by_email
+    
+    users_data = users_response.json()
+    
+    # Process each user to build the mapping
+    for user in users_data:
+        email = user.get('loginId')
+        if email:
+            users_by_email[email] = user
+    
+    logging.info(f"Built a mapping of {len(users_by_email)} email addresses to their associated users")
+    return users_by_email
+
 def build_persons_by_post_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, List[Dict[str, Any]]]:
     """
     Builds a mapping from post UUIDs to lists of person details.
@@ -112,9 +146,12 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
 
             logging.info(f"Found {post_count} Data Owner posts to check")
             
-            # Build the mapping of posts to persons once at the beginning
+            # Build the mappings once at the beginning
             logging.info("Fetching all persons data to build post-person mapping...")
             persons_by_post = build_persons_by_post_mapping(dataspot_client)
+            
+            logging.info("Fetching all users data to build email-user mapping...")
+            users_by_email = build_users_by_email_mapping(dataspot_client)
 
             # Track issues
             issues_count = 0
@@ -347,69 +384,49 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             issues_count += 1
                             continue
                             
-                        # Fetch users from dataspot
-                        users_url = f"{dataspot_client.base_url}/api/{dataspot_client.database_name}/tenants/{config.tenant_name}/download?format=JSON"
-                        users_response = requests_get(
-                            url=users_url,
-                            headers=dataspot_client.auth.get_headers()
-                        )
-                        
-                        if users_response.status_code != 200:
-                            issue = {
-                                'type': 'users_data_error',
-                                'post_uuid': post_uuid,
-                                'post_label': post_label,
-                                'message': f"Could not retrieve users data from Dataspot. Status code: {users_response.status_code}"
-                            }
-                            check_results['issues'].append(issue)
-                            issues_count += 1
-                            continue
-                            
-                        users_data = users_response.json()
-                        
                         # Check if any user is linked to this person via email
                         user_found = False
-                        for user in users_data:
-                            if user.get('loginId') == sk_email:
-                                user_found = True
-                                # Check if the accessLevel is "EDITOR"
-                                if user.get('accessLevel') != "EDITOR":
-                                    issue = {
-                                        'type': 'wrong_access_level',
-                                        'post_uuid': post_uuid,
-                                        'post_label': post_label,
-                                        'membership_id': membership_id,
-                                        'dataspot_person_uuid': dataspot_person_uuid,
-                                        'user_email': sk_email,
-                                        'current_access_level': user.get('accessLevel'),
-                                        'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)"
-                                    }
-                                    check_results['issues'].append(issue)
-                                    issues_count += 1
-                                else:
-                                    logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
-                                
-                                # Check if isPerson field matches "{last name}, {first name}" format
-                                expected_is_person = f"{dataspot_last_name}, {dataspot_first_name}"
-                                actual_is_person = user.get('isPerson')
-                                if actual_is_person != expected_is_person:
-                                    logging.info(f"✗ User {sk_email} has INCORRECT isPerson field: '{actual_is_person}' (should be '{expected_is_person}')")
-                                    issue = {
-                                        'type': 'is_person_mismatch',
-                                        'post_uuid': post_uuid,
-                                        'post_label': post_label,
-                                        'membership_id': membership_id,
-                                        'dataspot_person_uuid': dataspot_person_uuid,
-                                        'user_email': sk_email,
-                                        'expected_is_person': expected_is_person,
-                                        'actual_is_person': actual_is_person,
-                                        'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'"
-                                    }
-                                    check_results['issues'].append(issue)
-                                    issues_count += 1
-                                else:
-                                    logging.info(f"✓ User {sk_email} has correct isPerson field: '{actual_is_person}'")
-                                break
+                        if sk_email in users_by_email:
+                            user = users_by_email[sk_email]
+                            user_found = True
+                            # Check if the accessLevel is "EDITOR"
+                            if user.get('accessLevel') != "EDITOR":
+                                issue = {
+                                    'type': 'wrong_access_level',
+                                    'post_uuid': post_uuid,
+                                    'post_label': post_label,
+                                    'membership_id': membership_id,
+                                    'dataspot_person_uuid': dataspot_person_uuid,
+                                    'user_email': sk_email,
+                                    'current_access_level': user.get('accessLevel'),
+                                    'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)"
+                                }
+                                check_results['issues'].append(issue)
+                                issues_count += 1
+                            else:
+                                logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
+                            
+                            # Check if isPerson field matches "{last name}, {first name}" format
+                            expected_is_person = f"{dataspot_last_name}, {dataspot_first_name}"
+                            actual_is_person = user.get('isPerson')
+                            if actual_is_person != expected_is_person:
+                                logging.info(f"✗ User {sk_email} has INCORRECT isPerson field: '{actual_is_person}' (should be '{expected_is_person}')")
+                                issue = {
+                                    'type': 'is_person_mismatch',
+                                    'post_uuid': post_uuid,
+                                    'post_label': post_label,
+                                    'membership_id': membership_id,
+                                    'dataspot_person_uuid': dataspot_person_uuid,
+                                    'user_email': sk_email,
+                                    'expected_is_person': expected_is_person,
+                                    'actual_is_person': actual_is_person,
+                                    'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'"
+                                }
+                                check_results['issues'].append(issue)
+                                issues_count += 1
+                            else:
+                                logging.info(f"✓ User {sk_email} has correct isPerson field: '{actual_is_person}'")
+                            break
                                 
                         if not user_found:
                             issue = {
