@@ -389,8 +389,8 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 else:
                                     logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
                                 
-                                # Check if isPerson field matches "{last name} {first name}" format
-                                expected_is_person = f"{dataspot_last_name} {dataspot_first_name}"
+                                # Check if isPerson field matches "{last name}, {first name}" format
+                                expected_is_person = f"{dataspot_last_name}, {dataspot_first_name}"
                                 actual_is_person = user.get('isPerson')
                                 if actual_is_person != expected_is_person:
                                     logging.info(f"✗ User {sk_email} has INCORRECT isPerson field: '{actual_is_person}' (should be '{expected_is_person}')")
@@ -408,7 +408,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                     check_results['issues'].append(issue)
                                     issues_count += 1
                                 else:
-                                    logging.info(f"✓ User {sk_email} has correct isPerson field: '{expected_is_person}'")
+                                    logging.info(f"✓ User {sk_email} has correct isPerson field: '{actual_is_person}'")
                                 break
                                 
                         if not user_found:
