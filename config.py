@@ -23,6 +23,9 @@ tdm_scheme_name_short = 'TDM'
 sk_scheme_name = 'Systeme'
 sk_scheme_name_short = 'SK'
 
+# Special names
+tenant_name = "Mandant"
+
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration
 dnk_ods_imports_collection_name = 'OGD-Datensätze aus ODS'

@@ -68,6 +68,10 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
        - Verifies the membership exists in Staatskalender
        - Checks if it has exactly one person assigned to it in Dataspot
        - Compares the person in Dataspot with the person in Staatskalender
+       - Verifies that the person in Staatskalender has an email address
+       - Checks if a user with that email address exists in Dataspot
+       - Verifies that the user has the correct access level (EDITOR)
+       - Confirms that the user is connected to the correct person in Dataspot
     3. Logs the results and generates a report
     """
     # Store results for reporting
@@ -228,6 +232,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                     person_staatskalender_data = person_staatskalender_response.json()
                     sk_first_name = None
                     sk_last_name = None
+                    sk_email = None
 
                     for item in person_staatskalender_data.get('collection', {}).get('items', []):
                         for data_item in item.get('data', []):
@@ -236,8 +241,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             elif data_item.get('name') == 'last_name':
                                 sk_last_name = data_item.get('value')
                             elif data_item.get('name') == 'email':
-                                # TODO: Use email for User creation in dataspot
-                                pass
+                                sk_email = data_item.get('value')
 
                     if not sk_first_name or not sk_last_name:
                         issue = {
@@ -327,6 +331,97 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                     else:
                         logging.info \
                             (f"✓ Data Owner post '{post_label}' has correct person assignment: {dataspot_first_name} {dataspot_last_name}")
+
+                        # Step 6: Check if the user has the same email as the person in Staatskalender
+                        # First, check if we have an email from Staatskalender
+                        if not sk_email:
+                            issue = {
+                                'type': 'missing_sk_email',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'dataspot_person_uuid': dataspot_person_uuid,
+                                'message': f"Person in Staatskalender has no email address"
+                            }
+                            check_results['issues'].append(issue)
+                            issues_count += 1
+                            continue
+                            
+                        # Fetch users from dataspot
+                        users_url = f"{dataspot_client.base_url}/api/{dataspot_client.database_name}/tenants/{config.tenant_name}/download?format=JSON"
+                        users_response = requests_get(
+                            url=users_url,
+                            headers=dataspot_client.auth.get_headers()
+                        )
+                        
+                        if users_response.status_code != 200:
+                            issue = {
+                                'type': 'users_data_error',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'message': f"Could not retrieve users data from Dataspot. Status code: {users_response.status_code}"
+                            }
+                            check_results['issues'].append(issue)
+                            issues_count += 1
+                            continue
+                            
+                        users_data = users_response.json()
+                        
+                        # Check if any user is linked to this person via email
+                        user_found = False
+                        for user in users_data:
+                            if user.get('loginId') == sk_email:
+                                user_found = True
+                                # Check if the accessLevel is "EDITOR"
+                                if user.get('accessLevel') != "EDITOR":
+                                    issue = {
+                                        'type': 'wrong_access_level',
+                                        'post_uuid': post_uuid,
+                                        'post_label': post_label,
+                                        'membership_id': membership_id,
+                                        'dataspot_person_uuid': dataspot_person_uuid,
+                                        'user_email': sk_email,
+                                        'current_access_level': user.get('accessLevel'),
+                                        'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)"
+                                    }
+                                    check_results['issues'].append(issue)
+                                    issues_count += 1
+                                else:
+                                    logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
+                                
+                                # Check if isPerson field matches "{last name} {first name}" format
+                                expected_is_person = f"{dataspot_last_name} {dataspot_first_name}"
+                                actual_is_person = user.get('isPerson')
+                                if actual_is_person != expected_is_person:
+                                    issue = {
+                                        'type': 'is_person_mismatch',
+                                        'post_uuid': post_uuid,
+                                        'post_label': post_label,
+                                        'membership_id': membership_id,
+                                        'dataspot_person_uuid': dataspot_person_uuid,
+                                        'user_email': sk_email,
+                                        'expected_is_person': expected_is_person,
+                                        'actual_is_person': actual_is_person,
+                                        'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'"
+                                    }
+                                    check_results['issues'].append(issue)
+                                    issues_count += 1
+                                else:
+                                    logging.info(f"✓ User {sk_email} has correct isPerson field: '{expected_is_person}'")
+                                break
+                                
+                        if not user_found:
+                            issue = {
+                                'type': 'missing_user',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'dataspot_person_uuid': dataspot_person_uuid,
+                                'sk_email': sk_email,
+                                'message': f"No user found with email {sk_email} matching the person in Staatskalender"
+                            }
+                            check_results['issues'].append(issue)
+                            issues_count += 1
 
                 except Exception as e:
                     # Capture any other errors that might occur during processing
