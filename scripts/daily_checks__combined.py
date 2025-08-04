@@ -293,7 +293,7 @@ def send_combined_email(combined_report):
     if overall_status == 'error':
         email_subject = f"[ERROR][{database_name}] Dataspot Daily Checks Failed"
     elif overall_status == 'warning':
-        email_subject = f"[WARNING][{database_name}] Dataspot Daily Checks: {total_issues} Issues Found"
+        email_subject = f"[{database_name}] Dataspot Daily Checks: {total_issues} Issues Found"
     else:
         email_subject = f"[INFO][{database_name}] Dataspot Daily Checks Report"
 
