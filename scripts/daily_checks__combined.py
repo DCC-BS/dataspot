@@ -46,21 +46,6 @@ def run_all_checks():
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
-    # Post occupation check
-    logging.info("")
-    logging.info("   Starting Post Occupation Check...")
-    logging.info("   " + "-" * 50)
-    result = check_posts_occupation(dataspot_client=dataspot_base_client)
-    check_results.append({
-        'check_name': 'posts_occupation',
-        'title': 'Post Occupation Check',
-        'description': 'Checks if all posts are assigned to at least one person.',
-        'results': result
-    })
-    logging.info("")
-    logging.info("   Post Occupation Check Completed.")
-    logging.info("")
-
     # Data owner correctness check
     logging.info("")
     logging.info("   Starting Data Owner Correctness Check...")
@@ -74,6 +59,21 @@ def run_all_checks():
     })
     logging.info("")
     logging.info("   Data Owner Correctness Check Completed.")
+    logging.info("")
+
+    # Post occupation check
+    logging.info("")
+    logging.info("   Starting Post Occupation Check...")
+    logging.info("   " + "-" * 50)
+    result = check_posts_occupation(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'posts_occupation',
+        'title': 'Post Occupation Check',
+        'description': 'Checks if all posts are assigned to at least one person.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Post Occupation Check Completed.")
     logging.info("")
 
     # Additional checks can be added here
