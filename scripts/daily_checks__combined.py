@@ -384,7 +384,9 @@ def send_combined_email(combined_report):
 
     email_text += "\nPlease review the issues and take appropriate actions.\n\n"
     email_text += "Best regards,\n"
-    email_text += "Your Dataspot Daily Check Assistant"
+    email_text += "Your Dataspot Daily Check Assistant\n\n"
+    email_text += "(This is an automatically generated email)\n\n"
+    email_text += "PS: Did you spot anything that is incorrectly detected as an issue? Is there any action requierd by you that feels unncessary and could potentially be automated? Please forward this email to renato.farruggio@bs.ch and tell me what you think could be improved!"
 
     # Send email with the combined report as attachment
     try:
