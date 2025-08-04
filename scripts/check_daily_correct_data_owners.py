@@ -393,6 +393,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 expected_is_person = f"{dataspot_last_name} {dataspot_first_name}"
                                 actual_is_person = user.get('isPerson')
                                 if actual_is_person != expected_is_person:
+                                    logging.info(f"✗ User {sk_email} has INCORRECT isPerson field: '{actual_is_person}' (should be '{expected_is_person}')")
                                     issue = {
                                         'type': 'is_person_mismatch',
                                         'post_uuid': post_uuid,
