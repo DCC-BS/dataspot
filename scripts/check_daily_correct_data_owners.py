@@ -153,9 +153,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
             logging.info("Fetching all users data to build email-user mapping...")
             users_by_email = build_users_by_email_mapping(dataspot_client)
 
-            # Track issues
-            issues_count = 0
-
             # Examine each post
             for idx, post in enumerate(data_owner_posts):
                 post_uuid = post.get('uuid')
@@ -180,7 +177,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         'message': f"Could not retrieve post data from Dataspot. Status code: {post_response.status_code}"
                     }
                     check_results['issues'].append(issue)
-                    issues_count += 1
                     continue
 
                 post_data = post_response.json().get('asset', {})
@@ -198,7 +194,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         'message': f"Post does not have a membership_id"
                     }
                     check_results['issues'].append(issue)
-                    issues_count += 1
                     continue
 
                 # Step 3: Check if membership exists in Staatskalender
@@ -221,7 +216,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         'message': f"Membership ID not found in Staatskalender. Invalid URL: {membership_url}"
                     }
                     check_results['issues'].append(issue)
-                    issues_count += 1
                     continue
 
                 membership_data = membership_response.json()
@@ -246,7 +240,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Could not find person link in membership data"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Step 4: Get person data from Staatskalender
@@ -262,7 +255,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Could not retrieve person data from Staatskalender. Status code: {person_staatskalender_response.status_code}"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Extract first and last name from Staatskalender person
@@ -289,7 +281,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Could not extract name from Staatskalender person data"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Step 5: Find associated person in Dataspot using the cached persons data
@@ -307,7 +298,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"No person assigned to this post in Dataspot"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Check if multiple persons are assigned to this Data Owner post
@@ -324,7 +314,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Multiple persons assigned to this Data Owner post: {', '.join(person_names)}"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Extract first person's details for comparison
@@ -346,7 +335,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Person in Dataspot has missing name information"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                         continue
 
                     # Check if names match
@@ -364,7 +352,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             'message': f"Person name mismatch: Staatskalender ({sk_first_name} {sk_last_name}) vs. Dataspot ({dataspot_first_name} {dataspot_last_name})"
                         }
                         check_results['issues'].append(issue)
-                        issues_count += 1
                     else:
                         logging.info \
                             (f"✓ Data Owner post '{post_label}' has correct person assignment: {dataspot_first_name} {dataspot_last_name}")
@@ -381,7 +368,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 'message': f"Person in Staatskalender has no email address"
                             }
                             check_results['issues'].append(issue)
-                            issues_count += 1
                             continue
                             
                         # Check if any user is linked to this person via email
@@ -402,7 +388,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                     'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)"
                                 }
                                 check_results['issues'].append(issue)
-                                issues_count += 1
                             else:
                                 logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
                             
@@ -423,7 +408,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                     'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'"
                                 }
                                 check_results['issues'].append(issue)
-                                issues_count += 1
                             else:
                                 logging.info(f"✓ User {sk_email} has correct isPerson field: '{actual_is_person}'")
                             break
@@ -439,7 +423,6 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 'message': f"No user found with email {sk_email} matching the person in Staatskalender"
                             }
                             check_results['issues'].append(issue)
-                            issues_count += 1
 
                 except Exception as e:
                     # Capture any other errors that might occur during processing
@@ -451,16 +434,15 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         'message': f"Error processing post: {str(e)}"
                     }
                     check_results['issues'].append(issue)
-                    issues_count += 1
                     logging.error(f"Error processing post {post_label}: {str(e)}")
 
             # Update check results based on issues found
-            if issues_count == 0:
+            if len(check_results['issues']) == 0:
                 check_results['status'] = 'success'
                 check_results['message'] = "All Data Owner posts have correct person assignments."
             else:
                 check_results['status'] = 'warning'
-                check_results['message'] = f"Found {issues_count} issues with Data Owner posts."
+                check_results['message'] = f"Found {len(check_results['issues'])} issues with Data Owner posts."
 
         else:
             check_results['status'] = 'error'
