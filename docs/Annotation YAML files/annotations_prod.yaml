@@ -992,6 +992,12 @@ Dataset:
          "4":
            label: Geheim
            order: 4
+     confidentialityJustification:
+       label: Vertraulichkeit Begründung
+       title: Begründung für eingeschränkter Zugang zum Datenprodukt
+       group: DATA_PRIVACY
+       baseType: TEXT
+       order: 55
      SCHUBAN: # Bitte ändern zu "protectionLevel"
        label: Schutzbedarfsstufen
        title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
