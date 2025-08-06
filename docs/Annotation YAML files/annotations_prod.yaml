@@ -974,6 +974,21 @@ Dataset:
        order: 30
        group: DATA_PRIVACY
        baseType: BOOLEAN # TODO: Als Ja/Nein literal
+     SCHUBAN: # Bitte ändern zu "protectionLevel"
+       label: Schutzbedarfsstufen
+       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
+       order: 40
+       group: DATA_PRIVACY
+       literals:
+         "1":
+           label: Grundschutz (GS)
+           order: 1
+         "2":
+           label: erhöhter Schutzbedarf (ES)
+           order: 2
+         "3":
+           label: sehr hoher Schutzbedarf (SHS)
+           order: 3
      VERTR: # Bitte ändern zu "confidentiality"
        label: Vertraulichkeit
        title: Vertraulichkeitsstufe des Datenprodukts
@@ -998,21 +1013,6 @@ Dataset:
        group: DATA_PRIVACY
        baseType: TEXT
        order: 55
-     SCHUBAN: # Bitte ändern zu "protectionLevel"
-       label: Schutzbedarfsstufen
-       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
-       order: 40
-       group: DATA_PRIVACY
-       literals:
-         "1":
-           label: Grundschutz (GS)
-           order: 1
-         "2":
-           label: erhöhter Schutzbedarf (ES)
-           order: 2
-         "3":
-           label: sehr hoher Schutzbedarf (SHS)
-           order: 3
      NE: # Bitte ändern zu "usageRestriction"
        label: Nutzungseinschränkung
        title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
