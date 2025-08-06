@@ -656,7 +656,7 @@ class BaseDataspotClient:
                 result[unit_id] = unit
                 
         return result
-        
+
     def ensure_person_exists(self, first_name: str, last_name: str) -> (str, bool):
         """
         Ensures that a person exists in the Dataspot database. If the person doesn't exist,
@@ -805,32 +805,3 @@ class BaseDataspotClient:
 
         newly_created = True
         return new_user_uuid, newly_created
-
-    def get_user_by_email(self, email: str) -> Dict[str, Any] | None:
-        """
-        Get user details by email address.
-
-        Args:
-            email: Email address of the user to find
-
-        Returns:
-            Dict[str, Any]: User details if found, None otherwise
-        """
-        users_endpoint = f"/api/{self.database_name}/tenants/Mandant/download?format=JSON"
-        response = requests_get(
-            url_join(self.base_url, users_endpoint),
-            headers=self.auth.get_headers()
-        )
-
-        if response.status_code != 200:
-            logging.error(f"Could not fetch users data from Dataspot. Status code: {response.status_code}")
-            return None
-
-        users = response.json()
-
-        # Find user with matching email
-        for user in users:
-            if user.get('loginId') == email:
-                return user
-
-        return None
