@@ -105,6 +105,8 @@ def aggregate_results(check_results):
             'warnings': 0,
             'errors': 0,
             'total_issues': 0,
+            'remediated_issues': 0,  # Count of issues that were automatically fixed
+            'actual_issues': 0,      # Count of issues that need manual intervention
             'overall_status': 'success'  # Will be downgraded as needed
         },
         'checks': []
@@ -123,21 +125,42 @@ def aggregate_results(check_results):
         issues = results.get('issues', [])
         error = results.get('error')
 
+        # Count and categorize issues
+        remediated_issues = []
+        actual_issues = []
+        
+        for issue in issues:
+            # Check if this issue was successfully remediated
+            if issue.get('remediation_attempted', False) and issue.get('remediation_success', False):
+                remediated_issues.append(issue)
+            else:
+                actual_issues.append(issue)
+        
+        # Determine the actual status based on unresolved issues
+        actual_status = 'success'
+        if len(actual_issues) > 0:
+            if error or status == 'error':
+                actual_status = 'error'
+            else:
+                actual_status = 'warning'
+        
         # Update summary counters
-        if status == 'success':
+        if actual_status == 'success':
             combined_report['summary']['successful'] += 1
-        elif status == 'warning':
+        elif actual_status == 'warning':
             combined_report['summary']['warnings'] += 1
             # Downgrade overall status if currently successful
             if combined_report['summary']['overall_status'] == 'success':
                 combined_report['summary']['overall_status'] = 'warning'
-        elif status == 'error':
+        elif actual_status == 'error':
             combined_report['summary']['errors'] += 1
             # Always downgrade to error if any check has an error
             combined_report['summary']['overall_status'] = 'error'
 
-        # Count total issues
+        # Update the summary counts
         combined_report['summary']['total_issues'] += len(issues)
+        combined_report['summary']['remediated_issues'] += len(remediated_issues)
+        combined_report['summary']['actual_issues'] += len(actual_issues)
 
         # Add check details to combined report
         combined_report['checks'].append({
@@ -147,7 +170,11 @@ def aggregate_results(check_results):
             'status': status,
             'message': message,
             'issues_count': len(issues),
-            'issues': issues,
+            'remediated_issues_count': len(remediated_issues),
+            'actual_issues_count': len(actual_issues),
+            'remediated_issues': remediated_issues,
+            'actual_issues': actual_issues,
+            'issues': issues,  # Keep the original issues list for backward compatibility
             'error': error
         })
 
@@ -218,7 +245,12 @@ def log_combined_results(combined_report):
     logging.info(f" Database: {combined_report.get('database_name')}")
     logging.info(f" Time: {combined_report.get('timestamp')}")
     logging.info(f" Checks: {total_checks} total - {successful} successful, {warnings} with warnings, {errors} with errors")
-    logging.info(f" Issues: {total_issues} total")
+    
+    # Extract counts of remediated and actual issues
+    remediated_issues = summary.get('remediated_issues', 0)
+    actual_issues = summary.get('actual_issues', 0)
+    
+    logging.info(f" Issues: {total_issues} total ({remediated_issues} automatically fixed, {actual_issues} requiring attention)")
 
     # Log details for each check
     for check in combined_report.get('checks', []):
@@ -233,31 +265,70 @@ def log_combined_results(combined_report):
 
         # Log issues for checks with issues
         if issues_count > 0:
-            logging.info(f"   Issues: {issues_count}")
+            remediated_count = check.get('remediated_issues_count', 0)
+            actual_count = check.get('actual_issues_count', 0)
+            logging.info(f"   Issues: {issues_count} total ({remediated_count} automatically fixed, {actual_count} requiring attention)")
 
-        # Group issues by type for easier reading
-        issues_by_type = {}
-        for issue in check.get('issues', []):
-            issue_type = issue.get('type', 'unknown')
-            if issue_type not in issues_by_type:
-                issues_by_type[issue_type] = []
-            issues_by_type[issue_type].append(issue)
+            # Group remediated issues by type
+            if remediated_count > 0:
+                remediated_issues = check.get('remediated_issues', [])
+                logging.info("")
+                logging.info(f"   === AUTOMATICALLY FIXED ISSUES ({remediated_count}) ===")
+                
+                # Group remediated issues by type for easier reading
+                remediated_by_type = {}
+                for issue in remediated_issues:
+                    issue_type = issue.get('type', 'unknown')
+                    if issue_type not in remediated_by_type:
+                        remediated_by_type[issue_type] = []
+                    remediated_by_type[issue_type].append(issue)
+                
+                # Log each remediated issue type
+                for issue_type, issues in remediated_by_type.items():
+                    logging.info("")
+                    logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
+                    
+                    # List the fixed issues
+                    for issue in issues:
+                        post_label = issue.get('post_label', 'Unknown')
+                        post_uuid = issue.get('post_uuid', 'Unknown')
+                        message = issue.get('message', 'No message')
+                        
+                        logging.info(f"     - {post_label}")
+                        logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                        logging.info(f"       Message: {message}")
+            
+            # Group actual issues by type
+            if actual_count > 0:
+                actual_issues = check.get('actual_issues', [])
+                logging.info("")
+                logging.info(f"   === ISSUES REQUIRING ATTENTION ({actual_count}) ===")
+                
+                # Group actual issues by type for easier reading
+                actual_by_type = {}
+                for issue in actual_issues:
+                    issue_type = issue.get('type', 'unknown')
+                    if issue_type not in actual_by_type:
+                        actual_by_type[issue_type] = []
+                    actual_by_type[issue_type].append(issue)
+                
+                # Log each actual issue type
+                for issue_type, issues in actual_by_type.items():
+                    logging.info("")
+                    logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
+                    
+                    # List the issues requiring attention
+                    for issue in issues:
+                        post_label = issue.get('post_label', 'Unknown')
+                        post_uuid = issue.get('post_uuid', 'Unknown')
+                        message = issue.get('message', 'No message')
+                        
+                        logging.info(f"     - {post_label}")
+                        logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                        logging.info(f"       Message: {message}")
 
-        # Log each issue type
-        for issue_type, issues in issues_by_type.items():
-            logging.info("")
-            logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
-
-            # Log all issues
-            for idx, issue in enumerate(issues):
-                post_label = issue.get('post_label', 'Unknown')
-                post_uuid = issue.get('post_uuid', 'Unknown')
-                message = issue.get('message', 'No message')
-
-                logging.info(f"     - {post_label}")
-                logging.info(
-                    f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
-                logging.info(f"       Message: {message}")
+            # We no longer log all issues here - we already log them by type separately
+            # (This removed to avoid duplicating issue listings)
 
         # Log error if any
         if check.get('error'):
@@ -309,7 +380,18 @@ def send_combined_email(combined_report):
     email_text += f"{summary.get('successful', 0)} successful, "
     email_text += f"{summary.get('warnings', 0)} with warnings, "
     email_text += f"{summary.get('errors', 0)} with errors\n"
-    email_text += f"Issues: {total_issues} total\n\n"
+    
+    # Get counts of remediated and actual issues
+    remediated_issues_count = summary.get('remediated_issues', 0)
+    actual_issues_count = summary.get('actual_issues', 0)
+    
+    email_text += f"Issues: {total_issues} total\n"
+    if remediated_issues_count > 0:
+        email_text += f"- {remediated_issues_count} automatically fixed\n"
+    if actual_issues_count > 0:
+        email_text += f"- {actual_issues_count} requiring attention\n\n"
+    else:
+        email_text += "- All issues were automatically fixed!\n\n"
 
     # Add details for each check
     email_text += "=== CHECK RESULTS ===\n"
@@ -325,56 +407,104 @@ def send_combined_email(combined_report):
 
         # Add issues for checks with issues
         if issues_count > 0:
-            email_text += f"Issues: {issues_count}\n"
+            remediated_count = check.get('remediated_issues_count', 0)
+            actual_count = check.get('actual_issues_count', 0)
+            email_text += f"Issues: {issues_count} total ({remediated_count} automatically fixed, {actual_count} requiring attention)\n"
 
-            # Group issues by type for easier reading
-            issues_by_type = {}
-            for issue in check.get('issues', []):
-                issue_type = issue.get('type', 'unknown')
-                if issue_type not in issues_by_type:
-                    issues_by_type[issue_type] = []
-                issues_by_type[issue_type].append(issue)
-
-            # List the most critical issues first
+            # Priority order for sorting issue types
             priority_order = [
-                'name_mismatch', 'no_person_assigned', 'unoccupied_post', 'missing_membership',
+                'person_mismatch', 'no_person_assigned', 'unoccupied_post', 'missing_membership',
                 'invalid_membership', 'missing_person_link', 'missing_person_name',
                 'missing_dataspot_name', 'dataspot_person_error', 'processing_error'
             ]
 
-            # Sort issue types by priority
-            sorted_issue_types = sorted(
-                issues_by_type.keys(),
-                key=lambda x: priority_order.index(x) if x in priority_order else 999
-            )
-
-            # Add all issues by type
-            for issue_type in sorted_issue_types:
-                issues = issues_by_type[issue_type]
-                email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
-
-                # Show all issues
-                for idx, issue in enumerate(issues):
-                    post_label = issue.get('post_label', 'Unknown')
-                    post_uuid = issue.get('post_uuid', 'Unknown')
-                    message = issue.get('message', 'No message provided')
-
-                    email_text += f"\n- {post_label}\n"
-                    email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
-
-                    # Add specific details based on issue type
-                    if issue_type == 'name_mismatch':
-                        sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
-                        ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
-                        email_text += f"  Staatskalender name: {sk_name}\n"
-                        email_text += f"  Dataspot name: {ds_name}\n"
-                    elif issue_type == 'missing_membership':
-                        email_text += f"  Issue: No membership_id found\n"
-                    elif issue_type in ['invalid_membership', 'missing_person_link']:
-                        membership_id = issue.get('membership_id', 'Unknown')
-                        email_text += f"  Membership ID: {membership_id}\n"
-
-                    email_text += f"  Message: {message}\n"
+            # Add automatically fixed issues section
+            if remediated_count > 0:
+                remediated_issues = check.get('remediated_issues', [])
+                email_text += f"\n=== AUTOMATICALLY FIXED ISSUES ({remediated_count}) ===\n"
+                
+                # Group remediated issues by type for easier reading
+                remediated_by_type = {}
+                for issue in remediated_issues:
+                    issue_type = issue.get('type', 'unknown')
+                    if issue_type not in remediated_by_type:
+                        remediated_by_type[issue_type] = []
+                    remediated_by_type[issue_type].append(issue)
+                
+                # Sort issue types by priority
+                sorted_remediated_types = sorted(
+                    remediated_by_type.keys(),
+                    key=lambda x: priority_order.index(x) if x in priority_order else 999
+                )
+                
+                # Add all remediated issues by type
+                for issue_type in sorted_remediated_types:
+                    issues = remediated_by_type[issue_type]
+                    email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
+                    
+                    # Show all remediated issues
+                    for idx, issue in enumerate(issues):
+                        post_label = issue.get('post_label', 'Unknown')
+                        post_uuid = issue.get('post_uuid', 'Unknown')
+                        message = issue.get('message', 'No message provided')
+                        
+                        email_text += f"\n- {post_label}\n"
+                        email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                        
+                        # Add specific details based on issue type
+                        if issue_type == 'person_mismatch':
+                            sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
+                            email_text += f"  Reassigned from: {ds_name} to: {sk_name}\n"
+                        
+                        email_text += f"  Resolution: {message}\n"
+            
+            # Add issues requiring attention section
+            if actual_count > 0:
+                actual_issues = check.get('actual_issues', [])
+                email_text += f"\n=== ISSUES REQUIRING ATTENTION ({actual_count}) ===\n"
+                
+                # Group actual issues by type for easier reading
+                actual_by_type = {}
+                for issue in actual_issues:
+                    issue_type = issue.get('type', 'unknown')
+                    if issue_type not in actual_by_type:
+                        actual_by_type[issue_type] = []
+                    actual_by_type[issue_type].append(issue)
+                
+                # Sort issue types by priority
+                sorted_actual_types = sorted(
+                    actual_by_type.keys(),
+                    key=lambda x: priority_order.index(x) if x in priority_order else 999
+                )
+                
+                # Add all actual issues by type
+                for issue_type in sorted_actual_types:
+                    issues = actual_by_type[issue_type]
+                    email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
+                    
+                    # Show all actual issues
+                    for idx, issue in enumerate(issues):
+                        post_label = issue.get('post_label', 'Unknown')
+                        post_uuid = issue.get('post_uuid', 'Unknown')
+                        message = issue.get('message', 'No message provided')
+                        
+                        email_text += f"\n- {post_label}\n"
+                        email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                        
+                        # Add specific details based on issue type
+                        if issue_type == 'person_mismatch':
+                            sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
+                            email_text += f"  Staatskalender name: {sk_name}\n"
+                            email_text += f"  Dataspot name: {ds_name}\n"
+                        elif issue_type == 'missing_membership':
+                            email_text += f"  Issue: No membership_id found\n"
+                        elif issue_type in ['invalid_membership', 'missing_person_link']:
+                            membership_id = issue.get('membership_id', 'Unknown')
+                            email_text += f"  Membership ID: {membership_id}\n"
+                        
+                        email_text += f"  Message: {message}\n"
 
         # Add error details if any
         if check.get('error'):
@@ -386,7 +516,7 @@ def send_combined_email(combined_report):
     email_text += "Best regards,\n"
     email_text += "Your Dataspot Daily Check Assistant\n\n"
     email_text += "(This is an automatically generated email)\n\n"
-    email_text += "PS: Did you spot anything that is incorrectly detected as an issue? Is there any action requierd by you that feels unncessary and could potentially be automated? Please forward this email to renato.farruggio@bs.ch and tell me what you think could be improved!"
+    email_text += "PS: Did you spot anything that is incorrectly detected as an issue? Is there any action required by you that feels unncessary and could potentially be automated? Please forward this email to renato.farruggio@bs.ch and tell me what you think could be improved!"
 
     # Send email with the combined report as attachment
     try:

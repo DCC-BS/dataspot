@@ -1,11 +1,197 @@
 import logging
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.common import requests_get
+from src.common import requests_get, requests_patch
 import requests
+
+def update_person_holdspost(dataspot_client: BaseDataspotClient, person_uuid: str, post_uuid: str, add: bool = True) -> (bool, bool):
+    """
+    Updates a person's holdsPost array by either adding or removing a data owner post.
+
+    Args:
+        dataspot_client: The Dataspot client
+        person_uuid: UUID of the person
+        post_uuid: UUID of the Data Owner post
+        add: True to add post, False to remove post
+
+    Returns:
+        (bool, bool): (success, has_remaining_posts)
+            - success: True if operation was successful, False otherwise
+            - has_remaining_posts: True if person still has posts after operation, False if they have no posts
+    """
+    if add:
+        logging.debug(f"Attempting to add Data Owner post {post_uuid} to person {person_uuid}")
+    else:
+        logging.debug(f"Attempting to remove Data Owner post {post_uuid} from person {person_uuid}")
+
+    try:
+        # Get the current person data
+        person_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+        response = requests_get(
+            url=person_url,
+            headers=dataspot_client.auth.get_headers()
+        )
+
+        if response.status_code != 200:
+            logging.error(f"Failed to retrieve person with UUID {person_uuid}. Status code: {response.status_code}")
+            return False, False
+
+        person_data = response.json()
+
+        # Get current posts
+        current_posts = person_data.get('holdsPost', [])
+
+        # Add or remove the post
+        if add and post_uuid not in current_posts:
+            current_posts.append(post_uuid)
+        elif not add and post_uuid in current_posts:
+            current_posts.remove(post_uuid)
+        else:
+            # No change needed
+            logging.info(f"No change needed. Post {post_uuid} is {'already' if add else 'not'} in person's holdsPost array.")
+            has_remaining_posts = len(current_posts) > 0
+            return True, has_remaining_posts
+
+        # Create minimal json data object with updated posts
+        person_update_json = {
+            '_type': 'Person',
+            'holdsPost': current_posts
+        }
+
+        # Send update request
+        response = requests_patch(
+            url=person_url,
+            json=person_update_json,
+            headers=dataspot_client.auth.get_headers()
+        )
+
+        if response.status_code not in [200, 201]:
+            logging.error(f"Failed to update person. Status code: {response.status_code}")
+            return False, False
+
+        has_remaining_posts = len(current_posts) > 0
+        
+        if add:
+            logging.info(f"Successfully added Data Owner post {post_uuid} to person {person_uuid}")
+        else:
+            logging.info(f"Successfully removed Data Owner post {post_uuid} from person {person_uuid}")
+            if not has_remaining_posts:
+                logging.info(f"Person {person_uuid} no longer has any posts")
+                
+        return True, has_remaining_posts
+
+    except Exception as e:
+        action = "add" if add else "remove"
+        logging.error(f"Failed to {action} Data Owner post for person: {str(e)}")
+        return False, False
+
+def set_user_access_level(dataspot_client: BaseDataspotClient, user_id: str, access_level: str) -> bool:
+    """
+    Set the access level of a user.
+    
+    Args:
+        dataspot_client: The Dataspot client
+        user_id: UUID of the user to set the access level for
+        access_level: The access level to set the user to (e.g., "READ_ONLY", "EDITOR", "ADMINISTRATOR")
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    logging.info(f"Attempting to set access level for user {user_id} to {access_level}")
+    try:
+        # Create minimal payload with _type and accessLevel
+        payload = {
+            "_type": "User",
+            "accessLevel": access_level
+        }
+        
+        # Construct the URL for the user update endpoint
+        update_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users/{user_id}"
+        
+        # Send the PATCH request to update the user
+        response = requests_patch(
+            url=update_url,
+            json=payload,
+            headers=dataspot_client.auth.get_headers()
+        )
+        
+        # Raise an exception if the request fails
+        response.raise_for_status()
+        
+        logging.info(f"Successfully updated access level for user {user_id} to {access_level}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to set user access level: {str(e)}")
+        return False
+
+def update_user_is_person(dataspot_client: BaseDataspotClient, user_email: str, person_name: str) -> bool:
+    """
+    Update the isPerson field of a user.
+    
+    Args:
+        dataspot_client: The Dataspot client
+        user_email: Email of the user to update
+        person_name: Name in format "Last name, First name" for isPerson field
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    logging.info(f"Attempting to update isPerson field for user {user_email} to '{person_name}'")
+    
+    try:
+        # Step 1: Find the user by email using REST API
+        users_url = f"{dataspot_client.base_url}/api/{dataspot_client.database_name}/tenants/Mandant/download?format=JSON"
+        users_response = requests_get(
+            url=users_url,
+            headers=dataspot_client.auth.get_headers()
+        )
+        
+        if users_response.status_code != 200:
+            logging.error(f"Failed to retrieve users. Status code: {users_response.status_code}")
+            return False
+        
+        users_data = users_response.json()
+        user_id = None
+        
+        # Find the user with the matching email
+        for user in users_data:
+            if user.get('loginId') == user_email:
+                user_id = user.get('id')
+                break
+        
+        if not user_id:
+            logging.error(f"User with email {user_email} not found")
+            return False
+            
+        # Step 2: Update the user's isPerson field
+        update_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users/{user_id}"
+        
+        # Create minimal payload with _type and isPerson
+        payload = {
+            "_type": "User",
+            "isPerson": person_name
+        }
+        
+        # Send the PATCH request to update the user
+        response = requests_patch(
+            url=update_url,
+            json=payload,
+            headers=dataspot_client.auth.get_headers()
+        )
+        
+        if response.status_code not in [200, 201]:
+            logging.error(f"Failed to update user isPerson field. Status code: {response.status_code}")
+            return False
+        
+        logging.info(f"Successfully updated isPerson field for user {user_email} to '{person_name}'")
+        return True
+        
+    except Exception as e:
+        logging.error(f"Failed to update user isPerson field: {str(e)}")
+        return False
 
 def build_users_by_email_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, Dict[str, Any]]:
     """
@@ -18,26 +204,26 @@ def build_users_by_email_mapping(dataspot_client: BaseDataspotClient) -> Dict[st
         Dict[str, Dict[str, Any]]: Mapping of email addresses to user details
     """
     users_by_email = {}
-    
+
     # Fetch users from dataspot
     users_url = f"{dataspot_client.base_url}/api/{dataspot_client.database_name}/tenants/{config.tenant_name}/download?format=JSON"
     users_response = requests_get(
         url=users_url,
         headers=dataspot_client.auth.get_headers()
     )
-    
+
     if users_response.status_code != 200:
         logging.error(f"Could not fetch users data from Dataspot. Status code: {users_response.status_code}")
         return users_by_email
-    
+
     users_data = users_response.json()
-    
+
     # Process each user to build the mapping
     for user in users_data:
         email = user.get('loginId')
         if email:
             users_by_email[email] = user
-    
+
     logging.info(f"Built a mapping of {len(users_by_email)} email addresses to their associated users")
     return users_by_email
 
@@ -145,11 +331,11 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
             post_count = len(data_owner_posts)
 
             logging.info(f"Found {post_count} Data Owner posts to check")
-            
+
             # Build the mappings once at the beginning
             logging.info("Fetching all persons data to build post-person mapping...")
             persons_by_post = build_persons_by_post_mapping(dataspot_client)
-            
+
             logging.info("Fetching all users data to build email-user mapping...")
             users_by_email = build_users_by_email_mapping(dataspot_client)
 
@@ -270,7 +456,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             elif data_item.get('name') == 'last_name':
                                 sk_last_name = data_item.get('value')
                             elif data_item.get('name') == 'email':
-                                sk_email = data_item.get('value')
+                                sk_email = data_item.get('value').lower()
 
                     if not sk_first_name or not sk_last_name:
                         issue = {
@@ -286,23 +472,128 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                     # Step 5: Find associated person in Dataspot using the cached persons data
                     # Find person for this post from our pre-built mapping
                     dataspot_persons_info = persons_by_post.get(post_uuid, [])
-                    
+
+                    # Check if no person is assigned to this Data Owner post
                     if not dataspot_persons_info:
-                        issue = {
-                            'type': 'no_person_assigned',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'membership_id': membership_id,
-                            'sk_first_name': sk_first_name,
-                            'sk_last_name': sk_last_name,
-                            'message': f"No person assigned to this post in Dataspot"
-                        }
+                        # Attempt to remediate if we have email from Staatskalender
+                        if sk_email:
+                            remediation_success = False
+                            remediation_steps = []
+                            error_message = None
+
+                            try:
+                                logging.info(f"Attempting to assign a person to post {post_label}")
+
+                                # 1. Create person if needed (with name from Staatskalender)
+                                person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
+
+                                if person_newly_created:
+                                    remediation_steps.append("created_new_person")
+                                    logging.info(f"Created new person: {sk_first_name} {sk_last_name} with ID: {person_uuid}")
+                                else:
+                                    remediation_steps.append("found_existing_person")
+                                    logging.info(f"Found existing person: {sk_first_name} {sk_last_name} with ID: {person_uuid}")
+
+                                # 2. Add Data Owner Post to the person
+                                success, _ = update_person_holdspost(dataspot_client, person_uuid, post_uuid, add=True)
+                                if success:
+                                    remediation_steps.append("added_post_to_person")
+                                    # Update our cached mapping since we modified it
+                                    if post_uuid not in persons_by_post:
+                                        persons_by_post[post_uuid] = []
+                                    
+                                    # Add the person to the cached mapping
+                                    person_info = {
+                                        'uuid': person_uuid,
+                                        'given_name': sk_first_name,
+                                        'family_name': sk_last_name
+                                    }
+                                    persons_by_post[post_uuid].append(person_info)
+
+                                    # 3. Check if there's already a user with the Staatskalender email
+                                    if sk_email in users_by_email:
+                                        user = users_by_email[sk_email]
+                                        logging.info(f"Found existing user with email {sk_email}, ID: {user.get('id')}")
+                                        expected_is_person = f"{sk_last_name}, {sk_first_name}"
+
+                                        if user.get('isPerson') != expected_is_person:
+                                            logging.info(f"User isPerson field needs update from '{user.get('isPerson')}' to '{expected_is_person}'")
+                                            if update_user_is_person(dataspot_client, sk_email, expected_is_person):
+                                                remediation_steps.append("updated_user_is_person")
+                                                logging.info(f"Successfully updated isPerson field for user {sk_email}")
+
+                                        # Set user access level to EDITOR if needed
+                                        if user.get('accessLevel') != "EDITOR":
+                                            logging.info(f"User access level needs update from '{user.get('accessLevel')}' to 'EDITOR'")
+                                            user_id = user.get('id')
+                                            if user_id and set_user_access_level(dataspot_client, user_id, "EDITOR"):
+                                                remediation_steps.append("set_user_access_to_editor")
+                                                logging.info(f"Successfully updated access level for user {sk_email} to EDITOR")
+                                    else:
+                                        logging.info(f"No user found with email {sk_email}, creating new user")
+                                        # 4. Create user if it doesn't exist (and ensure it is linked to the correct person)
+                                        user_uuid, user_newly_created = dataspot_client.ensure_user_exists(sk_email, person_uuid, access_level="EDITOR")
+                                        if user_newly_created:
+                                            remediation_steps.append("created_new_user")
+                                            logging.info(f"Successfully created new user: {sk_email} with ID: {user_uuid}")
+
+                                    remediation_success = True
+                                    logging.info(f"Successfully assigned person to Data Owner post {post_label}")
+                                    
+                                    # After successful remediation, skip to the next post
+                                    # instead of adding this as an issue
+                                    issue = {
+                                        'type': 'no_person_assigned',
+                                        'post_uuid': post_uuid,
+                                        'post_label': post_label,
+                                        'membership_id': membership_id,
+                                        'sk_first_name': sk_first_name,
+                                        'sk_last_name': sk_last_name,
+                                        'message': f"Successfully assigned person {sk_first_name} {sk_last_name} to post",
+                                        'remediation_attempted': True,
+                                        'remediation_success': True,
+                                        'remediation_steps': remediation_steps,
+                                        'remediation_error': None
+                                    }
+                                    check_results['issues'].append(issue)
+                                    continue
+                            except Exception as e:
+                                error_message = str(e)
+                                logging.error(f"Error during remediation: {error_message}")
+
+                            issue = {
+                                'type': 'no_person_assigned',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"No person assigned to this post in Dataspot",
+                                'remediation_attempted': True,
+                                'remediation_success': remediation_success,
+                                'remediation_steps': remediation_steps,
+                                'remediation_error': error_message
+                            }
+                        else:
+                            # No remediation possible without email
+                            issue = {
+                                'type': 'no_person_assigned',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"No person assigned to this post in Dataspot",
+                                'remediation_attempted': False,
+                                'remediation_reason': "No email available from Staatskalender"
+                            }
                         check_results['issues'].append(issue)
                         continue
 
                     # Check if multiple persons are assigned to this Data Owner post
                     if len(dataspot_persons_info) > 1:
                         person_names = [f"{p.get('given_name', '')} {p.get('family_name', '')}" for p in dataspot_persons_info]
+
                         issue = {
                             'type': 'multiple_persons_assigned',
                             'post_uuid': post_uuid,
@@ -322,7 +613,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                     dataspot_last_name = dataspot_person_info.get('family_name')
                     dataspot_person_uuid = dataspot_person_info.get('uuid')
 
-                    # Compare names
+                    # Check for missing name information in Dataspot person
                     if not dataspot_first_name or not dataspot_last_name:
                         issue = {
                             'type': 'missing_dataspot_name',
@@ -337,20 +628,153 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                         check_results['issues'].append(issue)
                         continue
 
-                    # Check if names match
+                    # Check if correct person is assigned to post
                     if sk_first_name != dataspot_first_name or sk_last_name != dataspot_last_name:
-                        issue = {
-                            'type': 'name_mismatch',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'membership_id': membership_id,
-                            'dataspot_person_uuid': dataspot_person_uuid,
-                            'sk_first_name': sk_first_name,
-                            'sk_last_name': sk_last_name,
-                            'dataspot_first_name': dataspot_first_name,
-                            'dataspot_last_name': dataspot_last_name,
-                            'message': f"Person name mismatch: Staatskalender ({sk_first_name} {sk_last_name}) vs. Dataspot ({dataspot_first_name} {dataspot_last_name})"
-                        }
+                        # Try to remediate the person mismatch if we have email from Staatskalender
+                        if sk_email:
+                            # Get the current user email for downgrading access, if available
+                            current_user_email = None
+                            for email, user in users_by_email.items():
+                                # Look for a user with isPerson matching the dataspot person
+                                expected_is_person = f"{dataspot_last_name}, {dataspot_first_name}"
+                                if user.get('isPerson') == expected_is_person:
+                                    current_user_email = email
+                                    break
+
+                            remediation_success = False
+                            remediation_steps = []
+                            error_message = None
+
+                            try:
+                                logging.info(f"Attempting to remediate person mismatch for post {post_label}")
+
+                                # 1. Remove the Data Owner Post from the current person if one exists
+                                if dataspot_person_uuid:
+                                    success, has_remaining_posts = update_person_holdspost(dataspot_client, dataspot_person_uuid, post_uuid, add=False)
+                                    if success:
+                                        remediation_steps.append("removed_data_owner_post")
+                                        
+                                        # 2. If the person now doesn't hold any posts, set access level to READ_ONLY
+                                        if current_user_email and not has_remaining_posts:
+                                            logging.info(f"Person {dataspot_person_uuid} has no remaining posts, setting user access to READ_ONLY")
+                                            current_user_id = users_by_email.get(current_user_email, {}).get('id')
+                                            if current_user_id and set_user_access_level(dataspot_client, current_user_id, "READ_ONLY"):
+                                                remediation_steps.append("set_user_access_to_read_only")
+                                else:
+                                    # No person is currently assigned, so nothing to remove
+                                    remediation_steps.append("no_person_to_remove")
+
+                                # 3. Create new person if needed (with name from Staatskalender)
+                                person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
+
+                                if person_newly_created:
+                                    remediation_steps.append("created_new_person")
+                                    logging.info(f"Created new person: {sk_first_name} {sk_last_name} with ID: {person_uuid}")
+
+                                # 4. Add Data Owner Post to the correct person
+                                success, _ = update_person_holdspost(dataspot_client, person_uuid, post_uuid, add=True)
+                                if success:
+                                    remediation_steps.append("added_post_to_person")
+                                    # Update our cached mapping since we modified it
+                                    if post_uuid not in persons_by_post:
+                                        persons_by_post[post_uuid] = []
+                                    else:
+                                        # Clear existing entries since we're replacing them
+                                        persons_by_post[post_uuid] = []
+                                    
+                                    # Add the person to the cached mapping
+                                    person_info = {
+                                        'uuid': person_uuid,
+                                        'given_name': sk_first_name,
+                                        'family_name': sk_last_name
+                                    }
+                                    persons_by_post[post_uuid].append(person_info)
+
+                                    # Check if there's already a user with the Staatskalender email
+                                    if sk_email in users_by_email:
+                                        # 5. If the isPerson field is incorrect, fix it
+                                        user = users_by_email[sk_email]
+                                        expected_is_person = f"{sk_last_name}, {sk_first_name}"
+
+                                        if user.get('isPerson') != expected_is_person:
+                                            if update_user_is_person(dataspot_client, sk_email, expected_is_person):
+                                                remediation_steps.append("updated_user_is_person")
+
+                                        # 6. If the user access level is not EDITOR, set it
+                                        if user.get('accessLevel') != "EDITOR":
+                                            user_id = user.get('id')
+                                            if user_id and set_user_access_level(dataspot_client, user_id, "EDITOR"):
+                                                remediation_steps.append("set_user_access_to_editor")
+                                    else:
+                                        # 7. Create user if it doesn't exist (and ensure it is linked to the correct person)
+                                        user_uuid, user_newly_created = dataspot_client.ensure_user_exists(sk_email, person_uuid, access_level="EDITOR")
+                                        if user_newly_created:
+                                            # Verify user was created with correct properties
+                                            user_check = dataspot_client.get_user_by_email(sk_email)
+                                            if not user_check or user_check.get('accessLevel') != "EDITOR":
+                                                logging.error(f"User creation succeeded but properties incorrect")
+                                            remediation_steps.append("created_new_user")
+
+                                    remediation_success = True
+                                    logging.info(f"Successfully remediated Data Owner post {post_label}")
+                                    
+                                    # After successful remediation, skip to the next post
+                                    # instead of adding this as an issue
+                                    issue = {
+                                        'type': 'person_mismatch',
+                                        'post_uuid': post_uuid,
+                                        'post_label': post_label,
+                                        'membership_id': membership_id,
+                                        'dataspot_person_uuid': dataspot_person_uuid,
+                                        'sk_first_name': sk_first_name,
+                                        'sk_last_name': sk_last_name,
+                                        'dataspot_first_name': dataspot_first_name,
+                                        'dataspot_last_name': dataspot_last_name,
+                                        'message': f"Successfully reassigned post from {dataspot_first_name} {dataspot_last_name} to {sk_first_name} {sk_last_name}",
+                                        'remediation_attempted': True,
+                                        'remediation_success': True,
+                                        'remediation_steps': remediation_steps,
+                                        'remediation_error': None
+                                    }
+                                    check_results['issues'].append(issue)
+                                    continue
+                            except Exception as e:
+                                error_message = str(e)
+                                logging.error(f"Error during remediation: {error_message}")
+
+                            issue = {
+                                'type': 'person_mismatch',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'dataspot_person_uuid': dataspot_person_uuid,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'dataspot_first_name': dataspot_first_name,
+                                'dataspot_last_name': dataspot_last_name,
+                                'message': f"Person mismatch: Staatskalender ({sk_first_name} {sk_last_name}) vs. Dataspot ({dataspot_first_name} {dataspot_last_name})",
+                                'remediation_attempted': True,
+                                'remediation_success': remediation_success,
+                                'remediation_steps': remediation_steps,
+                                'remediation_error': error_message
+                            }
+                        else:
+                            # No remediation possible without email
+                            issue = {
+                                'type': 'person_mismatch',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'dataspot_person_uuid': dataspot_person_uuid,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'dataspot_first_name': dataspot_first_name,
+                                'dataspot_last_name': dataspot_last_name,
+                                'message': f"Person mismatch: Staatskalender ({sk_first_name} {sk_last_name}) vs. Dataspot ({dataspot_first_name} {dataspot_last_name})",
+                                'remediation_attempted': False,
+                                'remediation_reason': "No email available from Staatskalender"
+                            }
+
                         check_results['issues'].append(issue)
                     else:
                         logging.info \
@@ -369,14 +793,33 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                             }
                             check_results['issues'].append(issue)
                             continue
-                            
+
                         # Check if any user is linked to this person via email
                         user_found = False
                         if sk_email in users_by_email:
                             user = users_by_email[sk_email]
                             user_found = True
+
                             # Check if the accessLevel is "EDITOR"
                             if user.get('accessLevel') != "EDITOR":
+                                # Try to remediate by updating the user's access level
+                                remediation_success = False
+                                remediation_steps = []
+                                error_message = None
+
+                                try:
+                                    logging.info(f"Attempting to fix access level for user {sk_email}")
+
+                                    # Update user access level to EDITOR
+                                    user_id = user.get('id')
+                                    if user_id and set_user_access_level(dataspot_client, user_id, "EDITOR"):
+                                        remediation_steps.append("set_user_access_to_editor")
+                                        remediation_success = True
+                                        logging.info(f"Successfully updated access level for user {sk_email}")
+                                except Exception as e:
+                                    error_message = str(e)
+                                    logging.error(f"Error during remediation: {error_message}")
+
                                 issue = {
                                     'type': 'wrong_access_level',
                                     'post_uuid': post_uuid,
@@ -385,17 +828,39 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                     'dataspot_person_uuid': dataspot_person_uuid,
                                     'user_email': sk_email,
                                     'current_access_level': user.get('accessLevel'),
-                                    'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)"
+                                    'message': f"User {sk_email} has incorrect access level: {user.get('accessLevel')} (should be EDITOR)",
+                                    'remediation_attempted': True,
+                                    'remediation_success': remediation_success,
+                                    'remediation_steps': remediation_steps,
+                                    'remediation_error': error_message
                                 }
                                 check_results['issues'].append(issue)
                             else:
                                 logging.info(f"✓ User {sk_email} has correct access level (EDITOR)")
-                            
+
                             # Check if isPerson field matches "{last name}, {first name}" format
                             expected_is_person = f"{dataspot_last_name}, {dataspot_first_name}"
                             actual_is_person = user.get('isPerson')
                             if actual_is_person != expected_is_person:
                                 logging.info(f"✗ User {sk_email} has INCORRECT isPerson field: '{actual_is_person}' (should be '{expected_is_person}')")
+
+                                # Try to remediate by updating the user's isPerson field
+                                remediation_success = False
+                                remediation_steps = []
+                                error_message = None
+
+                                try:
+                                    logging.info(f"Attempting to fix isPerson field for user {sk_email}")
+
+                                    # Update isPerson field
+                                    if update_user_is_person(dataspot_client, sk_email, expected_is_person):
+                                        remediation_steps.append("updated_is_person_field")
+                                        remediation_success = True
+                                        logging.info(f"Successfully updated isPerson field for user {sk_email}")
+                                except Exception as e:
+                                    error_message = str(e)
+                                    logging.error(f"Error during remediation: {error_message}")
+
                                 issue = {
                                     'type': 'is_person_mismatch',
                                     'post_uuid': post_uuid,
@@ -405,14 +870,41 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                     'user_email': sk_email,
                                     'expected_is_person': expected_is_person,
                                     'actual_is_person': actual_is_person,
-                                    'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'"
+                                    'message': f"User isPerson mismatch: expected '{expected_is_person}', got '{actual_is_person}'",
+                                    'remediation_attempted': True,
+                                    'remediation_success': remediation_success,
+                                    'remediation_steps': remediation_steps,
+                                    'remediation_error': error_message
                                 }
                                 check_results['issues'].append(issue)
                             else:
                                 logging.info(f"✓ User {sk_email} has correct isPerson field: '{actual_is_person}'")
-                            break
-                                
+
                         if not user_found:
+                            # Try to remediate by creating a user for the email from Staatskalender
+                            remediation_success = False
+                            remediation_steps = []
+                            error_message = None
+
+                            try:
+                                logging.info(f"Attempting to create user for email {sk_email}")
+
+                                # Create a new user with EDITOR access level
+                                # First ensure person exists
+                                person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
+                                if person_newly_created and not person_uuid:
+                                    raise ValueError("Failed to create person")
+                                    
+                                # Then ensure user exists linked to that person
+                                user_uuid, user_newly_created = dataspot_client.ensure_user_exists(sk_email, person_uuid, access_level="EDITOR")
+                                if user_newly_created:
+                                    remediation_steps.append("created_user")
+                                    remediation_success = True
+                                    logging.info(f"Successfully created user for email {sk_email}")
+                            except Exception as e:
+                                error_message = str(e)
+                                logging.error(f"Error during remediation: {error_message}")
+
                             issue = {
                                 'type': 'missing_user',
                                 'post_uuid': post_uuid,
@@ -420,7 +912,11 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 'membership_id': membership_id,
                                 'dataspot_person_uuid': dataspot_person_uuid,
                                 'sk_email': sk_email,
-                                'message': f"No user found with email {sk_email} matching the person in Staatskalender"
+                                'message': f"No user found with email {sk_email} matching the person in Staatskalender",
+                                'remediation_attempted': True,
+                                'remediation_success': remediation_success,
+                                'remediation_steps': remediation_steps,
+                                'remediation_error': error_message
                             }
                             check_results['issues'].append(issue)
 

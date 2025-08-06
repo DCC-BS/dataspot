@@ -25,6 +25,7 @@ sk_scheme_name_short = 'SK'
 
 # Special names
 tenant_name = "Mandant"
+organizations_name = "Data%20Excellence"
 
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration
