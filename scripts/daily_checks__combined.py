@@ -7,6 +7,7 @@ from src.common import email_helpers
 from src.clients.base_client import BaseDataspotClient
 from check_daily_posts_occupation import check_posts_occupation
 from check_daily_correct_data_owners import check_correct_data_owners
+from check_daily_persons_have_users import check_persons_without_users
 
 
 def main():
@@ -74,6 +75,21 @@ def run_all_checks():
     })
     logging.info("")
     logging.info("   Post Occupation Check Completed.")
+    logging.info("")
+
+    # Person-user association check
+    logging.info("")
+    logging.info("   Starting Person-User Association Check...")
+    logging.info("   " + "-" * 50)
+    result = check_persons_without_users(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'persons_without_users',
+        'title': 'Person-User Association Check',
+        'description': 'Checks if all persons with posts have an associated user account.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Person-User Association Check Completed.")
     logging.info("")
 
     # Additional checks can be added here
@@ -286,7 +302,12 @@ def log_combined_results(combined_report):
                 # Log each remediated issue type
                 for issue_type, issues in remediated_by_type.items():
                     logging.info("")
-                    logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
+                    if issue_type == 'person_mismatch_missing_email':
+                        logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
+                    elif issue_type == 'person_without_user':
+                        logging.info(f"   * Person Without User Account ({len(issues)})")
+                    else:
+                        logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
                     # List the fixed issues
                     for issue in issues:
@@ -312,20 +333,42 @@ def log_combined_results(combined_report):
                         actual_by_type[issue_type] = []
                     actual_by_type[issue_type].append(issue)
                 
+                # Helper function to get friendly issue type name
+                def get_issue_type_display_name(issue_type):
+                    if issue_type == 'person_mismatch_missing_email':
+                        return "Person Missing Email In Staatskalender"
+                    elif issue_type == 'person_without_user':
+                        return "Person Without User Account"
+                    else:
+                        return issue_type.replace('_', ' ').title()
+                        
                 # Log each actual issue type
                 for issue_type, issues in actual_by_type.items():
                     logging.info("")
-                    logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
+                    logging.info(f"   * {get_issue_type_display_name(issue_type)} ({len(issues)})")
                     
                     # List the issues requiring attention
                     for issue in issues:
-                        post_label = issue.get('post_label', 'Unknown')
-                        post_uuid = issue.get('post_uuid', 'Unknown')
                         message = issue.get('message', 'No message')
                         
-                        logging.info(f"     - {post_label}")
-                        logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
-                        logging.info(f"       Message: {message}")
+                        # Format differently for person_without_user which doesn't have post information
+                        if issue_type == 'person_without_user':
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            given_name = issue.get('given_name', '')
+                            family_name = issue.get('family_name', '')
+                            person_name = f"{given_name} {family_name}"
+                            posts_count = issue.get('posts_count', 0)
+                            
+                            logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
+                            logging.info(f"       Posts count: {posts_count}")
+                            logging.info(f"       Message: {message}")
+                        else:
+                            post_label = issue.get('post_label', 'Unknown')
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            
+                            logging.info(f"     - {post_label}")
+                            logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                            logging.info(f"       Message: {message}")
 
             # We no longer log all issues here - we already log them by type separately
             # (This removed to avoid duplicating issue listings)
@@ -413,9 +456,10 @@ def send_combined_email(combined_report):
 
             # Priority order for sorting issue types
             priority_order = [
-                'person_mismatch', 'no_person_assigned', 'unoccupied_post', 'missing_membership',
-                'invalid_membership', 'missing_person_link', 'missing_person_name',
-                'missing_dataspot_name', 'dataspot_person_error', 'processing_error'
+                'person_without_user', 'person_mismatch_missing_email', 'person_mismatch', 
+                'no_person_assigned', 'unoccupied_post', 'missing_membership', 'invalid_membership', 
+                'missing_person_link', 'missing_person_name', 'missing_dataspot_name', 
+                'dataspot_person_error', 'processing_error'
             ]
 
             # Add automatically fixed issues section
@@ -440,7 +484,12 @@ def send_combined_email(combined_report):
                 # Add all remediated issues by type
                 for issue_type in sorted_remediated_types:
                     issues = remediated_by_type[issue_type]
-                    email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
+                    if issue_type == 'person_mismatch_missing_email':
+                        email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
+                    elif issue_type == 'person_without_user':
+                        email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    else:
+                        email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
                     # Show all remediated issues
                     for idx, issue in enumerate(issues):
@@ -481,19 +530,52 @@ def send_combined_email(combined_report):
                 # Add all actual issues by type
                 for issue_type in sorted_actual_types:
                     issues = actual_by_type[issue_type]
-                    email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
+                    if issue_type == 'person_mismatch_missing_email':
+                        email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
+                    elif issue_type == 'person_without_user':
+                        email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    else:
+                        email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
                     # Show all actual issues
                     for idx, issue in enumerate(issues):
-                        post_label = issue.get('post_label', 'Unknown')
-                        post_uuid = issue.get('post_uuid', 'Unknown')
                         message = issue.get('message', 'No message provided')
                         
-                        email_text += f"\n- {post_label}\n"
-                        email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                        # Format differently for person_without_user which doesn't have post information
+                        if issue_type == 'person_without_user':
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            given_name = issue.get('given_name', '')
+                            family_name = issue.get('family_name', '')
+                            person_name = f"{given_name} {family_name}"
+                            email_text += f"\n- Person: {person_name} (ID: {person_uuid})\n"
+                        else:
+                            post_label = issue.get('post_label', 'Unknown')
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            email_text += f"\n- {post_label}\n"
+                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
-                        if issue_type == 'person_mismatch':
+                        if issue_type == 'person_without_user':
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            posts_count = issue.get('posts_count', 0)
+                            email_text += f"  Posts count: {posts_count}\n"
+                            email_text += f"  ACTION REQUIRED: Create a user account for this person.\n"
+                            email_text += f"  This person has posts assigned but no associated user account.\n"
+                            email_text += f"  To fix this issue:\n"
+                            email_text += f"  1. Create a user in Dataspot with this person's email address\n" 
+                            email_text += f"  2. Set the user's isPerson field to '{issue.get('family_name', '')}, {issue.get('given_name', '')}'\n"
+                            email_text += f"  3. Set the user's access level to EDITOR if this person has any Data Owner posts\n"
+                        elif issue_type == 'person_mismatch_missing_email':
+                            sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
+                            email_text += f"  Staatskalender name: {sk_name}\n"
+                            if ds_name.strip() != "":
+                                email_text += f"  Previous Dataspot name: {ds_name}\n"
+                            email_text += f"  ACTION REQUIRED: {sk_name} is missing an email in Staatskalender.\n"
+                            email_text += f"  The person has been created and assigned to the post, but you need to:\n"
+                            email_text += f"  1. Add an email address for this person in Staatskalender, or\n"
+                            email_text += f"  2. Manually create a user in Dataspot and link it to this person\n"
+                        elif issue_type == 'person_mismatch':
                             sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
                             ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
                             email_text += f"  Staatskalender name: {sk_name}\n"
