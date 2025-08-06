@@ -1582,6 +1582,11 @@ Asset:
           icon: globe
           order: 540
           group: PUBLIC
+        DATENPRODAKT:
+          label: Datenprodukt-Aktualisierung
+          icon: arrow-up
+          order: 560
+          group: DRAFT
 
 ##### Status aus Standard Workflow d. #####
         WORKING:
