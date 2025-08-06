@@ -333,19 +333,15 @@ def log_combined_results(combined_report):
                         actual_by_type[issue_type] = []
                     actual_by_type[issue_type].append(issue)
                 
-                # Helper function to get friendly issue type name
-                def get_issue_type_display_name(issue_type):
-                    if issue_type == 'person_mismatch_missing_email':
-                        return "Person Missing Email In Staatskalender"
-                    elif issue_type == 'person_without_user':
-                        return "Person Without User Account"
-                    else:
-                        return issue_type.replace('_', ' ').title()
-                        
                 # Log each actual issue type
                 for issue_type, issues in actual_by_type.items():
                     logging.info("")
-                    logging.info(f"   * {get_issue_type_display_name(issue_type)} ({len(issues)})")
+                    if issue_type == 'person_mismatch_missing_email':
+                        logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
+                    elif issue_type == 'person_without_user':
+                        logging.info(f"   * Person Without User Account ({len(issues)})")
+                    else:
+                        logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
                     # List the issues requiring attention
                     for issue in issues:

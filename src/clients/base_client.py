@@ -661,20 +661,20 @@ class BaseDataspotClient:
         """
         Ensures that a person exists in the Dataspot database. If the person doesn't exist,
         creates them using just the first and last name.
-        
+
         Args:
             first_name: First name of the person
             last_name: Last name of the person
-            
+
         Returns:
             str: The uuid of the existing or newly created person
             bool: Indicates whether the person was newly created. False if person already existed
-            
+
         Raises:
             HTTPError: If API requests fail
         """
         logging.info(f"Ensuring person exists: {first_name} {last_name}")
-        
+
         # Get all persons from the database
         persons_endpoint = f"/rest/{self.database_name}/persons/"
         response = requests_get(
@@ -682,7 +682,7 @@ class BaseDataspotClient:
             headers=self.auth.get_headers()
         )
         response.raise_for_status()
-        
+
         # Check response structure - could be a list or embedded in _embedded.persons
         response_json = response.json()
         if '_embedded' in response_json and 'persons' in response_json['_embedded']:
@@ -692,7 +692,7 @@ class BaseDataspotClient:
         else:
             logging.warning(f"Unexpected response format from persons endpoint: {response_json}")
             persons = []
-        
+
         # Look for existing person by name
         for person in persons:
             # Match by first and last name
@@ -701,7 +701,7 @@ class BaseDataspotClient:
                 person_uuid = person['id']
                 newly_created = False
                 return person_uuid, newly_created
-        
+
         # Person doesn't exist, create it
         logging.info(f"Person not found, creating new: {first_name} {last_name}")
 
@@ -721,7 +721,7 @@ class BaseDataspotClient:
             "givenName": first_name,
             "agentOf": dx_organization_uuid
         }
-            
+
         # Create the person
         create_endpoint = f"/rest/{self.database_name}/persons"
 
@@ -731,7 +731,7 @@ class BaseDataspotClient:
         )
 
         new_person_uuid = new_person['id']
-        
+
         logging.info(f"Created new person: {first_name} {last_name} with ID: {new_person_uuid}")
 
         newly_created = True
@@ -741,21 +741,21 @@ class BaseDataspotClient:
         """
         Ensures that a user exists in the Dataspot database. If the user doesn't exist,
         creates them using the email and first/last name.
-        
+
         Args:
             email: Email address of the user (used as loginId)
             person_uuid: UUID of the person. Used for the isPerson field
             access_level: Access level for the user if created (READ_ONLY, EDITOR, ADMINISTRATOR)
-            
+
         Returns:
             str: The uuid of the existing or newly created user
             bool: Indicates whether the user was newly created. False if user already existed
-            
+
         Raises:
             HTTPError: If API requests fail
         """
         logging.info(f"Ensuring user exists: {email}")
-        
+
         # Get all users from the database via the tenants endpoint
         users_endpoint = f"/api/{self.database_name}/tenants/Mandant/download?format=JSON"
         response = requests_get(
@@ -763,20 +763,20 @@ class BaseDataspotClient:
             headers=self.auth.get_headers()
         )
         response.raise_for_status()
-        
+
         # Parse response
         users = response.json()
-        
+
         # Look for existing user by email
         for user in users:
             if user.get('loginId') == email:
                 logging.info(f"Found existing user: {user.get('loginId')} (id: {user.get('id')})")
                 newly_created = False
                 return user.get('id'), newly_created
-        
+
         # User doesn't exist, create it
         logging.info(f"User not found, creating new: {email}")
-        
+
         # Prepare user data
         user_data = {
             "_type": "User",
@@ -784,7 +784,7 @@ class BaseDataspotClient:
             "accessLevel": access_level,
             "isPerson": person_uuid
         }
-            
+
         # Create the user via API
         users_create_url = f"{self.base_url}/rest/{self.database_name}/users"
 
@@ -794,19 +794,19 @@ class BaseDataspotClient:
             headers=self.auth.get_headers()
         )
         response.raise_for_status()
-        
+
         new_user = response.json()
         new_user_uuid = new_user.get('id')
-        
+
         if not new_user_uuid:
             raise ValueError(f"Failed to create user: {email}. Response did not include user ID.")
-        
+
         logging.info(f"Created new user: {email} with ID: {new_user_uuid}")
-        
+
         newly_created = True
         return new_user_uuid, newly_created
 
-    def get_user_by_email(self, email: str) -> Dict[str, Any]:
+    def get_user_by_email(self, email: str) -> Dict[str, Any] | None:
         """
         Get user details by email address.
 
