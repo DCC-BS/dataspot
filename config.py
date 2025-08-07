@@ -1,7 +1,7 @@
 # Dataspot configuration variables
 
 # Database name
-database_name = 'prod'
+database_name = 'feature-personen-staatskalender-2'
 
 # Base URL
 base_url = 'https://datenkatalog.bs.ch'
