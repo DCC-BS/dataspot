@@ -7,7 +7,7 @@ from src.clients.base_client import BaseDataspotClient
 from src.common import requests_get
 import requests
 
-from daily_checks_helpers import update_person_holdspost, set_user_access_level, update_user_is_person, build_users_by_email_mapping, build_persons_by_post_mapping, get_user_by_email
+from scripts.catalog_quality_daily.daily_checks_helpers import update_person_holdspost, set_user_access_level, update_user_is_person, build_users_by_email_mapping, build_persons_by_post_mapping, get_user_by_email
 
 # THIS CLASS IS ANYTHING BUT BEAUTIFUL, BUT IT WORKS!
 # IF I EVER HAVE THE TIME, I WANT TO CLEAN THIS UP, INCLUDING daily_checks_helpers.py

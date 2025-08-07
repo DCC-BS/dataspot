@@ -5,9 +5,9 @@ import datetime
 import config
 from src.common import email_helpers
 from src.clients.base_client import BaseDataspotClient
-from check_daily_posts_occupation import check_posts_occupation
-from check_daily_correct_data_owners import check_correct_data_owners
-from check_daily_persons_have_users import check_persons_without_users
+from scripts.catalog_quality_daily.check_daily_posts_occupation import check_posts_occupation
+from scripts.catalog_quality_daily.check_daily_correct_data_owners import check_correct_data_owners
+from scripts.catalog_quality_daily.check_daily_persons_have_users import check_persons_without_users
 
 
 def main():
