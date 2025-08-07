@@ -657,6 +657,11 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 error_message = str(e)
                                 logging.error(f"Error during remediation: {error_message}")
 
+                            # Set appropriate message based on remediation success
+                            message = f"No user found with email {sk_email} matching the person in Staatskalender"
+                            if remediation_success:
+                                message = f"Added user with email {sk_email} matching the person in Staatskalender"
+                                
                             issue = {
                                 'type': 'missing_user',
                                 'post_uuid': post_uuid,
@@ -664,7 +669,7 @@ def check_correct_data_owners(dataspot_client: BaseDataspotClient) -> Dict[str, 
                                 'membership_id': membership_id,
                                 'dataspot_person_uuid': dataspot_person_uuid,
                                 'sk_email': sk_email,
-                                'message': f"No user found with email {sk_email} matching the person in Staatskalender",
+                                'message': message,
                                 'remediation_attempted': True,
                                 'remediation_success': remediation_success,
                                 'remediation_steps': remediation_steps,
