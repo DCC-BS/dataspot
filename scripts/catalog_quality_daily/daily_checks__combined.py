@@ -225,9 +225,9 @@ def get_combined_report_file_path():
     Returns:
         str: The path to the report file
     """
-    # Get project root directory (one level up from scripts)
+    # Get project root directory (two levels up from catalog_quality_daily)
     current_file_path = os.path.abspath(__file__)
-    project_root = os.path.dirname(os.path.dirname(current_file_path))
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file_path)))
 
     # Define reports directory in project root
     reports_dir = os.path.join(project_root, "reports")
