@@ -19,7 +19,14 @@ DATASPOT_API_BASE_URL=https://www.myserver.com
 ```
 
 ---
-## How to integrate code from a `dev` (or `feature`) environment into `prod` [Work-In-Progress]
+## Managing (Data Owner) Posts
+
+The following gif shows everything needed to create a new post, and link the correct person. Note that we don't actually need to create the person or user, as this happens daily automatically.
+![Setting up a new data owner](docs/data_owner_post.gif)
+
+
+---
+## Integrating code from a `dev` (or `feature`) environment into `prod` [Work-In-Progress]
 When integrating a `dev` into `prod`, first we need to clone the `dev` into an `int` database.
 
 Then:
@@ -34,12 +41,6 @@ Then:
 If everything worked without errors, we can apply the `int` yaml into the `prod` yaml and reapply the changes made to the `int` to the `prod`.
 
 After that, delete the `dev` branch on github, in dataspot, and also its corresponding Annotations.yaml. Also delete the `int` environment in dataspot.
-
-
----
-##
-
-The following gif shows everything needed to create a new post, and link the correct person. Note that we don't actually need to create the person or user, as this happens daily automatically.
 
 
 <!-- 
