@@ -35,15 +35,6 @@ If everything worked without errors, we can apply the `int` yaml into the `prod`
 
 After that, delete the `dev` branch on github, in dataspot, and also its corresponding Annotations.yaml. Also delete the `int` environment in dataspot.
 
----
-## Notes (Renato)
-### Colors for top bar background:
-Not explicitely defined, this is written here just so that I know what I used before. You can use whatever you want.
-- dev: 167a3e
-- int: ff0000
-
----
-
 
 <!-- 
 ## How to do regular updates (not yet implemented):
