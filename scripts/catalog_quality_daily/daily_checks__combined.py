@@ -605,7 +605,7 @@ def send_combined_email(combined_report):
             text=email_text,
             attachment=attachment
         )
-        email_helpers.send_email(msg)
+        email_helpers.send_email(msg, technical_only=False)
         logging.info("Combined email notification sent successfully")
     except Exception as e:
         logging.error(f"Failed to send combined email notification: {str(e)}")

@@ -328,7 +328,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     text=email_content,
                     attachment=attachment
                 )
-                email_helpers.send_email(msg)
+                email_helpers.send_email(msg, technical_only=True)
                 logging.info("Email notification sent successfully")
             except Exception as e:
                 # Log error but continue execution

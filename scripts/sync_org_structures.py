@@ -339,7 +339,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
                     text=email_content,
                     attachment=attachment
                 )
-                email_helpers.send_email(msg)
+                email_helpers.send_email(msg, technical_only=True)
                 logging.info("Email notification sent successfully")
             except Exception as email_error:
                 logging.error(f"Failed to send email notification: {str(email_error)}")

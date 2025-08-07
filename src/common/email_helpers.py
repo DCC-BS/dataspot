@@ -10,10 +10,14 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 load_dotenv()
 DATASPOT_EMAIL_RECEIVERS = json.loads(os.getenv('DATASPOT_EMAIL_RECEIVERS'))
+DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY = json.loads(os.getenv('DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY'))
 DATASPOT_EMAIL_SERVER = os.getenv('DATASPOT_EMAIL_SERVER')
 DATASPOT_EMAIL_SENDER = os.getenv('DATASPOT_EMAIL_SENDER')
 
-if not DATASPOT_EMAIL_RECEIVERS or not DATASPOT_EMAIL_SERVER or not DATASPOT_EMAIL_SENDER:
+if (not DATASPOT_EMAIL_RECEIVERS
+        or not DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY
+        or not DATASPOT_EMAIL_SERVER
+        or not DATASPOT_EMAIL_SENDER):
     raise ValueError("DATASPOT_EMAIL_RECEIVERS, DATASPOT_EMAIL_SERVER, and DATASPOT_EMAIL_SENDER must be set in the environment variables")
 
 
@@ -65,19 +69,25 @@ def create_email_msg(subject="Python Notification", text="", img=None, attachmen
             msg.attach(file)  # finally, add the attachment to our message object
     return msg
 
-def send_email(msg):
+def send_email(msg, technical_only: bool = False):
     """
     Send an email message using the configured SMTP server.
     
     Args:
         msg: Email message object to send
+        technical_only: Will only send the mail to the technical admin and not the TeamMailBox if True. Default is False
     """
     # initialize connection to email server
     host = DATASPOT_EMAIL_SERVER
     smtp = smtplib.SMTP(host)
 
     # send email
-    smtp.sendmail(from_addr=DATASPOT_EMAIL_SENDER,
-                  to_addrs=DATASPOT_EMAIL_RECEIVERS,
-                  msg=msg.as_string())
+    if technical_only:
+        smtp.sendmail(from_addr=DATASPOT_EMAIL_SENDER,
+                      to_addrs=DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY,
+                      msg=msg.as_string())
+    else:
+        smtp.sendmail(from_addr=DATASPOT_EMAIL_SENDER,
+                      to_addrs=DATASPOT_EMAIL_RECEIVERS,
+                      msg=msg.as_string())
     smtp.quit()
