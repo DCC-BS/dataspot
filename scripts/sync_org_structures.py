@@ -12,6 +12,7 @@ from src.ods_client import ODSClient
 from src.clients.dnk_client import DNKClient
 from src.clients.rdm_client import RDMClient
 from src.clients.kv_client import KVClient
+from src.clients.tdm_client import TDMClient
 from src.common import email_helpers as email_helpers
 
 
@@ -31,7 +32,8 @@ def main():
     sk_client = SKClient()
     sync_org_structures(dataspot_client=sk_client)
 
-    #tdm_client = TDMClient()
+    tdm_client = TDMClient()
+    sync_org_structures(dataspot_client=tdm_client)
 
 def sync_org_structures(dataspot_client: BaseDataspotClient):
     """
