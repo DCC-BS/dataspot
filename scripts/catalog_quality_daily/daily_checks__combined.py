@@ -613,8 +613,7 @@ def send_combined_email(combined_report):
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(levelname)s:%(name)s:[%(filename)s:%(funcName)s:%(lineno)d] %(message)s'
+        level=logging.INFO
     )
     logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')
