@@ -34,4 +34,4 @@ dnk_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepart
 
 # TDM client configuration
 tdm_ods_imports_collection_name = 'OGD-Datensätze aus ODS'
-tdm_ods_imports_collection_path = []
+tdm_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']
