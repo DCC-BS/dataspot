@@ -266,7 +266,62 @@ Dataset:
 
           customProperties:
             THEMA: # Bitte ändern zu "topics"
-              label: Themen
+              label: Themen ALT
+              title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
+              group: OGD
+              order: 10
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            topics:
+              label: Themen NEU
               title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
               group: OGD
               order: 10
@@ -321,7 +376,7 @@ Dataset:
                 "024":
                   label: Tourismus
             LICENSE: # Bitte ändern zu "license"
-              label: Lizenz
+              label: Lizenz ALT
               title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
               order: 30
@@ -350,8 +405,83 @@ Dataset:
                 "https://www.gnu.org/licenses/gpl-3.0":
                   label: GNU General Public License 3
                   order: 8
+            license:
+              label: Lizenz NEU
+              title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
+              group: OGD
+              order: 30
+              literals:
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 2
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 3
+                https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf:
+                  label: CC BY 3.0 CH + OpenStreetMap
+                  order: 4
+                https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf:
+                  label: CC BY 4.0 + OpenStreetMap
+                  order: 5
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
+                  order: 6
+                https://opendata.swiss/de/terms-of-use/:
+                  label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
+                  order: 7
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 8
             RECHT: # Bitte ändern zu "permissions"
-              label: Rechte
+              label: Rechte ALT
+              title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
+              group: OGD
+              order: 40
+              literals:
+                N/A:
+                  label: N/A
+                  order: 0
+                NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 1
+                NonCommercialAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceRequired
+                  order: 2
+                NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 3
+                NonCommercialAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 4
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 5
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 6
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 7
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 8
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 9
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired
+                  order: 10
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 11
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 12
+            permissions:
+              label: Rechte NEU
               title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
               order: 40
@@ -396,45 +526,90 @@ Dataset:
                   label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
                   order: 12
             HERAUSGEBER: # Bitte ändern zu "publisher"
-              label: Herausgeber
+              label: Herausgeber ALT
+              title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
+              baseType: STRING
+              group: OGD
+              order: 45
+            publisher:
+              label: Herausgeber NEU
               title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
               baseType: STRING
               group: OGD
               order: 45
             PUB_ORG: # Bitte ändern zu "publishingOrganization"
-              label: Publizierende Organisation
+              label: Publizierende Organisation ALT
+              title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
+              baseType: STRING
+              group: OGD
+              order: 48
+            publishingOrganization:
+              label: Publizierende Organisation NEU
               title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
               baseType: STRING
               group: OGD
               order: 48
             REF: # Bitte ändern zu "reference"
-              label: Referenz
+              label: Referenz ALT
+              title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
+              baseType: STRING
+              group: OGD
+              order: 50
+            reference:
+              label: Referenz NEU
               title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
               baseType: STRING
               group: OGD
               order: 50
             ZUSCH: # Bitte ändern zu "attributions"
-              label: Zuschreibungen
+              label: Zuschreibungen ALT
+              title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
+              baseType: STRING
+              group: OGD
+              order: 60
+            attributions:
+              label: Zuschreibungen NEU
               title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
               baseType: STRING
               group: OGD
               order: 60
             ODS_LINK: # Bitte ändern zu "odsDataportalLink"
-              label: Datenportal-Link
+              label: Datenportal-Link ALT
+              title: Link des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 70
+              readOnly: true
+            odsDataportalLink:
+              label: Datenportal-Link NEU
               title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 70
               readOnly: true
             ODS_ID: # Bitte ändern zu "odsDataportalId"
-              label: Datenportal-Identifikation
+              label: Datenportal-Identifikation ALT
               title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 80
               readOnly: true
-            TAG: # Bitte ändern zu "tags"
-              label: Tags
+            odsDataportalId:
+              label: Datenportal-Identifikation NEU
+              title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 80
+              readOnly: true
+            TAG: # Bitte ändern zu "odsDataportalTags"
+              label: Tags ALT
+              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
+              baseType: STRING
+              group: OGD
+              order: 90
+              cardinality: MANY
+            odsDataportalTags:
+              label: Tags NEU  # TODO: Change label to "Datenportal-Tags"
               title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
@@ -707,8 +882,8 @@ Dataset:
                   label: Statistische Grundlagen
                 "024":
                   label: Tourismus
-            TAG: # Bitte ändern zu "tags"
-              label: Tags
+            TAG: # Bitte ändern zu "odsDataportalTags"
+              label: Tags # TODO: Change label to "Datenportal-Tags"
               title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
