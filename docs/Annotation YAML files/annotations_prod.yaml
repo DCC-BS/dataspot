@@ -526,7 +526,7 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoId"
+            GEOID: # Bitte ändern zu "geoBasicDataId"
               label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: STRING
@@ -548,7 +548,7 @@ Dataset:
               title: Dateiname des Datenprodukts im DataLake Geoportal
               baseType: STRING
               group: GEO
-            LAYERNAME: # Bitte ändern zu "filename" (oder etwas anderes, was für GEO und GEOPaket passt)
+            LAYERNAME: # Bitte ändern zu "productLayername"
               label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
@@ -815,7 +815,7 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoId"
+            GEOID: # Bitte ändern zu "geoBasicDataId"
               label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: ID
@@ -837,7 +837,7 @@ Dataset:
               title: Dateiname des Datenprodukts im DataLake Geoportal
               baseType: STRING
               group: GEO
-            LAYERNAME: # Bitte ändern zu "filename" (oder etwas anderes, was für GEO und GEOPaket passt)
+            LAYERNAME: # Bitte ändern zu "productLayername"
               label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
@@ -929,13 +929,13 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoId"
+            GEOID: # Bitte ändern zu "geoBasicDataId"
               label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: ID
               group: GEO
               order: 50
-            LAYERNAME: # Bitte ändern zu "filename" (oder etwas anderes, was für GEO und GEOPaket passt)
+            LAYERNAME: # Bitte ändern zu "productLayername"
               label: Technischer Dateiname
               title: Dateiname des Datenprodukts
               baseType: STRING
