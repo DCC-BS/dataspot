@@ -736,67 +736,6 @@ Dataset:
 
           customProperties:
           #GROUP WEITERE GEO INFOS
-            GEOCAT: # Bitte ändern zu "geoCategory"
-              label: Geokategorie ALT
-              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
-              group: GEO
-              order: 10
-              cardinality: MANY # TODO: Change to ONE
-              literals:
-                "001":
-                  label: Basiskarten, Landschaftsmodelle
-                "002":
-                  label: Bodenbedeckung, Bodennutzung
-                "003":
-                  label: Luft-, Satellitenbilder
-                "004":
-                  label: Ortsangaben, Referenzsysteme
-                "005":
-                  label: Höhen
-                "006":
-                  label: Politische und administrative Grenzen
-                "007":
-                  label: Raumplanung, Raumentwicklung
-                "008":
-                  label: Grundstückskataster
-                "009":
-                  label: Geologie
-                "010":
-                  label: Boden
-                "011":
-                  label: Naturbedingte Risiken
-                "012":
-                  label: Wald, Flora, Fauna
-                "013":
-                  label: Gewässer
-                "014":
-                  label: Atmosphäre, Luft, Klima
-                "015":
-                  label: Umweltschutz, Lärm
-                "016":
-                  label: Natur- und Landschaftsschutz
-                "017":
-                  label: Bevölkerung, Gesellschaft, Kultur
-                "018":
-                  label: Gesundheit
-                "019":
-                  label: Gebäude, Anlagen
-                "020":
-                  label: Verkehr
-                "021":
-                  label: Energie
-                "022":
-                  label: Wasser- und Abfallsysteme
-                "023":
-                  label: Kommunikation
-                "024":
-                  label: Militär, Sicherheit
-                "025":
-                  label: Landwirtschaft
-                "026":
-                  label: Wirtschaftliche Aktivitäten
-                "027":
-                  label: Leitungskataster
             geoCategory:
               label: Geokategorie NEU
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
@@ -858,26 +797,8 @@ Dataset:
                   label: Wirtschaftliche Aktivitäten
                 "027":
                   label: Leitungskataster
-            AUSDBESCHR: # Bitte ändern zu "geoExtent"
-              label: Ausdehnung Beschreibung ALT
-              title: Beschreibung der räumlichen Ausdehnung der Daten
-              group: GEO
-              order: 30
-              literals:
-                "001":
-                  label: Kanton Basel-Stadt
-                "002":
-                  label: Stadt Basel
-                "003":
-                  label: Gemeinde Riehen
-                "004":
-                  label: Gemeinde Bettingen
-                "005":
-                  label: Perimeter Offizieller Stadtplan
-                "006":
-                  label: Grossraum Basel
             geoExtent:
-              label: Ausdehnung Beschreibung NEU
+              label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
               group: GEO
               order: 30
@@ -894,57 +815,30 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoBasicDataId"
-              label: Geobasisdaten ID ALT
-              title: ID der Geobasisdaten im Geobasisdatenkatalog
-              baseType: ID
-              group: GEO
-              order: 50
             geoBasicDataId:
-              label: Geobasisdaten ID NEU
+              label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: ID
               group: GEO
               order: 50
-            KRZL: # Bitte ändern zu "abbreviation"
-              label: Kürzel ALT
-              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
-              baseType: STRING
-              group: GEO
-              order: 70
             abbreviation:
-              label: Kürzel NEU
+              label: Kürzel
               title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
               baseType: STRING
               group: GEO
               order: 70
-            LASTPUB: # Bitte ändern zu "lastPublication"
-              label: Letzte Publikation Geoportal ALT
-              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
-              baseType: DATETIME
-              group: GEO
             lastPublication:
-              label: Letzte Publikation Geoportal NEU
+              label: Letzte Publikation Geoportal
               title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
               baseType: DATETIME
-              group: GEO
-            PRODFILENAME: # Bitte ändern zu "productFilename"
-              label: Produkt Dateiname ALT
-              title: Dateiname des Datenprodukts im DataLake Geoportal
-              baseType: STRING
               group: GEO
             productFilename:
-              label: Produkt Dateiname NEU
+              label: Produkt Dateiname
               title: Dateiname des Datenprodukts im DataLake Geoportal
-              baseType: STRING
-              group: GEO
-            LAYERNAME: # Bitte ändern zu "productLayername"
-              label: Technischer Name Layer/Tabelle ALT
-              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
               group: GEO
             productLayername:
-              label: Technischer Name Layer/Tabelle NEU
+              label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
               group: GEO
@@ -956,69 +850,8 @@ Dataset:
 
           customProperties:
           #GROUP WEITERE GEO INFOS
-            GEOCAT: # Bitte ändern zu "geoCategory"
-              label: Geokategorie ALT
-              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
-              group: GEO
-              order: 10
-              cardinality: MANY # TODO: Change to ONE
-              literals:
-                "001":
-                  label: Basiskarten, Landschaftsmodelle
-                "002":
-                  label: Bodenbedeckung, Bodennutzung
-                "003":
-                  label: Luft-, Satellitenbilder
-                "004":
-                  label: Ortsangaben, Referenzsysteme
-                "005":
-                  label: Höhen
-                "006":
-                  label: Politische und administrative Grenzen
-                "007":
-                  label: Raumplanung, Raumentwicklung
-                "008":
-                  label: Grundstückskataster
-                "009":
-                  label: Geologie
-                "010":
-                  label: Boden
-                "011":
-                  label: Naturbedingte Risiken
-                "012":
-                  label: Wald, Flora, Fauna
-                "013":
-                  label: Gewässer
-                "014":
-                  label: Atmosphäre, Luft, Klima
-                "015":
-                  label: Umweltschutz, Lärm
-                "016":
-                  label: Natur- und Landschaftsschutz
-                "017":
-                  label: Bevölkerung, Gesellschaft, Kultur
-                "018":
-                  label: Gesundheit
-                "019":
-                  label: Gebäude, Anlagen
-                "020":
-                  label: Verkehr
-                "021":
-                  label: Energie
-                "022":
-                  label: Wasser- und Abfallsysteme
-                "023":
-                  label: Kommunikation
-                "024":
-                  label: Militär, Sicherheit
-                "025":
-                  label: Landwirtschaft
-                "026":
-                  label: Wirtschaftliche Aktivitäten
-                "027":
-                  label: Leitungskataster
             geoCategory:
-              label: Geokategorie NEU
+              label: Geokategorie
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
               group: GEO
               order: 10
@@ -1078,26 +911,8 @@ Dataset:
                   label: Wirtschaftliche Aktivitäten
                 "027":
                   label: Leitungskataster
-            AUSDBESCHR: # Bitte ändern zu "geoExtent"
-              label: Ausdehnung Beschreibung ALT
-              title: Beschreibung der räumlichen Ausdehnung der Daten
-              group: GEO
-              order: 30
-              literals:
-                "001":
-                  label: Kanton Basel-Stadt
-                "002":
-                  label: Stadt Basel
-                "003":
-                  label: Gemeinde Riehen
-                "004":
-                  label: Gemeinde Bettingen
-                "005":
-                  label: Perimeter Offizieller Stadtplan
-                "006":
-                  label: Grossraum Basel
             geoExtent:
-              label: Ausdehnung Beschreibung NEU
+              label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
               group: GEO
               order: 30
@@ -1114,25 +929,14 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoBasicDataId"
-              label: Geobasisdaten ID ALT
-              title: ID der Geobasisdaten im Geobasisdatenkatalog
-              baseType: ID
-              group: GEO
-              order: 50
             geoBasicDataId:
-              label: Geobasisdaten ID NEU
+              label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: ID
               group: GEO
               order: 50
-            LAYERNAME: # Bitte ändern zu "productLayername"
-              label: Technischer Dateiname ALT
-              title: Dateiname des Datenprodukts
-              baseType: STRING
-              group: GEO
             productLayername:
-              label: Technischer Dateiname NEU
+              label: Technischer Dateiname
               title: Dateiname des Datenprodukts
               baseType: STRING
               group: GEO
@@ -1149,44 +953,23 @@ Dataset:
           #label: Gebäude
         #"2":
           #label: Geo
-    LASTACTL: # Bitte ändern zu "lastUpdate"
-      label: Letzte Aktualisierung ALT
-      title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
-      order: 10
-      baseType: DATE
     lastUpdate:
-      label: Letzte Aktualisierung NEU
+      label: Letzte Aktualisierung
       title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
       order: 10
-      baseType: DATE
-    ED: # Bitte ändern zu "creationDate"
-      label: Erstellungsdatum ALT
-      title: Datum, an dem das Datenprodukt zum ersten Mal erstellt und gespeichert wurde.
-      order: 20
       baseType: DATE
     creationDate:
-      label: Erstellungsdatum NEU
+      label: Erstellungsdatum
       title: Datum, an dem das Datenprodukt zum ersten Mal erstellt und gespeichert wurde.
       order: 20
       baseType: DATE
-    PD: # Bitte ändern zu "publicationDate"
-      label: Publikationsdatum ALT
-      title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde.
-      order: 25
-      baseType: DATE
     publicationDate:
-      label: Publikationsdatum NEU
+      label: Publikationsdatum
       title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde.
       order: 25
       baseType: DATE
-    PERSOND: # Bitte ändern zu "personalData"
-      label: Personendaten ALT
-      title: Das Datenprodukt enthält Personendaten.
-      order: 30
-      group: DATA_PRIVACY
-      baseType: BOOLEAN # TODO: Als Ja/Nein literal
     personalData:
-      label: Personendaten NEU
+      label: Personendaten
       title: Das Datenprodukt enthält Personendaten.
       order: 30
       group: DATA_PRIVACY
@@ -1197,23 +980,8 @@ Dataset:
         no:
           label: Nein
           order: 2
-    SCHUBAN: # Bitte ändern zu "protectionLevel"
-      label: Schutzbedarfsstufen ALT
-      title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
-      order: 40
-      group: DATA_PRIVACY
-      literals:
-        "1":
-          label: Grundschutz (GS)
-          order: 1
-        "2":
-          label: erhöhter Schutzbedarf (ES)
-          order: 2
-        "3":
-          label: sehr hoher Schutzbedarf (SHS)
-          order: 3
     protectionLevel:
-      label: Schutzbedarfsstufen NEU
+      label: Schutzbedarfsstufen
       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
       order: 40
       group: DATA_PRIVACY
@@ -1227,26 +995,8 @@ Dataset:
         "3":
           label: sehr hoher Schutzbedarf (SHS)
           order: 3
-    VERTR: # Bitte ändern zu "confidentiality"
-      label: Vertraulichkeit ALT
-      title: Vertraulichkeitsstufe des Datenprodukts
-      order: 50
-      group: DATA_PRIVACY
-      literals:
-        "1":
-          label: Öffentlich
-          order: 1
-        "2":
-          label: Intern
-          order: 2
-        "3":
-          label: Vertraulich
-          order: 3
-        "4":
-          label: Geheim
-          order: 4
     confidentiality:
-      label: Vertraulichkeit NEU
+      label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Datenprodukts
       order: 50
       group: DATA_PRIVACY
@@ -1269,26 +1019,14 @@ Dataset:
       group: DATA_PRIVACY
       baseType: TEXT
       order: 55
-    NE: # Bitte ändern zu "usageRestriction"
-      label: Nutzungseinschränkung ALT
-      title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
-      baseType: TEXT
-      order: 60
-      group: DATA_PRIVACY
     usageRestriction:
-      label: Nutzungseinschränkung NEU
+      label: Nutzungseinschränkung
       title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
       baseType: TEXT
       order: 60
       group: DATA_PRIVACY
-    HIST: # Bitte ändern zu "historicized"
-      label: Historisierung ALT
-      title: Änderungen des Datenprodukts werden über die Zeit hinweg festgehalten. Frühere Versionen des Datenprodukts können wiederhergestellt werden.
-      baseType: BOOLEAN # TODO: Change to Ja/Nein literals
-      group: HISTORIOGRAPHY
-      order: 70
     historicized:
-      label: Historisierung NEU
+      label: Historisierung
       title: Änderungen des Datenprodukts werden über die Zeit hinweg festgehalten. Frühere Versionen des Datenprodukts können wiederhergestellt werden.
       literals:
         yes:
@@ -1299,62 +1037,32 @@ Dataset:
           order: 2
       group: HISTORIOGRAPHY
       order: 70
-    HISTFROM: # Bitte ändern zu "historicizedSince"
-      label: Historisierung seit wann ALT
-      title: Datum, ab dem eine Änderung des Datenprodukts festgehalten wird. Datum, ab dem es frühere Versionen des Datenprodukts gibt.
-      baseType: DATE
-      group: HISTORIOGRAPHY
-      order: 80
     historicizedSince:
-      label: Historisierung seit wann NEU
+      label: Historisierung seit wann
       title: Datum, ab dem eine Änderung des Datenprodukts festgehalten wird. Datum, ab dem es frühere Versionen des Datenprodukts gibt.
       baseType: DATE
       group: HISTORIOGRAPHY
       order: 80
-    HISTART: # Bitte ändern zu "historicizationType"
-      label: Art der Historisierung ALT
-      title: Art des Festhaltens einer Änderung des Datenprodukts (Snapshots etc.)
-      baseType: TEXT
-      group: HISTORIOGRAPHY
-      order: 90
     historicizationType:
-      label: Art der Historisierung NEU
+      label: Art der Historisierung
       title: Art des Festhaltens einer Änderung des Datenprodukts (Snapshots etc.)
       baseType: TEXT
       group: HISTORIOGRAPHY
       order: 90
-    ABF: # Bitte ändern zu "retentionPeriod"
-      label: Aufbewahrungsfrist (Jahre) ALT
-      title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
-      group: HISTORIOGRAPHY
-      baseType: INTEGER
-      order: 100
     retentionPeriod:
-      label: Aufbewahrungsfrist (Jahre) NEU
+      label: Aufbewahrungsfrist (Jahre)
       title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
       group: HISTORIOGRAPHY
       baseType: INTEGER
       order: 100
-    BEGRABF: # Bitte ändern zu "retentionJustification"
-      label: Begründung Aufbewahrungsfrist ALT
-      title: Begründung und Bemerkung zur Aufbewahrunsgfrist
-      group: HISTORIOGRAPHY
-      baseType: TEXT
-      order: 110
     retentionJustification:
-      label: Begründung Aufbewahrungsfrist NEU
+      label: Begründung Aufbewahrungsfrist
       title: Begründung und Bemerkung zur Aufbewahrunsgfrist
       group: HISTORIOGRAPHY
       baseType: TEXT
       order: 110
-    ARCH: # Bitte ändern zu "archived"
-      label: Archivierung ALT
-      title: Wird das Datenprodukt archiviert (Staatsarchiv?)
-      group: ARCHIVING
-      baseType: BOOLEAN # TODO: Als Ja/Nein literal
-      order: 120
     archived:
-      label: Archivierung NEU
+      label: Archivierung
       title: Wird das Datenprodukt archiviert (Staatsarchiv?)
       group: ARCHIVING
       literals:
@@ -1365,26 +1073,14 @@ Dataset:
           label: Nein
           order: 2
       order: 120
-    ARCHDET: # Bitte ändern zu "archiveDetails"
-      label: Archivierung Details ALT
-      title: Nach welchen Kriterien wird das Datenprodukt archiviert?
-      group: ARCHIVING
-      baseType: TEXT
-      order: 130
     archiveDetails:
-      label: Archivierung Details NEU
+      label: Archivierung Details
       title: Nach welchen Kriterien wird das Datenprodukt archiviert?
       group: ARCHIVING
       baseType: TEXT
       order: 130
-    ARCHBEGR: # Bitte ändern zu "archiveJustification"
-      label: Archivierung Begründung ALT
-      title: Begründung der Archivwürdigkeit
-      group: ARCHIVING
-      baseType: TEXT
-      order: 140
     archiveJustification:
-      label: Archivierung Begründung NEU
+      label: Archivierung Begründung
       title: Begründung der Archivwürdigkeit
       group: ARCHIVING
       baseType: TEXT
@@ -1518,25 +1214,8 @@ BusinessAttribute:
           label: besonders schützenswerte Personendaten
 
   customProperties:
-    VERTR: # Bitte ändern zu "confidentiality"
-      label: Vertraulichkeit ALT
-      title: Vertraulichkeitsstufe des Attributs
-      order: 10
-      literals:
-        "1":
-          label: Öffentlich
-          order: 1
-        "2":
-          label: Intern
-          order: 2
-        "3":
-          label: Vertraulich
-          order: 3
-        "4":
-          label: Geheim
-          order: 4
     confidentiality:
-      label: Vertraulichkeit NEU
+      label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Attributs
       order: 10
       literals:
@@ -1552,13 +1231,8 @@ BusinessAttribute:
         "4":
           label: Geheim
           order: 4
-    PRIM: # Bitte ändern zu "primaryCollection"
-      label: Primärerhebung ALT
-      title: Dieses Attribut enthält Daten aus eigener Erhebung.
-      baseType: BOOLEAN # TODO: Als Ja/Nein literal
-      order: 20
     primaryCollection:
-      label: Primärerhebung NEU
+      label: Primärerhebung
       title: Dieses Attribut enthält Daten aus eigener Erhebung.
       literals:
         yes:
@@ -1568,14 +1242,8 @@ BusinessAttribute:
           label: Nein
           order: 2
       order: 20
-    HIST: # Bitte ändern zu "historicized"
-      label: Historisierung ALT
-      title: Änderungen des Attributs werden über die Zeit hinweg festgehalten. Frühere Versionen des Attributs können wiederhergestellt werden.
-      baseType: BOOLEAN # TODO: Als Ja/Nein literal
-      group: HISTORIOGRAPHY
-      order: 30
     historicized:
-      label: Historisierung NEU
+      label: Historisierung
       title: Änderungen des Attributs werden über die Zeit hinweg festgehalten. Frühere Versionen des Attributs können wiederhergestellt werden.
       literals:
         yes:
@@ -1586,47 +1254,20 @@ BusinessAttribute:
           order: 2
       group: HISTORIOGRAPHY
       order: 30
-    HISTFROM: # Bitte ändern zu "historicizedSince"
-      label: Historisierung seit wann ALT
-      title: Datum, ab dem eine Änderung des Attributs festgehalten wird. Datum, ab dem es frühere Versionen des Attributs gibt.
-      baseType: DATE
-      group: HISTORIOGRAPHY
-      order: 40
     historicizedSince:
-      label: Historisierung seit wann NEU
+      label: Historisierung seit wann
       title: Datum, ab dem eine Änderung des Attributs festgehalten wird. Datum, ab dem es frühere Versionen des Attributs gibt.
       baseType: DATE
       group: HISTORIOGRAPHY
       order: 40
-    HISTART: # Bitte ändern zu "historicizationType"
-      label: Art der Historisierung ALT
-      title: Art des Festhaltens einer Änderung des Attributs (Snapshots etc.)
-      baseType: TEXT
-      group: HISTORIOGRAPHY
-      order: 50
     historicizationType:
-      label: Art der Historisierung NEU
+      label: Art der Historisierung
       title: Art des Festhaltens einer Änderung des Attributs (Snapshots etc.)
       baseType: TEXT
       group: HISTORIOGRAPHY
       order: 50
-    SCHUBAN: # TODO: Check empty and remove; edit: nochmals anschauen. Falls das Feld bleibt bitte ändern zu "protectionLevel"
-      label: Schutzbedarfsstufen ALT
-      group: DP
-      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
-      #order: 11
-      literals:
-        "1":
-          label: Grundschutz (GS)
-          order: 1
-        "2":
-          label: erhöhter Schutzbedarf (ES)
-          order: 2
-        "3":
-          label: sehr hoher Schutzbedarf (SHS)
-          order: 3
     protectionLevel: # TODO: Check empty and remove
-      label: Schutzbedarfsstufen NEU
+      label: Schutzbedarfsstufen
       group: DP
       #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
       #order: 11
@@ -1691,24 +1332,14 @@ UmlAttribute:
       title: Das Kennzeichen, das angibt, ob dieses Attribut Teil eines Primärschlüssels ist. Der Primärschlüssel ist ein Attribut oder eine Kombination von Attributen eines Datenobjekts, das jeden Eintrag eindeutig identifiziert.
       baseType: BOOLEAN
   customProperties:
-    PRIMÄR: # Bitte ändern zu "primaryCollection"
-      label: Primärerhebung ALT
-      title: Dieses Attribut enthält Daten aus eigener Erhebung.
-      literals:
-        YES:
-          label: Ja
-          order: 1
-        NO:
-          label: Nein
-          order: 2
     primaryCollection:
-      label: Primärerhebung NEU
+      label: Primärerhebung
       title: Dieses Attribut enthält Daten aus eigener Erhebung.
       literals:
-        YES:
+        yes:
           label: Ja
           order: 1
-        NO:
+        no:
           label: Nein
           order: 2
 
