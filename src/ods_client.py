@@ -14,7 +14,7 @@ class ODSClient:
 
     def get_dataset_columns(self, dataset_id: str) -> list:
         """
-        Get the list of columns/fields for a dataset.
+        Get the list of columns/fields for a dataset. Also strips leading and trailing white spaces from label and name.
         
         Args:
             dataset_id (str, optional): The dataset ID. Defaults to None.
@@ -40,8 +40,8 @@ class ODSClient:
         column_info = []
         for field in fields:
             column_data = {
-                'label': field.get('label'),
-                'name': field.get('name'),
+                'label': field.get('label').strip() if field.get('label') else field.get('label'),
+                'name': field.get('name').strip() if field.get('name') else field.get('name'),
                 'type': field.get('type'),
                 'description': None if field.get('description') == '' else field.get('description'),
             }
