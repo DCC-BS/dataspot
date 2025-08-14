@@ -415,14 +415,14 @@ def link_datasets_to_components(ods_ids):
     tdm_filter = lambda asset: (
         asset.get('_type') == 'UmlClass' and
         asset.get('stereotype') == 'ogd_dataset' and
-        asset.get('ODS_ID') is not None
+        asset.get('odsDataportalId') is not None
     )
     tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
     
     # Create lookup dictionary for TDM components by odsDataportalId
     tdm_components_by_ods_id = {}
     for component in tdm_components:
-        ods_id = component.get('ODS_ID')
+        ods_id = component.get('odsDataportalId')
         if ods_id:
             tdm_components_by_ods_id[ods_id] = component
     

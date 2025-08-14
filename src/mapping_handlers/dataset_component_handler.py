@@ -34,7 +34,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
     Provides methods to sync dataset components between ODS and Dataspot.
     """
     # Set configuration values for the base handler
-    asset_id_field = 'ODS_ID'
+    asset_id_field = 'odsDataportalId'
     
     def __init__(self, client: BaseDataspotClient):
         """
@@ -158,8 +158,8 @@ class DatasetComponentHandler(BaseDataspotHandler):
             "label": name,
             "stereotype": "ogd_dataset",
             "customProperties": {
-                "ODS_ID": ods_id,
-                "ODS_LINK": ods_link
+                "odsDataportalId": ods_id,
+                "odsDataportalLink": ods_link
             }
         }
         
@@ -167,7 +167,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         is_new = True
         asset_uuid = None
         
-        # Check if asset already exists with this ODS_ID using mapping
+        # Check if asset already exists with this odsDataportalId using mapping
         existing_entry = self.mapping.get_entry(ods_id)
         
         if existing_entry:
@@ -194,20 +194,20 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 asset_uuid = None
                 is_new = True
         
-        # If not found in mapping or not existing in Dataspot, check if asset exists with this ODS_ID
+        # If not found in mapping or not existing in Dataspot, check if asset exists with this odsDataportalId
         if not existing_entry or not asset_uuid:
             asset_filter = lambda asset: (
                 asset.get('_type') == 'UmlClass' and
                 asset.get('stereotype') == 'ogd_dataset' and
-                asset.get('ODS_ID') == ods_id
+                asset.get('odsDataportalId') == ods_id
             )
             
             existing_assets = self.client.get_all_assets_from_scheme(filter_function=asset_filter)
     
             if existing_assets:
                 if len(existing_assets) > 1:
-                    logging.error(f"Found {len(existing_assets)} assets with ODS_ID {ods_id} in the {self.client.scheme_name_short} when only one should exist!")
-                    raise ValueError(f"Multiple assets found with ODS_ID {ods_id}")
+                    logging.error(f"Found {len(existing_assets)} assets with odsDataportalId {ods_id} in the {self.client.scheme_name_short} when only one should exist!")
+                    raise ValueError(f"Multiple assets found with odsDataportalId {ods_id}")
                 else:
                     logging.info(f"Found existing dataobject for dataset {ods_id} (UUID: {existing_assets[0].get('id')})")
     
