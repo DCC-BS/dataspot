@@ -46,10 +46,10 @@ def sample_dataset():
     dataset = MagicMock()
     dataset.title = "Test Dataset"
     dataset.description = "Test Description"
-    dataset.custom_properties = {"ODS_ID": "123"}
+    dataset.custom_properties = {"odsDataportalId": "123"}
     # Include label in the to_json return value to avoid KeyError
     dataset.to_json.return_value = {
-        "customProperties": {"ODS_ID": "123"},
+        "customProperties": {"odsDataportalId": "123"},
         "label": "Test Dataset"  # Add label field
     }
     return dataset
@@ -67,11 +67,11 @@ class TestDatasetHandlerMapping:
         assert result["datasets_processed"] == 0
 
     def test_sync_with_missing_ods_ids(self, handler, sample_dataset):
-        """Test synchronization with datasets missing ODS_IDs."""
-        # Create a dataset without ODS_ID
+        """Test synchronization with datasets missing odsDataportalIds."""
+        # Create a dataset without odsDataportalId
         dataset_without_id = MagicMock()
         dataset_without_id.title = "Dataset Without ID"
-        dataset_without_id.description = "Missing ODS_ID"
+        dataset_without_id.description = "Missing odsDataportalId"
         dataset_without_id.custom_properties = {}
         dataset_without_id.to_json.return_value = {
             "customProperties": {},
@@ -86,14 +86,14 @@ class TestDatasetHandlerMapping:
             mock_update.assert_called_once()
             # Check that the ODS ID is passed to update_mappings_after_upload
             args, _ = mock_update.call_args
-            assert len(args[0]) == 1  # Only one ODS_ID in the list
-            assert args[0][0] == "123"  # The ODS_ID from sample_dataset
+            assert len(args[0]) == 1  # Only one odsDataportalId in the list
+            assert args[0][0] == "123"  # The odsDataportalId from sample_dataset
             
             assert result["status"] == "success"
             assert result["datasets_processed"] == 2  # Both datasets were uploaded
 
     def test_create_dataset_with_missing_ods_id(self, handler):
-        """Test creating a dataset without an ODS_ID."""
+        """Test creating a dataset without an odsDataportalId."""
         # Skip actual creation and just test the validation portion
         dataset_without_id = MagicMock()
         dataset_without_id.title = "Dataset Without ID"
@@ -104,8 +104,8 @@ class TestDatasetHandlerMapping:
             "label": "Dataset Without ID"
         }
         
-        # We expect ValueError for missing ODS_ID
-        with pytest.raises(ValueError, match="Dataset must have an 'ODS_ID' property"):
+        # We expect ValueError for missing odsDataportalId
+        with pytest.raises(ValueError, match="Dataset must have an 'odsDataportalId' property"):
             handler.create_dataset(dataset_without_id)
             
         # Verify mapping was not updated
@@ -117,9 +117,9 @@ class TestDatasetHandlerMapping:
         with patch.object(handler, 'create_dataset') as mock_create:
             # Setup
             ods_id = "456"  # ID not in mapping
-            sample_dataset.custom_properties = {"ODS_ID": ods_id}
+            sample_dataset.custom_properties = {"odsDataportalId": ods_id}
             sample_dataset.to_json.return_value = {
-                "customProperties": {"ODS_ID": ods_id},
+                "customProperties": {"odsDataportalId": ods_id},
                 "label": "Test Dataset"  # Add label field
             }
             
@@ -144,9 +144,9 @@ class TestDatasetHandlerMapping:
         with patch.object(handler, 'create_dataset') as mock_create:
             # Setup
             ods_id = "789"
-            sample_dataset.custom_properties = {"ODS_ID": ods_id}
+            sample_dataset.custom_properties = {"odsDataportalId": ods_id}
             sample_dataset.to_json.return_value = {
-                "customProperties": {"ODS_ID": ods_id},
+                "customProperties": {"odsDataportalId": ods_id},
                 "label": "Test Dataset"  # Add label field
             }
             
@@ -197,8 +197,8 @@ class TestDatasetHandlerMapping:
             assert result == 1
 
     def test_mapping_with_duplicate_ods_ids(self, handler):
-        """Test handling of datasets with duplicate ODS_IDs in Dataspot."""
-        # Setup - two assets with the same ODS_ID
+        """Test handling of datasets with duplicate odsDataportalIds in Dataspot."""
+        # Setup - two assets with the same odsDataportalId
         ods_id = "duplicate"
         
         # Directly mock update_mappings_after_upload to return 1

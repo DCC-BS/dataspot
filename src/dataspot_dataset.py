@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 #    kurzbeschreibung: Optional[str] = field(default=None, metadata={"json_key": "title"})
 #
 # 4. Optional fields that are Custom Properties:
-#    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
+#    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'odsDataportalTags', 'custom_property': True})
 
 @dataclass
 class Dataset(ABC):
@@ -124,16 +124,16 @@ class BasicDataset(Dataset):
 
 @dataclass
 class OGDDataset(BasicDataset):
-    lizenz: Optional[List[str]] = field(default=None, metadata={'json_key': 'LICENSE', 'custom_property': True})
-    nutzungsrechte: Optional[str] = field(default=None, metadata={'json_key': 'RECHT', 'custom_property': True})
+    lizenz: Optional[List[str]] = field(default=None, metadata={'json_key': 'license', 'custom_property': True})
+    nutzungsrechte: Optional[str] = field(default=None, metadata={'json_key': 'permissions', 'custom_property': True})
     # TODO: themen
-    herausgeber: Optional[str] = field(default=None, metadata={'json_key': 'HERAUSGEBER', 'custom_property': True})
+    herausgeber: Optional[str] = field(default=None, metadata={'json_key': 'publisher', 'custom_property': True})
     # TODO: referenz
     # TODO: zuschreibungen
-    publizierende_organisation: Optional[str] = field(default=None, metadata={'json_key': 'PUB_ORG', 'custom_property': True})
-    datenportal_link: Optional[str] = field(default=None, metadata={'json_key': 'ODS_LINK', 'custom_property': True})
-    datenportal_identifikation: Optional[str] = field(default=None, metadata={'json_key': 'ODS_ID', 'custom_property': True})
-    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'TAG', 'custom_property': True})
+    publizierende_organisation: Optional[str] = field(default=None, metadata={'json_key': 'publishingOrganization', 'custom_property': True})
+    datenportal_link: Optional[str] = field(default=None, metadata={'json_key': 'odsDataportalLink', 'custom_property': True})
+    datenportal_identifikation: Optional[str] = field(default=None, metadata={'json_key': 'odsDataportalId', 'custom_property': True})
+    tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'odsDataportalTags', 'custom_property': True})
 
     # Immutable fields
     stereotype: str = field(default="OGD", init=False)

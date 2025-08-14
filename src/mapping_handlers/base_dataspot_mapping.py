@@ -18,7 +18,7 @@ class BaseDataspotMapping:
         
         Args:
             database_name (str): Name of the database to use for file naming.
-            id_field_name (str): Name of the ID field (e.g., 'ods_id', 'staatskalender_id')
+            id_field_name (str): Name of the ID field (e.g., 'odsDataportalId', 'staatskalender_id')
             file_prefix (str): Prefix for the mapping file (e.g., 'ods-dataspot', 'staatskalender-dataspot')
             scheme (str): Name of the scheme (e.g., 'DNK', 'TDM')
         """

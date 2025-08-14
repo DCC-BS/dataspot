@@ -172,23 +172,23 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # Get all existing ODS dataset IDs from Dataspot using the asset filter
         logging.info("Getting all ODS dataset IDs from Dataspot...")
 
-        # Define a filter function to get only datasets with ODS_ID
+        # Define a filter function to get only datasets with odsDataportalId
         ods_filter = lambda asset: (
             asset.get('_type') == 'Dataset' and
-            asset.get('ODS_ID') is not None and
+            asset.get('odsDataportalId') is not None and
             asset.get('status') not in ['INTERMINATION2']) # Ignore archived assets
         
-        # Get all datasets from Dataspot with ODS_ID
+        # Get all datasets from Dataspot with odsDataportalId
         all_dataspot_datasets = dataspot_client.get_all_assets_from_scheme(filter_function=ods_filter)
         
         # Extract ODS IDs from the datasets
         dataspot_ods_ids = set()
         for dataset in all_dataspot_datasets:
-            ods_id = dataset.get('ODS_ID')
+            ods_id = dataset.get('odsDataportalId')
             if ods_id:
                 dataspot_ods_ids.add(ods_id)
         
-        logging.info(f"Found {len(dataspot_ods_ids)} datasets with ODS_ID in Dataspot")
+        logging.info(f"Found {len(dataspot_ods_ids)} datasets with odsDataportalId in Dataspot")
         
         # Find datasets that are in Dataspot but not in the current ODS fetch
         datasets_to_delete = dataspot_ods_ids - all_processed_ods_ids
@@ -209,7 +209,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                         sync_results['details']['deletions']['count'] += 1
                         
                         # Find the dataset info from all_dataspot_datasets
-                        dataset_info = next((d for d in all_dataspot_datasets if d.get('ODS_ID') == ods_id), None)
+                        dataset_info = next((d for d in all_dataspot_datasets if d.get('odsDataportalId') == ods_id), None)
                         
                         if dataset_info:
                             title = dataset_info.get('label', f"<Unnamed Dataset {ods_id}>")
@@ -227,7 +227,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                             }
                             
                             sync_results['details']['deletions']['items'].append(deletion_entry)
-                            logging.info(f"Marked dataset with ODS_ID {ods_id} for deletion: {title} (Link: {dataspot_link})")
+                            logging.info(f"Marked dataset with odsDataportalId {ods_id} for deletion: {title} (Link: {dataspot_link})")
                         else:
                             # Fallback if dataset info not found
                             sync_results['details']['deletions']['items'].append({
@@ -236,10 +236,10 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                                 "uuid": "",
                                 "link": ""
                             })
-                            logging.info(f"Marked dataset with ODS_ID {ods_id} for deletion")
+                            logging.info(f"Marked dataset with odsDataportalId {ods_id} for deletion")
                     
                 except Exception as e:
-                    error_msg = f"Error marking dataset with ODS_ID {ods_id} for deletion: {str(e)}"
+                    error_msg = f"Error marking dataset with odsDataportalId {ods_id} for deletion: {str(e)}"
                     logging.error(error_msg)
                     
                     sync_results['counts']['errors'] += 1
@@ -365,7 +365,7 @@ def link_datasets_to_components(ods_ids):
     """
     Links DNK datasets to TDM components by creating composition objects.
     This function creates connections (compositions) between datasets in DNK
-    and their corresponding components in TDM that have the same ODS_ID.
+    and their corresponding components in TDM that have the same odsDataportalId.
     
     Args:
         ods_ids (set or list): Collection of ODS IDs to process
@@ -394,24 +394,24 @@ def link_datasets_to_components(ods_ids):
     
     logging.info(f"Processing {len(ods_ids)} datasets for linking to components...")
     
-    # Step 1: Get all DNK datasets with ODS_ID
-    logging.info("Getting all DNK datasets with ODS_ID...")
+    # Step 1: Get all DNK datasets with odsDataportalId
+    logging.info("Getting all DNK datasets with odsDataportalId...")
     dnk_filter = lambda asset: (
         asset.get('_type') == 'Dataset' and
-        asset.get('ODS_ID') is not None and
+        asset.get('odsDataportalId') is not None and
         asset.get('status') not in ['INTERMINATION2']  # Ignore archived assets
     )
     dnk_datasets = dnk_client.get_all_assets_from_scheme(filter_function=dnk_filter)
     
-    # Create lookup dictionary for DNK datasets by ODS_ID
+    # Create lookup dictionary for DNK datasets by odsDataportalId
     dnk_datasets_by_ods_id = {}
     for dataset in dnk_datasets:
-        ods_id = dataset.get('ODS_ID')
+        ods_id = dataset.get('odsDataportalId')
         if ods_id:
             dnk_datasets_by_ods_id[ods_id] = dataset
     
-    # Step 2: Get all TDM components with ODS_ID
-    logging.info("Getting all TDM components with ODS_ID...")
+    # Step 2: Get all TDM components with odsDataportalId
+    logging.info("Getting all TDM components with odsDataportalId...")
     tdm_filter = lambda asset: (
         asset.get('_type') == 'UmlClass' and
         asset.get('stereotype') == 'ogd_dataset' and
@@ -419,7 +419,7 @@ def link_datasets_to_components(ods_ids):
     )
     tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
     
-    # Create lookup dictionary for TDM components by ODS_ID
+    # Create lookup dictionary for TDM components by odsDataportalId
     tdm_components_by_ods_id = {}
     for component in tdm_components:
         ods_id = component.get('ODS_ID')
@@ -432,11 +432,11 @@ def link_datasets_to_components(ods_ids):
     # Process each ODS ID provided
     for idx, ods_id in enumerate(sorted_ods_ids):
         if ods_id not in dnk_datasets_by_ods_id:
-            logging.warning(f"DNK dataset with ODS_ID {ods_id} not found, skipping link creation")
+            logging.warning(f"DNK dataset with odsDataportalId {ods_id} not found, skipping link creation")
             continue
             
         if ods_id not in tdm_components_by_ods_id:
-            logging.warning(f"TDM component with ODS_ID {ods_id} not found, skipping link creation")
+            logging.warning(f"TDM component with odsDataportalId {ods_id} not found, skipping link creation")
             continue
         
         # Get dataset and component
@@ -447,7 +447,7 @@ def link_datasets_to_components(ods_ids):
         component_uuid = component.get('id')
         dataset_title = dataset.get('label', f"<Unnamed Dataset {ods_id}>")
         
-        logging.info(f"[{idx+1}/{len(sorted_ods_ids)}] Linking DNK dataset '{dataset_title}' (ODS_ID: {ods_id}) to TDM component...")
+        logging.info(f"[{idx+1}/{len(sorted_ods_ids)}] Linking DNK dataset '{dataset_title}' (odsDataportalId: {ods_id}) to TDM component...")
         
         try:
             # Step 3: Get all TDM attributes for this component
@@ -455,11 +455,11 @@ def link_datasets_to_components(ods_ids):
             attributes_response = tdm_client._get_asset(attributes_endpoint)
             
             if not attributes_response or '_embedded' not in attributes_response or 'attributes' not in attributes_response['_embedded']:
-                logging.warning(f"No attributes found for TDM component with ODS_ID {ods_id}, skipping link creation")
+                logging.warning(f"No attributes found for TDM component with odsDataportalId {ods_id}, skipping link creation")
                 continue
                 
             tdm_attributes = attributes_response['_embedded']['attributes']
-            logging.info(f"Found {len(tdm_attributes)} attributes for TDM component with ODS_ID {ods_id}")
+            logging.info(f"Found {len(tdm_attributes)} attributes for TDM component with odsDataportalId {ods_id}")
             
             # Step 4: Create compositions endpoint for linking
             compositions_endpoint = f"/rest/{dnk_client.database_name}/datasets/{dataset_uuid}/compositions"
@@ -534,13 +534,13 @@ def link_datasets_to_components(ods_ids):
                     'created_attribute_names': created_attribute_names
                 })
                 
-                logging.info(f"Successfully linked dataset '{dataset_title}' (ODS_ID: {ods_id}) to TDM component: "
+                logging.info(f"Successfully linked dataset '{dataset_title}' (odsDataportalId: {ods_id}) to TDM component: "
                            f"{created_compositions} compositions created, {skipped_compositions} already existed")
             else:
-                logging.info(f"No new compositions needed for dataset '{dataset_title}' (ODS_ID: {ods_id})")
+                logging.info(f"No new compositions needed for dataset '{dataset_title}' (odsDataportalId: {ods_id})")
                 
         except Exception as e:
-            error_msg = f"Error linking dataset with ODS_ID {ods_id} to TDM component: {str(e)}"
+            error_msg = f"Error linking dataset with odsDataportalId {ods_id} to TDM component: {str(e)}"
             logging.error(error_msg)
             
             result['errors'] += 1

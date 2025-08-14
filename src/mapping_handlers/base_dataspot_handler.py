@@ -11,7 +11,7 @@ class BaseDataspotHandler:
     This class provides common functionality for dataset and organizational unit handlers.
     """
     # Configuration values to be set by subclasses
-    asset_id_field = None  # Field name for the external ID (e.g., 'ODS_ID', 'id_im_staatskalender')
+    asset_id_field = None  # Field name for the external ID (e.g., 'odsDataportalId', 'id_im_staatskalender')
     asset_type_filter = None  # Filter function or criteria for asset type
     
     mapping: BaseDataspotMapping
