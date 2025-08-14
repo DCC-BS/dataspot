@@ -1363,16 +1363,26 @@ UmlClass:
                   label: csv
 
         ogd_dataset: # Bitte ändern zu "ogdTable"
-          label: OGD-Datensatz # Bitte ändern zu OGD-Tabelle
+          label: OGD-Datensatz # TODO: Change to OGD-Tabelle
           labelEn: OGD dataset
           customProperties:
             ODS_LINK: # Bitte ändern zu "odsDataportalLink"
-              label: Datenportal-Link
+              label: Datenportal-Link ALT
+              baseType: STRING
+              order: 50
+              readOnly: true
+            odsDataportalLink:
+              label: Datenportal-Link NEU
               baseType: STRING
               order: 50
               readOnly: true
             ODS_ID: # Bitte ändern zu "odsDataportalId"
-              label: Datenportal-Identifikation
+              label: Datenportal-Identifikation ALT
+              baseType: STRING
+              order: 60
+              readOnly: true
+            odsDataportalId:
+              label: Datenportal-Identifikation NEU
               baseType: STRING
               order: 60
               readOnly: true
