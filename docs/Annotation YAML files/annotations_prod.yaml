@@ -912,7 +912,7 @@ Dataset:
           customProperties:
           #GROUP WEITERE GEO INFOS
             geoCategory:
-              label: Geokategorie NEU
+              label: Geokategorie
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
               group: GEO
               order: 10
@@ -1483,12 +1483,8 @@ ReferenceObject:
     stereotype:
       label: Typ
       literals:
-        RECHTSGRUNDLAGE: # Bitte ändern zu "legalBasis"
-          label: Rechtsgrundlage ALT
-          ling: s3p3f
-          icon: section
         legalBasis:
-          label: Rechtsgrundlage NEU
+          label: Rechtsgrundlage
           ling: s3p3f
           icon: section
 
