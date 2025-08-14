@@ -447,12 +447,12 @@ Dataset:
           icon: earth-europe
 
           customProperties:
-            GEOCAT: # Bitte ändern zu "geoCategory"
+            geoCategory:
               label: Geokategorie
               title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
               group: GEO
               order: 10
-              cardinality: MANY # TODO: Change to ONE
+              cardinality: ONE
               literals:
                 "001":
                   label: Basiskarten, Landschaftsmodelle
@@ -508,7 +508,7 @@ Dataset:
                   label: Wirtschaftliche Aktivitäten
                 "027":
                   label: Leitungskataster
-            AUSDBESCHR: # Bitte ändern zu "geoExtent"
+            geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
               group: GEO
@@ -526,34 +526,34 @@ Dataset:
                   label: Perimeter Offizieller Stadtplan
                 "006":
                   label: Grossraum Basel
-            GEOID: # Bitte ändern zu "geoBasicDataId"
+            geoBasicDataId:
               label: Geobasisdaten ID
               title: ID der Geobasisdaten im Geobasisdatenkatalog
               baseType: STRING
               group: GEO
               order: 50
-            KRZL: # Bitte ändern zu "abbreviation"
+            abbreviation:
               label: Kürzel
               title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
               baseType: STRING
               group: GEO
               order: 70
-            LASTPUB: # Bitte ändern zu "lastPublication"
+            lastPublication:
               label: Letzte Publikation Geoportal
               title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
               baseType: DATETIME
               group: GEO
-            PRODFILENAME: # Bitte ändern zu "productFilename"
+            productFilename:
               label: Produkt Dateiname
               title: Dateiname des Datenprodukts im DataLake Geoportal
               baseType: STRING
               group: GEO
-            LAYERNAME: # Bitte ändern zu "productLayername"
+            productLayername:
               label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
               baseType: STRING
               group: GEO
-            LICENSE: # Bitte ändern zu "license"
+            license:
               label: Lizenz
               title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
               group: OGD
@@ -583,7 +583,7 @@ Dataset:
                 "https://www.gnu.org/licenses/gpl-3.0":
                   label: GNU General Public License 3
                   order: 8
-            RECHT: # Bitte ändern zu "permissions"
+            permissions:
               label: Rechte
               title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
               group: OGD
@@ -628,31 +628,31 @@ Dataset:
                 NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
                   label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
                   order: 12
-            HERAUSGEBER: # Bitte ändern zu "publisher"
+            publisher:
               label: Herausgeber
               title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
               baseType: STRING
               group: OGD
               order: 120
-            PUB_ORG: # Bitte ändern zu "publishingOrganization"
+            publishingOrganization:
               label: Publizierende Organisation
               title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
               baseType: STRING
               group: OGD
               order: 130
-            REF: # Bitte ändern zu "reference"
+            reference:
               label: Referenz
               title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
               baseType: STRING
               group: OGD
               order: 140
-            ZUSCH: # Bitte ändern zu "attributions"
+            attributions:
               label: Zuschreibungen
               title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
               baseType: STRING
               group: OGD
               order: 150
-            THEMA: # Bitte ändern zu "topics"
+            topics:
               label: Themen
               title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
               group: OGD
@@ -707,21 +707,21 @@ Dataset:
                   label: Statistische Grundlagen
                 "024":
                   label: Tourismus
-            TAG: # Bitte ändern zu "odsDataportalTags"
+            odsDataportalTags:
               label: Tags # TODO: Change label to "Datenportal-Tags"
               title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
               baseType: STRING
               group: OGD
               order: 170
               cardinality: MANY
-            ODS_LINK: # Bitte ändern zu "odsDataportalLink"
+            odsDataportalLink:
               label: Datenportal-Link
               title: Link des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
               group: OGD
               order: 180
               readOnly: true
-            ODS_ID: # Bitte ändern zu "odsDataportalId"
+            odsDataportalId:
               label: Datenportal-Identifikation
               title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
               baseType: STRING
