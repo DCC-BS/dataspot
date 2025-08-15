@@ -54,9 +54,9 @@ def test_transform_to_layered_structure(sample_org_data):
     assert len(layers[2]) == 1, "Layer 2 should have 1 organization (grandchild)"
     
     # Check specific IDs in each layer
-    assert layers[0][0]["id_im_staatskalender"] == "1", "Root should be in layer 0"
-    assert set(u["id_im_staatskalender"] for u in layers[1]) == {"2", "3"}, "Children should be in layer 1"
-    assert layers[2][0]["id_im_staatskalender"] == "4", "Grandchild should be in layer 2"
+    assert layers[0][0]["stateCalendarId"] == "1", "Root should be in layer 0"
+    assert set(u["stateCalendarId"] for u in layers[1]) == {"2", "3"}, "Children should be in layer 1"
+    assert layers[2][0]["stateCalendarId"] == "4", "Grandchild should be in layer 2"
     
     # Check hierarchy relationships are correctly set
     root_unit = layers[0][0]
@@ -77,5 +77,5 @@ def test_transform_to_layered_structure(sample_org_data):
     for depth, units in layers.items():
         for unit in units:
             assert "customProperties" in unit, f"Unit at depth {depth} should have customProperties"
-            assert "id_im_staatskalender" in unit["customProperties"], "Should have id_im_staatskalender in customProperties"
-            assert "link_zum_staatskalender" in unit["customProperties"], "Should have link_zum_staatskalender in customProperties" 
+            assert "stateCalendarId" in unit["customProperties"], "Should have stateCalendarId in customProperties"
+            assert "stateCalendarLink" in unit["customProperties"], "Should have stateCalendarLink in customProperties"

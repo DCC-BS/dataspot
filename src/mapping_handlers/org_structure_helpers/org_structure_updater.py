@@ -88,8 +88,8 @@ class OrgStructureUpdater:
         # Define the filter function for org units
         org_filter = lambda asset: (
             asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'Organisationseinheit' and
-            asset.get('id_im_staatskalender') is not None
+            asset.get('stereotype') == 'organizationalUnit' and
+            asset.get('stateCalendarId') is not None
         )
         
         # Fetch all org units
@@ -100,9 +100,9 @@ class OrgStructureUpdater:
         self._org_units_cache = {
             'by_uuid': {unit.get('id'): unit for unit in org_units if 'id' in unit},
             'by_label': {unit.get('label'): unit for unit in org_units if 'label' in unit},
-            'by_sk_id': {str(unit.get('id_im_staatskalender')): unit 
+            'by_sk_id': {str(unit.get('stateCalendarId')): unit
                         for unit in org_units 
-                        if 'id_im_staatskalender' in unit and unit.get('id_im_staatskalender') is not None}
+                        if 'stateCalendarId' in unit and unit.get('stateCalendarId') is not None}
         }
         
         logging.info(f"Cached {len(org_units)} organizational units for quick lookup")
@@ -343,7 +343,7 @@ class OrgStructureUpdater:
         # Base required fields
         update_data = {
             "_type": "Collection",
-            "stereotype": "Organisationseinheit"
+            "stereotype": "organizationalUnit"
         }
         
         # Apply changes
@@ -399,8 +399,8 @@ class OrgStructureUpdater:
                     # This is available in the source data from ODS and avoids lookups by label
                     parent_sk_id = None
                     source_unit = change.details.get("source_unit", {})
-                    if "parent_id_im_staatskalender" in source_unit.get("customProperties"):
-                        parent_sk_id = str(source_unit["customProperties"]["parent_id_im_staatskalender"])
+                    if "stateCalendarParentId" in source_unit.get("customProperties"):
+                        parent_sk_id = str(source_unit["customProperties"]["stateCalendarParentId"])
                     
                     # First try to find parent by Staatskalender ID which is more reliable
                     if parent_sk_id and parent_sk_id in org_units['by_sk_id']:
@@ -425,12 +425,12 @@ class OrgStructureUpdater:
         if "customProperties" in update_data and not update_data["customProperties"]:
             del update_data["customProperties"]
         
-        # Critical fix: Always include id_im_staatskalender in customProperties for PATCH requests
+        # Critical fix: Always include stateCalendarId in customProperties for PATCH requests
         # This ensures correct placement for the update operation
-        if "id_im_staatskalender" not in update_data.get("customProperties", {}):
+        if "stateCalendarId" not in update_data.get("customProperties", {}):
             if "customProperties" not in update_data:
                 update_data["customProperties"] = {}
-            update_data["customProperties"]["id_im_staatskalender"] = change.staatskalender_id
+            update_data["customProperties"]["stateCalendarId"] = change.staatskalender_id
         
         # TODO (Renato): Clean this up; I think this is too complicated!
         #  Note: the inCollection field should always be a uuid when it is present.

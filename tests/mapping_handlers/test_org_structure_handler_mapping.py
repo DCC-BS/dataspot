@@ -74,10 +74,10 @@ class TestOrgStructureHandlerMapping:
 
     def test_update_mappings_with_missing_required_field(self, handler):
         """Test updating mappings with org units missing required fields."""
-        # Unit with missing id_im_staatskalender
+        # Unit with missing stateCalendarId
         incomplete_unit = {
             "_type": "Collection",
-            "stereotype": "Organisationseinheit",
+            "stereotype": "organizationalUnit",
             "id": "uuid-1",
             "label": "Incomplete Unit 1"
         }
@@ -87,13 +87,13 @@ class TestOrgStructureHandlerMapping:
             # Apply our asset filter to the unit and check if it passes
             result = handler.asset_type_filter(incomplete_unit)
             
-            # The filter should reject this unit as it has no id_im_staatskalender
+            # The filter should reject this unit as it has no stateCalendarId
             assert result is False
             
-        # Now test with a unit that has id_im_staatskalender but missing _type
+        # Now test with a unit that has stateCalendarId but missing _type
         incomplete_unit2 = {
-            "id_im_staatskalender": "2",
-            "stereotype": "Organisationseinheit",
+            "stateCalendarId": "2",
+            "stereotype": "organizationalUnit",
             "id": "uuid-2",
             "label": "Incomplete Unit 2"
         }
@@ -105,9 +105,9 @@ class TestOrgStructureHandlerMapping:
         """Test updating mappings with units having wrong stereotype."""
         # Setup - Create org unit with wrong stereotype
         wrong_stereotype_unit = {
-            "id_im_staatskalender": "1",
+            "stateCalendarId": "1",
             "_type": "Collection",
-            "stereotype": "WrongStereotype",  # Not "Organisationseinheit"
+            "stereotype": "WrongStereotype",  # Not "organizationalUnit"
             "id": "uuid-1",
             "label": "Wrong Stereotype Unit"
         }
@@ -178,7 +178,7 @@ class TestOrgStructureHandlerMapping:
         }
         
         # Execute with error handling
-        with pytest.raises(ValueError, match="Duplicate id_im_staatskalender values detected"):
+        with pytest.raises(ValueError, match="Duplicate stateCalendarId values detected"):
             handler._check_for_duplicate_ids_in_ods_staatskalender_data(duplicate_data)
 
     def test_update_mappings_with_moved_org_unit(self, handler):

@@ -46,9 +46,9 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
 
     This method:
     1. Retrieves organization data from the ODS API
-    2. Validates that no duplicate id_im_staatskalender values exist in ODS data (throws an error if duplicates are found)
+    2. Validates that no duplicate stateCalendarId values exist in ODS data (throws an error if duplicates are found)
     3. Fetches existing organizational units from Dataspot 
-    4. Validates that no duplicate id_im_staatskalender values exist in Dataspot (throws an error if duplicates are found)
+    4. Validates that no duplicate stateCalendarId values exist in Dataspot (throws an error if duplicates are found)
     5. Compares with existing organization data in Dataspot
     6. Updates only the changed organizations
     7. Provides a summary of changes
@@ -57,7 +57,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         dataspot_client: The Dataspot client instance to use for synchronization
         
     Raises:
-        ValueError: If duplicate id_im_staatskalender values are detected in either ODS or Dataspot data
+        ValueError: If duplicate stateCalendarId values are detected in either ODS or Dataspot data
         HTTPError: If API requests fail
     """
     logging.info("Starting organization structure synchronization...")
@@ -108,7 +108,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         )
 
     except ValueError as e:
-        if "Duplicate id_im_staatskalender values detected in Dataspot" in str(e):
+        if "Duplicate stateCalendarId values detected in Dataspot" in str(e):
             error_info = {
                 'type': 'duplicate_ids_dataspot',
                 'message': str(e)
@@ -124,9 +124,9 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             
             # Update sync result with error information
             sync_result['status'] = 'error'
-            sync_result['message'] = f"Synchronization failed: Duplicate id_im_staatskalender values detected in Dataspot. {str(e)}"
+            sync_result['message'] = f"Synchronization failed: Duplicate stateCalendarId values detected in Dataspot. {str(e)}"
             
-        elif "Duplicate id_im_staatskalender values detected" in str(e):
+        elif "Duplicate stateCalendarId values detected" in str(e):
             error_info = {
                 'type': 'duplicate_ids_ods',
                 'message': str(e)
@@ -141,7 +141,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
             
             # Update sync result with error information
             sync_result['status'] = 'error'
-            sync_result['message'] = f"Synchronization failed: Duplicate id_im_staatskalender values detected in ODS data. {str(e)}"
+            sync_result['message'] = f"Synchronization failed: Duplicate stateCalendarId values detected in ODS data. {str(e)}"
             
         else:
             # Handle other ValueError exceptions

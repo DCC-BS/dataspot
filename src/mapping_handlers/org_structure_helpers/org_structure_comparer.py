@@ -44,7 +44,7 @@ class OrgStructureComparer:
             logging.info(f"Comparing layer {layer} with {len(units)} units")
             
             for unit in units:
-                staatskalender_id = str(unit.get("id_im_staatskalender", ""))
+                staatskalender_id = str(unit.get("stateCalendarId", ""))
                 if not staatskalender_id:
                     logging.warning("Found unit without Staatskalender ID, skipping")
                     continue
@@ -125,23 +125,23 @@ class OrgStructureComparer:
                 "new": source_unit.get("label")
             }
         
-        # Check custom properties - specifically link_zum_staatskalender
+        # Check custom properties - specifically stateCalendarLink
         # Source units have properties in customProperties, but download API returns properties flat
-        source_url = source_unit.get("customProperties", {}).get("link_zum_staatskalender", "")
-        dataspot_url = dataspot_unit.get("link_zum_staatskalender", "")
+        source_url = source_unit.get("customProperties", {}).get("stateCalendarLink", "")
+        dataspot_url = dataspot_unit.get("stateCalendarLink", "")
         
         if source_url != dataspot_url:
             if "customProperties" not in changes:
                 changes["customProperties"] = {}
             
-            changes["customProperties"]["link_zum_staatskalender"] = {
+            changes["customProperties"]["stateCalendarLink"] = {
                 "old": dataspot_url,
                 "new": source_url
             }
         
-        # Check for parent_id_im_staatskalender in source and target
-        source_parent_id = source_unit.get("customProperties", {}).get("parent_id_im_staatskalender", None)
-        dataspot_parent_id = dataspot_unit.get("parent_id_im_staatskalender", None)
+        # Check for stateCalendarParentId in source and target
+        source_parent_id = source_unit.get("customProperties", {}).get("stateCalendarParentId", None)
+        dataspot_parent_id = dataspot_unit.get("stateCalendarParentId", None)
         
         # Convert both to string for comparison
         source_parent_id_str = str(source_parent_id) if source_parent_id is not None else None
@@ -152,11 +152,11 @@ class OrgStructureComparer:
             if "customProperties" not in changes:
                 changes["customProperties"] = {}
             
-            changes["customProperties"]["parent_id_im_staatskalender"] = {
+            changes["customProperties"]["stateCalendarParentId"] = {
                 "old": dataspot_parent_id,
                 "new": source_parent_id
             }
-            logging.info(f"Detected parent ID change for '{dataspot_unit.get('label', '')} (ID: {dataspot_unit['id_im_staatskalender']})': '{dataspot_parent_id}' → '{source_parent_id}'")
+            logging.info(f"Detected parent ID change for '{dataspot_unit.get('label', '')} (ID: {dataspot_unit['stateCalendarId']})': '{dataspot_parent_id}' → '{source_parent_id}'")
         
         # Check inCollection to detect if a collection has been moved
         # Source has the correct path based on ODS data, Dataspot has current path
@@ -299,7 +299,7 @@ class OrgStructureComparer:
                     "properties": {
                         "label": source_unit.get("label", ""),
                         "inCollection": source_unit.get("inCollection", ""),
-                        "link_zum_staatskalender": source_unit.get("customProperties", {}).get("link_zum_staatskalender", "")
+                        "stateCalendarLink": source_unit.get("customProperties", {}).get("stateCalendarLink", "")
                     }
                 }
                 

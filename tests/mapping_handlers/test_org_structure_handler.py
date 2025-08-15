@@ -59,10 +59,10 @@ def sample_dataspot_units():
         {
             "id": "uuid-1",
             "_type": "Collection",
-            "stereotype": "Organisationseinheit",
+            "stereotype": "organizationalUnit",
             "label": "Root Organization",
-            "id_im_staatskalender": "1",
-            "link_zum_staatskalender": "https://example.com/org/1"
+            "stateCalendarId": "1",
+            "stateCalendarLink": "https://example.com/org/1"
         }
     ]
 
@@ -74,25 +74,25 @@ def sample_transformed_units_by_layer():
         0: [
             {
                 "_type": "Collection",
-                "stereotype": "Organisationseinheit",
+                "stereotype": "organizationalUnit",
                 "label": "Root Organization",
-                "id_im_staatskalender": "1",
+                "stateCalendarId": "1",
                 "customProperties": {
-                    "id_im_staatskalender": "1",
-                    "link_zum_staatskalender": "https://example.com/org/1"
+                    "stateCalendarId": "1",
+                    "stateCalendarLink": "https://example.com/org/1"
                 }
             }
         ],
         1: [
             {
                 "_type": "Collection",
-                "stereotype": "Organisationseinheit",
+                "stereotype": "organizationalUnit",
                 "label": "Child Organization",
-                "id_im_staatskalender": "2",
+                "stateCalendarId": "2",
                 "inCollection": "Root Organization",
                 "customProperties": {
-                    "id_im_staatskalender": "2",
-                    "link_zum_staatskalender": "https://example.com/org/2"
+                    "stateCalendarId": "2",
+                    "stateCalendarLink": "https://example.com/org/2"
                 }
             }
         ]
@@ -170,7 +170,7 @@ def sample_duplicate_id_org_data():
 
 def test_init(handler):
     """Test initialization of OrgStructureHandler."""
-    assert handler.asset_id_field == "id_im_staatskalender"
+    assert handler.asset_id_field == "stateCalendarId"
     assert callable(handler.asset_type_filter)
     assert isinstance(handler.updater, OrgStructureUpdater)
 
@@ -222,7 +222,7 @@ def test_sync_org_units_incremental(
     handler.update_mappings_after_upload = MagicMock()
     handler._download_and_update_mappings = MagicMock()
     
-    source_units_by_layer = {0: [{"id_im_staatskalender": "1"}], 1: [{"id_im_staatskalender": "2"}]}
+    source_units_by_layer = {0: [{"stateCalendarId": "1"}], 1: [{"stateCalendarId": "2"}]}
     mock_transform.return_value = source_units_by_layer
     
     changes = [MagicMock(staatskalender_id="1"), MagicMock(staatskalender_id="2")]
@@ -466,7 +466,7 @@ def test_partial_update_failure(handler, sample_org_data, sample_dataspot_units)
     
     # Mock successful transformation but failed updates
     with patch('src.mapping_handlers.org_structure_helpers.org_structure_transformer.OrgStructureTransformer.transform_to_layered_structure') as mock_transform:
-        mock_transform.return_value = {0: [{"id_im_staatskalender": "1"}], 1: [{"id_im_staatskalender": "2"}]}
+        mock_transform.return_value = {0: [{"stateCalendarId": "1"}], 1: [{"stateCalendarId": "2"}]}
         
         with patch('src.mapping_handlers.org_structure_helpers.org_structure_comparer.OrgStructureComparer.compare_structures') as mock_compare:
             changes = [MagicMock(staatskalender_id="1"), MagicMock(staatskalender_id="2")]

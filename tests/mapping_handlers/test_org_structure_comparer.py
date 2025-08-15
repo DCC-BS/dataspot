@@ -12,11 +12,11 @@ def source_units_by_layer() -> Dict[int, List[Dict[str, Any]]]:
             {
                 "_type": "Collection",
                 "label": "Root Organization",
-                "stereotype": "Organisationseinheit",
-                "id_im_staatskalender": "1",
+                "stereotype": "organizationalUnit",
+                "stateCalendarId": "1",
                 "customProperties": {
-                    "id_im_staatskalender": "1",
-                    "link_zum_staatskalender": "https://example.com/org/1"
+                    "stateCalendarId": "1",
+                    "stateCalendarLink": "https://example.com/org/1"
                 }
             }
         ],
@@ -24,34 +24,34 @@ def source_units_by_layer() -> Dict[int, List[Dict[str, Any]]]:
             {
                 "_type": "Collection",
                 "label": "Child Organization 1",
-                "stereotype": "Organisationseinheit",
-                "id_im_staatskalender": "2",
+                "stereotype": "organizationalUnit",
+                "stateCalendarId": "2",
                 "inCollection": "Root Organization",
                 "customProperties": {
-                    "id_im_staatskalender": "2",
-                    "link_zum_staatskalender": "https://example.com/org/2"
+                    "stateCalendarId": "2",
+                    "stateCalendarLink": "https://example.com/org/2"
                 }
             },
             {
                 "_type": "Collection",
                 "label": "Child Organization 2",
-                "stereotype": "Organisationseinheit",
-                "id_im_staatskalender": "3",
+                "stereotype": "organizationalUnit",
+                "stateCalendarId": "3",
                 "inCollection": "Root Organization",
                 "customProperties": {
-                    "id_im_staatskalender": "3",
-                    "link_zum_staatskalender": "https://example.com/org/3_new"
+                    "stateCalendarId": "3",
+                    "stateCalendarLink": "https://example.com/org/3_new"
                 }
             },
             {
                 "_type": "Collection",
                 "label": "New Organization",
-                "stereotype": "Organisationseinheit",
-                "id_im_staatskalender": "5",
+                "stereotype": "organizationalUnit",
+                "stateCalendarId": "5",
                 "inCollection": "Root Organization",
                 "customProperties": {
-                    "id_im_staatskalender": "5",
-                    "link_zum_staatskalender": "https://example.com/org/5"
+                    "stateCalendarId": "5",
+                    "stateCalendarLink": "https://example.com/org/5"
                 }
             }
         ]
@@ -66,36 +66,36 @@ def dataspot_units_by_id() -> Dict[str, Dict[str, Any]]:
             "id": "uuid-1",
             "_type": "Collection",
             "label": "Root Organization", 
-            "stereotype": "Organisationseinheit",
-            "id_im_staatskalender": "1",
-            "link_zum_staatskalender": "https://example.com/org/1"
+            "stereotype": "organizationalUnit",
+            "stateCalendarId": "1",
+            "stateCalendarLink": "https://example.com/org/1"
         },
         "2": {
             "id": "uuid-2",
             "_type": "Collection",
             "label": "Child Organization 1 - Old Name",
-            "stereotype": "Organisationseinheit",
-            "id_im_staatskalender": "2",
+            "stereotype": "organizationalUnit",
+            "stateCalendarId": "2",
             "inCollection": "Root Organization",
-            "link_zum_staatskalender": "https://example.com/org/2"
+            "stateCalendarLink": "https://example.com/org/2"
         },
         "3": {
             "id": "uuid-3",
             "_type": "Collection",
             "label": "Child Organization 2",
-            "stereotype": "Organisationseinheit",
-            "id_im_staatskalender": "3",
+            "stereotype": "organizationalUnit",
+            "stateCalendarId": "3",
             "inCollection": "Root Organization",
-            "link_zum_staatskalender": "https://example.com/org/3"
+            "stateCalendarLink": "https://example.com/org/3"
         },
         "4": {
             "id": "uuid-4",
             "_type": "Collection",
             "label": "To Be Deleted Organization",
-            "stereotype": "Organisationseinheit",
-            "id_im_staatskalender": "4",
+            "stereotype": "organizationalUnit",
+            "stateCalendarId": "4",
             "inCollection": "Root Organization",
-            "link_zum_staatskalender": "https://example.com/org/4"
+            "stateCalendarLink": "https://example.com/org/4"
         }
     }
 
@@ -130,13 +130,13 @@ def test_check_for_unit_changes():
     source_unit = {
         "label": "Test Organization",
         "inCollection": "Parent Organization",
-        "customProperties": {"link_zum_staatskalender": "https://example.com/org/1"}
+        "customProperties": {"stateCalendarLink": "https://example.com/org/1"}
     }
     
     dataspot_unit = {
         "label": "Test Organization",
         "inCollection": "Parent Organization",
-        "link_zum_staatskalender": "https://example.com/org/1"
+        "stateCalendarLink": "https://example.com/org/1"
     }
     
     changes = OrgStructureComparer.check_for_unit_changes(source_unit, dataspot_unit)
@@ -151,15 +151,15 @@ def test_check_for_unit_changes():
     
     # Test case 3: Link change
     source_unit["label"] = "Test Organization"  # Reset label
-    source_unit["customProperties"]["link_zum_staatskalender"] = "https://example.com/org/1_new"
+    source_unit["customProperties"]["stateCalendarLink"] = "https://example.com/org/1_new"
     changes = OrgStructureComparer.check_for_unit_changes(source_unit, dataspot_unit)
     assert "customProperties" in changes, "Should detect URL change"
-    assert "link_zum_staatskalender" in changes["customProperties"]
-    assert changes["customProperties"]["link_zum_staatskalender"]["old"] == "https://example.com/org/1"
-    assert changes["customProperties"]["link_zum_staatskalender"]["new"] == "https://example.com/org/1_new"
+    assert "stateCalendarLink" in changes["customProperties"]
+    assert changes["customProperties"]["stateCalendarLink"]["old"] == "https://example.com/org/1"
+    assert changes["customProperties"]["stateCalendarLink"]["new"] == "https://example.com/org/1_new"
     
     # Test case 4: inCollection change
-    source_unit["customProperties"]["link_zum_staatskalender"] = "https://example.com/org/1"  # Reset URL
+    source_unit["customProperties"]["stateCalendarLink"] = "https://example.com/org/1"  # Reset URL
     source_unit["inCollection"] = "New Parent Organization"
     changes = OrgStructureComparer.check_for_unit_changes(source_unit, dataspot_unit)
     assert "inCollection" in changes, "Should detect inCollection change"

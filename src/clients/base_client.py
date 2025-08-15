@@ -641,8 +641,8 @@ class BaseDataspotClient:
         # Get all org units with the appropriate filter function
         org_filter = lambda asset: (
             asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'Organisationseinheit' and
-            asset.get('id_im_staatskalender') is not None
+            asset.get('stereotype') == 'organizationalUnit' and
+            asset.get('stateCalendarId') is not None
         )
         
         units = self.get_all_assets_from_scheme(org_filter)
@@ -651,7 +651,7 @@ class BaseDataspotClient:
         result = {}
         for unit in units:
             # Convert to string for consistent comparison
-            unit_id = str(unit.get('id_im_staatskalender'))
+            unit_id = str(unit.get('stateCalendarId'))
             if unit_id in staatskalender_ids:
                 result[unit_id] = unit
                 

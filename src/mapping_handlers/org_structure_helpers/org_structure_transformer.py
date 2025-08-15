@@ -101,22 +101,22 @@ class OrgStructureTransformer:
                 unit_data = {
                     "_type": "Collection",
                     "label": title.strip(),
-                    "stereotype": "Organisationseinheit",
-                    "id_im_staatskalender": org_id
+                    "stereotype": "organizationalUnit",
+                    "stateCalendarId": org_id
                 }
                 
                 # Add custom properties
                 custom_properties = {}
                 if url_website:
-                    custom_properties["link_zum_staatskalender"] = url_website
+                    custom_properties["stateCalendarLink"] = url_website
                 if org_id:
-                    custom_properties["id_im_staatskalender"] = org_id
+                    custom_properties["stateCalendarId"] = org_id
                 
                 # Set parent relationship using hierarchical business key
                 parent_id = str(org.get('parent_id', '')).strip()
                 if parent_id and parent_id.lower() != 'nan' and parent_id in org_lookup:
                     # Add parent's Staatskalender ID to custom properties
-                    custom_properties["parent_id_im_staatskalender"] = parent_id
+                    custom_properties["stateCalendarParentId"] = parent_id
                     
                     # Get the parent's path components
                     parent_path_components = OrgStructureTransformer.build_path_components(
