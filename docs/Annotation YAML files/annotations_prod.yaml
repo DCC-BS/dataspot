@@ -454,60 +454,87 @@ Dataset:
               order: 10
               cardinality: ONE
               literals:
-                "001":
+                imageryBaseMapsEarthCover_BaseMaps:
                   label: Basiskarten, Landschaftsmodelle
-                "002":
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
                   label: Bodenbedeckung, Bodennutzung
-                "003":
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
                   label: Luft-, Satellitenbilder
-                "004":
+                  order: 3
+                location:
                   label: Ortsangaben, Referenzsysteme
-                "005":
+                  order: 4
+                elevation:
                   label: Höhen
-                "006":
+                  order: 5
+                boundaries:
                   label: Politische und administrative Grenzen
-                "007":
+                  order: 6
+                planningCadastre_Planning:
                   label: Raumplanung, Raumentwicklung
-                "008":
+                  order: 7
+                planningCadastre_Cadastre:
                   label: Grundstückskataster
-                "009":
+                  order: 8
+                geoscientificInformation_Geology:
                   label: Geologie
-                "010":
+                  order: 9
+                geoscientificInformation_Soils:
                   label: Boden
-                "011":
+                  order: 10
+                geoscientificInformation_NaturalHazards:
                   label: Naturbedingte Risiken
-                "012":
+                  order: 11
+                biota:
                   label: Wald, Flora, Fauna
-                "013":
+                  order: 12
+                inlandWaters:
                   label: Gewässer
-                "014":
+                  order: 13
+                climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
-                "015":
+                  order: 14
+                environment_EnvironmentalProtection:
                   label: Umweltschutz, Lärm
-                "016":
+                  order: 15
+                environment_NatureProtection:
                   label: Natur- und Landschaftsschutz
-                "017":
+                  order: 16
+                society:
                   label: Bevölkerung, Gesellschaft, Kultur
-                "018":
+                  order: 17
+                health:
                   label: Gesundheit
-                "019":
+                  order: 18
+                structure:
                   label: Gebäude, Anlagen
-                "020":
+                  order: 19
+                transportation:
                   label: Verkehr
-                "021":
+                  order: 20
+                utilitiesCommunication_Energy:
                   label: Energie
-                "022":
+                  order: 21
+                utilitiesCommunication_Utilities:
                   label: Wasser- und Abfallsysteme
-                "023":
+                  order: 22
+                utilitiesCommunication_Communication:
                   label: Kommunikation
-                "024":
+                  order: 23
+                intelligenceMilitary:
                   label: Militär, Sicherheit
-                "025":
+                  order: 24
+                farming:
                   label: Landwirtschaft
-                "026":
+                  order: 25
+                economy:
                   label: Wirtschaftliche Aktivitäten
-                "027":
+                  order: 26
+                pipes:
                   label: Leitungskataster
+                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -743,60 +770,87 @@ Dataset:
               order: 10
               cardinality: ONE
               literals:
-                "001":
+                imageryBaseMapsEarthCover_BaseMaps:
                   label: Basiskarten, Landschaftsmodelle
-                "002":
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
                   label: Bodenbedeckung, Bodennutzung
-                "003":
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
                   label: Luft-, Satellitenbilder
-                "004":
+                  order: 3
+                location:
                   label: Ortsangaben, Referenzsysteme
-                "005":
+                  order: 4
+                elevation:
                   label: Höhen
-                "006":
+                  order: 5
+                boundaries:
                   label: Politische und administrative Grenzen
-                "007":
+                  order: 6
+                planningCadastre_Planning:
                   label: Raumplanung, Raumentwicklung
-                "008":
+                  order: 7
+                planningCadastre_Cadastre:
                   label: Grundstückskataster
-                "009":
+                  order: 8
+                geoscientificInformation_Geology:
                   label: Geologie
-                "010":
+                  order: 9
+                geoscientificInformation_Soils:
                   label: Boden
-                "011":
+                  order: 10
+                geoscientificInformation_NaturalHazards:
                   label: Naturbedingte Risiken
-                "012":
+                  order: 11
+                biota:
                   label: Wald, Flora, Fauna
-                "013":
+                  order: 12
+                inlandWaters:
                   label: Gewässer
-                "014":
+                  order: 13
+                climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
-                "015":
+                  order: 14
+                environment_EnvironmentalProtection:
                   label: Umweltschutz, Lärm
-                "016":
+                  order: 15
+                environment_NatureProtection:
                   label: Natur- und Landschaftsschutz
-                "017":
+                  order: 16
+                society:
                   label: Bevölkerung, Gesellschaft, Kultur
-                "018":
+                  order: 17
+                health:
                   label: Gesundheit
-                "019":
+                  order: 18
+                structure:
                   label: Gebäude, Anlagen
-                "020":
+                  order: 19
+                transportation:
                   label: Verkehr
-                "021":
+                  order: 20
+                utilitiesCommunication_Energy:
                   label: Energie
-                "022":
+                  order: 21
+                utilitiesCommunication_Utilities:
                   label: Wasser- und Abfallsysteme
-                "023":
+                  order: 22
+                utilitiesCommunication_Communication:
                   label: Kommunikation
-                "024":
+                  order: 23
+                intelligenceMilitary:
                   label: Militär, Sicherheit
-                "025":
+                  order: 24
+                farming:
                   label: Landwirtschaft
-                "026":
+                  order: 25
+                economy:
                   label: Wirtschaftliche Aktivitäten
-                "027":
+                  order: 26
+                pipes:
                   label: Leitungskataster
+                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -857,60 +911,87 @@ Dataset:
               order: 10
               cardinality: ONE
               literals:
-                "001":
+                imageryBaseMapsEarthCover_BaseMaps:
                   label: Basiskarten, Landschaftsmodelle
-                "002":
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
                   label: Bodenbedeckung, Bodennutzung
-                "003":
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
                   label: Luft-, Satellitenbilder
-                "004":
+                  order: 3
+                location:
                   label: Ortsangaben, Referenzsysteme
-                "005":
+                  order: 4
+                elevation:
                   label: Höhen
-                "006":
+                  order: 5
+                boundaries:
                   label: Politische und administrative Grenzen
-                "007":
+                  order: 6
+                planningCadastre_Planning:
                   label: Raumplanung, Raumentwicklung
-                "008":
+                  order: 7
+                planningCadastre_Cadastre:
                   label: Grundstückskataster
-                "009":
+                  order: 8
+                geoscientificInformation_Geology:
                   label: Geologie
-                "010":
+                  order: 9
+                geoscientificInformation_Soils:
                   label: Boden
-                "011":
+                  order: 10
+                geoscientificInformation_NaturalHazards:
                   label: Naturbedingte Risiken
-                "012":
+                  order: 11
+                biota:
                   label: Wald, Flora, Fauna
-                "013":
+                  order: 12
+                inlandWaters:
                   label: Gewässer
-                "014":
+                  order: 13
+                climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
-                "015":
+                  order: 14
+                environment_EnvironmentalProtection:
                   label: Umweltschutz, Lärm
-                "016":
+                  order: 15
+                environment_NatureProtection:
                   label: Natur- und Landschaftsschutz
-                "017":
+                  order: 16
+                society:
                   label: Bevölkerung, Gesellschaft, Kultur
-                "018":
+                  order: 17
+                health:
                   label: Gesundheit
-                "019":
+                  order: 18
+                structure:
                   label: Gebäude, Anlagen
-                "020":
+                  order: 19
+                transportation:
                   label: Verkehr
-                "021":
+                  order: 20
+                utilitiesCommunication_Energy:
                   label: Energie
-                "022":
+                  order: 21
+                utilitiesCommunication_Utilities:
                   label: Wasser- und Abfallsysteme
-                "023":
+                  order: 22
+                utilitiesCommunication_Communication:
                   label: Kommunikation
-                "024":
+                  order: 23
+                intelligenceMilitary:
                   label: Militär, Sicherheit
-                "025":
+                  order: 24
+                farming:
                   label: Landwirtschaft
-                "026":
+                  order: 25
+                economy:
                   label: Wirtschaftliche Aktivitäten
-                "027":
+                  order: 26
+                pipes:
                   label: Leitungskataster
+                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
