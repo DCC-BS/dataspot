@@ -1428,26 +1428,26 @@ Collection:
       literals:
 
 ## SAMMLUNGSART ORGANISATIONSEINHEIT ##
-        Organisationseinheit: # Bitte ändern zu "organizationalUnit"
+        organizationalUnit:
           label: Organisationseinheit
           icon: building
           order: 1
           customProperties:
-            link_zum_staatskalender: # Bitte ändern zu "stateCalendarLink"
+            stateCalendarLink:
               label: Link zum Staatskalender
               baseType: STRING
               title: Link zur Quelle im Staatskalender
               width: 1
               order: 1
               readOnly: true
-            id_im_staatskalender: # Bitte ändern zu "stateCalendarId"
+            stateCalendarId:
               label: ID im Staatskalender
               baseType: INTEGER
               title: Die interne ID im Staatskalender
               width: 1
               order: 2
               readOnly: true
-            parent_id_im_staatskalender: # Bitte ändern zu "stateCalendarParentId"
+            stateCalendarParentId:
               label: Parent ID im Staatskalender
               baseType: INTEGER
               title: Die interne ID der übergeordneten Einheit im Staatskalender
