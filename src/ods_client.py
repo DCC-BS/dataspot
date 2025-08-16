@@ -40,10 +40,10 @@ class ODSClient:
         column_info = []
         for field in fields:
             column_data = {
-                'label': field.get('label').strip() if field.get('label') else field.get('label'),
-                'name': field.get('name').strip() if field.get('name') else field.get('name'),
-                'type': field.get('type'),
-                'description': None if field.get('description') == '' else field.get('description'),
+                'label': field.get('label').strip() if field.get('label') else None,
+                'name': field.get('name').strip() if field.get('name') else None,
+                'type': field.get('type').strip() if field.get('type') else None,
+                'description': None if field.get('description') == '' else field.get('description').strip() if field.get('description') else field.get('description'),
             }
             if field.get('type') == 'text' and 'semantic_type' in field and field.get('semantic_type') == 'identifier':
                 column_data['type'] = 'identifier'
