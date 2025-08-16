@@ -45,16 +45,16 @@ class BasicDataset(Dataset):
     # TODO: vertraulichkeit -> Immer öffentlich bei OGD
     #schutzbedarfsstufen -> ???
     #letzte_aktualisierung -> ???
-    publikationsdatum: Optional[int] = field(default=None, metadata={'json_key': 'PD', 'custom_property': True})
+    publikationsdatum: Optional[int] = field(default=None, metadata={'json_key': 'publicationDate', 'custom_property': True})
     #archivierung -> ???
-    archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'ARCHDET'})
-    archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'ARCHBEGR'})
-    nutzungseinschraenkung: Optional[str] = field(default=None, metadata={'json_key': 'NE'})
-    #historisierung: bool = field(default=False, metadata={'json_key': 'HIST'})
+    archivierung_details: Optional[str] = field(default=None, metadata={'json_key': 'archiveDetails'})
+    archivierung_begruendung: Optional[str] = field(default=None, metadata={'json_key': 'archiveJustification'})
+    nutzungseinschraenkung: Optional[str] = field(default=None, metadata={'json_key': 'usageRestriction'})
+    #historisierung: bool = field(default=False, metadata={'json_key': 'HIST'}) # IMPORTANT: IS NOW YES/NO LITERAL (?)
     #historisierung_seit_wann
-    art_der_historisierung: Optional[str] = field(default=None, metadata={'json_key': 'HISTART'})
-    aufbewahrungsfrist_jahre: Optional[int] = field(default=None, metadata={'json_key': 'ABF'})
-    begruendung_aufbewahrungsfrist: Optional[str] = field(default=None, metadata={'json_key': 'BEGRABF'})
+    art_der_historisierung: Optional[str] = field(default=None, metadata={'json_key': 'historicizationType'})
+    aufbewahrungsfrist_jahre: Optional[int] = field(default=None, metadata={'json_key': 'retentionPeriod'})
+    begruendung_aufbewahrungsfrist: Optional[str] = field(default=None, metadata={'json_key': 'retentionJustification'})
 
     def to_json(self) -> Dict[str, Any]:
         """
