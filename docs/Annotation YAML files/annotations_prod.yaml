@@ -1266,7 +1266,7 @@ BusinessObject:
 
 BusinessAttribute:
   groups:
-    DP: # Bitte ändern zu "DATA_PRIVACY" - edit: nvm, gets deleted anyway, probably! If not, change it!
+    DATA_PRIVACY: # TODO: Check unused and remove
       label: Datenschutz und -sicherheit
       order: 20
       icon: shield-halved
@@ -1274,7 +1274,7 @@ BusinessAttribute:
       label: Historisierung
       order: 30
       icon: bookmark
-    AUFBEW: # Bitte ändern zu "ARCHIVING"
+    AUFBEW: # Bitte ändern zu "ARCHIVING" # TODO: Probably remove, as it is unused!
       label: Archivierung
       order: 40
       icon: box-archive
@@ -1349,7 +1349,7 @@ BusinessAttribute:
       order: 50
     protectionLevel: # TODO: Check empty and remove
       label: Schutzbedarfsstufen
-      group: DP
+      group: DATA_PRIVACY
       #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
       #order: 11
       literals:
