@@ -2,6 +2,7 @@ import logging
 import json
 import os
 import datetime
+import time
 import traceback
 
 import config
@@ -95,6 +96,8 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
             
             for idx, ods_id in enumerate(current_batch):
                 logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
+                logging.info(f"First, waiting 10 seconds for server to cool down")
+                time.sleep(10)
                 
                 try:
                     # Get dataset title
