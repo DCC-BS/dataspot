@@ -1823,9 +1823,22 @@ Post:
       width: 1
       order: 1
 
+    second_membership_id:
+      label: Zweite Mitgliedschaft-ID
+      baseType: STRING
+      title: Mitgliedschaft-ID aus Staatskalender (z.B. bei Co-Präsidium)
+      width: 1
+      order: 2
+
   customFunctions:
     viewMembershipDetails:
       label: Mitgliedschaft im Staatskalender anzeigen
       title: Ruft die Details dieser Mitgliedschaft im Staatskalender ab
       icon: external-link
       href: "https://staatskalender.bs.ch/membership/${this.membership_id}"
+
+    viewMembershipDetailsSecond:
+      label: Zweite Mitgliedschaft im Staatskalender anzeigen
+      title: Ruft die Details der zweiten Mitgliedschaft im Staatskalender ab
+      icon: external-link
+      href: "https://staatskalender.bs.ch/membership/${this.second_membership_id}"
