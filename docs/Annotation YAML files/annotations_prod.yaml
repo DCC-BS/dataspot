@@ -434,8 +434,8 @@ Dataset:
               order: 80
               readOnly: true
             odsDataportalTags:
-              label: Tags # TODO: Change label to "Datenportal-Tags"
-              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
+              label: Datenportal-Tags
+              title: Tags, die einem Datensatz im OGD-Datenportal zugeordnet sind.
               baseType: STRING
               group: OGD
               order: 90
@@ -735,8 +735,8 @@ Dataset:
                 "024":
                   label: Tourismus
             odsDataportalTags:
-              label: Tags # TODO: Change label to "Datenportal-Tags"
-              title: Schlüsselwort oder Begriff, der einem OGD-Datensatz zugeordnet ist.
+              label: Datenportal-Tags
+              title: Tags, die einem Datensatz im OGD-Datenportal zugeordnet sind.
               baseType: STRING
               group: OGD
               order: 170
