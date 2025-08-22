@@ -1095,7 +1095,7 @@ Dataset:
           label: Geheim
           order: 4
     confidentialityJustification:
-      label: Vertraulichkeit Begründung
+      label: Begründung für Vertraulichkeit
       title: Begründung für eingeschränkter Zugang zum Datenprodukt
       group: DATA_PRIVACY
       baseType: TEXT
@@ -1137,7 +1137,7 @@ Dataset:
       baseType: INTEGER
       order: 100
     retentionJustification:
-      label: Begründung Aufbewahrungsfrist
+      label: Begründung für Aufbewahrungsfrist
       title: Begründung und Bemerkung zur Aufbewahrunsgfrist
       group: HISTORIOGRAPHY
       baseType: TEXT
@@ -1161,7 +1161,7 @@ Dataset:
       baseType: TEXT
       order: 130
     archiveJustification:
-      label: Archivierung Begründung
+      label: Begründung für Archivierung
       title: Begründung der Archivwürdigkeit
       group: ARCHIVING
       baseType: TEXT
