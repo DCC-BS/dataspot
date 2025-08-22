@@ -1274,10 +1274,6 @@ BusinessAttribute:
       label: Historisierung
       order: 30
       icon: bookmark
-    AUFBEW: # Bitte ändern zu "ARCHIVING" # TODO: Probably remove, as it is unused!
-      label: Archivierung
-      order: 40
-      icon: box-archive
 
   properties:
     identifying:
