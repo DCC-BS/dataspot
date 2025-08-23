@@ -4,7 +4,8 @@
 ## Setup
 Add a `.env` file in the root folder with the following content:
 ```.env
-DATASPOT_EMAIL_RECEIVERS=["petra.muster@bs.ch", "peter.muster@bs.ch]
+DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY=["petra.muster@bs.ch", "peter.muster@bs.ch"]
+DATASPOT_EMAIL_RECEIVERS=["petra.muster@bs.ch", "peter.muster@bs.ch"]
 DATASPOT_EMAIL_SERVER=
 DATASPOT_EMAIL_SENDER=
 
