@@ -1,0 +1,12 @@
+# Datenräume
+
+ProjectDirectory:
+  label: Projektverzeichnis
+
+  properties:
+    stereotype:
+      label: Projektmodell-Typ
+      literals:
+        "1":
+          label: Datenraumverzeichnis
+          icon: cat-space

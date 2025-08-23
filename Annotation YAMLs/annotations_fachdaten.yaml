@@ -1,0 +1,111 @@
+# Fachdaten
+
+BusinessDataModel:
+  label: Fachdatenmodell
+
+BusinessObject:
+  properties:
+    dataProtectionCategory:
+      label: Personendaten
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+BusinessAttribute:
+  groups:
+    DATA_PRIVACY: # TODO: Check unused and remove
+      label: Datenschutz und -sicherheit
+      order: 20
+      icon: shield-halved
+    HISTORIOGRAPHY:
+      label: Historisierung
+      order: 30
+      icon: bookmark
+
+  properties:
+    identifying:
+      label: Fachlicher Schlüssel
+      title: Das Kennzeichen, das angibt, ob das Attribut in einem Fachlichen Schlüssel vorkommt. Ein Fachlicher Schlüssel ist ein Attribut oder eine Kombination von Attributen eines Geschäftsobjekts, das jede Instanz dieses Geschäftsobjekts eindeutig identifiziert.
+    dataProtectionCategory:
+      label: Personendaten
+      title: Das Attribut ist personenbezogen.
+      literals:
+        "1":
+          label: Personendaten natürlicher Personen
+        "2":
+          label: Personendaten juristischer Personen
+        "3":
+          label: besonders schützenswerte Personendaten
+
+  customProperties:
+    confidentiality:
+      label: Vertraulichkeit
+      title: Vertraulichkeitsstufe des Attributs
+      order: 10
+      literals:
+        "1":
+          label: Öffentlich
+          order: 1
+        "2":
+          label: Intern
+          order: 2
+        "3":
+          label: Vertraulich
+          order: 3
+        "4":
+          label: Geheim
+          order: 4
+    primaryCollection:
+      label: Primärerhebung
+      title: Dieses Attribut enthält Daten aus eigener Erhebung.
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+      order: 20
+    historicized:
+      label: Historisierung
+      title: Änderungen des Attributs werden über die Zeit hinweg festgehalten. Frühere Versionen des Attributs können wiederhergestellt werden.
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+      group: HISTORIOGRAPHY
+      order: 30
+    historicizedSince:
+      label: Historisierung seit wann
+      title: Datum, ab dem eine Änderung des Attributs festgehalten wird. Datum, ab dem es frühere Versionen des Attributs gibt.
+      baseType: DATE
+      group: HISTORIOGRAPHY
+      order: 40
+    historicizationType:
+      label: Art der Historisierung
+      title: Art des Festhaltens einer Änderung des Attributs (Snapshots etc.)
+      baseType: TEXT
+      group: HISTORIOGRAPHY
+      order: 50
+    protectionLevel: # TODO: Check empty and remove
+      label: Schutzbedarfsstufen
+      group: DATA_PRIVACY
+      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
+      #order: 11
+      literals:
+        "1":
+          label: Grundschutz (GS)
+          order: 1
+        "2":
+          label: erhöhter Schutzbedarf (ES)
+          order: 2
+        "3":
+          label: sehr hoher Schutzbedarf (SHS)
+          order: 3

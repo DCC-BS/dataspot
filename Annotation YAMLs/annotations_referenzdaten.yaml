@@ -1,0 +1,30 @@
+# Referenzdaten
+
+ReferenceDataModel:
+  label: Referenzdatenmodell
+  icon: square-list
+
+  properties:
+    stereotype:
+      label: Modelltyp
+      literals:
+        Rechtsgrundlage:
+          label: Rechtsgrundlagen
+          ling: s2p3m
+          icon: section
+        Leistungsverzeichnis:
+          label: Leistungsverzeichnis
+          ling: s2p3m
+          icon: book
+
+ReferenceObject:
+  label: Element
+  ling: s1p1n
+  properties:
+    stereotype:
+      label: Typ
+      literals:
+        legalBasis:
+          label: Rechtsgrundlage
+          ling: s3p3f
+          icon: section

@@ -1,0 +1,1199 @@
+# Datenprodukte
+
+DataCatalog:
+  label: Datennutzungskatalog
+
+SubDataset:
+  label: Subdatensatz
+  ling: s1p1um
+
+Dataset:
+  label: Datensatz
+  ling: s1p1um
+
+  groups:
+    DATA_PRIVACY:
+      label: Datenschutz und -sicherheit
+      order: 20
+      icon: shield-halved
+    HISTORIOGRAPHY:
+      label: Historisierung
+      order: 30
+      icon: bookmark
+    ARCHIVING:
+      label: Archivierung
+      order: 40
+      icon: box-archive
+    GEO:
+      label: Geodaten
+      order: 50
+      icon: location-dot
+    OGD:
+      label: OGD
+      order: 60
+      icon: globe
+
+  properties:
+    label:
+      label: Name
+      title: Name des Datenprodukts
+    title:
+      label: Kurzbeschreibung
+      title: Kurzbeschreibung des Datenprodukts. Diese wird in der Übersicht angezeigt und unterstützt die Auffindbarkeit, denn die Suchfunktion sucht auch in diesem Metadatenfeld.
+    tags:
+      label: Schlüsselwörter
+      title: Schlüsselwörter, die den Inhalt beschreiben (können für die Suche genutzt werden) (GEMET, Weitere)
+    accrualPeriodicity:
+      label: Aktualisierungszyklus
+      title: Frequenz der Aktualisierung der Attribute im Datenprodukt
+      cardinality: ONE
+      literals:
+        http://publications.europa.eu/resource/authority/frequency/CONT:
+          label: kontinuierlich
+          title: Daten werden ohne Unterbrechung laufend aktualisiert
+          order: 1
+        http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT:
+          label: ständige Aktualisierung
+          title: Daten werden kontinuierlich nachgeführt, sobald Änderungen verfügbar sind
+          order: 2
+        http://publications.europa.eu/resource/authority/frequency/1MIN:
+          label: minütlich
+          title: Daten werden jede Minute aktualisiert
+          order: 3
+        http://publications.europa.eu/resource/authority/frequency/5MIN:
+          label: alle fünf Minuten
+          title: Daten werden alle fünf Minuten aktualisiert
+          order: 4
+        http://publications.europa.eu/resource/authority/frequency/10MIN:
+          label: alle zehn Minuten
+          title: Daten werden alle zehn Minuten aktualisiert
+          order: 5
+        http://publications.europa.eu/resource/authority/frequency/15MIN:
+          label: viertelstündlich
+          title: Daten werden alle 15 Minuten aktualisiert
+          order: 6
+        http://publications.europa.eu/resource/authority/frequency/30MIN:
+          label: halbstündlich
+          title: Daten werden alle 30 Minuten aktualisiert
+          order: 7
+        http://publications.europa.eu/resource/authority/frequency/HOURLY:
+          label: stündlich
+          title: Daten werden jede Stunde aktualisiert
+          order: 8
+        http://publications.europa.eu/resource/authority/frequency/BIHOURLY:
+          label: alle zwei Stunden
+          title: Daten werden alle zwei Stunden aktualisiert
+          order: 9
+        http://publications.europa.eu/resource/authority/frequency/TRIHOURLY:
+          label: alle drei Stunden
+          title: Daten werden alle drei Stunden aktualisiert
+          order: 10
+        http://publications.europa.eu/resource/authority/frequency/12HRS:
+          label: alle zwölf Stunden
+          title: Daten werden zweimal täglich (alle 12 Stunden) aktualisiert
+          order: 11
+        http://publications.europa.eu/resource/authority/frequency/DAILY:
+          label: täglich
+          title: Daten werden einmal pro Tag aktualisiert
+          order: 12
+        http://publications.europa.eu/resource/authority/frequency/DAILY_2:
+          label: zweimal täglich
+          title: Daten werden zweimal pro Tag aktualisiert
+          order: 13
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY:
+          label: wöchentlich
+          title: Daten werden einmal pro Woche aktualisiert
+          order: 14
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_2:
+          label: zweimal pro Woche
+          title: Daten werden zweimal pro Woche aktualisiert
+          order: 15
+        http://publications.europa.eu/resource/authority/frequency/WEEKLY_3:
+          label: dreimal pro Woche
+          title: Daten werden dreimal pro Woche aktualisiert
+          order: 16
+        http://publications.europa.eu/resource/authority/frequency/BIWEEKLY:
+          label: zweiwöchentlich
+          title: Daten werden alle zwei Wochen aktualisiert
+          order: 17
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY:
+          label: monatlich
+          title: Daten werden einmal pro Monat aktualisiert
+          order: 18
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_2:
+          label: zweimal im Monat
+          title: Daten werden zweimal pro Monat aktualisiert
+          order: 19
+        http://publications.europa.eu/resource/authority/frequency/MONTHLY_3:
+          label: dreimal im Monat
+          title: Daten werden dreimal pro Monat aktualisiert
+          order: 20
+        http://publications.europa.eu/resource/authority/frequency/BIMONTHLY:
+          label: zweimonatlich
+          title: Daten werden alle zwei Monate aktualisiert
+          order: 21
+        http://publications.europa.eu/resource/authority/frequency/QUARTERLY:
+          label: vierteljährlich
+          title: Daten werden alle drei Monate (quartalsweise) aktualisiert
+          order: 22
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_2:
+          label: halbjährlich
+          title: Daten werden zweimal pro Jahr aktualisiert
+          order: 23
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL_3:
+          label: dreimal im Jahr
+          title: Daten werden dreimal pro Jahr aktualisiert
+          order: 24
+        http://publications.europa.eu/resource/authority/frequency/ANNUAL:
+          label: jährlich
+          title: Daten werden einmal pro Jahr aktualisiert
+          order: 25
+        http://publications.europa.eu/resource/authority/frequency/BIENNIAL:
+          label: zweijährlich
+          title: Daten werden alle zwei Jahre aktualisiert
+          order: 26
+        http://publications.europa.eu/resource/authority/frequency/TRIENNIAL:
+          label: dreijährlich
+          title: Daten werden alle drei Jahre aktualisiert
+          order: 27
+        http://publications.europa.eu/resource/authority/frequency/QUADRENNIAL:
+          label: vierjährlich
+          title: Daten werden alle vier Jahre aktualisiert
+          order: 28
+        http://publications.europa.eu/resource/authority/frequency/QUINQUENNIAL:
+          label: fünfjährlich
+          title: Daten werden alle fünf Jahre aktualisiert
+          order: 29
+        http://publications.europa.eu/resource/authority/frequency/DECENNIAL:
+          label: alle zehn Jahre
+          title: Daten werden alle zehn Jahre aktualisiert
+          order: 30
+        http://publications.europa.eu/resource/authority/frequency/BIDECENNIAL:
+          label: alle zwanzig Jahre
+          title: Daten werden alle zwanzig Jahre aktualisiert
+          order: 31
+        http://publications.europa.eu/resource/authority/frequency/TRIDECENNIAL:
+          label: alle dreissig Jahre
+          title: Daten werden alle dreissig Jahre aktualisiert
+          order: 32
+        http://publications.europa.eu/resource/authority/frequency/AS_NEEDED:
+          label: im Bedarfsfall
+          title: Daten werden bei Bedarf aktualisiert, wenn sie benötigt werden
+          order: 33
+        http://publications.europa.eu/resource/authority/frequency/IRREG:
+          label: unregelmässig
+          title: Daten werden in unregelmässigen Abständen aktualisiert
+          order: 34
+        http://publications.europa.eu/resource/authority/frequency/OP_DATPRO:
+          label: Vorläufige Daten
+          title: Vorläufige Daten, die später durch definitive Daten ersetzt werden
+          order: 35
+        http://publications.europa.eu/resource/authority/frequency/OTHER:
+          label: anderer
+          title: Aktualisierungszyklus entspricht keinem der anderen vordefinierten Werte
+          order: 36
+        http://publications.europa.eu/resource/authority/frequency/UNKNOWN:
+          label: unbekannt
+          title: Der Aktualisierungszyklus ist nicht bekannt
+          order: 37
+        http://publications.europa.eu/resource/authority/frequency/NOT_PLANNED:
+          label: nicht geplant
+          title: Es ist keine Aktualisierung der Daten geplant
+          order: 38
+        http://publications.europa.eu/resource/authority/frequency/NEVER:
+          label: niemals
+          title: Die Daten werden niemals aktualisiert
+          order: 39
+
+## DATENSATZ-TYP ##
+    stereotype:
+      label: Datensatztyp
+      title: Der Datensatztyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
+      literals:
+
+## OGD ##
+        OGD:
+          label: OGD-Datensatz
+          icon: globe
+
+          customProperties:
+            topics:
+              label: Themen
+              title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
+              group: OGD
+              order: 10
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            license:
+              label: Lizenz
+              title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
+              group: OGD
+              order: 30
+              literals:
+                https://creativecommons.org/publicdomain/zero/1.0/:
+                  label: CC0 1.0
+                  order: 1
+                https://creativecommons.org/licenses/by/3.0/ch/:
+                  label: CC BY 3.0 CH
+                  order: 2
+                https://creativecommons.org/licenses/by/4.0/:
+                  label: CC BY 4.0
+                  order: 3
+                https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf:
+                  label: CC BY 3.0 CH + OpenStreetMap
+                  order: 4
+                https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf:
+                  label: CC BY 4.0 + OpenStreetMap
+                  order: 5
+                https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
+                  label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
+                  order: 6
+                https://opendata.swiss/de/terms-of-use/:
+                  label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
+                  order: 7
+                https://www.gnu.org/licenses/gpl-3.0:
+                  label: GNU General Public License 3
+                  order: 8
+            permissions:
+              label: Rechte
+              title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
+              group: OGD
+              order: 40
+              literals:
+                N/A:
+                  label: N/A
+                  order: 0
+                NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 1
+                NonCommercialAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceRequired
+                  order: 2
+                NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 3
+                NonCommercialAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 4
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 5
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 6
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 7
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 8
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 9
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired
+                  order: 10
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 11
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 12
+            publisher:
+              label: Herausgeber
+              title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
+              baseType: STRING
+              group: OGD
+              order: 45
+            publishingOrganization:
+              label: Publizierende Organisation
+              title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
+              baseType: STRING
+              group: OGD
+              order: 48
+            reference:
+              label: Referenz
+              title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
+              baseType: STRING
+              group: OGD
+              order: 50
+            attributions:
+              label: Zuschreibungen
+              title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
+              baseType: STRING
+              group: OGD
+              order: 60
+            odsDataportalLink:
+              label: Datenportal-Link
+              title: Link des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 70
+              readOnly: true
+            odsDataportalId:
+              label: Datenportal-Identifikation
+              title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 80
+              readOnly: true
+            odsDataportalTags:
+              label: Datenportal-Tags
+              title: Tags, die einem Datensatz im OGD-Datenportal zugeordnet sind.
+              baseType: STRING
+              group: OGD
+              order: 90
+              cardinality: MANY
+
+## GEO UND OGD ##
+        GEOUNDOGD:
+          label: Geo- und OGD-Datensatz
+          icon: earth-europe
+
+          customProperties:
+            geoCategory:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: ONE
+              literals:
+                imageryBaseMapsEarthCover_BaseMaps:
+                  label: Basiskarten, Landschaftsmodelle
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
+                  label: Bodenbedeckung, Bodennutzung
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
+                  label: Luft-, Satellitenbilder
+                  order: 3
+                location:
+                  label: Ortsangaben, Referenzsysteme
+                  order: 4
+                elevation:
+                  label: Höhen
+                  order: 5
+                boundaries:
+                  label: Politische und administrative Grenzen
+                  order: 6
+                planningCadastre_Planning:
+                  label: Raumplanung, Raumentwicklung
+                  order: 7
+                planningCadastre_Cadastre:
+                  label: Grundstückskataster
+                  order: 8
+                geoscientificInformation_Geology:
+                  label: Geologie
+                  order: 9
+                geoscientificInformation_Soils:
+                  label: Boden
+                  order: 10
+                geoscientificInformation_NaturalHazards:
+                  label: Naturbedingte Risiken
+                  order: 11
+                biota:
+                  label: Wald, Flora, Fauna
+                  order: 12
+                inlandWaters:
+                  label: Gewässer
+                  order: 13
+                climatologyMeteorologyAtmosphere:
+                  label: Atmosphäre, Luft, Klima
+                  order: 14
+                environment_EnvironmentalProtection:
+                  label: Umweltschutz, Lärm
+                  order: 15
+                environment_NatureProtection:
+                  label: Natur- und Landschaftsschutz
+                  order: 16
+                society:
+                  label: Bevölkerung, Gesellschaft, Kultur
+                  order: 17
+                health:
+                  label: Gesundheit
+                  order: 18
+                structure:
+                  label: Gebäude, Anlagen
+                  order: 19
+                transportation:
+                  label: Verkehr
+                  order: 20
+                utilitiesCommunication_Energy:
+                  label: Energie
+                  order: 21
+                utilitiesCommunication_Utilities:
+                  label: Wasser- und Abfallsysteme
+                  order: 22
+                utilitiesCommunication_Communication:
+                  label: Kommunikation
+                  order: 23
+                intelligenceMilitary:
+                  label: Militär, Sicherheit
+                  order: 24
+                farming:
+                  label: Landwirtschaft
+                  order: 25
+                economy:
+                  label: Wirtschaftliche Aktivitäten
+                  order: 26
+                pipes:
+                  label: Leitungskataster
+                  order: 27
+            geoExtent:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            geoBasicDataId:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: STRING
+              group: GEO
+              order: 50
+            abbreviation:
+              label: Kürzel
+              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
+              baseType: STRING
+              group: GEO
+              order: 70
+            lastPublication:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            productFilename:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            productLayername:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
+            license:
+              label: Lizenz
+              title: Nennt die konkrete Lizenz, welche die Nutzungsbedingungen für das Datenprodukt regelt.
+              group: OGD
+              order: 100
+              literals:
+                "https://creativecommons.org/publicdomain/zero/1.0/":
+                  label: CC0 1.0
+                  order: 1
+                "https://creativecommons.org/licenses/by/3.0/ch/":
+                  label: CC BY 3.0 CH
+                  order: 2
+                "https://creativecommons.org/licenses/by/4.0/":
+                  label: CC BY 4.0
+                  order: 3
+                "https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf":
+                  label: CC BY 3.0 CH + OpenStreetMap
+                  order: 4
+                "https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf":
+                  label: CC BY 4.0 + OpenStreetMap
+                  order: 5
+                "https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb":
+                  label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
+                  order: 6
+                "https://opendata.swiss/de/terms-of-use/":
+                  label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
+                  order: 7
+                "https://www.gnu.org/licenses/gpl-3.0":
+                  label: GNU General Public License 3
+                  order: 8
+            permissions:
+              label: Rechte
+              title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
+              group: OGD
+              order: 110
+              literals:
+                N/A:
+                  label: N/A
+                  order: 0
+                NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 1
+                NonCommercialAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialAllowed-ReferenceRequired
+                  order: 2
+                NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 3
+                NonCommercialAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 4
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 5
+                NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 6
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceNotRequired
+                  order: 7
+                NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialNotAllowed-ReferenceRequired
+                  order: 8
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceNotRequired
+                  order: 9
+                NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialAllowed-ReferenceRequired
+                  order: 10
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceNotRequired
+                  order: 11
+                NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired:
+                  label: NonCommercialNotAllowed-CommercialWithPermission-ReferenceRequired
+                  order: 12
+            publisher:
+              label: Herausgeber
+              title: Der Herausgeber ist die Dienststelle oder Abteilung, die das Recht hat, ein Datenprodukt zu veröffentlichen.
+              baseType: STRING
+              group: OGD
+              order: 120
+            publishingOrganization:
+              label: Publizierende Organisation
+              title: Die publizierende Organisation ist das Departement, dem die Dienststelle oder Abteilung angehört.
+              baseType: STRING
+              group: OGD
+              order: 130
+            reference:
+              label: Referenz
+              title: Verwandten Ressourcen, wie Publikationen, die auf den Datensatz verweisen.
+              baseType: STRING
+              group: OGD
+              order: 140
+            attributions:
+              label: Zuschreibungen
+              title: Verweis auf die Organisation, die die Verantwortung für die Daten trägt.
+              baseType: STRING
+              group: OGD
+              order: 150
+            topics:
+              label: Themen
+              title: Zuordnung des Datensatzes zu einer oder mehreren übergeordneten Kategorien. Ein Datensatz kann mehreren Themen zugeordnet werden.
+              group: OGD
+              order: 160
+              cardinality: MANY
+              literals:
+                "001":
+                  label: Bevölkerung
+                "002":
+                  label: Gesetzgebung
+                "003":
+                  label: Geographie
+                "004":
+                  label: Gesundheit
+                "005":
+                  label: Kultur, Medien, Informationsgesellschaft, Sport
+                "006":
+                  label: Bildung, Wissenschaft
+                "007":
+                  label: Raum und Umwelt
+                "008":
+                  label: Mobilität und Verkehr
+                "009":
+                  label: Arbeit, Erwerb
+                "010":
+                  label: Volkswirtschaft
+                "011":
+                  label: Verwaltung
+                "012":
+                  label: Kriminalität, Strafrecht
+                "013":
+                  label: Bau- und Wohnungswesen
+                "014":
+                  label: Energie
+                "015":
+                  label: Soziale Sicherheit
+                "016":
+                  label: Finanzen
+                "017":
+                  label: Handel
+                "018":
+                  label: Industrie, Dienstleistungen
+                "019":
+                  label: Land- und Forstwirtschaft
+                "020":
+                  label: Öffentliche Ordnung und Sicherheit
+                "021":
+                  label: Politik
+                "022":
+                  label: Preise
+                "023":
+                  label: Statistische Grundlagen
+                "024":
+                  label: Tourismus
+            odsDataportalTags:
+              label: Datenportal-Tags
+              title: Tags, die einem Datensatz im OGD-Datenportal zugeordnet sind.
+              baseType: STRING
+              group: OGD
+              order: 170
+              cardinality: MANY
+            odsDataportalLink:
+              label: Datenportal-Link
+              title: Link des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 180
+              readOnly: true
+            odsDataportalId:
+              label: Datenportal-Identifikation
+              title: Identifikationsnummer des OGD-Datensatzes im kantonalen Datenportal
+              baseType: STRING
+              group: OGD
+              order: 190
+              readOnly: true
+
+## GEO ##
+        GEO:
+          label: Geo-Datensatz
+          icon: solid-location-dot
+
+          customProperties:
+          #GROUP WEITERE GEO INFOS
+            geoCategory:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: ONE
+              literals:
+                imageryBaseMapsEarthCover_BaseMaps:
+                  label: Basiskarten, Landschaftsmodelle
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
+                  label: Bodenbedeckung, Bodennutzung
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
+                  label: Luft-, Satellitenbilder
+                  order: 3
+                location:
+                  label: Ortsangaben, Referenzsysteme
+                  order: 4
+                elevation:
+                  label: Höhen
+                  order: 5
+                boundaries:
+                  label: Politische und administrative Grenzen
+                  order: 6
+                planningCadastre_Planning:
+                  label: Raumplanung, Raumentwicklung
+                  order: 7
+                planningCadastre_Cadastre:
+                  label: Grundstückskataster
+                  order: 8
+                geoscientificInformation_Geology:
+                  label: Geologie
+                  order: 9
+                geoscientificInformation_Soils:
+                  label: Boden
+                  order: 10
+                geoscientificInformation_NaturalHazards:
+                  label: Naturbedingte Risiken
+                  order: 11
+                biota:
+                  label: Wald, Flora, Fauna
+                  order: 12
+                inlandWaters:
+                  label: Gewässer
+                  order: 13
+                climatologyMeteorologyAtmosphere:
+                  label: Atmosphäre, Luft, Klima
+                  order: 14
+                environment_EnvironmentalProtection:
+                  label: Umweltschutz, Lärm
+                  order: 15
+                environment_NatureProtection:
+                  label: Natur- und Landschaftsschutz
+                  order: 16
+                society:
+                  label: Bevölkerung, Gesellschaft, Kultur
+                  order: 17
+                health:
+                  label: Gesundheit
+                  order: 18
+                structure:
+                  label: Gebäude, Anlagen
+                  order: 19
+                transportation:
+                  label: Verkehr
+                  order: 20
+                utilitiesCommunication_Energy:
+                  label: Energie
+                  order: 21
+                utilitiesCommunication_Utilities:
+                  label: Wasser- und Abfallsysteme
+                  order: 22
+                utilitiesCommunication_Communication:
+                  label: Kommunikation
+                  order: 23
+                intelligenceMilitary:
+                  label: Militär, Sicherheit
+                  order: 24
+                farming:
+                  label: Landwirtschaft
+                  order: 25
+                economy:
+                  label: Wirtschaftliche Aktivitäten
+                  order: 26
+                pipes:
+                  label: Leitungskataster
+                  order: 27
+            geoExtent:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            geoBasicDataId:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: ID
+              group: GEO
+              order: 50
+            abbreviation:
+              label: Kürzel
+              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
+              baseType: STRING
+              group: GEO
+              order: 70
+            lastPublication:
+              label: Letzte Publikation Geoportal
+              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
+              baseType: DATETIME
+              group: GEO
+            productFilename:
+              label: Produkt Dateiname
+              title: Dateiname des Datenprodukts im DataLake Geoportal
+              baseType: STRING
+              group: GEO
+            productLayername:
+              label: Technischer Name Layer/Tabelle
+              title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
+              baseType: STRING
+              group: GEO
+
+## Geo-Datenpaket ##
+        GEOPaket:
+          label: Geo-Datensatz-Paket
+          icon: layer-group
+
+          customProperties:
+          #GROUP WEITERE GEO INFOS
+            geoCategory:
+              label: Geokategorie
+              title: Hauptthema des Datenbestandes nach Geokategorien (eCH-166)
+              group: GEO
+              order: 10
+              cardinality: ONE
+              literals:
+                imageryBaseMapsEarthCover_BaseMaps:
+                  label: Basiskarten, Landschaftsmodelle
+                  order: 1
+                imageryBaseMapsEarthCover_EarthCover:
+                  label: Bodenbedeckung, Bodennutzung
+                  order: 2
+                imageryBaseMapsEarthCover_Imagery:
+                  label: Luft-, Satellitenbilder
+                  order: 3
+                location:
+                  label: Ortsangaben, Referenzsysteme
+                  order: 4
+                elevation:
+                  label: Höhen
+                  order: 5
+                boundaries:
+                  label: Politische und administrative Grenzen
+                  order: 6
+                planningCadastre_Planning:
+                  label: Raumplanung, Raumentwicklung
+                  order: 7
+                planningCadastre_Cadastre:
+                  label: Grundstückskataster
+                  order: 8
+                geoscientificInformation_Geology:
+                  label: Geologie
+                  order: 9
+                geoscientificInformation_Soils:
+                  label: Boden
+                  order: 10
+                geoscientificInformation_NaturalHazards:
+                  label: Naturbedingte Risiken
+                  order: 11
+                biota:
+                  label: Wald, Flora, Fauna
+                  order: 12
+                inlandWaters:
+                  label: Gewässer
+                  order: 13
+                climatologyMeteorologyAtmosphere:
+                  label: Atmosphäre, Luft, Klima
+                  order: 14
+                environment_EnvironmentalProtection:
+                  label: Umweltschutz, Lärm
+                  order: 15
+                environment_NatureProtection:
+                  label: Natur- und Landschaftsschutz
+                  order: 16
+                society:
+                  label: Bevölkerung, Gesellschaft, Kultur
+                  order: 17
+                health:
+                  label: Gesundheit
+                  order: 18
+                structure:
+                  label: Gebäude, Anlagen
+                  order: 19
+                transportation:
+                  label: Verkehr
+                  order: 20
+                utilitiesCommunication_Energy:
+                  label: Energie
+                  order: 21
+                utilitiesCommunication_Utilities:
+                  label: Wasser- und Abfallsysteme
+                  order: 22
+                utilitiesCommunication_Communication:
+                  label: Kommunikation
+                  order: 23
+                intelligenceMilitary:
+                  label: Militär, Sicherheit
+                  order: 24
+                farming:
+                  label: Landwirtschaft
+                  order: 25
+                economy:
+                  label: Wirtschaftliche Aktivitäten
+                  order: 26
+                pipes:
+                  label: Leitungskataster
+                  order: 27
+            geoExtent:
+              label: Ausdehnung Beschreibung
+              title: Beschreibung der räumlichen Ausdehnung der Daten
+              group: GEO
+              order: 30
+              literals:
+                "001":
+                  label: Kanton Basel-Stadt
+                "002":
+                  label: Stadt Basel
+                "003":
+                  label: Gemeinde Riehen
+                "004":
+                  label: Gemeinde Bettingen
+                "005":
+                  label: Perimeter Offizieller Stadtplan
+                "006":
+                  label: Grossraum Basel
+            geoBasicDataId:
+              label: Geobasisdaten ID
+              title: ID der Geobasisdaten im Geobasisdatenkatalog
+              baseType: ID
+              group: GEO
+              order: 50
+            productLayername:
+              label: Technischer Dateiname
+              title: Dateiname des Datenprodukts
+              baseType: STRING
+              group: GEO
+
+## CUSTOM PROPERTIES ##
+
+  customProperties:
+    #DATASPACE:
+      #label: Datenraum
+      #order: 5
+      #cardinality: MANY
+      #literals:
+        #"1":
+          #label: Gebäude
+        #"2":
+          #label: Geo
+    lastUpdate:
+      label: Letzte Aktualisierung
+      title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
+      order: 10
+      baseType: DATE
+    creationDate:
+      label: Erstellungsdatum
+      title: Datum, an dem das Datenprodukt zum ersten Mal erstellt und gespeichert wurde.
+      order: 20
+      baseType: DATE
+    publicationDate:
+      label: Publikationsdatum
+      title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde.
+      order: 25
+      baseType: DATE
+    personalData:
+      label: Personendaten
+      title: Das Datenprodukt enthält Personendaten.
+      order: 30
+      group: DATA_PRIVACY
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+    protectionLevel:
+      label: Schutzbedarfsstufen
+      title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
+      order: 40
+      group: DATA_PRIVACY
+      literals:
+        "1":
+          label: Grundschutz (GS)
+          order: 1
+        "2":
+          label: erhöhter Schutzbedarf (ES)
+          order: 2
+        "3":
+          label: sehr hoher Schutzbedarf (SHS)
+          order: 3
+    confidentiality:
+      label: Vertraulichkeit
+      title: Vertraulichkeitsstufe des Datenprodukts
+      order: 50
+      group: DATA_PRIVACY
+      literals:
+        "1":
+          label: Öffentlich
+          order: 1
+        "2":
+          label: Intern
+          order: 2
+        "3":
+          label: Vertraulich
+          order: 3
+        "4":
+          label: Geheim
+          order: 4
+    confidentialityJustification:
+      label: Begründung für Vertraulichkeit
+      title: Begründung für eingeschränkter Zugang zum Datenprodukt
+      group: DATA_PRIVACY
+      baseType: TEXT
+      order: 55
+    usageRestriction:
+      label: Nutzungseinschränkung
+      title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
+      baseType: TEXT
+      order: 60
+      group: DATA_PRIVACY
+    historicized:
+      label: Historisierung
+      title: Änderungen des Datenprodukts werden über die Zeit hinweg festgehalten. Frühere Versionen des Datenprodukts können wiederhergestellt werden.
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+      group: HISTORIOGRAPHY
+      order: 70
+    historicizedSince:
+      label: Historisierung seit wann
+      title: Datum, ab dem eine Änderung des Datenprodukts festgehalten wird. Datum, ab dem es frühere Versionen des Datenprodukts gibt.
+      baseType: DATE
+      group: HISTORIOGRAPHY
+      order: 80
+    historicizationType:
+      label: Art der Historisierung
+      title: Art des Festhaltens einer Änderung des Datenprodukts (Snapshots etc.)
+      baseType: TEXT
+      group: HISTORIOGRAPHY
+      order: 90
+    retentionPeriod:
+      label: Aufbewahrungsfrist (Jahre)
+      title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
+      group: HISTORIOGRAPHY
+      baseType: INTEGER
+      order: 100
+    retentionJustification:
+      label: Begründung für Aufbewahrungsfrist
+      title: Begründung und Bemerkung zur Aufbewahrunsgfrist
+      group: HISTORIOGRAPHY
+      baseType: TEXT
+      order: 110
+    archived:
+      label: Archivierung
+      title: Wird das Datenprodukt archiviert (Staatsarchiv?)
+      group: ARCHIVING
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+      order: 120
+    archiveDetails:
+      label: Archivierung Details
+      title: Nach welchen Kriterien wird das Datenprodukt archiviert?
+      group: ARCHIVING
+      baseType: TEXT
+      order: 130
+    archiveJustification:
+      label: Begründung für Archivierung
+      title: Begründung der Archivwürdigkeit
+      group: ARCHIVING
+      baseType: TEXT
+      order: 140
+
+## BESTANDTEILE ##
+Composition:
+  properties:
+    label:
+      label: Bezeichnung
+    title:
+      label: Technische Bezeichnung
+    qualifier:
+      literals:
+        GROUP:
+          label: Gruppierung
+          labelEn: Group
+        FILTER:
+          label: Filter
+          labelEn: Filter
+        IDENTIFIER:
+          label: Identifikator
+          labelEn: Identifier
+  customProperties:
+    required:
+      label: Muss/Kann
+      labelEn: Required
+      title: Gibt an, ob das Attribut erforderlich ist.
+      titleEn: Indicates if the attribute is required
+      order: 10
+      literals:
+        OPTIONAL:
+          label: Kann
+          labelEn: Optional
+          order: 0
+        MANDATORY:
+          label: Muss
+          labelEn: Mandatory
+          order: 1
+
+## DISTRIBUTION ##
+Distribution:
+  properties:
+    format:
+      literals:
+        csv:
+          label: CSV
+        html:
+          label: HTML
+        json:
+          label: JSON
+        GeoJson:
+          label: GeoJson
+        pdf:
+          label: PDF
+        png:
+          label: PNG
+        rdf:
+          label: RDF
+        txt:
+          label: TXT
+        wfs:
+          label: WFS
+        wms:
+          label: WMS
+        wmst:
+          label: WMTS
+        xls:
+          label: XLS
+        xml:
+          label: XML
+        OGCFeatureAPI:
+          label: OGC Feature API
+        STAC:
+          label: STAC
+        GeoPackage:
+          label: GeoPackage
+        FileGeodatabase:
+          label: FileGeodatabase
+        GeoParquet:
+          label: GeoParquet
+        Shapefile:
+          label: Shapefile

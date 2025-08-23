@@ -1,0 +1,60 @@
+# Datenbankobjekte
+
+UmlModel:
+  label: Datenobjektverzeichnis
+
+UmlAttribute:
+  properties:
+    identifying:
+      label: Primärschlüssel
+      title: Das Kennzeichen, das angibt, ob dieses Attribut Teil eines Primärschlüssels ist. Der Primärschlüssel ist ein Attribut oder eine Kombination von Attributen eines Datenobjekts, das jeden Eintrag eindeutig identifiziert.
+      baseType: BOOLEAN
+  customProperties:
+    primaryCollection:
+      label: Primärerhebung
+      title: Dieses Attribut enthält Daten aus eigener Erhebung.
+      literals:
+        yes:
+          label: Ja
+          order: 1
+        no:
+          label: Nein
+          order: 2
+
+UmlClass:
+  properties:
+    stereotype:
+      label: Typ
+      literals:
+
+        file:
+          label: Datei
+          labelEn: file
+          customProperties:
+            fileFormat:
+              label: Dateiformat
+              labelEn: file format
+              literals:
+                json:
+                  label: json
+                xml:
+                  label: xml
+                shape:
+                  label: shape
+                csv:
+                  label: csv
+
+        ogd_dataset: # Bitte ändern zu "ogdTable"
+          label: OGD-Datensatz # TODO: Change to OGD-Tabelle
+          labelEn: OGD dataset
+          customProperties:
+            odsDataportalLink:
+              label: Datenportal-Link
+              baseType: STRING
+              order: 50
+              readOnly: true
+            odsDataportalId:
+              label: Datenportal-Identifikation
+              baseType: STRING
+              order: 60
+              readOnly: true
