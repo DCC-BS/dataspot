@@ -358,6 +358,23 @@ Deployment:
           labelEn: excluded
 
 #070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
+Person:
+  customProperties:
+    sk_person_id:
+      label: Personen-ID
+      baseType: STRING
+      title: Personen-ID im Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/person/c056392e5fc842e4a92ddacc8580db58)
+      width: 1
+      order: 1
+
+  customFunctions:
+    viewMembershipDetails:
+      label: Person im Staatskalender anzeigen
+      title: Öffnet die Seite dieser Person im Staatskalender.
+      icon: external-link
+      href: "https://staatskalender.bs.ch/person/${this.sk_person_id}"
+
+
 Post:
   customProperties:
     membership_id:
