@@ -5,9 +5,6 @@ import datetime
 import config
 from src.common import email_helpers
 from src.clients.base_client import BaseDataspotClient
-from scripts.catalog_quality_daily.check_daily_posts_occupation import check_posts_occupation
-from scripts.catalog_quality_daily.check_daily_correct_data_owners import check_correct_data_owners
-from scripts.catalog_quality_daily.check_daily_persons_have_users import check_persons_without_users
 
 
 def main():
@@ -43,24 +40,32 @@ def run_all_checks():
     """
     check_results = []
 
-    # Initialize client for sql calls
+    # Initialize client for SQL calls
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
-    # Data owner correctness check
-    logging.info("")
-    logging.info("   Starting Data Owner Correctness Check...")
-    logging.info("   " + "-" * 50)
-    result = check_correct_data_owners(dataspot_client=dataspot_base_client)
-    check_results.append({
-        'check_name': 'data_owner_correctness',
-        'title': 'Data Owner Correctness Check',
-        'description': 'Checks if all Data Owner posts have the correct person assignments.',
-        'results': result
-    })
-    logging.info("")
-    logging.info("   Data Owner Correctness Check Completed.")
-    logging.info("")
+    run_check_1 = False
+    run_check_2 = True
+    run_check_3 = False
+    run_check_4 = False
+    run_check_5 = False
+
+    if run_check_2:
+        # Check #2: Person assignment according to Staatskalender
+        logging.info("")
+        logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
+        logging.info("   " + "-" * 50)
+        from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
+        result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
+        check_results.append({
+            'check_name': 'check_1_staatskalender_assignment',
+            'title': 'Check #2: Person Assignment (Staatskalender)',
+            'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
+            'results': result
+        })
+        logging.info("")
+        logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
+        logging.info("")
 
     # Post occupation check
     logging.info("")
@@ -92,7 +97,6 @@ def run_all_checks():
     logging.info("   Person-User Association Check Completed.")
     logging.info("")
 
-    # Additional checks can be added here
     
     logging.info("")
     logging.info("-----[ All Checks Completed ]" + "-" * 45)
@@ -365,9 +369,6 @@ def log_combined_results(combined_report):
                             logging.info(f"     - {post_label}")
                             logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
                             logging.info(f"       Message: {message}")
-
-            # We no longer log all issues here - we already log them by type separately
-            # (This removed to avoid duplicating issue listings)
 
         # Log error if any
         if check.get('error'):
