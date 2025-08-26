@@ -6,6 +6,7 @@ from src.common import requests_get, requests_patch
 from src.clients.base_client import BaseDataspotClient
 
 # Global cache for person data
+_person_with_sk_id_cache = None
 _person_cache = None
 
 def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Dict[str, any]:
@@ -149,8 +150,12 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     Returns:
         None (updates the result dictionary)
     """
-    for post_uuid in posts.keys():
-        post_label, memberships = posts[post_uuid]
+    total_posts = len(posts)
+    
+    for current_post, (post_uuid, (post_label, memberships)) in enumerate(posts.items(), 1):
+        # Log post header with progress indicator
+        logging.info(f"[{current_post}/{total_posts}] {post_label}:")
+        
         for membership_id in memberships:
             # Retrieve membership data from staatskalender
             try:
@@ -238,6 +243,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     })
                     return
 
+                # Check if a person with this sk_person_id already exists in Dataspot
                 person_with_corresponding_sk_person_id_already_exists, existing_first_name, existing_last_name, person_uuid = (
                     check_person_with_corresponding_sk_person_id_already_exists(dataspot_client, sk_person_id))
 
@@ -256,35 +262,42 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
-                        logging.info(f'{post_label}: Updated person name from {existing_first_name} {existing_last_name} to {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+                        logging.info(f' - Updated person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}" (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
 
                     else:
-                        logging.info(f'{post_label}: Person {sk_first_name} {sk_last_name} already exists and has correct name')
+                        logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
 
                 else:
-                    # If no person with corresponding sk_person_id exists, ensure that a person with that name exists
-                    person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
-                    if person_newly_created:
-                        # Reset cache since a new person was created
-                        global _person_cache
-                        _person_cache = None
-
-                        # Add remediation issue stating that the person was created
-                        result['issues'].append({
-                            'type': 'person_created',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'membership_id': membership_id,
-                            'person_uuid': person_uuid,
-                            'message': f"Person {sk_first_name} {sk_last_name} was created in dataspot (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})",
-                            'remediation_attempted': True,
-                            'remediation_success': True
-                        })
-                        logging.info(f"Person {sk_first_name} {sk_last_name} was created (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})")
+                    # No person with this sk_person_id exists, so we need to find or create a person with the correct name
+                    # First, try to find an existing person with the correct name using our cache
+                    person_exists, person_uuid = find_person_by_name(dataspot_client, sk_first_name, sk_last_name)
+                    
+                    if person_exists:
+                        logging.info(f' - Found existing person {sk_first_name} {sk_last_name}')
                     else:
-                        logging.info(f"Person {sk_first_name} {sk_last_name} already existed")
+                        # Person doesn't exist, create it using the existing method
+                        person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
+                        
+                        if person_newly_created:
+                            # Reset caches since a new person was created
+                            global _person_with_sk_id_cache, _person_cache
+                            _person_with_sk_id_cache = None
+                            _person_cache = None
 
-                    # Ensure that the person has the correct sk_person_id
+                            # Add remediation issue stating that the person was created
+                            result['issues'].append({
+                                'type': 'person_created',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'membership_id': membership_id,
+                                'person_uuid': person_uuid,
+                                'message': f"Person {sk_first_name} {sk_last_name} was created in dataspot (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})",
+                                'remediation_attempted': True,
+                                'remediation_success': True
+                            })
+                            logging.info(f' - Created new person {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+
+                    # Now ensure that the person has the correct sk_person_id
                     person_sk_id_updated = ensure_person_sk_id(dataspot_client, person_uuid, sk_person_id)
                     if person_sk_id_updated:
                         result['issues'].append({
@@ -296,9 +309,9 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
-                        logging.info(f"Person sk_person_id {sk_person_id} updated to {sk_person_id} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})")
+                        logging.info(f'   - Updated sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
                     else:
-                        logging.info(f"Person sk_person_id {sk_person_id} already correct")
+                        logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
 
             except Exception as e:
                 result['issues'].append({
@@ -328,10 +341,10 @@ def check_person_with_corresponding_sk_person_id_already_exists(dataspot_client:
             - str: Last name of the person if found, "no_last_name" if not found
             - str: UUID of the person in dataspot, "no_person_uuid" if not found
     """
-    global _person_cache
+    global _person_with_sk_id_cache
 
     # Load cache if not already loaded
-    if _person_cache is None:
+    if _person_with_sk_id_cache is None:
         logging.debug("Loading person cache...")
         query = """
         SELECT
@@ -347,18 +360,65 @@ def check_person_with_corresponding_sk_person_id_already_exists(dataspot_client:
             cp.name = 'sk_person_id'
         """
         results = dataspot_client.execute_query_api(sql_query=query)
-        _person_cache = {}
+        _person_with_sk_id_cache = {}
         for result in results:
             sk_id = result['sk_person_id'].strip('"')
-            _person_cache[sk_id] = (True, result['given_name'], result['family_name'], result['id'])
-        logging.info(f"Person cache loaded with {len(_person_cache)} entries")
+            _person_with_sk_id_cache[sk_id] = (True, result['given_name'], result['family_name'], result['id'])
+        # TODO: Change to debug
+        logging.info(f"Person with sk_person_id cache loaded with {len(_person_with_sk_id_cache)} entries") 
 
     # Check if person exists in cache
-    if sk_person_id in _person_cache:
-        return _person_cache[sk_person_id]
+    if sk_person_id in _person_with_sk_id_cache:
+        return _person_with_sk_id_cache[sk_person_id]
 
     # Person not found in cache, return not found
     return False, "no_first_name", "no_last_name", "no_person_uuid"
+
+
+def find_person_by_name(dataspot_client: BaseDataspotClient, first_name: str, last_name: str) -> Tuple[bool, str]:
+    """
+    Find a person by name using cached data.
+
+    Args:
+        dataspot_client: Database client
+        first_name: Person's first name
+        last_name: Person's last name
+
+    Returns:
+        Tuple[bool, str]: Tuple containing:
+            - bool: True if a person with the given name exists, False otherwise
+            - str: UUID of the person if found, "no_person_uuid" if not found
+    """
+    global _person_cache
+
+    # Load cache if not already loaded
+    if _person_cache is None:
+        logging.debug("Loading all persons cache...")
+        query = """
+        SELECT
+            p.id,
+            p.given_name,
+            p.family_name
+        FROM
+            person_view p
+        ORDER BY
+            p.family_name, p.given_name
+        """
+        results = dataspot_client.execute_query_api(sql_query=query)
+        _person_cache = {}
+        for result in results:
+            person_name = f"{result['given_name']} {result['family_name']}"
+            _person_cache[person_name] = result['id']
+        # TODO: Change to debug
+        logging.info(f"All persons cache loaded with {len(_person_cache)} entries")
+
+    # Check if person exists in cache
+    person_name = f"{first_name} {last_name}"
+    if person_name in _person_cache:
+        return True, _person_cache[person_name]
+
+    # Person not found in cache, return not found
+    return False, "no_person_uuid"
 
 # DONE
 def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, given_name: str, family_name: str) -> None:
@@ -392,8 +452,9 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, gi
 
     response.raise_for_status()
 
-    # Reset cache since person data was modified
-    global _person_cache
+    # Reset caches since person data was modified
+    global _person_with_sk_id_cache, _person_cache
+    _person_with_sk_id_cache = None
     _person_cache = None
 
 # DONE
@@ -442,7 +503,8 @@ def ensure_person_sk_id(dataspot_client: BaseDataspotClient, person_uuid: str, s
 
     response.raise_for_status()
     
-    # Reset cache since person data was modified
-    global _person_cache
+    # Reset caches since person data was modified
+    global _person_with_sk_id_cache, _person_cache
+    _person_with_sk_id_cache = None
     _person_cache = None
     return True
