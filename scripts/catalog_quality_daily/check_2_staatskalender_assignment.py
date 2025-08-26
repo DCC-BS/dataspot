@@ -364,8 +364,7 @@ def check_person_with_corresponding_sk_person_id_already_exists(dataspot_client:
         for result in results:
             sk_id = result['sk_person_id'].strip('"')
             _person_with_sk_id_cache[sk_id] = (True, result['given_name'], result['family_name'], result['id'])
-        # TODO: Change to debug
-        logging.info(f"Person with sk_person_id cache loaded with {len(_person_with_sk_id_cache)} entries") 
+        logging.debug(f"Person with sk_person_id cache loaded with {len(_person_with_sk_id_cache)} entries")
 
     # Check if person exists in cache
     if sk_person_id in _person_with_sk_id_cache:
@@ -409,8 +408,7 @@ def find_person_by_name(dataspot_client: BaseDataspotClient, first_name: str, la
         for result in results:
             person_name = f"{result['given_name']} {result['family_name']}"
             _person_cache[person_name] = result['id']
-        # TODO: Change to debug
-        logging.info(f"All persons cache loaded with {len(_person_cache)} entries")
+        logging.debug(f"All persons cache loaded with {len(_person_cache)} entries")
 
     # Check if person exists in cache
     person_name = f"{first_name} {last_name}"
