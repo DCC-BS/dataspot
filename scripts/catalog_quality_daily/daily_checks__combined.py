@@ -47,7 +47,7 @@ def run_all_checks():
     run_check_1 = True
     run_check_2 = True
     run_check_3 = False
-    run_check_4 = False
+    run_check_4 = True
     run_check_5 = False
 
     if run_check_1:
