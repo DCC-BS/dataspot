@@ -25,7 +25,7 @@ def check_1_unique_sk_person_id(dataspot_client: BaseDataspotClient) -> Dict[str
     Returns:
         dict: Check results including status, issues, and any errors
     """
-    logging.info("Starting Check #1: Eindeutigkeitsprüfung...")
+    logging.debug("Starting Check #1: Eindeutigkeitsprüfung...")
     
     result = {
         'status': 'success',
@@ -45,11 +45,12 @@ def check_1_unique_sk_person_id(dataspot_client: BaseDataspotClient) -> Dict[str
         logging.info(f"Found {len(persons_with_skid)} persons with sk_person_id to verify")
         
         # Check for duplicates
-        logging.info(f"Processing {len(persons_with_skid)} persons for duplicate sk_person_id values...")
+        logging.debug(f"Processing {len(persons_with_skid)} persons for duplicate sk_person_id values...")
         duplicates = find_duplicate_sk_person_ids(persons_with_skid)
         
         if duplicates:
-            result['message'] = f"Check #1: Found {len(duplicates)} duplicate sk_person_id values"
+            result['message'] = f"Check #1: Found {len(duplicates)} duplicate sk_person_id value(s)"
+            logging.info(f"Check finished: Found {len(duplicates)} duplicate sk_person_id value(s)!")
             
             for duplicate in duplicates:
                 result['issues'].append({
@@ -63,6 +64,7 @@ def check_1_unique_sk_person_id(dataspot_client: BaseDataspotClient) -> Dict[str
                 })
         else:
             result['message'] = 'Check #1: All sk_person_id values are unique'
+            logging.info(f"Check finished: All {len(persons_with_skid)} sk_person_ids are unique")
     
         # Update final status and message
         if result['issues']:
@@ -71,7 +73,7 @@ def check_1_unique_sk_person_id(dataspot_client: BaseDataspotClient) -> Dict[str
             actual_issues = issue_count
             
             result['status'] = 'warning'
-            result['message'] = f"Check #1: Found {actual_issues} duplicate sk_person_id values requiring attention"
+            result['message'] = f"Check #1: Found {actual_issues} duplicate sk_person_id value(s) requiring attention"
     
     except Exception as e:
         result['status'] = 'error'

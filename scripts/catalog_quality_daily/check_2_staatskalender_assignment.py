@@ -34,7 +34,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
     Returns:
         dict: Check results including status, issues, and any errors
     """
-    logging.info("Starting Check #2: Personensynchronisation aus dem Staatskalender...")
+    logging.debug("Starting Check #2: Personensynchronisation aus dem Staatskalender...")
     
     result = {
         'status': 'success',
@@ -72,9 +72,9 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
             
             if actual_issues > 0:
                 result['status'] = 'warning'
-                result['message'] = f"Check #2: Found {issue_count} issues ({remediated_count} automatically fixed, {actual_issues} requiring attention)"
+                result['message'] = f"Check #2: Found {issue_count} issue(s) ({remediated_count} automatically fixed, {actual_issues} requiring attention)"
             else:
-                result['message'] = f"Check #2: Fixed {remediated_count} issues, all persons are correctly synchronized"
+                result['message'] = f"Check #2: Fixed {remediated_count} issue(s), all persons are correctly synchronized"
     
     except Exception as e:
         result['status'] = 'error'
