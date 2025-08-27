@@ -85,37 +85,54 @@ def run_all_checks():
         logging.info("")
 
     if run_check_3:
-        # Check #3: Post occupation check
+        # Check #3: Membership-based Post Assignments
         logging.info("")
-        logging.info("   Starting Check #3: Post Occupation...")
+        logging.info("   Starting Check #3: Membership-based Post Assignments...")
         logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_3_post_occupation import check_3_post_occupation
-        result = check_3_post_occupation(dataspot_client=dataspot_base_client)
+        from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
+        result = check_3_post_assignment(dataspot_client=dataspot_base_client)
         check_results.append({
-            'check_name': 'check_3_post_occupation',
-            'title': 'Check #3: Post Occupation',
+            'check_name': 'check_3_post_assignment',
+            'title': 'Check #3: Membership-based Post Assignments',
+            'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
+            'results': result
+        })
+        logging.info("")
+        logging.info("   Check #3: Membership-based Post Assignments Completed.")
+        logging.info("")
+
+    if run_check_4:
+        # Check #4: Post occupation check
+        logging.info("")
+        logging.info("   Starting Check #4: Post Occupation...")
+        logging.info("   " + "-" * 50)
+        from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
+        result = check_4_post_occupation(dataspot_client=dataspot_base_client)
+        check_results.append({
+            'check_name': 'check_4_post_occupation',
+            'title': 'Check #4: Post Occupation',
             'description': 'Checks if all posts are assigned to at least one person.',
             'results': result
         })
         logging.info("")
-        logging.info("   Check #3: Post Occupation Completed.")
+        logging.info("   Check #4: Post Occupation Completed.")
         logging.info("")
 
-    if run_check_4:
-        # Check #4: User assignment for persons with sk_person_id
+    if run_check_5:
+        # Check #5: User assignment for persons with sk_person_id
         logging.info("")
-        logging.info("   Starting Check #4: User Assignment...")
+        logging.info("   Starting Check #5: User Assignment...")
         logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_4_user_assignment import check_4_user_assignment
-        result = check_4_user_assignment(dataspot_client=dataspot_base_client)
+        from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
+        result = check_5_user_assignment(dataspot_client=dataspot_base_client)
         check_results.append({
-            'check_name': 'check_4_user_assignment',
-            'title': 'Check #4: User Assignment for Persons',
+            'check_name': 'check_5_user_assignment',
+            'title': 'Check #5: User Assignment for Persons',
             'description': 'Checks if all persons with sk_person_id have the correct user assignments.',
             'results': result
         })
         logging.info("")
-        logging.info("   Check #4: User Assignment Completed.")
+        logging.info("   Check #5: User Assignment Completed.")
         logging.info("")
 
     
