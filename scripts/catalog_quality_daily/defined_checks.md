@@ -13,7 +13,7 @@ Abhängigkeiten und Zweck:
    - Zweck: Erstellt/aktualisiert Personen aus Staatskalender nach Sicherstellung, dass keine Duplikate existieren
 
 3. Mitgliedschaftsbasierte Posten-Zuordnungen  
-   - Abhängigkeiten: Check #2 (Personensynchronisation)  
+   - Abhängigkeiten: Check #2 (Personensynchronisation), Check #1 (Eindeutigkeitsprüfung)
    - Zweck: Weist Personen Posten basierend auf Staatskalender-Mitgliedschaftsdaten zu, nachdem Personen existieren
 
 4. Postenbesetzungsprüfung  
