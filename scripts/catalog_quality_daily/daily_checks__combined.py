@@ -46,8 +46,8 @@ def run_all_checks():
 
     run_check_1 = True
     run_check_2 = True
-    run_check_3 = False
-    run_check_4 = True
+    run_check_3 = True
+    run_check_4 = False
     run_check_5 = False
 
     if run_check_1:
@@ -67,19 +67,23 @@ def run_all_checks():
         logging.info("   Check #1: Unique sk_person_id Verification Completed.")
         logging.info("")
 
+    post_person_mapping__should = []
+
     if run_check_2:
         # Check #2: Person assignment according to Staatskalender
         logging.info("")
         logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
-        result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
+        check_2_result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
         check_results.append({
             'check_name': 'check_2_staatskalender_assignment',
             'title': 'Check #2: Person Assignment (Staatskalender)',
             'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
-            'results': result
+            'results': check_2_result
         })
+        post_person_mapping__should = check_2_result['post_person_mapping__should']
+
         logging.info("")
         logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
         logging.info("")
@@ -90,7 +94,13 @@ def run_all_checks():
         logging.info("   Starting Check #3: Membership-based Post Assignments...")
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
-        result = check_3_post_assignment(dataspot_client=dataspot_base_client)
+
+        logging.debug(f"   Using post_person_mapping__should from check_2 with {len(post_person_mapping__should)} mappings")
+
+        result = check_3_post_assignment(
+            dataspot_client=dataspot_base_client,
+            post_person_mapping__should=post_person_mapping__should
+        )
         check_results.append({
             'check_name': 'check_3_post_assignment',
             'title': 'Check #3: Membership-based Post Assignments',

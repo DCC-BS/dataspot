@@ -32,7 +32,10 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         dataspot_client: Base client for database operations
         
     Returns:
-        dict: Check results including status, issues, and any errors
+        dict: Check results including status, issues, any errors, and a mapping of post_uuid to person_uuid
+              that shows how posts SHOULD be assigned to persons according to Staatskalender data.
+              This mapping (post_person_mapping__should) is provided for reuse in check_3 to avoid
+              redundant Staatskalender API calls.
     """
     logging.debug("Starting Check #2: Personensynchronisation aus dem Staatskalender...")
     
@@ -40,7 +43,8 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         'status': 'success',
         'message': 'All persons from Staatskalender are correctly present in Dataspot.',
         'issues': [],
-        'error': None
+        'error': None,
+        'post_person_mapping__should': []
     }
     
     try:
@@ -142,10 +146,12 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     - Ensure that a person with the correct name (first and last) exists in dataspot
     - Ensure that the person has the sk_person_id set correctly
 
+    - Build a mapping of post_uuid to person_uuid for use in check_3
+
     Args:
         posts: Posts data with membership information
         dataspot_client: Database client
-        result: Result dictionary to update with issues
+        result: Result dictionary to update with issues and post_person_mapping__should
 
     Returns:
         None (updates the result dictionary)
@@ -266,6 +272,10 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
+                    
+                    # Add to the post_person_mapping__should for use in check_3
+                    result['post_person_mapping__should'].append((post_uuid, person_uuid))
+                    logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
                 else:
                     # No person with this sk_person_id exists, so we need to find or create a person with the correct name
@@ -312,6 +322,10 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         logging.info(f'   - Updated sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
+                    
+                    # Add to the post_person_mapping__should for use in check_3
+                    result['post_person_mapping__should'].append((post_uuid, person_uuid))
+                    logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
             except Exception as e:
                 result['issues'].append({
