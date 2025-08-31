@@ -298,7 +298,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             logging.info(f' - Created new person {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
 
                     # Now ensure that the person has the correct sk_person_id
-                    person_sk_id_updated = ensure_person_sk_id(dataspot_client, person_uuid, sk_person_id)
+                    person_sk_id_updated = ensure_correct_person_sk_id(dataspot_client, person_uuid, sk_person_id)
                     if person_sk_id_updated:
                         result['issues'].append({
                             'type': 'person_sk_id_updated',
@@ -456,7 +456,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, gi
     _person_cache = None
 
 # DONE
-def ensure_person_sk_id(dataspot_client: BaseDataspotClient, person_uuid: str, sk_person_id: str) -> bool:
+def ensure_correct_person_sk_id(dataspot_client: BaseDataspotClient, person_uuid: str, sk_person_id: str) -> bool:
     """
     Ensure that a person has the correct Staatskalender ID.
 
