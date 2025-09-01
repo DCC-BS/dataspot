@@ -1083,7 +1083,7 @@ Dataset:
           order: 9
         private_third_party_interests_impairment:
           label: 10. Daten wurden freiwillig von Dritten mitgeteilt und die Geheimhaltung wurde vom öffentlichen Organ zugesichert.
-          title: 11. Daten, die dem öffentlichen Organ von Dritten freiwillig mitgeteilt worden sind und deren Geheimhaltung es zugesichert hat, sind nicht zu veröffentlichen.
+          title: Daten, die dem öffentlichen Organ von Dritten freiwillig mitgeteilt worden sind und deren Geheimhaltung es zugesichert hat, sind nicht zu veröffentlichen.
           order: 10
     confidentialityJustification:
       label: Bemerkungen zur Vertraulichkeit
