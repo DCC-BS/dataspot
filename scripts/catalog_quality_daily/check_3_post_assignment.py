@@ -321,6 +321,7 @@ def process_post_assignments(posts_with_membership_ids: Dict[str, Tuple[str, Lis
         
         # Get valid person UUIDs that should be assigned to this post
         valid_person_uuids = []
+        persons_to_process = {}
         
         # Process each membership ID to find the corresponding person
         for membership_id in memberships:
@@ -340,18 +341,62 @@ def process_post_assignments(posts_with_membership_ids: Dict[str, Tuple[str, Lis
             # Check if person is already assigned to the post
             person_assigned = any(a['person_uuid'] == person_uuid for a in current_assignments)
             
+            # Keep track of persons that need processing and whether they need assignment
+            if person_uuid not in persons_to_process:
+                # Initialize with all posts the person currently holds
+                current_posts = []
+                # We'd need to query this, but for simplicity we only track this one
+                if person_assigned:
+                    current_posts.append(post_uuid)
+                    
+                persons_to_process[person_uuid] = {
+                    'name': person_name,
+                    'membership_id': membership_id,
+                    'current_posts': current_posts,
+                    'should_have_post': True,
+                    'needs_assignment': not person_assigned
+                }
+            
             if not person_assigned:
-                # Person should be assigned but isn't - assign them
-                success = assign_person_to_post(dataspot_client, post_uuid, person_uuid)
+                logging.info(f"  - Need to add assignment: {person_name} -> {post_label}")
+            else:
+                logging.info(f"  - Already assigned: {person_name} -> {post_label}")
+
+        # Process invalid assignments (persons assigned to post but not in Staatskalender)
+        for assignment in current_assignments:
+            person_uuid = assignment['person_uuid']
+            person_name = f"{assignment['given_name']} {assignment['family_name']}"
+            
+            if person_uuid not in valid_person_uuids:
+                # Add to persons to process if not already there
+                if person_uuid not in persons_to_process:
+                    persons_to_process[person_uuid] = {
+                        'name': person_name,
+                        'current_posts': [post_uuid],
+                        'should_have_post': False,
+                        'needs_removal': True
+                    }
+                logging.info(f"  - Need to remove invalid assignment: {person_name} from {post_label}")
+        
+        # Now process each person
+        for person_uuid, info in persons_to_process.items():
+            person_name = info['name']
+            current_posts = info['current_posts']
+            should_have_post = info['should_have_post']
+            
+            if should_have_post and post_uuid not in current_posts:
+                # Need to add the post
+                new_posts = current_posts + [post_uuid]
+                update_results = update_holds_post(dataspot_client, person_uuid, new_posts)
                 
-                if success:
+                if update_results['added']:
                     result['issues'].append({
                         'type': 'person_assignment_added',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'person_uuid': person_uuid,
                         'person_name': person_name,
-                        'membership_id': membership_id,
+                        'membership_id': info.get('membership_id', ''),
                         'message': f"Person {person_name} has been assigned to post {post_label}",
                         'remediation_attempted': True,
                         'remediation_success': True
@@ -364,45 +409,42 @@ def process_post_assignments(posts_with_membership_ids: Dict[str, Tuple[str, Lis
                         'post_label': post_label,
                         'person_uuid': person_uuid,
                         'person_name': person_name,
-                        'membership_id': membership_id,
+                        'membership_id': info.get('membership_id', ''),
                         'message': f"Failed to assign person {person_name} to post {post_label}",
                         'remediation_attempted': True,
                         'remediation_success': False
                     })
                     logging.info(f"  - Failed to add assignment: {person_name} -> {post_label}")
-            else:
-                logging.info(f"  - Already assigned: {person_name} -> {post_label}")
-
-        # Remove invalid assignments (persons assigned to post but not in Staatskalender)
-        for assignment in current_assignments:
-            if assignment['person_uuid'] not in valid_person_uuids:
-                # Remove this person from the post
-                success = remove_person_from_post(dataspot_client, post_uuid, assignment['person_uuid'])
+            
+            elif not should_have_post and post_uuid in current_posts:
+                # Need to remove the post
+                new_posts = [p for p in current_posts if p != post_uuid]
+                update_results = update_holds_post(dataspot_client, person_uuid, new_posts)
                 
-                if success:
+                if update_results['removed']:
                     result['issues'].append({
                         'type': 'person_assignment_removed',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'person_uuid': assignment['person_uuid'],
-                        'person_name': f"{assignment['given_name']} {assignment['family_name']}",
-                        'message': f"Removed invalid assignment of {assignment['given_name']} {assignment['family_name']} from post {post_label}",
+                        'person_uuid': person_uuid,
+                        'person_name': person_name,
+                        'message': f"Removed invalid assignment of {person_name} from post {post_label}",
                         'remediation_attempted': True,
                         'remediation_success': True
                     })
-                    logging.info(f"  - Removed invalid assignment: {assignment['given_name']} {assignment['family_name']} from {post_label}")
+                    logging.info(f"  - Removed invalid assignment: {person_name} from {post_label}")
                 else:
                     result['issues'].append({
                         'type': 'person_removal_failed',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'person_uuid': assignment['person_uuid'],
-                        'person_name': f"{assignment['given_name']} {assignment['family_name']}",
-                        'message': f"Failed to remove invalid assignment of {assignment['given_name']} {assignment['family_name']} from post {post_label}",
+                        'person_uuid': person_uuid,
+                        'person_name': person_name,
+                        'message': f"Failed to remove invalid assignment of {person_name} from post {post_label}",
                         'remediation_attempted': True,
                         'remediation_success': False
                     })
-                    logging.info(f"  - Failed to remove invalid assignment: {assignment['given_name']} {assignment['family_name']} from {post_label}")
+                    logging.info(f"  - Failed to remove invalid assignment: {person_name} from {post_label}")
 
 
 def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
