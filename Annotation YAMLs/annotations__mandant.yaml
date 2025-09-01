@@ -368,7 +368,7 @@ Person:
       order: 1
 
   customFunctions:
-    viewMembershipDetails:
+    openStaatskalender:
       label: Person im Staatskalender anzeigen
       title: Öffnet die Seite dieser Person im Staatskalender.
       icon: external-link
