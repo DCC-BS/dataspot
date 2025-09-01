@@ -10,7 +10,8 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
     """
     Check #3: Mitgliedschaftsbasierte Posten-Zuordnungen
     
-    This check verifies that all posts with membership IDs have correct person assignments based on Staatskalender data.
+    This check verifies that all posts with membership IDs (primary or secondary) have correct person
+    assignments based on Staatskalender data.
     
     IMPORTANT: This check MUST be run after check_2, as it requires the post_person_mapping__should
     from check_2's results. The mapping represents how posts SHOULD be assigned to persons according
@@ -18,8 +19,8 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
     
     Specifically:
     - For all posts with membership_id, it checks:
-        - The person from the membership_id is correctly assigned to the post
-        - The person from the second_membership_id is correctly assigned to the post
+        - The person from the sk_membership_id is correctly assigned to the post
+        - The person from the sk_second_membership_id is correctly assigned to the post
         - Only persons with valid membership IDs are assigned to the post
     - Both primary and secondary membership IDs are considered
     
@@ -69,7 +70,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
 
     logging.info(f"Found {len(result_is)} assignments in the IS")
 
-    # Convert IS and SHOULD to more usable formats for comparison: dict of person_uuid to a list of post_uuids (list))
+    # Convert IS and SHOULD to more usable formats for comparison: dict of person_uuid to a list of post_uuids (list)
     is_assignments = {}
     for assignment in result_is:
         person_uuid = assignment['person_uuid']
@@ -84,7 +85,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
             should_assignments[person_uuid] = []
         should_assignments[person_uuid].append(post_uuid)
 
-    posts_to_consider = get_posts_with_membership_ids(dataspot_client)
+    posts_to_consider = get_posts_with_sk_membership_ids(dataspot_client)
 
     # Create a mapping of person_uuid to their name to use for logging
     person_names_mapping = {}
@@ -235,28 +236,28 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
     return result
 
 
-def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
+def get_posts_with_sk_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
     """
-    Retrieve all posts that have membership IDs assigned.
+    Retrieve all posts that have membership IDs (primary or secondary) assigned.
     
     Args:
         dataspot_client: Database client
         
     Returns:
-        dict: Posts with membership IDs (key: post_uuid, value: (post_label, [membership_ids]))
+        dict: Posts with membership IDs (key: post_uuid, value: (post_label, [sk_membership_ids]))
     """
     query = """
     SELECT
         p.id AS post_uuid,
         p.label AS post_label,
-        cp1.value AS membership_id,
-        cp2.value AS second_membership_id
+        cp1.value AS sk_membership_id,
+        cp2.value AS sk_second_membership_id
     FROM
         post_view p
     LEFT JOIN
-        customproperties_view cp1 ON p.id = cp1.resource_id AND cp1.name = 'membership_id'
+        customproperties_view cp1 ON p.id = cp1.resource_id AND cp1.name = 'sk_membership_id'
     LEFT JOIN
-        customproperties_view cp2 ON p.id = cp2.resource_id AND cp2.name = 'second_membership_id'
+        customproperties_view cp2 ON p.id = cp2.resource_id AND cp2.name = 'sk_second_membership_id'
     WHERE
         cp1.value IS NOT NULL OR cp2.value IS NOT NULL
     ORDER BY
@@ -268,14 +269,14 @@ def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[s
     for membership in query_result:
         post_uuid = membership['post_uuid']
         post_label = membership['post_label']
-        membership_id = membership.get('membership_id')
-        second_membership_id = membership.get('second_membership_id')
+        sk_membership_id = membership.get('sk_membership_id')
+        sk_second_membership_id = membership.get('sk_second_membership_id')
 
         memberships = []
-        if membership_id:
-            memberships.append(membership_id.strip('"'))
-        if second_membership_id:
-            memberships.append(second_membership_id.strip('"'))
+        if sk_membership_id:
+            memberships.append(sk_membership_id.strip('"'))
+        if sk_second_membership_id:
+            memberships.append(sk_second_membership_id.strip('"'))
 
         result_dict[post_uuid] = (post_label, memberships)
 

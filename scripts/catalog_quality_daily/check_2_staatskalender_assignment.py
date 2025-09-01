@@ -17,14 +17,14 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
     This check verifies that all persons from Staatskalender are correctly present in Dataspot.
     
     Specifically:
-    - For all posts with membership_id, it checks:
-        - The membership_id exists in Staatskalender
+    - For all posts with sk_membership_id, it checks:
+        - The sk_membership_id exists in Staatskalender
         - The person from Staatskalender is correctly present in Dataspot with correct name
         - The person has the correct sk_person_id set
     - Both primary and secondary membership IDs are considered
     
     If not:
-    - If the membership_id is invalid, it is reported without making changes
+    - If the sk_membership_id is invalid, it is reported without making changes
     - If the person does not exist in Dataspot, they are automatically created with data (name, sk_person_id) from Staatskalender
     - If the person exists but has wrong data, these are automatically updated (name, sk_person_id)
     - All changes are documented in the report
@@ -55,8 +55,8 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
                                                   scheme_name="NOT_IN_USE",
                                                   scheme_name_short="404NotFound")
         
-        # Get all posts with membership_id or second_membership_id
-        posts_with_membership = get_posts_with_membership_ids(dataspot_client)
+        # Get all posts with sk_membership_id or sk_second_membership_id
+        posts_with_membership = get_posts_with_sk_membership_ids(dataspot_client)
         
         if not posts_with_membership:
             result['message'] = 'No posts with membership IDs found.'
@@ -91,7 +91,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
 
 
 # DONE
-def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
+def get_posts_with_sk_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
     """
     Retrieve all posts that have membership IDs assigned.
     
@@ -105,14 +105,14 @@ def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[s
     SELECT
         p.id AS post_uuid,
         p.label AS post_label,
-        cp1.value AS membership_id,
-        cp2.value AS second_membership_id
+        cp1.value AS sk_membership_id,
+        cp2.value AS sk_second_membership_id
     FROM
         post_view p
     LEFT JOIN
-        customproperties_view cp1 ON p.id = cp1.resource_id AND cp1.name = 'membership_id'
+        customproperties_view cp1 ON p.id = cp1.resource_id AND cp1.name = 'sk_membership_id'
     LEFT JOIN
-        customproperties_view cp2 ON p.id = cp2.resource_id AND cp2.name = 'second_membership_id'
+        customproperties_view cp2 ON p.id = cp2.resource_id AND cp2.name = 'sk_second_membership_id'
     WHERE
         cp1.value IS NOT NULL OR cp2.value IS NOT NULL
     ORDER BY
@@ -124,14 +124,14 @@ def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[s
     for membership in query_result:
         post_uuid = membership['post_uuid']
         post_label = membership['post_label']
-        membership_id = membership.get('membership_id')
-        second_membership_id = membership.get('second_membership_id')
+        sk_membership_id = membership.get('sk_membership_id')
+        sk_second_membership_id = membership.get('sk_second_membership_id')
 
         memberships = []
-        if membership_id:
-            memberships.append(membership_id.strip('"'))
-        if second_membership_id:
-            memberships.append(second_membership_id.strip('"'))
+        if sk_membership_id:
+            memberships.append(sk_membership_id.strip('"'))
+        if sk_second_membership_id:
+            memberships.append(sk_second_membership_id.strip('"'))
 
         result_dict[post_uuid] = (post_label, memberships)
 
@@ -142,8 +142,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     """
     Process person synchronization from Staatskalender.
     
-    For each post, for each membership_id (primary and secondary) linked to the post:
-    - Ensure that the membership_id is valid, i.e. exists in the staatskalender
+    For each post, for each sk_membership_id (primary and secondary) linked to the post:
+    - Ensure that the sk_membership_id is valid, i.e. exists in the staatskalender
     - Ensure that a person with the correct name (first and last) exists in dataspot
     - Ensure that the person has the sk_person_id set correctly
 
@@ -163,13 +163,13 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
         # Log post header with progress indicator
         logging.info(f"[{current_post}/{total_posts}] {post_label}:")
         
-        for membership_id in memberships:
+        for sk_membership_id in memberships:
             time.sleep(10)
 
             # Retrieve membership data from staatskalender
             try:
-                # Get person info from Staatskalender using the membership_id
-                membership_url = f"https://staatskalender.bs.ch/api/memberships/{membership_id}"
+                # Get person info from Staatskalender using the sk_membership_id
+                membership_url = f"https://staatskalender.bs.ch/api/memberships/{sk_membership_id}"
                 membership_response = requests_get(url=membership_url)
 
                 if membership_response.status_code != 200:
@@ -177,8 +177,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'type': 'invalid_membership',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'membership_id': membership_id,
-                        'message': f"Invalid membership ID {membership_id} - not found in Staatskalender",
+                        'sk_membership_id': sk_membership_id,
+                        'message': f"Invalid membership ID {sk_membership_id} - not found in Staatskalender",
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
@@ -201,7 +201,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'type': 'missing_person_link',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'membership_id': membership_id,
+                        'sk_membership_id': sk_membership_id,
                         'message': f"Could not find person link in membership data",
                         'remediation_attempted': False,
                         'remediation_success': False
@@ -216,7 +216,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'type': 'person_data_error',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'membership_id': membership_id,
+                        'sk_membership_id': sk_membership_id,
                         'message': f"Could not retrieve person data from Staatskalender. Status code: {person_response.status_code}",
                         'remediation_attempted': False,
                         'remediation_success': False
@@ -245,7 +245,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'type': 'missing_person_data',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
-                        'membership_id': membership_id,
+                        'sk_membership_id': sk_membership_id,
                         'message': f"Person data is incomplete in Staatskalender",
                         'remediation_attempted': False,
                         'remediation_success': False
@@ -266,7 +266,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             'type': 'person_name_mismatch',
                             'post_uuid': post_uuid,
                             'post_label': post_label,
-                            'membership_id': membership_id,
+                            'sk_membership_id': sk_membership_id,
                             'message': f"Person name mismatch: {existing_first_name} {existing_last_name} -> {sk_first_name} {sk_last_name}",
                             'remediation_attempted': True,
                             'remediation_success': True
@@ -302,7 +302,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                                 'type': 'person_created',
                                 'post_uuid': post_uuid,
                                 'post_label': post_label,
-                                'membership_id': membership_id,
+                                'sk_membership_id': sk_membership_id,
                                 'person_uuid': person_uuid,
                                 'message': f"Person {sk_first_name} {sk_last_name} was created in dataspot (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})",
                                 'remediation_attempted': True,
@@ -317,7 +317,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             'type': 'person_sk_id_updated',
                             'post_uuid': post_uuid,
                             'post_label': post_label,
-                            'membership_id': membership_id,
+                            'sk_membership_id': sk_membership_id,
                             'message': f"Person sk_person_id updated to {sk_person_id}",
                             'remediation_attempted': True,
                             'remediation_success': True
@@ -335,12 +335,12 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     'type': 'processing_error',
                     'post_uuid': post_uuid,
                     'post_label': post_label,
-                    'membership_id': membership_id,
-                    'message': f"Error processing membership ID {membership_id}: {str(e)}",
+                    'sk_membership_id': sk_membership_id,
+                    'message': f"Error processing membership ID {sk_membership_id}: {str(e)}",
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
-                logging.error(f"Error processing membership ID {membership_id}. It might not be valid: https://staatskalender.bs.ch/membership/{membership_id}")
+                logging.error(f"Error processing membership ID {sk_membership_id}. It might not be valid: https://staatskalender.bs.ch/membership/{sk_membership_id}")
 
 
 # DONE

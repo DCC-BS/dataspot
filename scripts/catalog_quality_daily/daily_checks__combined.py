@@ -638,10 +638,10 @@ def send_combined_email(combined_report):
                             email_text += f"  Staatskalender name: {sk_name}\n"
                             email_text += f"  Dataspot name: {ds_name}\n"
                         elif issue_type == 'missing_membership':
-                            email_text += f"  Issue: No membership_id found\n"
+                            email_text += f"  Issue: No sk_membership_id found\n"
                         elif issue_type in ['invalid_membership', 'missing_person_link']:
-                            membership_id = issue.get('membership_id', 'Unknown')
-                            email_text += f"  Membership ID: {membership_id}\n"
+                            sk_membership_id = issue.get('sk_membership_id', 'Unknown')
+                            email_text += f"  Membership ID: {sk_membership_id}\n"
                         
                         email_text += f"  Message: {message}\n"
 
