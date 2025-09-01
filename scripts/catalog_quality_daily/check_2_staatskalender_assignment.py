@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, List, Tuple
 
 import config
@@ -163,6 +164,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
         logging.info(f"[{current_post}/{total_posts}] {post_label}:")
         
         for membership_id in memberships:
+            time.sleep(10)
+
             # Retrieve membership data from staatskalender
             try:
                 # Get person info from Staatskalender using the membership_id
@@ -337,6 +340,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
+                logging.error(f"Error processing membership ID {membership_id}. It might not be valid: https://staatskalender.bs.ch/membership/{membership_id}")
 
 
 # DONE
