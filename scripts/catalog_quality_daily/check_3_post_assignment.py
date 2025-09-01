@@ -47,69 +47,6 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
         'error': None
     }
 
-    custom_approach = True
-    if custom_approach:
-        process_post_assignments_alternative(result, dataspot_client, post_person_mapping__should)
-
-
-    else:    
-        try:
-            # Get all posts with membership_id or second_membership_id
-            posts_with_membership_ids = get_posts_with_membership_ids(dataspot_client)
-            
-            if not posts_with_membership_ids:
-                result['message'] = 'No posts with membership IDs found.'
-                logging.info("No posts with membership IDs found.")
-                return result
-            
-            logging.info(f"Found {len(posts_with_membership_ids)} posts with membership IDs to verify assignments")
-            
-            # Process and verify post assignments
-            process_post_assignments(posts_with_membership_ids, dataspot_client, result)
-            
-            # Update final status and message
-            if result['issues']:
-                issue_count = len(result['issues'])
-                remediated_count = sum(1 for issue in result['issues'] 
-                                    if issue.get('remediation_attempted', False) 
-                                    and issue.get('remediation_success', False))
-                actual_issues = issue_count - remediated_count
-                
-                if actual_issues > 0:
-                    result['status'] = 'warning'
-                    result['message'] = f"Check #3: Found {issue_count} issue(s) ({remediated_count} automatically fixed, {actual_issues} requiring attention)"
-                else:
-                    result['message'] = f"Check #3: Fixed {remediated_count} issue(s), all posts have correct person assignments"
-        
-        except Exception as e:
-            result['status'] = 'error'
-            result['error'] = str(e)
-            result['message'] = f"Error in Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen): {str(e)}"
-            logging.error(f"Error in Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen): {str(e)}", exc_info=True)
-        
-    return result
-
-
-def process_post_assignments_alternative(result: Dict[str, any], dataspot_client: BaseDataspotClient, post_person_mapping__should: List[Tuple[str, str]]) -> None:
-    """
-    Process post assignments using the mapping-based approach.
-    
-    It then:
-    1. Adds missing assignments (persons in SHOULD but not in IS)
-    2. Removes invalid assignments (persons in IS but not in SHOULD)
-    
-    The SHOULD assignments come from check_2 and represent the assignments according to
-    Staatskalender data. This function ensures that the actual assignments in the system
-    match what they should be.
-    
-    Args:
-        post_person_mapping__should: Expected post assignments based on the mapping
-        result: Result dictionary to update with issues
-        dataspot_client: Database client
-        
-    Returns:
-        None (updates the result dictionary in-place)
-    """
     logging.info("Processing post assignments using mapping-based approach")
 
     # Retrieve current post assignments from dataspot
@@ -130,7 +67,7 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
             """
     result_is = dataspot_client.execute_query_api(sql_query=query)
 
-    logging.info(f"Found {len(result_is)} persons in the IS")
+    logging.info(f"Found {len(result_is)} assignments in the IS")
 
     # Convert IS and SHOULD to more usable formats for comparison: dict of person_uuid to a list of post_uuids (list))
     is_assignments = {}
@@ -164,7 +101,7 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
         person_uuid = name['person_uuid']
         person_name = f"{name['first_name']} {name['last_name']}"
         person_names_mapping[person_uuid] = person_name
-        
+
     # Process each person who has or should have posts with membership_ids
     for person_uuid in set(list(should_assignments.keys()) + list(is_assignments.keys())):
         # Get person name for logs
@@ -172,50 +109,50 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
 
         # Get current posts with membership_ids
         current_posts = [p for p in is_assignments.get(person_uuid, []) if p in posts_to_consider]
-        
+
         # Get posts that should be assigned (filtered to only those with membership_ids)
         should_have_posts = [p for p in should_assignments.get(person_uuid, []) if p in posts_to_consider]
-        
+
         # Only process if person has or should have posts with membership_ids
         if current_posts or should_have_posts:
             # Get all current posts, including those not in posts_to_consider
             all_current_posts = is_assignments.get(person_uuid, [])
-            
+
             # Calculate desired posts - only consider posts in posts_to_consider for changes
             # Start with all current posts EXCEPT those in posts_to_consider that should be removed
             desired_posts = [p for p in all_current_posts if p not in posts_to_consider or p in should_have_posts]
-            
+
             # Now add any should_have posts that aren't already in the list
             for post in should_have_posts:
                 if post not in desired_posts:
                     desired_posts.append(post)
-            
+
             # Calculate posts to add and remove for logging and issue tracking
             posts_to_add = [p for p in should_have_posts if p not in current_posts]
             posts_to_remove = [p for p in current_posts if p not in should_have_posts]
-            
+
             # Only update if changes are needed
             if posts_to_add or posts_to_remove:
-                logging.info(f"Person {person_name}: adding {len(posts_to_add)} posts, removing {len(posts_to_remove)} posts")
+                logging.debug(f"Person {person_name}: adding {len(posts_to_add)} posts, removing {len(posts_to_remove)} posts")
                 if posts_to_add:
                     logging.debug(f"Posts to add: {posts_to_add}")
                 if posts_to_remove:
                     logging.debug(f"Posts to remove: {posts_to_remove}")
-                
+
                 # Update the person's posts
                 try:
                     # Update posts in one call, passing current posts to avoid an extra API call
                     update_results = update_holds_post(
-                        dataspot_client, 
-                        person_uuid, 
-                        desired_posts, 
+                        dataspot_client,
+                        person_uuid,
+                        desired_posts,
                         all_current_posts
                     )
-                    
+
                     # Process results - added posts
                     for post_uuid in update_results['added']:
                         post_label, _ = posts_to_consider[post_uuid]
-                        
+
                         result['issues'].append({
                             'type': 'person_assignment_added',
                             'post_uuid': post_uuid,
@@ -227,11 +164,11 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
                             'remediation_success': True
                         })
                         logging.info(f"Added assignment: {person_name} -> {post_label or post_uuid}")
-                    
+
                     # Process results - removed posts
                     for post_uuid in update_results['removed']:
                         post_label, _ = posts_to_consider[post_uuid]
-                        
+
                         result['issues'].append({
                             'type': 'person_assignment_removed',
                             'post_uuid': post_uuid,
@@ -243,10 +180,10 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
                             'remediation_success': True
                         })
                         logging.info(f"Removed assignment: {person_name} from {post_label or post_uuid}")
-                    
+
                 except Exception as e:
                     logging.error(f"Error updating posts for person {person_name}: {e}", exc_info=True)
-                    
+
                     # Log failures for each intended change
                     for post_uuid in posts_to_add:
                         post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
@@ -260,7 +197,7 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
-                    
+
                     for post_uuid in posts_to_remove:
                         post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
                         result['issues'].append({
@@ -279,11 +216,11 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
     # Update final status and message based on issues
     if result['issues']:
         issue_count = len(result['issues'])
-        remediated_count = sum(1 for issue in result['issues'] 
-                            if issue.get('remediation_attempted', False) 
-                            and issue.get('remediation_success', False))
+        remediated_count = sum(1 for issue in result['issues']
+                               if issue.get('remediation_attempted', False)
+                               and issue.get('remediation_success', False))
         actual_issues = issue_count - remediated_count
-        
+
         if actual_issues > 0:
             result['status'] = 'warning'
             result['message'] = f"Check #3: Found {issue_count} issue(s) ({remediated_count} automatically fixed, {actual_issues} requiring attention)"
@@ -291,176 +228,11 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
             result['message'] = f"Check #3: Fixed {remediated_count} issue(s), all posts have correct person assignments"
     else:
         result['message'] = "Check #3: All posts have correct person assignments"
-            
+
     logging.info(f"Found {len(is_assignments)} posts with current assignments")
     logging.info(f"Found {len(should_assignments)} posts with expected assignments")
 
-
-def process_post_assignments(posts_with_membership_ids: Dict[str, Tuple[str, List[str]]], dataspot_client: BaseDataspotClient,
-                             result: Dict[str, any]) -> None:
-    """
-    Process and correct post assignments based on Staatskalender data.
-    
-    This function assumes that Check #2 has already:
-    - Validated all membership IDs against Staatskalender
-    - Created/updated all persons in Dataspot
-    - Set correct sk_person_id values for all persons
-
-    Args:
-        posts_with_membership_ids: Posts data with membership information
-        dataspot_client: Database client
-        result: Result dictionary to update with issues
-
-    Returns:
-        None (updates the result dictionary)
-    """
-    # Get all membership_id -> person UUID mappings in one query
-    membership_to_person_mapping = get_membership_to_person_mapping(dataspot_client)
-    
-    total_posts = len(posts_with_membership_ids)
-
-    for current_post, (post_uuid, (post_label, memberships)) in enumerate(posts_with_membership_ids.items(), 1):
-        logging.info(f"[{current_post}/{total_posts}] Processing post: {post_label}")
-
-        # Get current assignments for this post
-        current_assignments = get_post_assignments(dataspot_client, post_uuid)
-        
-        # Get valid person UUIDs that should be assigned to this post
-        valid_person_uuids = []
-        persons_to_process = {}
-        
-        # Process each membership ID to find the corresponding person
-        for membership_id in memberships:
-            # Get person info from the mapping (Check #2 already validated this membership_id)
-            if membership_id not in membership_to_person_mapping:
-                # This shouldn't happen if Check #2 ran successfully, but log it just in case
-                logging.warning(f"  - Membership ID {membership_id} not found in mapping (Check #2 should have created this person)")
-                continue
-            
-            person_info = membership_to_person_mapping[membership_id]
-            person_uuid = person_info['person_uuid']
-            person_name = f"{person_info['given_name']} {person_info['family_name']}"
-            
-            # Add to list of valid person UUIDs for this post
-            valid_person_uuids.append(person_uuid)
-            
-            # Check if person is already assigned to the post
-            person_assigned = any(a['person_uuid'] == person_uuid for a in current_assignments)
-            
-            # Keep track of persons that need processing and whether they need assignment
-            if person_uuid not in persons_to_process:
-                # Initialize with all posts the person currently holds
-                current_posts = []
-                # We'd need to query this, but for simplicity we only track this one
-                if person_assigned:
-                    current_posts.append(post_uuid)
-                    
-                persons_to_process[person_uuid] = {
-                    'name': person_name,
-                    'membership_id': membership_id,
-                    'current_posts': current_posts,
-                    'should_have_post': True,
-                    'needs_assignment': not person_assigned
-                }
-            
-            if not person_assigned:
-                logging.info(f"  - Need to add assignment: {person_name} -> {post_label}")
-            else:
-                logging.info(f"  - Already assigned: {person_name} -> {post_label}")
-
-        # Process invalid assignments (persons assigned to post but not in Staatskalender)
-        for assignment in current_assignments:
-            person_uuid = assignment['person_uuid']
-            person_name = f"{assignment['given_name']} {assignment['family_name']}"
-            
-            if person_uuid not in valid_person_uuids:
-                # Add to persons to process if not already there
-                if person_uuid not in persons_to_process:
-                    persons_to_process[person_uuid] = {
-                        'name': person_name,
-                        'current_posts': [post_uuid],
-                        'should_have_post': False,
-                        'needs_removal': True
-                    }
-                logging.info(f"  - Need to remove invalid assignment: {person_name} from {post_label}")
-        
-        # Now process each person
-        for person_uuid, info in persons_to_process.items():
-            person_name = info['name']
-            current_posts = info['current_posts']
-            should_have_post = info['should_have_post']
-            
-            # Calculate the change
-            new_posts = current_posts.copy()
-            
-            if should_have_post and post_uuid not in new_posts:
-                # Need to add the post
-                new_posts.append(post_uuid)
-            elif not should_have_post and post_uuid in new_posts:
-                # Need to remove the post
-                new_posts.remove(post_uuid)
-            else:
-                # No change needed
-                continue
-                
-            # Update the posts in one call
-            update_results = update_holds_post(dataspot_client, person_uuid, new_posts, current_posts)
-            
-            # Process results based on what happened
-            if should_have_post and post_uuid in update_results['added']:
-                # Post was added
-                result['issues'].append({
-                    'type': 'person_assignment_added',
-                    'post_uuid': post_uuid,
-                    'post_label': post_label,
-                    'person_uuid': person_uuid,
-                    'person_name': person_name,
-                    'membership_id': info.get('membership_id', ''),
-                    'message': f"Person {person_name} has been assigned to post {post_label}",
-                    'remediation_attempted': True,
-                    'remediation_success': True
-                })
-                logging.info(f"  - Added assignment: {person_name} -> {post_label}")
-            elif should_have_post and post_uuid not in update_results['added'] and post_uuid not in current_posts:
-                # Addition failed
-                result['issues'].append({
-                    'type': 'person_assignment_failed',
-                    'post_uuid': post_uuid,
-                    'post_label': post_label,
-                    'person_uuid': person_uuid,
-                    'person_name': person_name,
-                    'membership_id': info.get('membership_id', ''),
-                    'message': f"Failed to assign person {person_name} to post {post_label}",
-                    'remediation_attempted': True,
-                    'remediation_success': False
-                })
-                logging.info(f"  - Failed to add assignment: {person_name} -> {post_label}")
-            elif not should_have_post and post_uuid in update_results['removed']:
-                # Post was removed
-                result['issues'].append({
-                    'type': 'person_assignment_removed',
-                    'post_uuid': post_uuid,
-                    'post_label': post_label,
-                    'person_uuid': person_uuid,
-                    'person_name': person_name,
-                    'message': f"Removed invalid assignment of {person_name} from post {post_label}",
-                    'remediation_attempted': True,
-                    'remediation_success': True
-                })
-                logging.info(f"  - Removed invalid assignment: {person_name} from {post_label}")
-            elif not should_have_post and post_uuid not in update_results['removed'] and post_uuid in current_posts:
-                # Removal failed
-                result['issues'].append({
-                    'type': 'person_removal_failed',
-                    'post_uuid': post_uuid,
-                    'post_label': post_label,
-                    'person_uuid': person_uuid,
-                    'person_name': person_name,
-                    'message': f"Failed to remove invalid assignment of {person_name} from post {post_label}",
-                    'remediation_attempted': True,
-                    'remediation_success': False
-                })
-                logging.info(f"  - Failed to remove invalid assignment: {person_name} from {post_label}")
+    return result
 
 
 def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[str, Tuple[str, List[str]]]:
@@ -508,158 +280,6 @@ def get_posts_with_membership_ids(dataspot_client: BaseDataspotClient) -> Dict[s
         result_dict[post_uuid] = (post_label, memberships)
 
     return result_dict
-
-
-def get_post_assignments(dataspot_client: BaseDataspotClient, post_uuid: str) -> List[Dict[str, any]]:
-    """
-    Get current person assignments for a specific post.
-    
-    Args:
-        dataspot_client: Database client
-        post_uuid: UUID of the post to check
-        
-    Returns:
-        list: Persons assigned to the post
-    """
-    query = f"""
-    SELECT
-        p.id AS person_uuid,
-        p.given_name,
-        p.family_name,
-        cp.value AS sk_person_id
-    FROM
-        person_view p
-    JOIN
-        holdspost_view hp ON p.id = hp.resource_id
-    LEFT JOIN
-        customproperties_view cp ON p.id = cp.resource_id AND cp.name = 'sk_person_id'
-    WHERE
-        hp.holds_post = '{post_uuid}'
-    """
-    # TODO: Make this more efficient
-    return dataspot_client.execute_query_api(sql_query=query)
-
-
-def get_membership_to_person_mapping(dataspot_client: BaseDataspotClient) -> Dict[str, Dict[str, any]]:
-    """
-    Get all membership_id -> person UUID mappings from Dataspot.
-    
-    This function assumes that Check #2 has already created/updated all persons
-    and set their sk_person_id values correctly.
-    
-    What we want to return:
-    For each post that has a membership_id custom property, we want to find the person 
-    who should be assigned to that post. We do this by:
-    1. Finding posts with membership_id custom properties
-    2. Finding the person who has a sk_person_id custom property that matches the membership_id
-    3. Returning the mapping from membership_id to person information
-    
-    This mapping is used to verify that the correct person is assigned to each post
-    based on the Staatskalender data.
-    
-    Args:
-        dataspot_client: Database client
-        
-    Returns:
-        dict: Mapping from membership_id to person info (person_uuid, given_name, family_name)
-    """
-    query = """
-    SELECT 
-        cp_post.value AS membership_id,
-        p.id AS person_uuid,
-        p.given_name,
-        p.family_name
-    FROM 
-        customproperties_view cp_post
-    JOIN 
-        customproperties_view cp_person ON cp_post.value = cp_person.value
-    JOIN 
-        person_view p ON cp_person.resource_id = p.id
-    WHERE 
-        cp_post.name = 'membership_id' 
-        AND cp_person.name = 'sk_person_id'
-        AND cp_post.value IS NOT NULL
-    """
-    
-    results = dataspot_client.execute_query_api(sql_query=query)
-    mapping = {}
-    
-    for result in results:
-        membership_id = result['membership_id'].strip('"')
-        mapping[membership_id] = {
-            'person_uuid': result['person_uuid'],
-            'given_name': result['given_name'],
-            'family_name': result['family_name']
-        }
-    
-    return mapping
-
-
-def assign_person_to_post(dataspot_client: BaseDataspotClient, post_uuid: str, person_uuid: str) -> bool:
-    """
-    Assign a person to a post.
-    
-    Args:
-        dataspot_client: Database client
-        post_uuid: UUID of the post
-        person_uuid: UUID of the person to assign
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        # Create holdsPost relationship
-        holds_post_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
-        
-        payload = {
-            "holdsPost": post_uuid
-        }
-        
-        response = requests_patch(
-            url=holds_post_url,
-            json=payload,
-            headers=dataspot_client.auth.get_headers()
-        )
-        
-        response.raise_for_status()
-        return True
-    
-    except Exception as e:
-        logging.error(f"Error assigning person to post: {str(e)}")
-        return False
-
-
-def remove_person_from_post(dataspot_client: BaseDataspotClient, post_uuid: str, person_uuid: str) -> bool:
-    """
-    Remove a person from a post.
-    
-    Args:
-        dataspot_client: Database client
-        post_uuid: UUID of the post
-        person_uuid: UUID of the person to remove
-        
-    Returns:
-        bool: True if successful, False otherwise
-    """
-    try:
-        # Delete holdsPost relationship
-        url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}/holdsPost/{post_uuid}"
-        
-        headers = dataspot_client.auth.get_headers()
-        headers['Content-Type'] = 'application/json'
-        
-        response = requests_patch(
-            url=url,
-            json={"deleted": True},
-            headers=headers
-        )
-        
-        response.raise_for_status()
-        return True
-    
-    except Exception as e:
-        logging.error(f"Error removing person from post: {str(e)}")
-        return False
 
 
 def update_holds_post(dataspot_client: BaseDataspotClient, person_uuid: str, post_uuids: List[str], current_posts: List[str]) -> Dict[str, List[str]]:
@@ -713,4 +333,3 @@ def update_holds_post(dataspot_client: BaseDataspotClient, person_uuid: str, pos
     except Exception as e:
         logging.error(f"Error updating person's posts: {str(e)}")
         return {'added': [], 'removed': []}
-
