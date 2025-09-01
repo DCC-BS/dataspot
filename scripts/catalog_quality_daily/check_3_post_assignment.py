@@ -134,17 +134,12 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
 
     # Convert IS and SHOULD to more usable formats for comparison: dict of person_uuid to a list of post_uuids (list))
     is_assignments = {}
-    person_names = {}
     for assignment in result_is:
         person_uuid = assignment['person_uuid']
         post_uuid = assignment['post_uuid']
         if person_uuid not in is_assignments:
             is_assignments[person_uuid] = []
         is_assignments[person_uuid].append(post_uuid)
-
-        person_name = f"{assignment['first_name']} {assignment['last_name']}"
-        if person_uuid not in person_names:
-            person_names[person_uuid] = person_name
 
     should_assignments = {}
     for post_uuid, person_uuid in post_person_mapping__should:
@@ -153,6 +148,22 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
         should_assignments[person_uuid].append(post_uuid)
 
     posts_to_consider = get_posts_with_membership_ids(dataspot_client)
+
+    # Create a mapping of person_uuid to their name to use for logging
+    person_names_mapping = {}
+    query = """
+            SELECT
+                p.id as person_uuid,
+                p.given_name as first_name,
+                p.family_name as last_name
+            FROM
+                person_view p
+            """
+    result_names = dataspot_client.execute_query_api(sql_query=query)
+    for name in result_names:
+        person_uuid = name['person_uuid']
+        person_name = f"{name['first_name']} {name['last_name']}"
+        person_names_mapping[person_uuid] = person_name
 
 
     # Update assignments in dataspot
@@ -186,8 +197,8 @@ def process_post_assignments_alternative(result: Dict[str, any], dataspot_client
         
         # Try to update the person through REST API
         try:
-            # Get person name from the person_names dictionary
-            person_name = person_names.get(person_uuid, "Unknown Person")
+            # Get person name from the person_names_mapping dictionary
+            person_name = person_names_mapping[person_uuid]
             
             if person_name == "Unknown Person":
                 logging.debug(f"Person {person_uuid} not found in current assignments, using UUID as identifier")
