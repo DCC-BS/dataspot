@@ -492,6 +492,7 @@ Dataset:
               title: Beschreibung der räumlichen Ausdehnung der Daten
               group: GEO
               order: 30
+              defaultValue: "001"
               literals:
                 "001":
                   label: Kanton Basel-Stadt
