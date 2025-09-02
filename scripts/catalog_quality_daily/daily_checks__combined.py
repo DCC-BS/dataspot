@@ -47,8 +47,8 @@ def run_all_checks():
     run_check_1 = True
     run_check_2 = True
     run_check_3 = True
-    run_check_4 = False
-    run_check_5 = False
+    run_check_4 = True
+    run_check_5 = True
 
     if run_check_1:
         # Check #1: Unique sk_person_id verification
@@ -67,7 +67,9 @@ def run_all_checks():
         logging.info("   Check #1: Unique sk_person_id Verification Completed.")
         logging.info("")
 
+    # TODO: Refactor to staatskalender_post_person_mapping
     post_person_mapping__should = []
+    staatskalender_person_email_cache = {}
 
     if run_check_2:
         # Check #2: Person assignment according to Staatskalender
@@ -83,6 +85,7 @@ def run_all_checks():
             'results': check_2_result
         })
         post_person_mapping__should = check_2_result['post_person_mapping__should']
+        staatskalender_person_email_cache = check_2_result.get('staatskalender_person_email_cache', {})
 
         logging.info("")
         logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
@@ -134,7 +137,13 @@ def run_all_checks():
         logging.info("   Starting Check #5: User Assignment...")
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
-        result = check_5_user_assignment(dataspot_client=dataspot_base_client)
+        
+        logging.debug(f"   Using staatskalender_person_email_cache from check_2 with {len(staatskalender_person_email_cache)} email mappings")
+        
+        result = check_5_user_assignment(
+            dataspot_client=dataspot_base_client,
+            staatskalender_person_email_cache=staatskalender_person_email_cache
+        )
         check_results.append({
             'check_name': 'check_5_user_assignment',
             'title': 'Check #5: User Assignment for Persons',

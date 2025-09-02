@@ -9,6 +9,7 @@ from src.clients.base_client import BaseDataspotClient
 # Global cache for person data
 _person_with_sk_id_cache = None
 _person_cache = None
+_person_email_cache = {}
 
 def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Dict[str, any]:
     """
@@ -45,9 +46,10 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         'message': 'All persons from Staatskalender are correctly present in Dataspot.',
         'issues': [],
         'error': None,
-        'post_person_mapping__should': []
+        'post_person_mapping__should': [],
+        'staatskalender_person_email_cache': {}
     }
-    
+
     try:
         # Initialize BaseDataspotClient
         base_dataspot_client = BaseDataspotClient(base_url=config.base_url,
@@ -86,6 +88,10 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         result['error'] = str(e)
         result['message'] = f"Error in Check #2 (Personensynchronisation aus dem Staatskalender): {str(e)}"
         logging.error(f"Error in Check #2 (Personensynchronisation aus dem Staatskalender): {str(e)}", exc_info=True)
+    
+    # Add the email cache to the result
+    global _person_email_cache
+    result['staatskalender_person_email_cache'] = _person_email_cache or {}
     
     return result
 
@@ -157,6 +163,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     Returns:
         None (updates the result dictionary)
     """
+    global _person_email_cache
     total_posts = len(posts)
     
     for current_post, (post_uuid, (post_label, memberships)) in enumerate(posts.items(), 1):
@@ -228,6 +235,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                 sk_person_id = person_link.rsplit('/', 1)[1]
                 sk_first_name = None
                 sk_last_name = None
+                sk_email = None
 
                 for item in person_data.get('collection', {}).get('items', []):
                     for data_item in item.get('data', []):
@@ -235,11 +243,13 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             sk_first_name = data_item.get('value')
                         elif data_item.get('name') == 'last_name':
                             sk_last_name = data_item.get('value')
+                        elif data_item.get('name') == 'email':
+                            sk_email = data_item.get('value')
 
-                        if sk_first_name and sk_last_name:
+                        if sk_first_name and sk_last_name and sk_email:
                             break
 
-                if not sk_person_id or not sk_first_name or not sk_last_name:
+                if not sk_first_name or not sk_last_name:
                     # Missing essential person data
                     result['issues'].append({
                         'type': 'missing_person_data',
@@ -251,6 +261,22 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_success': False
                     })
                     return
+
+                # Add to the person email cache
+                if sk_email:
+                    _person_email_cache[sk_person_id] = sk_email
+                else:
+                    # No email in Staatskalender
+                    result['issues'].append({
+                        'type': 'missing_person_email',
+                        'post_uuid': post_uuid,
+                        'post_label': post_label,
+                        'sk_membership_id': sk_membership_id,
+                        'message': f"Person email is missing in Staatskalender",
+                        'remediation_attempted': False,
+                        'remediation_success': False
+                    })
+                    # Deliberately not returning here to allow for creation of person without email
 
                 # Check if a person with this sk_person_id already exists in Dataspot
                 person_with_corresponding_sk_person_id_already_exists, existing_first_name, existing_last_name, person_uuid = (
@@ -275,7 +301,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
-                    
+
                     # Add to the post_person_mapping__should for use in check_3
                     result['post_person_mapping__should'].append((post_uuid, person_uuid))
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
@@ -325,7 +351,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         logging.info(f'   - Updated sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
-                    
+                        
                     # Add to the post_person_mapping__should for use in check_3
                     result['post_person_mapping__should'].append((post_uuid, person_uuid))
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')

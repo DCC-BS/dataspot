@@ -96,6 +96,6 @@ Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:
 Falls nicht:
 - Wenn keine E-Mail-Adresse im Staatskalender hinterlegt ist, wird die gemeldet
 - Wenn kein Benutzer für die Person existiert, wird ein Benutzer angelegt
-- Wenn der Benutzer falsche Zugriffsrechte hat, wird das angepasst
 - Wenn der Benutzer nicht korrekt mit der Person verknüpft ist, wird der Benutzer mit der korrekten Person verknüpft
+- Wenn der Benutzer einen Posten hat, und Zugriffsrechte "NUR LESEND" hat, wird er zum "EDITOR".
 - Eine E-Mail mit allen Problemen und Änderungen wird an dcc@bs.ch gesendet
