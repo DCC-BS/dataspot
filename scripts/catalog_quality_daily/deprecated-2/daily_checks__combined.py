@@ -5,6 +5,10 @@ import datetime
 import config
 from src.common import email_helpers
 from src.clients.base_client import BaseDataspotClient
+from scripts.catalog_quality_daily.check_daily_posts_occupation import check_posts_occupation
+from scripts.catalog_quality_daily.check_daily_correct_data_owners_new import check_correct_data_owners
+from scripts.catalog_quality_daily.check_daily_persons_have_users import check_persons_without_users
+from scripts.catalog_quality_daily.check_daily_user_accounts import check_user_accounts
 
 
 def main():
@@ -40,111 +44,72 @@ def run_all_checks():
     """
     check_results = []
 
-    # Initialize client for SQL calls
+    # Initialize client for sql calls
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
-    run_check_1 = True
-    run_check_2 = True
-    run_check_3 = True
-    run_check_4 = False
-    run_check_5 = False
+    # Data owner correctness check
+    logging.info("")
+    logging.info("   Starting Data Owner Correctness Check...")
+    logging.info("   " + "-" * 50)
+    result = check_correct_data_owners(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'data_owner_correctness',
+        'title': 'Data Owner Correctness Check',
+        'description': 'Checks if all Data Owner posts have the correct person assignments.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Data Owner Correctness Check Completed.")
+    logging.info("")
 
-    if run_check_1:
-        # Check #1: Unique sk_person_id verification
+    # Post occupation check
+    logging.info("")
+    logging.info("   Starting Post Occupation Check...")
+    logging.info("   " + "-" * 50)
+    result = check_posts_occupation(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'posts_occupation',
+        'title': 'Post Occupation Check',
+        'description': 'Checks if all posts are assigned to at least one person.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Post Occupation Check Completed.")
+    logging.info("")
+
+    if False: # THIS CHECK IS PAUSED FOR NOW
+        # Person-user association check
         logging.info("")
-        logging.info("   Starting Check #1: Unique sk_person_id Verification...")
+        logging.info("   Starting Person-User Association Check...")
         logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_1_unique_sk_person_id import check_1_unique_sk_person_id
-        result = check_1_unique_sk_person_id(dataspot_client=dataspot_base_client)
+        result = check_persons_without_users(dataspot_client=dataspot_base_client)
         check_results.append({
-            'check_name': 'check_1_unique_sk_person_id',
-            'title': 'Check #1: Unique sk_person_id Verification',
-            'description': 'Checks if all persons have unique sk_person_id values.',
+            'check_name': 'persons_without_users',
+            'title': 'Person-User Association Check',
+            'description': 'Checks if all persons with posts have an associated user account.',
             'results': result
         })
         logging.info("")
-        logging.info("   Check #1: Unique sk_person_id Verification Completed.")
+        logging.info("   Person-User Association Check Completed.")
         logging.info("")
+    
+    # User account verification check (for persons with sk_person_id)
+    logging.info("")
+    logging.info("   Starting User Account Verification Check...")
+    logging.info("   " + "-" * 50)
+    result = check_user_accounts(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'user_account_verification',
+        'title': 'User Account Verification Check',
+        'description': 'Checks if all persons with sk_person_id have correct user accounts with appropriate access.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   User Account Verification Check Completed.")
+    logging.info("")
 
-    post_person_mapping__should = []
-
-    if run_check_2:
-        # Check #2: Person assignment according to Staatskalender
-        logging.info("")
-        logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
-        check_2_result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_2_staatskalender_assignment',
-            'title': 'Check #2: Person Assignment (Staatskalender)',
-            'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
-            'results': check_2_result
-        })
-        post_person_mapping__should = check_2_result['post_person_mapping__should']
-
-        logging.info("")
-        logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
-        logging.info("")
-
-    if run_check_3:
-        # Check #3: Membership-based Post Assignments
-        logging.info("")
-        logging.info("   Starting Check #3: Membership-based Post Assignments...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
-
-        logging.debug(f"   Using post_person_mapping__should from check_2 with {len(post_person_mapping__should)} mappings")
-
-        result = check_3_post_assignment(
-            dataspot_client=dataspot_base_client,
-            post_person_mapping__should=post_person_mapping__should
-        )
-        check_results.append({
-            'check_name': 'check_3_post_assignment',
-            'title': 'Check #3: Membership-based Post Assignments',
-            'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #3: Membership-based Post Assignments Completed.")
-        logging.info("")
-
-    if run_check_4:
-        # Check #4: Post occupation check
-        logging.info("")
-        logging.info("   Starting Check #4: Post Occupation...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
-        result = check_4_post_occupation(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_4_post_occupation',
-            'title': 'Check #4: Post Occupation',
-            'description': 'Checks if all posts are assigned to at least one person.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #4: Post Occupation Completed.")
-        logging.info("")
-
-    if run_check_5:
-        # Check #5: User assignment for persons with sk_person_id
-        logging.info("")
-        logging.info("   Starting Check #5: User Assignment...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
-        result = check_5_user_assignment(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_5_user_assignment',
-            'title': 'Check #5: User Assignment for Persons',
-            'description': 'Checks if all persons with sk_person_id have the correct user assignments.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #5: User Assignment Completed.")
-        logging.info("")
-
+    # Additional checks can be added here
     
     logging.info("")
     logging.info("-----[ All Checks Completed ]" + "-" * 45)
@@ -410,13 +375,6 @@ def log_combined_results(combined_report):
                             logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
                             logging.info(f"       Posts count: {posts_count}")
                             logging.info(f"       Message: {message}")
-                        elif issue_type == 'duplicate_sk_person_id':
-                            sk_person_id = issue.get('sk_person_id', 'Unknown')
-                            person_names = issue.get('person_names', [])
-                            
-                            logging.info(f"     - Duplicate sk_person_id: {sk_person_id}")
-                            logging.info(f"       Affected persons: {', '.join(person_names)}")
-                            logging.info(f"       Message: {message}")
                         else:
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
@@ -424,6 +382,9 @@ def log_combined_results(combined_report):
                             logging.info(f"     - {post_label}")
                             logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
                             logging.info(f"       Message: {message}")
+
+            # We no longer log all issues here - we already log them by type separately
+            # (This removed to avoid duplicating issue listings)
 
         # Log error if any
         if check.get('error'):
@@ -600,11 +561,6 @@ def send_combined_email(combined_report):
                             family_name = issue.get('family_name', '')
                             person_name = f"{given_name} {family_name}"
                             email_text += f"\n- Person: {person_name} (ID: {person_uuid})\n"
-                        elif issue_type == 'duplicate_sk_person_id':
-                            sk_person_id = issue.get('sk_person_id', 'Unknown')
-                            person_names = issue.get('person_names', [])
-                            email_text += f"\n- Duplicate sk_person_id: {sk_person_id}\n"
-                            email_text += f"  Affected persons: {', '.join(person_names)}\n"
                         else:
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
@@ -638,10 +594,10 @@ def send_combined_email(combined_report):
                             email_text += f"  Staatskalender name: {sk_name}\n"
                             email_text += f"  Dataspot name: {ds_name}\n"
                         elif issue_type == 'missing_membership':
-                            email_text += f"  Issue: No sk_membership_id found\n"
+                            email_text += f"  Issue: No membership_id found\n"
                         elif issue_type in ['invalid_membership', 'missing_person_link']:
-                            sk_membership_id = issue.get('sk_membership_id', 'Unknown')
-                            email_text += f"  Membership ID: {sk_membership_id}\n"
+                            membership_id = issue.get('membership_id', 'Unknown')
+                            email_text += f"  Membership ID: {membership_id}\n"
                         
                         email_text += f"  Message: {message}\n"
 

@@ -358,16 +358,33 @@ Deployment:
           labelEn: excluded
 
 #070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
-Post:
+Person:
   customProperties:
-    membership_id:
-      label: Mitgliedschaft-ID
+    sk_person_id:
+      label: Person-ID
       baseType: STRING
-      title: Mitgliedschaft-ID aus Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/membership/79d2217c1d2241eda879d1cb1fe13753)
+      title: Person-ID im Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/person/c056392e5fc842e4a92ddacc8580db58)
       width: 1
       order: 1
 
-    second_membership_id:
+  customFunctions:
+    openStaatskalender:
+      label: Person im Staatskalender anzeigen
+      title: Öffnet die Seite dieser Person im Staatskalender.
+      icon: external-link
+      href: "https://staatskalender.bs.ch/person/${this.sk_person_id}"
+
+
+Post:
+  customProperties:
+    sk_membership_id:
+      label: Mitgliedschaft-ID
+      baseType: STRING
+      title: Mitgliedschaft-ID aus Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/membership/6503d554f7ef46fd9b0775edb54bf1f2)
+      width: 1
+      order: 1
+
+    sk_second_membership_id:
       label: Zweite Mitgliedschaft-ID
       baseType: STRING
       title: Mitgliedschaft-ID aus Staatskalender (z.B. bei Co-Präsidium)
@@ -377,12 +394,12 @@ Post:
   customFunctions:
     viewMembershipDetails:
       label: Mitgliedschaft im Staatskalender anzeigen
-      title: Ruft die Details dieser Mitgliedschaft im Staatskalender ab
+      title: Öffnet die Seite der verlinkten Mitgliedschaft im Staatskalender.
       icon: external-link
       href: "https://staatskalender.bs.ch/membership/${this.membership_id}"
 
     viewMembershipDetailsSecond:
       label: Zweite Mitgliedschaft im Staatskalender anzeigen
-      title: Ruft die Details der zweiten Mitgliedschaft im Staatskalender ab
+      title: Öffnet die Seite der verlinkten zweiten Mitgliedschaft im Staatskalender.
       icon: external-link
       href: "https://staatskalender.bs.ch/membership/${this.second_membership_id}"
