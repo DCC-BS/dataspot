@@ -202,7 +202,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 logging.info(f"User {user['email']} is not correctly linked to person {person_name} (UUID: {person_uuid})")
                 
             # Check access level if person has posts
-            if has_posts and user['access_level'] == 'NUR LESEND':
+            if has_posts and user['access_level'] == ['READ_ONLY']:
                 # Report insufficient access rights
                 result['issues'].append({
                     'type': 'insufficient_access_rights',
