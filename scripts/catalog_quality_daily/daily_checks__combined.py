@@ -367,6 +367,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
                     elif issue_type == 'person_without_user':
                         logging.info(f"   * Person Without User Account ({len(issues)})")
+                    elif issue_type == 'person_name_update':
+                        logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
+                    elif issue_type == 'person_name_update_failed':
+                        logging.info(f"   * Person Name Update Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -401,6 +405,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
                     elif issue_type == 'person_without_user':
                         logging.info(f"   * Person Without User Account ({len(issues)})")
+                    elif issue_type == 'person_name_update':
+                        logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
+                    elif issue_type == 'person_name_update_failed':
+                        logging.info(f"   * Person Name Update Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -408,7 +416,7 @@ def log_combined_results(combined_report):
                     for issue in issues:
                         message = issue.get('message', 'No message')
                         
-                        # Format differently for person_without_user which doesn't have post information
+                        # Format differently based on issue type
                         if issue_type == 'person_without_user':
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
@@ -427,6 +435,25 @@ def log_combined_results(combined_report):
                             
                             logging.info(f"     - Duplicate sk_person_id: {sk_person_id}")
                             logging.info(f"       Affected persons: {', '.join(person_names)}")
+                            logging.info(f"       Message: {message}")
+                        elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed']:
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            given_name = issue.get('given_name', '')
+                            family_name = issue.get('family_name', '')
+                            person_name = f"{given_name} {family_name}"
+                            
+                            logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
+                            if person_uuid != 'Unknown':
+                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
+                                
+                            # Add SK name details for name updates
+                            if issue_type in ['person_name_update', 'person_name_update_failed']:
+                                sk_first_name = issue.get('sk_first_name', '')
+                                sk_last_name = issue.get('sk_last_name', '')
+                                if sk_first_name and sk_last_name:
+                                    sk_name = f"{sk_first_name} {sk_last_name}"
+                                    logging.info(f"       Staatskalender name: {sk_name}")
+                            
                             logging.info(f"       Message: {message}")
                         else:
                             logging.warning(f"Unknown issue type: {issue_type}")
@@ -553,6 +580,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_without_user':
                         email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    elif issue_type == 'person_name_update':
+                        email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
+                    elif issue_type == 'person_name_update_failed':
+                        email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -607,6 +638,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_without_user':
                         email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    elif issue_type == 'person_name_update':
+                        email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
+                    elif issue_type == 'person_name_update_failed':
+                        email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -624,8 +659,10 @@ def send_combined_email(combined_report):
                             email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
                         elif issue_type == 'person_mismatch_missing_email':
                             person_uuid = issue.get('person_uuid', 'Unknown')
-                            post_label = issue.get('post_label', 'Unknown')
-                            email_text += f"\n- {post_label}\n"
+                            given_name = issue.get('given_name', '')
+                            family_name = issue.get('family_name', '')
+                            person_name = f"{given_name} {family_name}"
+                            email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
                                 email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
                         elif issue_type == 'duplicate_sk_person_id':
@@ -651,15 +688,33 @@ def send_combined_email(combined_report):
                             email_text += f"  2. Set the user's isPerson field to '{issue.get('family_name', '')}, {issue.get('given_name', '')}'\n"
                             email_text += f"  3. Set the user's access level to EDITOR if this person has any Data Owner posts\n"
                         elif issue_type == 'person_mismatch_missing_email':
-                            sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
-                            ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"
-                            email_text += f"  Staatskalender name: {sk_name}\n"
-                            if ds_name.strip() != "":
-                                email_text += f"  Previous Dataspot name: {ds_name}\n"
-                            email_text += f"  ACTION REQUIRED: {sk_name} is missing an email in Staatskalender.\n"
-                            email_text += f"  The person has been created and assigned to the post, but you need to:\n"
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            posts_count = issue.get('posts_count', 0)
+                            email_text += f"  Posts count: {posts_count}\n"
+                            email_text += f"  ACTION REQUIRED: {person_name} is missing an email in Staatskalender.\n"
+                            if posts_count > 0:
+                                email_text += f"  The person has {posts_count} post(s) assigned, so you should:\n"
+                            else:
+                                email_text += f"  The person doesn't have any posts assigned, but it's recommended to:\n"
                             email_text += f"  1. Add an email address for this person in Staatskalender, or\n"
                             email_text += f"  2. Manually create a user in Dataspot and link it to this person\n"
+                        elif issue_type == 'person_name_update':
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            sk_first_name = issue.get('sk_first_name', '')
+                            sk_last_name = issue.get('sk_last_name', '')
+                            sk_name = f"{sk_first_name} {sk_last_name}"
+                            email_text += f"  Previous name: {person_name}\n"
+                            email_text += f"  Updated name: {sk_name}\n"
+                            email_text += f"  The person's name has been automatically updated to match Staatskalender.\n"
+                        elif issue_type == 'person_name_update_failed':
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            sk_first_name = issue.get('sk_first_name', '')
+                            sk_last_name = issue.get('sk_last_name', '')
+                            sk_name = f"{sk_first_name} {sk_last_name}"
+                            email_text += f"  Current name: {person_name}\n"
+                            email_text += f"  Staatskalender name: {sk_name}\n"
+                            email_text += f"  ACTION REQUIRED: The person's name should be updated to match Staatskalender.\n"
+                            email_text += f"  Automatic update failed. Please update the person's name manually.\n"
                         elif issue_type == 'person_mismatch':
                             sk_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
                             ds_name = f"{issue.get('dataspot_first_name', '')} {issue.get('dataspot_last_name', '')}"

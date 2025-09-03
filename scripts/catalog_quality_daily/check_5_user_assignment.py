@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Any
 
 import config
 from src.common import requests_get, requests_patch
@@ -14,9 +14,9 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
     
     Specifically:
     - For all persons with sk_person_id, it checks:
-    - A user with the correct email address from Staatskalender exists
-    - The user is correctly linked to the person via the isPerson field
-    - If the person has posts, the user has at least EDITOR access rights
+      - A user with the correct email address from Staatskalender exists
+      - The user is correctly linked to the person via the isPerson field
+      - If the person has posts, the user has at least EDITOR access rights
     
     Args:
         dataspot_client: Base client for database operations
@@ -73,22 +73,71 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             
             logging.debug(f"Checking person: {person_name} (UUID: {person_uuid}) - Has posts: {has_posts}")
             
-            # Get email from cache or retrieve from Staatskalender if not found
+            # Get email and name info from cache or retrieve from Staatskalender if not found
             email = staatskalender_person_email_cache.get(sk_person_id)
+            sk_details = None
             
-            logging.debug(f"Looking up email for person {person_name} with SK ID: '{sk_person_id}'")
+            logging.debug(f"Looking up details for person {person_name} with SK ID: '{sk_person_id}'")
             if email:
                 logging.debug(f"  - Found email in cache: {email}")
             else:
-                logging.debug(f"  - No email found in cache for this SK ID")
+                logging.debug(f"  - No email found in cache for this SK Person ID")
                 # Try to retrieve from Staatskalender
                 if sk_person_id:
-                    logging.debug(f"  - Attempting to retrieve email from Staatskalender")
-                    email = get_person_email_from_staatskalender(sk_person_id)
-                    if email:
+                    logging.debug(f"  - Attempting to retrieve details from Staatskalender")
+                    sk_details = get_person_details_from_staatskalender(sk_person_id)
+                    if sk_details.get('email'):
+                        email = sk_details['email']
                         logging.info(f"  - Successfully retrieved email from Staatskalender: {email}")
                     else:
                         logging.info(f"  - Failed to retrieve email from Staatskalender")
+            
+            # Check if person name needs to be updated
+            if sk_details and sk_details.get('first_name') and sk_details.get('last_name'):
+                sk_first_name = sk_details['first_name']
+                sk_last_name = sk_details['last_name']
+                sk_name = f"{sk_first_name} {sk_last_name}"
+                
+                if sk_first_name != person['given_name'] or sk_last_name != person['family_name']:
+                    logging.info(f"Person name mismatch - Dataspot: {person_name}, Staatskalender: {sk_name}")
+                    # Update person name to match Staatskalender
+                    update_success = update_person_name(
+                        dataspot_client=dataspot_client,
+                        person_uuid=person_uuid,
+                        first_name=sk_first_name,
+                        last_name=sk_last_name
+                    )
+                    
+                    if update_success:
+                        logging.info(f"Successfully updated person name from '{person_name}' to '{sk_name}'")
+                        # Add remediated issue for name update
+                        result['issues'].append({
+                            'type': 'person_name_update',
+                            'person_uuid': person_uuid,
+                            'given_name': person['given_name'],
+                            'family_name': person['family_name'],
+                            'sk_person_id': sk_person_id,
+                            'sk_first_name': sk_first_name,
+                            'sk_last_name': sk_last_name,
+                            'message': f"Person name updated from '{person_name}' to '{sk_name}' based on Staatskalender",
+                            'remediation_attempted': True,
+                            'remediation_success': True
+                        })
+                    else:
+                        logging.warning(f"Failed to update person name from '{person_name}' to '{sk_name}'")
+                        # Add failed issue for name update
+                        result['issues'].append({
+                            'type': 'person_name_update_failed',
+                            'person_uuid': person_uuid,
+                            'given_name': person['given_name'],
+                            'family_name': person['family_name'],
+                            'sk_person_id': sk_person_id,
+                            'sk_first_name': sk_first_name,
+                            'sk_last_name': sk_last_name,
+                            'message': f"Failed to update person name from '{person_name}' to '{sk_name}'",
+                            'remediation_attempted': True,
+                            'remediation_success': False
+                        })
             
             if not email:
                 # Report missing email in Staatskalender
@@ -209,17 +258,17 @@ def get_persons_with_sk_person_id_and_posts(dataspot_client: BaseDataspotClient)
     return dataspot_client.execute_query_api(sql_query=query)
 
 
-def get_person_email_from_staatskalender(sk_person_id: str) -> Optional[str]:
+def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
     """
-    Retrieve person email from Staatskalender by sk_person_id.
+    Retrieve person details from Staatskalender by sk_person_id.
     
     Args:
         sk_person_id: Staatskalender person ID
         
     Returns:
-        str: Email address or None if not found or error
+        dict: Person details including first_name, last_name, email or empty dict if error
     """
-    logging.debug(f"Retrieving email from Staatskalender for person with SK ID: {sk_person_id}")
+    logging.debug(f"Retrieving person details from Staatskalender for person with SK ID: {sk_person_id}")
     
     # Add a delay to prevent overwhelming the API
     import time
@@ -231,30 +280,43 @@ def get_person_email_from_staatskalender(sk_person_id: str) -> Optional[str]:
         
         if person_response.status_code != 200:
             logging.warning(f"Failed to retrieve person data from Staatskalender. Status code: {person_response.status_code}")
-            return None
+            return {}
             
         # Extract person details
         person_data = person_response.json()
         sk_email = None
+        sk_first_name = None
+        sk_last_name = None
         
         for item in person_data.get('collection', {}).get('items', []):
             for data_item in item.get('data', []):
                 if data_item.get('name') == 'email':
                     sk_email = data_item.get('value')
+                elif data_item.get('name') == 'first_name':
+                    sk_first_name = data_item.get('value')
+                elif data_item.get('name') == 'last_name':
+                    sk_last_name = data_item.get('value')
+
+                if sk_email and sk_first_name and sk_last_name:
                     break
-            if sk_email:
-                break
-                
+
         if sk_email:
             logging.debug(f"Found email in Staatskalender: {sk_email}")
         else:
             logging.debug(f"No email found in Staatskalender for this person")
             
-        return sk_email
+        if sk_first_name and sk_last_name:
+            logging.info(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
+            
+        return {
+            'first_name': sk_first_name,
+            'last_name': sk_last_name,
+            'email': sk_email
+        }
         
     except Exception as e:
         logging.error(f"Error retrieving person data from Staatskalender: {str(e)}")
-        return None
+        return {}
 
 
 def get_all_users(dataspot_client: BaseDataspotClient) -> List[Dict[str, any]]:
@@ -279,3 +341,44 @@ def get_all_users(dataspot_client: BaseDataspotClient) -> List[Dict[str, any]]:
         u.login_id
     """
     return dataspot_client.execute_query_api(sql_query=query)
+
+
+def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, first_name: str, last_name: str) -> bool:
+    """
+    Update a person's name in Dataspot to match the name in Staatskalender.
+    
+    Args:
+        dataspot_client: Base client for database operations
+        person_uuid: UUID of the person to update
+        first_name: New first name from Staatskalender
+        last_name: New last name from Staatskalender
+        
+    Returns:
+        bool: True if update was successful, False otherwise
+    """
+    logging.debug(f"Updating person name for UUID {person_uuid} to {first_name} {last_name}")
+    
+    # Construct the API URL to update person
+    api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+    
+    # Build the update payload
+    payload = {
+        "_type": "Person",
+        "givenName": first_name,
+        "familyName": last_name
+    }
+    
+    try:
+        # Send PATCH request to update person
+        response = requests_patch(url=api_url, json=payload, headers=dataspot_client.auth.get_headers())
+        
+        if response.status_code == 200:
+            logging.info(f"Successfully updated person name to {first_name} {last_name}")
+            return True
+        else:
+            logging.error(f"Failed to update person name. Status code: {response.status_code}")
+            logging.error(f"Response: {response.text}")
+            return False
+    except Exception as e:
+        logging.error(f"Exception while updating person name: {str(e)}", exc_info=True)
+        return False
