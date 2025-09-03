@@ -17,10 +17,6 @@ BusinessObject:
 
 BusinessAttribute:
   groups:
-    DATA_PRIVACY: # TODO: Check unused and remove
-      label: Datenschutz und -sicherheit
-      order: 20
-      icon: shield-halved
     HISTORIOGRAPHY:
       label: Historisierung
       order: 30
@@ -94,18 +90,3 @@ BusinessAttribute:
       baseType: TEXT
       group: HISTORIOGRAPHY
       order: 50
-    protectionLevel: # TODO: Check empty and remove
-      label: Schutzbedarfsstufen
-      group: DATA_PRIVACY
-      #title: Welcher Schutzstufe ist der Datensatz zugeordnet? Gemäss Schutzbedarfsanalyse
-      #order: 11
-      literals:
-        "1":
-          label: Grundschutz (GS)
-          order: 1
-        "2":
-          label: erhöhter Schutzbedarf (ES)
-          order: 2
-        "3":
-          label: sehr hoher Schutzbedarf (SHS)
-          order: 3
