@@ -39,8 +39,8 @@ def check_4_post_occupation(dataspot_client: BaseDataspotClient) -> Dict[str, an
         unoccupied_posts = get_unoccupied_posts(dataspot_client)
         
         if not unoccupied_posts:
-            result['message'] = 'All posts are correctly occupied by at least one person.'
-            logging.info(f"Check finished: All posts are correctly occupied")
+            result['message'] = 'All posts are occupied by at least one person.'
+            logging.info(f"Check finished: All posts are occupied")
             return result
         
         # Process each unoccupied post
