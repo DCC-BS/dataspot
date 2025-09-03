@@ -417,6 +417,8 @@ def log_combined_results(combined_report):
                             posts_count = issue.get('posts_count', 0)
                             
                             logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
+                            if person_uuid != 'Unknown':
+                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
                             logging.info(f"       Posts count: {posts_count}")
                             logging.info(f"       Message: {message}")
                         elif issue_type == 'duplicate_sk_person_id':
@@ -427,11 +429,13 @@ def log_combined_results(combined_report):
                             logging.info(f"       Affected persons: {', '.join(person_names)}")
                             logging.info(f"       Message: {message}")
                         else:
+                            logging.warning(f"Unknown issue type: {issue_type}")
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
                             
                             logging.info(f"     - {post_label}")
-                            logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                            if post_uuid != 'Unknown':
+                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
                             logging.info(f"       Message: {message}")
 
         # Log error if any
@@ -555,11 +559,19 @@ def send_combined_email(combined_report):
                     # Show all remediated issues
                     for idx, issue in enumerate(issues):
                         post_label = issue.get('post_label', 'Unknown')
-                        post_uuid = issue.get('post_uuid', 'Unknown')
                         message = issue.get('message', 'No message provided')
                         
                         email_text += f"\n- {post_label}\n"
-                        email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                        
+                        # Handle person-related issues differently
+                        if issue_type == 'person_mismatch_missing_email' or issue_type == 'person_without_user':
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            if person_uuid != 'Unknown':
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                        else:
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            if post_uuid != 'Unknown':
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
                         if issue_type == 'person_mismatch':
@@ -602,13 +614,20 @@ def send_combined_email(combined_report):
                     for idx, issue in enumerate(issues):
                         message = issue.get('message', 'No message provided')
                         
-                        # Format differently for person_without_user which doesn't have post information
+                        # Format differently for person-related issues
                         if issue_type == 'person_without_user':
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
                             family_name = issue.get('family_name', '')
                             person_name = f"{given_name} {family_name}"
                             email_text += f"\n- Person: {person_name} (ID: {person_uuid})\n"
+                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                        elif issue_type == 'person_mismatch_missing_email':
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"\n- {post_label}\n"
+                            if person_uuid != 'Unknown':
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
                         elif issue_type == 'duplicate_sk_person_id':
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             person_names = issue.get('person_names', [])

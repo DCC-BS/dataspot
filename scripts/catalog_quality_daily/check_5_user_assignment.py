@@ -73,8 +73,22 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             
             logging.debug(f"Checking person: {person_name} (UUID: {person_uuid}) - Has posts: {has_posts}")
             
-            # Get email from cache
+            # Get email from cache or retrieve from Staatskalender if not found
             email = staatskalender_person_email_cache.get(sk_person_id)
+            
+            logging.debug(f"Looking up email for person {person_name} with SK ID: '{sk_person_id}'")
+            if email:
+                logging.debug(f"  - Found email in cache: {email}")
+            else:
+                logging.debug(f"  - No email found in cache for this SK ID")
+                # Try to retrieve from Staatskalender
+                if sk_person_id:
+                    logging.debug(f"  - Attempting to retrieve email from Staatskalender")
+                    email = get_person_email_from_staatskalender(sk_person_id)
+                    if email:
+                        logging.info(f"  - Successfully retrieved email from Staatskalender: {email}")
+                    else:
+                        logging.info(f"  - Failed to retrieve email from Staatskalender")
             
             if not email:
                 # Report missing email in Staatskalender
