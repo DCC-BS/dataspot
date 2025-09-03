@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import config
 from src.common import requests_get, requests_patch
@@ -131,7 +131,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 logging.info(f"User {user['email']} is not correctly linked to person {person_name} (UUID: {person_uuid})")
                 
             # Check access level if person has posts
-            if has_posts and user['access_level'] not in ['EDITOR', 'ADMIN']:
+            if has_posts and user['access_level'] == 'NUR LESEND':
                 # Report insufficient access rights
                 result['issues'].append({
                     'type': 'insufficient_access_rights',
@@ -147,7 +147,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
-                logging.info(f"User {user['email']} (linked to {person_name}) has insufficient access rights: {user['access_level']}")
+                logging.info(f"User {user['email']} (linked to {person_name}) has view-only rights which are insufficient for post assignments")
             
         # Update final status and message
         if result['issues']:
@@ -193,6 +193,54 @@ def get_persons_with_sk_person_id_and_posts(dataspot_client: BaseDataspotClient)
         p.family_name, p.given_name
     """
     return dataspot_client.execute_query_api(sql_query=query)
+
+
+def get_person_email_from_staatskalender(sk_person_id: str) -> Optional[str]:
+    """
+    Retrieve person email from Staatskalender by sk_person_id.
+    
+    Args:
+        sk_person_id: Staatskalender person ID
+        
+    Returns:
+        str: Email address or None if not found or error
+    """
+    logging.debug(f"Retrieving email from Staatskalender for person with SK ID: {sk_person_id}")
+    
+    # Add a delay to prevent overwhelming the API
+    import time
+    time.sleep(1)
+    
+    person_url = f"https://staatskalender.bs.ch/api/people/{sk_person_id}"
+    try:
+        person_response = requests_get(url=person_url)
+        
+        if person_response.status_code != 200:
+            logging.warning(f"Failed to retrieve person data from Staatskalender. Status code: {person_response.status_code}")
+            return None
+            
+        # Extract person details
+        person_data = person_response.json()
+        sk_email = None
+        
+        for item in person_data.get('collection', {}).get('items', []):
+            for data_item in item.get('data', []):
+                if data_item.get('name') == 'email':
+                    sk_email = data_item.get('value')
+                    break
+            if sk_email:
+                break
+                
+        if sk_email:
+            logging.debug(f"Found email in Staatskalender: {sk_email}")
+        else:
+            logging.debug(f"No email found in Staatskalender for this person")
+            
+        return sk_email
+        
+    except Exception as e:
+        logging.error(f"Error retrieving person data from Staatskalender: {str(e)}")
+        return None
 
 
 def get_all_users(dataspot_client: BaseDataspotClient) -> List[Dict[str, any]]:

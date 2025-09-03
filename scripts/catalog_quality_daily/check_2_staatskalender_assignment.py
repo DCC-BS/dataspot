@@ -171,7 +171,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
         logging.info(f"[{current_post}/{total_posts}] {post_label}:")
         
         for sk_membership_id in memberships:
-            time.sleep(10)
+            # Add a delay to prevent overwhelming the API
+            time.sleep(5)
 
             # Retrieve membership data from staatskalender
             try:
@@ -264,7 +265,9 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                 # Add to the person email cache
                 if sk_email:
-                    _person_email_cache[sk_person_id] = sk_email
+                    # Remove any quotes from sk_person_id when storing in the cache
+                    clean_sk_person_id = sk_person_id.strip('"') if isinstance(sk_person_id, str) else sk_person_id
+                    _person_email_cache[clean_sk_person_id] = sk_email
                 else:
                     # No email in Staatskalender
                     result['issues'].append({
