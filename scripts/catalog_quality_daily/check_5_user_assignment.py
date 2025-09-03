@@ -77,6 +77,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             email = staatskalender_person_email_cache.get(sk_person_id)
             sk_details = None
             
+            # Initialize SK name variables
+            sk_first_name = None
+            sk_last_name = None
+            sk_name = None
+            
             logging.debug(f"Looking up details for person {person_name} with SK ID: '{sk_person_id}'")
             if email:
                 logging.debug(f"  - Found email in cache: {email}")
@@ -88,9 +93,9 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     sk_details = get_person_details_from_staatskalender(sk_person_id)
                     if sk_details.get('email'):
                         email = sk_details['email']
-                        logging.info(f"  - Successfully retrieved email from Staatskalender: {email}")
+                        logging.debug(f"  - Successfully retrieved email from Staatskalender: {email}")
                     else:
-                        logging.info(f"  - Failed to retrieve email from Staatskalender")
+                        logging.debug(f"  - Failed to retrieve email from Staatskalender")
             
             # Check if person name needs to be updated
             if sk_details and sk_details.get('first_name') and sk_details.get('last_name'):
@@ -99,7 +104,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 sk_name = f"{sk_first_name} {sk_last_name}"
                 
                 if sk_first_name != person['given_name'] or sk_last_name != person['family_name']:
-                    logging.info(f"Person name mismatch - Dataspot: {person_name}, Staatskalender: {sk_name}")
+                    logging.debug(f"Person name mismatch - Dataspot: {person_name}, Staatskalender: {sk_name}")
                     # Update person name to match Staatskalender
                     update_success = update_person_name(
                         dataspot_client=dataspot_client,
@@ -141,6 +146,9 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             
             if not email:
                 # Report missing email in Staatskalender
+                # Use the updated name from Staatskalender if available, otherwise use the original name
+                display_name = sk_name if (sk_first_name and sk_last_name) else person_name
+                
                 result['issues'].append({
                     'type': 'person_mismatch_missing_email',
                     'person_uuid': person_uuid,
@@ -148,11 +156,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     'family_name': person['family_name'],
                     'sk_person_id': sk_person_id,
                     'posts_count': person['posts_count'],
-                    'message': f"Person {person_name} has no email address in Staatskalender",
+                    'message': f"Person {display_name} has no email address in Staatskalender",
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
-                logging.info(f"Person {person_name} (UUID: {person_uuid}) has no email address in Staatskalender")
+                logging.info(f"Person {display_name} has no email in Staatskalender")
                 continue
                 
             # Find user with this email
@@ -306,7 +314,7 @@ def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
             logging.debug(f"No email found in Staatskalender for this person")
             
         if sk_first_name and sk_last_name:
-            logging.info(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
+            logging.debug(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
             
         return {
             'first_name': sk_first_name,
@@ -373,7 +381,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, fi
         response = requests_patch(url=api_url, json=payload, headers=dataspot_client.auth.get_headers())
         
         if response.status_code == 200:
-            logging.info(f"Successfully updated person name to {first_name} {last_name}")
+            logging.debug(f"Successfully updated person name to {first_name} {last_name}")
             return True
         else:
             logging.error(f"Failed to update person name. Status code: {response.status_code}")
