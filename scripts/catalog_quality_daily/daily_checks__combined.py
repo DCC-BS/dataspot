@@ -371,6 +371,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
+                    elif issue_type == 'access_level_updated':
+                        logging.info(f"   * User Access Level Updated ({len(issues)})")
+                    elif issue_type == 'access_level_update_failed':
+                        logging.info(f"   * User Access Level Update Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -409,6 +413,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
+                    elif issue_type == 'access_level_updated':
+                        logging.info(f"   * User Access Level Updated ({len(issues)})")
+                    elif issue_type == 'access_level_update_failed':
+                        logging.info(f"   * User Access Level Update Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -436,7 +444,7 @@ def log_combined_results(combined_report):
                             logging.info(f"     - Duplicate sk_person_id: {sk_person_id}")
                             logging.info(f"       Affected persons: {', '.join(person_names)}")
                             logging.info(f"       Message: {message}")
-                        elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed']:
+                        elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed', 'access_level_updated', 'access_level_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
                             family_name = issue.get('family_name', '')
@@ -453,6 +461,16 @@ def log_combined_results(combined_report):
                                 if sk_first_name and sk_last_name:
                                     sk_name = f"{sk_first_name} {sk_last_name}"
                                     logging.info(f"       Staatskalender name: {sk_name}")
+                            # Add user access level details
+                            elif issue_type in ['access_level_updated', 'access_level_update_failed']:
+                                user_email = issue.get('user_email', '')
+                                if user_email:
+                                    logging.info(f"       User email: {user_email}")
+                                old_level = issue.get('user_access_level_old', issue.get('user_access_level', 'Unknown'))
+                                logging.info(f"       Previous access level: {old_level}")
+                                if issue_type == 'access_level_updated':
+                                    new_level = issue.get('user_access_level_new', ['Unknown'])[0]
+                                    logging.info(f"       New access level: {new_level}")
                             
                             logging.info(f"       Message: {message}")
                         else:
@@ -549,6 +567,7 @@ def send_combined_email(combined_report):
             # Priority order for sorting issue types
             priority_order = [
                 'person_without_user', 'person_mismatch_missing_email', 'person_mismatch', 
+                'access_level_updated', 'access_level_update_failed',
                 'no_person_assigned', 'unoccupied_post', 'missing_membership', 'invalid_membership', 
                 'missing_person_link', 'missing_person_name', 'missing_dataspot_name', 
                 'dataspot_person_error', 'processing_error'
@@ -584,6 +603,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'access_level_updated':
+                        email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
+                    elif issue_type == 'access_level_update_failed':
+                        email_text += f"\nUSER ACCESS LEVEL UPDATE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -642,6 +665,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'access_level_updated':
+                        email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
+                    elif issue_type == 'access_level_update_failed':
+                        email_text += f"\nUSER ACCESS LEVEL UPDATE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -706,6 +733,21 @@ def send_combined_email(combined_report):
                             email_text += f"  Previous name: {person_name}\n"
                             email_text += f"  Updated name: {sk_name}\n"
                             email_text += f"  The person's name has been automatically updated to match Staatskalender.\n"
+                        elif issue_type == 'access_level_updated':
+                            user_email = issue.get('user_email', '')
+                            old_level = issue.get('user_access_level_old', 'Unknown')
+                            new_level = issue.get('user_access_level_new', ['Unknown'])[0]
+                            email_text += f"  User: {user_email}\n"
+                            email_text += f"  Previous access level: {old_level}\n"
+                            email_text += f"  Updated access level: {new_level}\n"
+                            email_text += f"  The user's access level has been automatically updated.\n"
+                        elif issue_type == 'access_level_update_failed':
+                            user_email = issue.get('user_email', '')
+                            current_level = issue.get('user_access_level', 'Unknown')
+                            email_text += f"  User: {user_email}\n"
+                            email_text += f"  Current access level: {current_level}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to update user's access level to EDITOR.\n"
+                            email_text += f"  Please update the access level manually.\n"
                         elif issue_type == 'person_name_update_failed':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             sk_first_name = issue.get('sk_first_name', '')

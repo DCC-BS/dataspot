@@ -202,23 +202,49 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 logging.info(f"User {user['email']} is not correctly linked to person {person_name} (UUID: {person_uuid})")
                 
             # Check access level if person has posts
-            if has_posts and user['access_level'] == ['READ_ONLY']:
-                # Report insufficient access rights
-                result['issues'].append({
-                    'type': 'insufficient_access_rights',
-                    'person_uuid': person_uuid,
-                    'given_name': person['given_name'],
-                    'family_name': person['family_name'],
-                    'sk_person_id': sk_person_id,
-                    'posts_count': person['posts_count'],
-                    'user_uuid': user['user_uuid'],
-                    'user_email': user['email'],
-                    'user_access_level': user['access_level'],
-                    'message': f"User {user['email']} has insufficient access rights ({user['access_level']}) but is assigned to {person['posts_count']} posts",
-                    'remediation_attempted': False,
-                    'remediation_success': False
-                })
-                logging.info(f"User {user['email']} (linked to {person_name}) has view-only rights which are insufficient for post assignments")
+            if has_posts and user['access_level'] == 'READ_ONLY':
+                # Try to update user access level to EDITOR
+                update_success = update_user_access_level(
+                    dataspot_client=dataspot_client,
+                    user_uuid=user['user_uuid'],
+                    access_level='EDITOR'
+                )
+                
+                if update_success:
+                    # Report successful access level upgrade
+                    result['issues'].append({
+                        'type': 'access_level_updated',
+                        'person_uuid': person_uuid,
+                        'given_name': person['given_name'],
+                        'family_name': person['family_name'],
+                        'sk_person_id': sk_person_id,
+                        'posts_count': person['posts_count'],
+                        'user_uuid': user['user_uuid'],
+                        'user_email': user['email'],
+                        'user_access_level_old': user['access_level'],
+                        'user_access_level_new': ['EDITOR'],
+                        'message': f"User {user['email']} access level successfully updated from {user['access_level']} to EDITOR",
+                        'remediation_attempted': True,
+                        'remediation_success': True
+                    })
+                    logging.info(f"Successfully updated access level for user {user['email']} (linked to {person_name}) from READ_ONLY to EDITOR")
+                else:
+                    # Report failed access level upgrade
+                    result['issues'].append({
+                        'type': 'access_level_update_failed',
+                        'person_uuid': person_uuid,
+                        'given_name': person['given_name'],
+                        'family_name': person['family_name'],
+                        'sk_person_id': sk_person_id,
+                        'posts_count': person['posts_count'],
+                        'user_uuid': user['user_uuid'],
+                        'user_email': user['email'],
+                        'user_access_level': user['access_level'],
+                        'message': f"Failed to update access level for user {user['email']} from {user['access_level']} to EDITOR",
+                        'remediation_attempted': True,
+                        'remediation_success': False
+                    })
+                    logging.warning(f"Failed to update access level for user {user['email']} (linked to {person_name}) from READ_ONLY to EDITOR")
             
         # Update final status and message
         if result['issues']:
@@ -389,4 +415,39 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, fi
             return False
     except Exception as e:
         logging.error(f"Exception while updating person name: {str(e)}", exc_info=True)
+        return False
+
+def update_user_access_level(dataspot_client: BaseDataspotClient, user_uuid: str, access_level: str) -> bool:
+    """
+    Update a user's access level in Dataspot.
+    
+    Args:
+        dataspot_client: Base client for database operations
+        user_uuid: UUID of the user to update
+        access_level: Access level to set the user to (READ_ONLY, EDITOR, ADMINISTRATOR)
+    """
+    logging.debug(f"Updating user access level for UUID {user_uuid} to {access_level}")
+    
+    # Construct the API URL to update user
+    api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users/{user_uuid}"
+    
+    # Build the update payload
+    payload = {
+        "_type": "Benutzer",
+        "accessLevel": access_level
+    }
+    
+    try:
+        # Send PATCH request to update user
+        response = requests_patch(url=api_url, json=payload, headers=dataspot_client.auth.get_headers())
+        
+        if response.status_code == 200:
+            logging.debug(f"Successfully updated user access level to {access_level}")
+            return True
+        else:
+            logging.error(f"Failed to update user access level. Status code: {response.status_code}")
+            logging.error(f"Response: {response.text}")
+            return False
+    except Exception as e:
+        logging.error(f"Exception while updating user access level: {str(e)}", exc_info=True)
         return False
