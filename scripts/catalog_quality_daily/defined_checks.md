@@ -86,16 +86,16 @@ Falls nicht:
 ---
 5 Benutzerkontensynchronisation
 
-Alle Personen mit sk_person_id haben korrekte Benutzerkonten.
+Alle Personen mit sk_person_id und einem Posten haben korrekte Benutzerkonten.
 
-Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:
+Spezifisch wird für alle Personen mit gesetzter sk_person_id und einem Posten überprüft:
 - Ein Benutzer mit der korrekten E-Mail-Adresse aus dem Staatskalender existiert
 - Der Benutzer ist über das isPerson-Feld korrekt mit der Person verknüpft
-- Wenn die Person einen Posten hat, hat der Benutzer mindestens EDITOR Zugriffsrechte
+- Zur Person existiert ein Benutzer, und hat der Benutzer mindestens EDITOR Zugriffsrechte
 
 Falls nicht:
-- Wenn keine E-Mail-Adresse im Staatskalender hinterlegt ist, wird die gemeldet
-- Wenn kein Benutzer für die Person existiert, wird ein Benutzer angelegt
+- Wenn keine E-Mail-Adresse im Staatskalender hinterlegt ist, wird dies gemeldet
+- Wenn kein Benutzer für die Person existiert, wird für die Person einen Benutzer mit der E-Mail-Adresse erstellt
 - Wenn der Benutzer nicht korrekt mit der Person verknüpft ist, wird der Benutzer mit der korrekten Person verknüpft
-- Wenn der Benutzer einen Posten hat, und Zugriffsrechte "NUR LESEND" hat, wird er zum "EDITOR".
+- Wenn die Zugriffsrechte des Benutzers READ_ONLY sind, werden sie zu EDITOR geändert
 - Eine E-Mail mit allen Problemen und Änderungen wird an dcc@bs.ch gesendet
