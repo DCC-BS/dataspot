@@ -367,6 +367,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
                     elif issue_type == 'person_without_user':
                         logging.info(f"   * Person Without User Account ({len(issues)})")
+                    elif issue_type == 'user_created':
+                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
+                    elif issue_type == 'user_creation_failed':
+                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
                     elif issue_type == 'person_name_update':
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
@@ -375,18 +379,38 @@ def log_combined_results(combined_report):
                         logging.info(f"   * User Access Level Updated ({len(issues)})")
                     elif issue_type == 'access_level_update_failed':
                         logging.info(f"   * User Access Level Update Failed ({len(issues)})")
+                    elif issue_type == 'user_person_link_updated':
+                        logging.info(f"   * User Linked To Person Successfully ({len(issues)})")
+                    elif issue_type == 'user_person_link_update_failed':
+                        logging.info(f"   * User To Person Link Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
                     # List the fixed issues
                     for issue in issues:
-                        post_label = issue.get('post_label', 'Unknown')
-                        post_uuid = issue.get('post_uuid', 'Unknown')
-                        message = issue.get('message', 'No message')
-                        
-                        logging.info(f"     - {post_label}")
-                        logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
-                        logging.info(f"       Message: {message}")
+
+                        if issue.get('person_uuid'):
+                            person_uuid = issue.get('person_uuid')
+                            first_name = issue.get('sk_first_name')
+                            last_name = issue.get('sk_last_name')
+                            message = issue.get('message', 'No message')
+
+                            person_name = "Unknown"
+                            if first_name and last_name:
+                                person_name = f"{first_name} {last_name}"
+
+
+                            logging.info(f"     - {person_name}")
+                            logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
+                            logging.info(f"       Message: {message}")
+                        else:
+                            post_label = issue.get('post_label', 'Unknown')
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            message = issue.get('message', 'No message')
+
+                            logging.info(f"     - {post_label}")
+                            logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                            logging.info(f"       Message: {message}")
             
             # Group actual issues by type
             if actual_count > 0:
@@ -409,6 +433,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
                     elif issue_type == 'person_without_user':
                         logging.info(f"   * Person Without User Account ({len(issues)})")
+                    elif issue_type == 'user_created':
+                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
+                    elif issue_type == 'user_creation_failed':
+                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
                     elif issue_type == 'person_name_update':
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
@@ -417,6 +445,10 @@ def log_combined_results(combined_report):
                         logging.info(f"   * User Access Level Updated ({len(issues)})")
                     elif issue_type == 'access_level_update_failed':
                         logging.info(f"   * User Access Level Update Failed ({len(issues)})")
+                    elif issue_type == 'user_person_link_updated':
+                        logging.info(f"   * User Linked To Person Successfully ({len(issues)})")
+                    elif issue_type == 'user_person_link_update_failed':
+                        logging.info(f"   * User To Person Link Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -444,7 +476,8 @@ def log_combined_results(combined_report):
                             logging.info(f"     - Duplicate sk_person_id: {sk_person_id}")
                             logging.info(f"       Affected persons: {', '.join(person_names)}")
                             logging.info(f"       Message: {message}")
-                        elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed', 'access_level_updated', 'access_level_update_failed']:
+                        elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed', 
+                             'access_level_updated', 'access_level_update_failed', 'user_person_link_updated', 'user_person_link_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
                             family_name = issue.get('family_name', '')
@@ -471,7 +504,21 @@ def log_combined_results(combined_report):
                                 if issue_type == 'access_level_updated':
                                     new_level = issue.get('user_access_level_new', ['Unknown'])[0]
                                     logging.info(f"       New access level: {new_level}")
+                            # Add user link details
+                            elif issue_type in ['user_person_link_updated', 'user_person_link_update_failed']:
+                                user_email = issue.get('user_email', '')
+                                if user_email:
+                                    logging.info(f"       User email: {user_email}")
+                                logging.info(f"       Person: {person_name}")
                             
+                            logging.info(f"       Message: {message}")
+                        elif issue_type == 'user_created':
+                            user_email = issue.get('user_email', '')
+                            logging.info(f"       User email: {user_email}")
+                            logging.info(f"       Message: {message}")
+                        elif issue_type == 'user_creation_failed':
+                            user_email = issue.get('user_email', '')
+                            logging.info(f"       User email: {user_email}")
                             logging.info(f"       Message: {message}")
                         else:
                             logging.warning(f"Unknown issue type: {issue_type}")
@@ -566,8 +613,8 @@ def send_combined_email(combined_report):
 
             # Priority order for sorting issue types
             priority_order = [
-                'person_without_user', 'person_mismatch_missing_email', 'person_mismatch', 
-                'access_level_updated', 'access_level_update_failed',
+                'user_created', 'user_creation_failed', 'person_without_user', 'person_mismatch_missing_email', 'person_mismatch',
+                'user_person_link_updated', 'user_person_link_update_failed', 'access_level_updated', 'access_level_update_failed',
                 'no_person_assigned', 'unoccupied_post', 'missing_membership', 'invalid_membership', 
                 'missing_person_link', 'missing_person_name', 'missing_dataspot_name', 
                 'dataspot_person_error', 'processing_error'
@@ -607,6 +654,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
                     elif issue_type == 'access_level_update_failed':
                         email_text += f"\nUSER ACCESS LEVEL UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'user_person_link_updated':
+                        email_text += f"\nUSER LINKED TO PERSON SUCCESSFULLY ({len(issues)}):\n"
+                    elif issue_type == 'user_person_link_update_failed':
+                        email_text += f"\nUSER TO PERSON LINK FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -618,7 +669,7 @@ def send_combined_email(combined_report):
                         email_text += f"\n- {post_label}\n"
                         
                         # Handle person-related issues differently
-                        if issue_type == 'person_mismatch_missing_email' or issue_type == 'person_without_user':
+                        if issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_mismatch']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             if person_uuid != 'Unknown':
                                 email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
@@ -634,7 +685,7 @@ def send_combined_email(combined_report):
                             email_text += f"  Reassigned from: {ds_name} to: {sk_name}\n"
                         
                         email_text += f"  Resolution: {message}\n"
-            
+
             # Add issues requiring attention section
             if actual_count > 0:
                 actual_issues = check.get('actual_issues', [])
@@ -669,6 +720,10 @@ def send_combined_email(combined_report):
                         email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
                     elif issue_type == 'access_level_update_failed':
                         email_text += f"\nUSER ACCESS LEVEL UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'user_person_link_updated':
+                        email_text += f"\nUSER LINKED TO PERSON SUCCESSFULLY ({len(issues)}):\n"
+                    elif issue_type == 'user_person_link_update_failed':
+                        email_text += f"\nUSER TO PERSON LINK FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -697,6 +752,17 @@ def send_combined_email(combined_report):
                             person_names = issue.get('person_names', [])
                             email_text += f"\n- Duplicate sk_person_id: {sk_person_id}\n"
                             email_text += f"  Affected persons: {', '.join(person_names)}\n"
+                        elif issue_type in ['person_name_update', 'person_name_update_failed']:
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            given_name = issue.get('given_name', '')
+                            family_name = issue.get('family_name', '')
+                            person_name = f"{given_name} {family_name}"
+                            sk_first_name = issue.get('sk_first_name', '')
+                            sk_last_name = issue.get('sk_last_name', '')
+                            sk_name = f"{sk_first_name} {sk_last_name}"
+                            email_text += f"\n- Person: {person_name}\n"
+                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                            email_text += f"  Staatskalender name: {sk_name}\n"
                         else:
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
@@ -733,6 +799,15 @@ def send_combined_email(combined_report):
                             email_text += f"  Previous name: {person_name}\n"
                             email_text += f"  Updated name: {sk_name}\n"
                             email_text += f"  The person's name has been automatically updated to match Staatskalender.\n"
+                        elif issue_type == 'person_name_update_failed':
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            sk_first_name = issue.get('sk_first_name', '')
+                            sk_last_name = issue.get('sk_last_name', '')
+                            sk_name = f"{sk_first_name} {sk_last_name}"
+                            email_text += f"  Current name: {person_name}\n"
+                            email_text += f"  Staatskalender name: {sk_name}\n"
+                            email_text += f"  ACTION REQUIRED: The person's name should be updated to match Staatskalender.\n"
+                            email_text += f"  Automatic update failed. Please update the person's name manually.\n"
                         elif issue_type == 'access_level_updated':
                             user_email = issue.get('user_email', '')
                             old_level = issue.get('user_access_level_old', 'Unknown')
@@ -748,6 +823,19 @@ def send_combined_email(combined_report):
                             email_text += f"  Current access level: {current_level}\n"
                             email_text += f"  ACTION REQUIRED: Failed to update user's access level to EDITOR.\n"
                             email_text += f"  Please update the access level manually.\n"
+                        elif issue_type == 'user_person_link_updated':
+                            user_email = issue.get('user_email', '')
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            email_text += f"  User: {user_email}\n"
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  The user has been successfully linked to this person.\n"
+                        elif issue_type == 'user_person_link_update_failed':
+                            user_email = issue.get('user_email', '')
+                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            email_text += f"  User: {user_email}\n"
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to link user to person.\n"
+                            email_text += f"  Please link the user to the person manually.\n"
                         elif issue_type == 'person_name_update_failed':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             sk_first_name = issue.get('sk_first_name', '')
@@ -767,6 +855,13 @@ def send_combined_email(combined_report):
                         elif issue_type in ['invalid_membership', 'missing_person_link']:
                             sk_membership_id = issue.get('sk_membership_id', 'Unknown')
                             email_text += f"  Membership ID: {sk_membership_id}\n"
+                        elif issue_type == 'user_created':
+                            email_text += f"  User: {issue.get('user_email', 'Unknown')}\n"
+                            email_text += f"  The user account has been created.\n"
+                        elif issue_type == 'user_creation_failed':
+                            email_text += f"  User: {issue.get('user_email', 'Unknown')}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to create user account.\n"
+                            email_text += f"  Please create the user account manually.\n"
                         
                         email_text += f"  Message: {message}\n"
 
