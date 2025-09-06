@@ -44,115 +44,124 @@ def run_all_checks():
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
-    run_check_1 = True
-    run_check_2 = True
-    run_check_3 = True
-    run_check_4 = True
-    run_check_5 = True
-
-    if run_check_1:
-        # Check #1: Unique sk_person_id verification
-        logging.info("")
-        logging.info("   Starting Check #1: Unique sk_person_id Verification...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_1_unique_sk_person_id import check_1_unique_sk_person_id
-        result = check_1_unique_sk_person_id(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_1_unique_sk_person_id',
-            'title': 'Check #1: Unique sk_person_id Verification',
-            'description': 'Checks if all persons have unique sk_person_id values.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #1: Unique sk_person_id Verification Completed.")
-        logging.info("")
-
     # TODO: Refactor to staatskalender_post_person_mapping
     post_person_mapping__should = []
     staatskalender_person_email_cache = {}
 
-    if run_check_2:
-        # Check #2: Person assignment according to Staatskalender
-        logging.info("")
-        logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
-        check_2_result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_2_staatskalender_assignment',
-            'title': 'Check #2: Person Assignment (Staatskalender)',
-            'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
-            'results': check_2_result
-        })
-        post_person_mapping__should = check_2_result['post_person_mapping__should']
-        staatskalender_person_email_cache = check_2_result.get('staatskalender_person_email_cache', {})
+    # Check #1: Unique sk_person_id verification
+    logging.info("")
+    logging.info("   Starting Check #1: Unique sk_person_id Verification...")
+    logging.info("   " + "-" * 50)
+    from scripts.catalog_quality_daily.check_1_unique_sk_person_id import check_1_unique_sk_person_id
+    result = check_1_unique_sk_person_id(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'check_1_unique_sk_person_id',
+        'title': 'Check #1: Unique sk_person_id Verification',
+        'description': 'Checks if all persons have unique sk_person_id values.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Check #1: Unique sk_person_id Verification Completed.")
+    logging.info("")
 
-        logging.info("")
-        logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
-        logging.info("")
+    # Check if Check #1 failed or has issues - if so, skip remaining checks
+    if result.get('status') in ['error', 'warning']:
+        logging.warning("   Check #1 failed or has issues. Skipping remaining checks.")
+        return check_results
 
-    if run_check_3:
-        # Check #3: Membership-based Post Assignments
-        logging.info("")
-        logging.info("   Starting Check #3: Membership-based Post Assignments...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
+    # Check #2: Person assignment according to Staatskalender
+    logging.info("")
+    logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
+    logging.info("   " + "-" * 50)
+    from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
+    check_2_result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'check_2_staatskalender_assignment',
+        'title': 'Check #2: Person Assignment (Staatskalender)',
+        'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
+        'results': check_2_result
+    })
+    post_person_mapping__should = check_2_result['post_person_mapping__should']
+    staatskalender_person_email_cache = check_2_result.get('staatskalender_person_email_cache', {})
 
-        logging.debug(f"   Using post_person_mapping__should from check_2 with {len(post_person_mapping__should)} mappings")
+    logging.info("")
+    logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
+    logging.info("")
 
-        result = check_3_post_assignment(
-            dataspot_client=dataspot_base_client,
-            post_person_mapping__should=post_person_mapping__should
-        )
-        check_results.append({
-            'check_name': 'check_3_post_assignment',
-            'title': 'Check #3: Membership-based Post Assignments',
-            'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #3: Membership-based Post Assignments Completed.")
-        logging.info("")
+    # Check if Check #2 failed or has issues - if so, skip remaining checks
+    if check_2_result.get('status') in ['error', 'warning']:
+        logging.warning("   Check #2 failed or has issues. Skipping remaining checks.")
+        return check_results
 
-    if run_check_4:
-        # Check #4: Post occupation check
-        logging.info("")
-        logging.info("   Starting Check #4: Post Occupation...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
-        result = check_4_post_occupation(dataspot_client=dataspot_base_client)
-        check_results.append({
-            'check_name': 'check_4_post_occupation',
-            'title': 'Check #4: Post Occupation',
-            'description': 'Checks if all posts are assigned to at least one person.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #4: Post Occupation Completed.")
-        logging.info("")
+    # Check #3: Membership-based Post Assignments
+    logging.info("")
+    logging.info("   Starting Check #3: Membership-based Post Assignments...")
+    logging.info("   " + "-" * 50)
+    from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
 
-    if run_check_5:
-        # Check #5: User assignment for persons with sk_person_id
-        logging.info("")
-        logging.info("   Starting Check #5: User Assignment...")
-        logging.info("   " + "-" * 50)
-        from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
-        
-        logging.debug(f"   Using staatskalender_person_email_cache from check_2 with {len(staatskalender_person_email_cache)} email mappings")
-        
-        result = check_5_user_assignment(
-            dataspot_client=dataspot_base_client,
-            staatskalender_person_email_cache=staatskalender_person_email_cache
-        )
-        check_results.append({
-            'check_name': 'check_5_user_assignment',
-            'title': 'Check #5: User Assignment for Persons',
-            'description': 'Checks if all persons with sk_person_id have the correct user assignments.',
-            'results': result
-        })
-        logging.info("")
-        logging.info("   Check #5: User Assignment Completed.")
-        logging.info("")
+    logging.debug(f"   Using post_person_mapping__should from check_2 with {len(post_person_mapping__should)} mappings")
+
+    result = check_3_post_assignment(
+        dataspot_client=dataspot_base_client,
+        post_person_mapping__should=post_person_mapping__should
+    )
+    check_results.append({
+        'check_name': 'check_3_post_assignment',
+        'title': 'Check #3: Membership-based Post Assignments',
+        'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Check #3: Membership-based Post Assignments Completed.")
+    logging.info("")
+
+    # Check if Check #3 failed or has issues - if so, skip remaining checks
+    if result.get('status') in ['error', 'warning']:
+        logging.warning("   Check #3 failed or has issues. Skipping remaining checks.")
+        return check_results
+
+    # Check #4: Post occupation check
+    logging.info("")
+    logging.info("   Starting Check #4: Post Occupation...")
+    logging.info("   " + "-" * 50)
+    from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
+    result = check_4_post_occupation(dataspot_client=dataspot_base_client)
+    check_results.append({
+        'check_name': 'check_4_post_occupation',
+        'title': 'Check #4: Post Occupation',
+        'description': 'Checks if all posts are assigned to at least one person.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Check #4: Post Occupation Completed.")
+    logging.info("")
+
+    # Check if Check #4 failed or has issues - if so, skip remaining checks
+    if result.get('status') in ['error', 'warning']:
+        logging.warning("   Check #4 failed or has issues. Skipping remaining checks.")
+        return check_results
+
+    # Check #5: User assignment for persons with sk_person_id
+    logging.info("")
+    logging.info("   Starting Check #5: User Assignment...")
+    logging.info("   " + "-" * 50)
+    from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
+    
+    logging.debug(f"   Using staatskalender_person_email_cache from check_2 with {len(staatskalender_person_email_cache)} email mappings")
+    
+    result = check_5_user_assignment(
+        dataspot_client=dataspot_base_client,
+        staatskalender_person_email_cache=staatskalender_person_email_cache
+    )
+    check_results.append({
+        'check_name': 'check_5_user_assignment',
+        'title': 'Check #5: User Assignment for Persons',
+        'description': 'Checks if all persons with sk_person_id have the correct user assignments.',
+        'results': result
+    })
+    logging.info("")
+    logging.info("   Check #5: User Assignment Completed.")
+    logging.info("")
 
     
     logging.info("")
