@@ -36,7 +36,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
     Returns:
         dict: Check results including status, issues, any errors, and a mapping of post_uuid to person_uuid
               that shows how posts SHOULD be assigned to persons according to Staatskalender data.
-              This mapping (post_person_mapping__should) is provided for reuse in check_3 to avoid
+              This mapping (staatskalender_post_person_mapping) is provided for reuse in check_3 to avoid
               redundant Staatskalender API calls.
     """
     logging.debug("Starting Check #2: Personensynchronisation aus dem Staatskalender...")
@@ -46,7 +46,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         'message': 'All persons from Staatskalender are correctly present in Dataspot.',
         'issues': [],
         'error': None,
-        'post_person_mapping__should': [],
+        'staatskalender_post_person_mapping': [],
         'staatskalender_person_email_cache': {}
     }
 
@@ -158,7 +158,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     Args:
         posts: Posts data with membership information
         dataspot_client: Database client
-        result: Result dictionary to update with issues and post_person_mapping__should
+        result: Result dictionary to update with issues and staatskalender_post_person_mapping
 
     Returns:
         None (updates the result dictionary)
@@ -332,8 +332,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
 
-                    # Add to the post_person_mapping__should for use in check_3
-                    result['post_person_mapping__should'].append((post_uuid, person_uuid))
+                    # Add to the staatskalender_post_person_mapping for use in check_3
+                    result['staatskalender_post_person_mapping'].append((post_uuid, person_uuid))
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
                 else:
@@ -422,8 +422,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         })
                         logging.error(f'   - Failed to update sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name}: {str(e)}')
                         
-                    # Add to the post_person_mapping__should for use in check_3
-                    result['post_person_mapping__should'].append((post_uuid, person_uuid))
+                    # Add to the staatskalender_post_person_mapping for use in check_3
+                    result['staatskalender_post_person_mapping'].append((post_uuid, person_uuid))
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
             except Exception as e:

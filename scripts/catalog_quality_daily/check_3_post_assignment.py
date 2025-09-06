@@ -6,14 +6,14 @@ from src.common import requests_get, requests_patch
 from src.clients.base_client import BaseDataspotClient
 
 
-def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_mapping__should: List[Tuple[str, str]]) -> Dict[str, any]:
+def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_post_person_mapping: List[Tuple[str, str]]) -> Dict[str, any]:
     """
     Check #3: Mitgliedschaftsbasierte Posten-Zuordnungen
     
     This check verifies that all posts with membership IDs (primary or secondary) have correct person
     assignments based on Staatskalender data.
     
-    IMPORTANT: This check MUST be run after check_2, as it requires the post_person_mapping__should
+    IMPORTANT: This check MUST be run after check_2, as it requires the staatskalender_post_person_mapping
     from check_2's results. The mapping represents how posts SHOULD be assigned to persons according
     to Staatskalender data.
     
@@ -31,7 +31,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
     
     Args:
         dataspot_client: Base client for database operations
-        post_person_mapping__should: Mapping of post_uuid to person_uuid tuples from check_2.
+        staatskalender_post_person_mapping: Mapping of post_uuid to person_uuid tuples from check_2.
                                    This mapping represents how posts SHOULD be
                                    assigned to persons according to Staatskalender data. The list may
                                    be empty if no mappings should exist for posts with membership IDs.
@@ -80,7 +80,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
         is_assignments[person_uuid].append(post_uuid)
 
     should_assignments = {}
-    for post_uuid, person_uuid in post_person_mapping__should:
+    for post_uuid, person_uuid in staatskalender_post_person_mapping:
         if person_uuid not in should_assignments:
             should_assignments[person_uuid] = []
         should_assignments[person_uuid].append(post_uuid)

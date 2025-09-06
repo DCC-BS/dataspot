@@ -44,8 +44,7 @@ def run_all_checks():
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
-    # TODO: Refactor to staatskalender_post_person_mapping
-    post_person_mapping__should = []
+    staatskalender_post_person_mapping = []
     staatskalender_person_email_cache = {}
 
     # Check #1: Unique sk_person_id verification
@@ -81,7 +80,7 @@ def run_all_checks():
         'description': 'Checks if all posts with membership IDs have the correct person assignments from Staatskalender.',
         'results': check_2_result
     })
-    post_person_mapping__should = check_2_result['post_person_mapping__should']
+    staatskalender_post_person_mapping = check_2_result['staatskalender_post_person_mapping']
     staatskalender_person_email_cache = check_2_result.get('staatskalender_person_email_cache', {})
 
     logging.info("")
@@ -99,11 +98,11 @@ def run_all_checks():
     logging.info("   " + "-" * 50)
     from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
 
-    logging.debug(f"   Using post_person_mapping__should from check_2 with {len(post_person_mapping__should)} mappings")
+    logging.debug(f"   Using staatskalender_post_person_mapping from check_2 with {len(staatskalender_post_person_mapping)} mappings")
 
     result = check_3_post_assignment(
         dataspot_client=dataspot_base_client,
-        post_person_mapping__should=post_person_mapping__should
+        staatskalender_post_person_mapping=staatskalender_post_person_mapping
     )
     check_results.append({
         'check_name': 'check_3_post_assignment',
