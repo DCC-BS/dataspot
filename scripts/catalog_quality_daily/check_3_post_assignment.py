@@ -189,7 +189,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
                     for post_uuid in posts_to_add:
                         post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
                         result['issues'].append({
-                            'type': 'person_assignment_failed',
+                            'type': 'person_assignment_add_failed',
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
@@ -198,11 +198,12 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
+                        logging.error(f"Failed to assign person {person_name} to post {post_label or post_uuid}")
 
                     for post_uuid in posts_to_remove:
                         post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
                         result['issues'].append({
-                            'type': 'person_removal_failed',
+                            'type': 'person_assignment_remove_failed',
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
@@ -211,6 +212,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, post_person_map
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
+                        logging.error(f"Failed to remove assignment of {person_name} from post {post_label or post_uuid}")
             else:
                 logging.debug(f"No changes needed for person {person_name} (UUID: {person_uuid})")
 

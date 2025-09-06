@@ -109,6 +109,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         # Log person name update result
                         if update_success:
                             # Log the update
+                            issue_message = f"Updated person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
                             result['issues'].append({
                                 'type': 'person_name_update',
                                 'person_uuid': person_uuid,
@@ -116,16 +117,18 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                                 'family_name': family_name,
                                 'sk_first_name': sk_first_name,
                                 'sk_last_name': sk_last_name,
-                                'message': f"Updated person name from '{person_name}' to '{sk_first_name} {sk_last_name}'",
+                                'message': issue_message,
                                 'remediation_attempted': True,
                                 'remediation_success': True
                             })
+                            logging.info(issue_message)
                             
                             # Update the local variables to use the new name in subsequent logs and operations
                             given_name = sk_first_name
                             family_name = sk_last_name
                             person_name = f"{given_name} {family_name}"
                         else:
+                            issue_message = f"Failed to update person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
                             result['issues'].append({
                                 'type': 'person_name_update_failed',
                                 'person_uuid': person_uuid,
@@ -133,10 +136,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                                 'family_name': family_name,
                                 'sk_first_name': sk_first_name,
                                 'sk_last_name': sk_last_name,
-                                'message': f"Failed to update person name from '{person_name}' to '{sk_first_name} {sk_last_name}'",
+                                'message': issue_message,
                                 'remediation_attempted': True,
                                 'remediation_success': False
                             })
+                            logging.info(issue_message)
             
             # Handle case where no email is available
             if not email:
@@ -145,6 +149,8 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     # This is a real issue - person needs a user account but has no email
                     
                     # Add to issues since this requires attention
+                    issue_message = f"Person {person_name} has no email address in Staatskalender. " \
+                                   f"Please add an email address in Staatskalender or manually create a user account."
                     result['issues'].append({
                         'type': 'person_mismatch_missing_email',
                         'person_uuid': person_uuid,
@@ -152,12 +158,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         'family_name': family_name,
                         'sk_person_id': sk_person_id,
                         'posts_count': person['posts_count'],
-                        'message': f"Person {person_name} has no email address in Staatskalender. "
-                                    f"Please add an email address in Staatskalender or manually create a user account.",
+                        'message': issue_message,
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
-                    logging.info(f"Person {person_name} has posts but no email in Staatskalender - cannot create user account")
+                    logging.info(issue_message)
                 else:
                     # Not an issue - just log it at debug level
                     logging.debug(f"Person {person_name} has no posts and no email in Staatskalender - no user account needed")
@@ -187,6 +192,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     )
                     
                     if create_result['success']:
+                        issue_message = f"Successfully created user account for {person_name} with email {email}"
                         result['issues'].append({
                             'type': 'user_created',
                             'person_uuid': person_uuid,
@@ -197,11 +203,13 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'user_uuid': create_result['user_uuid'],
                             'user_email': email,
                             'user_access_level': create_result['access_level'],
-                            'message': f"Successfully created user account for {person_name} with email {email}",
+                            'message': issue_message,
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
+                        logging.info(issue_message)
                     else:
+                        issue_message = f"Failed to create user account for {person_name} with email {email}: {create_result['message']}"
                         result['issues'].append({
                             'type': 'user_creation_failed',
                             'person_uuid': person_uuid,
@@ -210,10 +218,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'sk_person_id': sk_person_id,
                             'posts_count': person['posts_count'],
                             'user_email': email,
-                            'message': f"Failed to create user account for {person_name} with email {email}: {create_result['message']}",
+                            'message': issue_message,
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
+                        logging.info(issue_message)
                 else:
                     # Person has no posts, no need to create a user
                     logging.debug(f"Person {person_name} (UUID: {person_uuid}) has no posts - not creating user account")
@@ -239,6 +248,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     
                     if response.status_code == 200:
                         logging.info(f"Successfully linked user {user['email']} to person {person_name}")
+                        issue_message = f"User {user['email']} is now correctly linked to person {person_name}"
                         result['issues'].append({
                             'type': 'user_person_link_updated',
                             'person_uuid': person_uuid,
@@ -247,13 +257,15 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'sk_person_id': sk_person_id,
                             'user_uuid': user_uuid,
                             'user_email': user['email'],
-                            'message': f"User {user['email']} is now correctly linked to person {person_name}",
+                            'message': issue_message,
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
+                        logging.info(issue_message)
                     else:
                         logging.error(f"Failed to link user to person. Status code: {response.status_code}")
                         logging.error(f"Response: {response.text}")
+                        issue_message = f"Failed to link user {user['email']} to person {person_name}"
                         result['issues'].append({
                             'type': 'user_person_link_update_failed',
                             'person_uuid': person_uuid,
@@ -262,12 +274,14 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'sk_person_id': sk_person_id,
                             'user_uuid': user_uuid,
                             'user_email': user['email'],
-                            'message': f"Failed to link user {user['email']} to person {person_name}",
+                            'message': issue_message,
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
+                        logging.info(issue_message)
                 except Exception as e:
                     logging.error(f"Exception while linking user to person: {str(e)}", exc_info=True)
+                    issue_message = f"Exception while linking user {user['email']} to person {person_name}: {str(e)}"
                     result['issues'].append({
                         'type': 'user_person_link_update_failed',
                         'person_uuid': person_uuid,
@@ -276,10 +290,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         'sk_person_id': sk_person_id,
                         'user_uuid': user_uuid,
                         'user_email': user['email'],
-                        'message': f"Exception while linking user {user['email']} to person {person_name}: {str(e)}",
+                        'message': issue_message,
                         'remediation_attempted': True,
                         'remediation_success': False
                     })
+                    logging.info(issue_message)
             
             # Step 5: Check if user has correct access level (if person has posts)
             if has_posts and user['access_level'] == 'READ_ONLY':
@@ -292,6 +307,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 )
                 
                 if update_success:
+                    issue_message = f"Updated access level for user {user['email']} from READ_ONLY to EDITOR"
                     result['issues'].append({
                         'type': 'access_level_updated',
                         'person_uuid': person_uuid,
@@ -302,12 +318,14 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         'user_email': user['email'],
                         'user_access_level_old': user['access_level'],
                         'user_access_level_new': ['EDITOR'],
-                        'message': f"Updated access level for user {user['email']} from READ_ONLY to EDITOR",
+                        'message': issue_message,
                         'remediation_attempted': True,
                         'remediation_success': True
                     })
                     logging.info(f"Successfully updated user access level from READ_ONLY to EDITOR for {user['email']} (Person {given_name} {family_name})")
+                    logging.info(issue_message)
                 else:
+                    issue_message = f"Failed to update access level for user {user['email']} from READ_ONLY to EDITOR"
                     result['issues'].append({
                         'type': 'access_level_update_failed',
                         'person_uuid': person_uuid,
@@ -317,11 +335,12 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         'user_uuid': user['user_uuid'],
                         'user_email': user['email'],
                         'user_access_level': user['access_level'],
-                        'message': f"Failed to update access level for user {user['email']} from READ_ONLY to EDITOR",
+                        'message': issue_message,
                         'remediation_attempted': True,
                         'remediation_success': False
                     })
                     logging.error(f"Failed to update access level from READ_ONLY to EDITOR for user {user['email']} (Person {given_name} {family_name})")
+                    logging.info(issue_message)
         
         # Update final status and message
         if result['issues']:

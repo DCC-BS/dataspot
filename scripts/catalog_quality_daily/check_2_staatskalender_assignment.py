@@ -190,6 +190,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
+                    logging.info(f' - Invalid membership ID {sk_membership_id} - not found in Staatskalender')
                     return
 
                 # Extract person link from membership data
@@ -206,7 +207,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                 if not person_link:
                     result['issues'].append({
-                        'type': 'missing_person_link',
+                        'type': 'person_data_retrieval_failed',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'sk_membership_id': sk_membership_id,
@@ -214,6 +215,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
+                    logging.info(f' - Could not find person link in membership data for {sk_membership_id}')
                     return
 
                 # Get person data from Staatskalender
@@ -221,7 +223,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                 if person_response.status_code != 200:
                     result['issues'].append({
-                        'type': 'person_data_error',
+                        'type': 'person_data_retrieval_failed',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'sk_membership_id': sk_membership_id,
@@ -229,6 +231,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
+                    logging.info(f' - Could not retrieve person data from Staatskalender (Status: {person_response.status_code})')
                     return
 
                 # Extract person details
@@ -253,7 +256,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                 if not sk_first_name or not sk_last_name:
                     # Missing essential person data
                     result['issues'].append({
-                        'type': 'missing_person_data',
+                        'type': 'person_data_incomplete',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'sk_membership_id': sk_membership_id,
@@ -261,6 +264,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
+                    logging.info(f' - Person data is incomplete in Staatskalender for {sk_membership_id}')
                     return
 
                 # Add to the person email cache
@@ -271,7 +275,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                 else:
                     # No email in Staatskalender
                     result['issues'].append({
-                        'type': 'missing_person_email',
+                        'type': 'person_mismatch_missing_email',
                         'post_uuid': post_uuid,
                         'post_label': post_label,
                         'sk_membership_id': sk_membership_id,
@@ -279,6 +283,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_attempted': False,
                         'remediation_success': False
                     })
+                    logging.info(f' - Person email is missing in Staatskalender for {sk_first_name} {sk_last_name}. Continuing to create person without user account.')
                     # Deliberately not returning here to allow for creation of person without email
 
                 # Check if a person with this sk_person_id already exists in Dataspot
@@ -290,17 +295,39 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     # Ensure that the name is correct
                     if sk_first_name != existing_first_name or sk_last_name != existing_last_name:
                         # Update name
-                        update_person_name(dataspot_client=dataspot_client, person_uuid=person_uuid, given_name=sk_first_name,family_name=sk_last_name)
-                        result['issues'].append({
-                            'type': 'person_name_mismatch',
-                            'post_uuid': post_uuid,
-                            'post_label': post_label,
-                            'sk_membership_id': sk_membership_id,
-                            'message': f"Person name mismatch: {existing_first_name} {existing_last_name} -> {sk_first_name} {sk_last_name}",
-                            'remediation_attempted': True,
-                            'remediation_success': True
-                        })
-                        logging.info(f' - Updated person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}" (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+                        try:
+                            update_person_name(dataspot_client=dataspot_client, person_uuid=person_uuid, given_name=sk_first_name,family_name=sk_last_name)
+                            result['issues'].append({
+                                'type': 'person_name_update',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'sk_membership_id': sk_membership_id,
+                                'person_uuid': person_uuid,
+                                'given_name': existing_first_name,
+                                'family_name': existing_last_name,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"Person name updated from {existing_first_name} {existing_last_name} to {sk_first_name} {sk_last_name}",
+                                'remediation_attempted': True,
+                                'remediation_success': True
+                            })
+                            logging.info(f' - Updated person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}" (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+                        except Exception as e:
+                            result['issues'].append({
+                                'type': 'person_name_update_failed',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'sk_membership_id': sk_membership_id,
+                                'person_uuid': person_uuid,
+                                'given_name': existing_first_name,
+                                'family_name': existing_last_name,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"Failed to update person name from {existing_first_name} {existing_last_name} to {sk_first_name} {sk_last_name}: {str(e)}",
+                                'remediation_attempted': True,
+                                'remediation_success': False
+                            })
+                            logging.error(f' - Failed to update person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}": {str(e)}')
 
                     else:
                         logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
@@ -318,42 +345,82 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         logging.info(f' - Found existing person {sk_first_name} {sk_last_name}')
                     else:
                         # Person doesn't exist, create it using the existing method
-                        person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
-                        
-                        if person_newly_created:
-                            # Reset caches since a new person was created
-                            global _person_with_sk_id_cache, _person_cache
-                            _person_with_sk_id_cache = None
-                            _person_cache = None
+                        try:
+                            person_uuid, person_newly_created = dataspot_client.ensure_person_exists(sk_first_name, sk_last_name)
+                            
+                            if person_newly_created:
+                                # Reset caches since a new person was created
+                                global _person_with_sk_id_cache, _person_cache
+                                _person_with_sk_id_cache = None
+                                _person_cache = None
 
-                            # Add remediation issue stating that the person was created
+                                # Add remediation issue stating that the person was created
+                                result['issues'].append({
+                                    'type': 'person_created',
+                                    'post_uuid': post_uuid,
+                                    'post_label': post_label,
+                                    'sk_membership_id': sk_membership_id,
+                                    'person_uuid': person_uuid,
+                                    'sk_first_name': sk_first_name,
+                                    'sk_last_name': sk_last_name,
+                                    'message': f"Person {sk_first_name} {sk_last_name} was created in dataspot (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})",
+                                    'remediation_attempted': True,
+                                    'remediation_success': True
+                                })
+                                logging.info(f' - Created new person {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+                            else:
+                                # Person was found but not newly created
+                                logging.info(f' - Person {sk_first_name} {sk_last_name} already exists')
+                        except Exception as e:
                             result['issues'].append({
-                                'type': 'person_created',
+                                'type': 'person_creation_failed',
+                                'post_uuid': post_uuid,
+                                'post_label': post_label,
+                                'sk_membership_id': sk_membership_id,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"Failed to create person {sk_first_name} {sk_last_name}: {str(e)}",
+                                'remediation_attempted': True,
+                                'remediation_success': False
+                            })
+                            logging.error(f' - Failed to create person {sk_first_name} {sk_last_name}: {str(e)}')
+                            continue  # Skip to next membership ID
+
+                    # Now ensure that the person has the correct sk_person_id
+                    try:
+                        person_sk_id_updated = ensure_correct_person_sk_id(dataspot_client, person_uuid, sk_person_id)
+                        if person_sk_id_updated:
+                            result['issues'].append({
+                                'type': 'person_sk_id_update',
                                 'post_uuid': post_uuid,
                                 'post_label': post_label,
                                 'sk_membership_id': sk_membership_id,
                                 'person_uuid': person_uuid,
-                                'message': f"Person {sk_first_name} {sk_last_name} was created in dataspot (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})",
+                                'sk_person_id': sk_person_id,
+                                'sk_first_name': sk_first_name,
+                                'sk_last_name': sk_last_name,
+                                'message': f"Person sk_person_id updated to {sk_person_id}",
                                 'remediation_attempted': True,
                                 'remediation_success': True
                             })
-                            logging.info(f' - Created new person {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
-
-                    # Now ensure that the person has the correct sk_person_id
-                    person_sk_id_updated = ensure_correct_person_sk_id(dataspot_client, person_uuid, sk_person_id)
-                    if person_sk_id_updated:
+                            logging.info(f'   - Updated sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
+                        else:
+                            logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
+                    except Exception as e:
                         result['issues'].append({
-                            'type': 'person_sk_id_updated',
+                            'type': 'person_sk_id_update_failed',
                             'post_uuid': post_uuid,
                             'post_label': post_label,
                             'sk_membership_id': sk_membership_id,
-                            'message': f"Person sk_person_id updated to {sk_person_id}",
+                            'person_uuid': person_uuid,
+                            'sk_person_id': sk_person_id,
+                            'sk_first_name': sk_first_name,
+                            'sk_last_name': sk_last_name,
+                            'message': f"Failed to update person sk_person_id to {sk_person_id}: {str(e)}",
                             'remediation_attempted': True,
-                            'remediation_success': True
+                            'remediation_success': False
                         })
-                        logging.info(f'   - Updated sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name} (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
-                    else:
-                        logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
+                        logging.error(f'   - Failed to update sk_person_id to {sk_person_id} for {sk_first_name} {sk_last_name}: {str(e)}')
                         
                     # Add to the post_person_mapping__should for use in check_3
                     result['post_person_mapping__should'].append((post_uuid, person_uuid))

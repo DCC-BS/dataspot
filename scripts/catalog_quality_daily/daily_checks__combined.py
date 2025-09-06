@@ -365,16 +365,28 @@ def log_combined_results(combined_report):
                     logging.info("")
                     if issue_type == 'person_mismatch_missing_email':
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
-                    elif issue_type == 'person_without_user':
-                        logging.info(f"   * Person Without User Account ({len(issues)})")
-                    elif issue_type == 'user_created':
-                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
-                    elif issue_type == 'user_creation_failed':
-                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
+                    elif issue_type == 'duplicate_sk_person_id':
+                        logging.info(f"   * Duplicate SK Person ID ({len(issues)})")
+                    elif issue_type == 'invalid_membership':
+                        logging.info(f"   * Invalid Membership ID ({len(issues)})")
+                    elif issue_type == 'unoccupied_post':
+                        logging.info(f"   * Unoccupied Post ({len(issues)})")
+                    elif issue_type == 'person_created':
+                        logging.info(f"   * Person Created Successfully ({len(issues)})")
+                    elif issue_type == 'person_creation_failed':
+                        logging.info(f"   * Person Creation Failed ({len(issues)})")
                     elif issue_type == 'person_name_update':
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
+                    elif issue_type == 'person_sk_id_update':
+                        logging.info(f"   * Person SK_Person_ID Updated ({len(issues)})")
+                    elif issue_type == 'person_sk_id_update_failed':
+                        logging.info(f"   * Person SK_Person_ID Update Failed ({len(issues)})")
+                    elif issue_type == 'user_created':
+                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
+                    elif issue_type == 'user_creation_failed':
+                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
                     elif issue_type == 'access_level_updated':
                         logging.info(f"   * User Access Level Updated ({len(issues)})")
                     elif issue_type == 'access_level_update_failed':
@@ -383,6 +395,18 @@ def log_combined_results(combined_report):
                         logging.info(f"   * User Linked To Person Successfully ({len(issues)})")
                     elif issue_type == 'user_person_link_update_failed':
                         logging.info(f"   * User To Person Link Failed ({len(issues)})")
+                    elif issue_type == 'person_data_retrieval_failed':
+                        logging.info(f"   * Person Data Retrieval Failed ({len(issues)})")
+                    elif issue_type == 'person_data_incomplete':
+                        logging.info(f"   * Person Data Incomplete ({len(issues)})")
+                    elif issue_type == 'person_assignment_added':
+                        logging.info(f"   * Person Assigned To Post ({len(issues)})")
+                    elif issue_type == 'person_assignment_removed':
+                        logging.info(f"   * Person Removed From Post ({len(issues)})")
+                    elif issue_type == 'person_assignment_add_failed':
+                        logging.info(f"   * Person Assignment Add Failed ({len(issues)})")
+                    elif issue_type == 'person_assignment_remove_failed':
+                        logging.info(f"   * Person Assignment Remove Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -431,16 +455,28 @@ def log_combined_results(combined_report):
                     logging.info("")
                     if issue_type == 'person_mismatch_missing_email':
                         logging.info(f"   * Person Missing Email In Staatskalender ({len(issues)})")
-                    elif issue_type == 'person_without_user':
-                        logging.info(f"   * Person Without User Account ({len(issues)})")
-                    elif issue_type == 'user_created':
-                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
-                    elif issue_type == 'user_creation_failed':
-                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
+                    elif issue_type == 'duplicate_sk_person_id':
+                        logging.info(f"   * Duplicate SK Person ID ({len(issues)})")
+                    elif issue_type == 'invalid_membership':
+                        logging.info(f"   * Invalid Membership ID ({len(issues)})")
+                    elif issue_type == 'unoccupied_post':
+                        logging.info(f"   * Unoccupied Post ({len(issues)})")
+                    elif issue_type == 'person_created':
+                        logging.info(f"   * Person Created Successfully ({len(issues)})")
+                    elif issue_type == 'person_creation_failed':
+                        logging.info(f"   * Person Creation Failed ({len(issues)})")
                     elif issue_type == 'person_name_update':
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
+                    elif issue_type == 'person_sk_id_update':
+                        logging.info(f"   * Person SK_Person_ID Updated ({len(issues)})")
+                    elif issue_type == 'person_sk_id_update_failed':
+                        logging.info(f"   * Person SK_Person_ID Update Failed ({len(issues)})")
+                    elif issue_type == 'user_created':
+                        logging.info(f"   * User Account Created Successfully ({len(issues)})")
+                    elif issue_type == 'user_creation_failed':
+                        logging.info(f"   * User Account Creation Failed ({len(issues)})")
                     elif issue_type == 'access_level_updated':
                         logging.info(f"   * User Access Level Updated ({len(issues)})")
                     elif issue_type == 'access_level_update_failed':
@@ -449,6 +485,18 @@ def log_combined_results(combined_report):
                         logging.info(f"   * User Linked To Person Successfully ({len(issues)})")
                     elif issue_type == 'user_person_link_update_failed':
                         logging.info(f"   * User To Person Link Failed ({len(issues)})")
+                    elif issue_type == 'person_data_retrieval_failed':
+                        logging.info(f"   * Person Data Retrieval Failed ({len(issues)})")
+                    elif issue_type == 'person_data_incomplete':
+                        logging.info(f"   * Person Data Incomplete ({len(issues)})")
+                    elif issue_type == 'person_assignment_added':
+                        logging.info(f"   * Person Assigned To Post ({len(issues)})")
+                    elif issue_type == 'person_assignment_removed':
+                        logging.info(f"   * Person Removed From Post ({len(issues)})")
+                    elif issue_type == 'person_assignment_add_failed':
+                        logging.info(f"   * Person Assignment Add Failed ({len(issues)})")
+                    elif issue_type == 'person_assignment_remove_failed':
+                        logging.info(f"   * Person Assignment Remove Failed ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -457,26 +505,31 @@ def log_combined_results(combined_report):
                         message = issue.get('message', 'No message')
                         
                         # Format differently based on issue type
-                        if issue_type == 'person_without_user':
-                            person_uuid = issue.get('person_uuid', 'Unknown')
-                            given_name = issue.get('given_name', '')
-                            family_name = issue.get('family_name', '')
-                            person_name = f"{given_name} {family_name}"
-                            posts_count = issue.get('posts_count', 0)
-                            
-                            logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
-                            if person_uuid != 'Unknown':
-                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
-                            logging.info(f"       Posts count: {posts_count}")
-                            logging.info(f"       Message: {message}")
-                        elif issue_type == 'duplicate_sk_person_id':
+                        if issue_type == 'duplicate_sk_person_id':
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             person_names = issue.get('person_names', [])
                             
                             logging.info(f"     - Duplicate sk_person_id: {sk_person_id}")
                             logging.info(f"       Affected persons: {', '.join(person_names)}")
                             logging.info(f"       Message: {message}")
+                        elif issue_type == 'invalid_membership':
+                            sk_membership_id = issue.get('sk_membership_id', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            
+                            logging.info(f"     - Invalid membership ID: {sk_membership_id}")
+                            logging.info(f"       Post: {post_label}")
+                            logging.info(f"       Message: {message}")
+                        elif issue_type == 'unoccupied_post':
+                            post_label = issue.get('post_label', 'Unknown')
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            
+                            logging.info(f"     - Unoccupied post: {post_label}")
+                            if post_uuid != 'Unknown':
+                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
+                            logging.info(f"       Message: {message}")
                         elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed', 
+                             'person_created', 'person_creation_failed', 'person_sk_id_update', 'person_sk_id_update_failed',
+                             'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed',
                              'access_level_updated', 'access_level_update_failed', 'user_person_link_updated', 'user_person_link_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
@@ -613,11 +666,13 @@ def send_combined_email(combined_report):
 
             # Priority order for sorting issue types
             priority_order = [
-                'user_created', 'user_creation_failed', 'person_without_user', 'person_mismatch_missing_email', 'person_mismatch',
+                'user_created', 'user_creation_failed', 'person_mismatch_missing_email',
                 'user_person_link_updated', 'user_person_link_update_failed', 'access_level_updated', 'access_level_update_failed',
-                'no_person_assigned', 'unoccupied_post', 'missing_membership', 'invalid_membership', 
-                'missing_person_link', 'missing_person_name', 'missing_dataspot_name', 
-                'dataspot_person_error', 'processing_error'
+                'person_created', 'person_creation_failed', 'person_name_update', 'person_name_update_failed', 
+                'person_sk_id_update', 'person_sk_id_update_failed',
+                'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed',
+                'duplicate_sk_person_id', 'unoccupied_post', 'invalid_membership', 
+                'person_data_retrieval_failed', 'person_data_incomplete', 'processing_error'
             ]
 
             # Add automatically fixed issues section
@@ -644,12 +699,24 @@ def send_combined_email(combined_report):
                     issues = remediated_by_type[issue_type]
                     if issue_type == 'person_mismatch_missing_email':
                         email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
-                    elif issue_type == 'person_without_user':
-                        email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    elif issue_type == 'duplicate_sk_person_id':
+                        email_text += f"\nDUPLICATE SK PERSON ID ({len(issues)}):\n"
+                    elif issue_type == 'invalid_membership':
+                        email_text += f"\nINVALID MEMBERSHIP ID ({len(issues)}):\n"
+                    elif issue_type == 'unoccupied_post':
+                        email_text += f"\nUNOCCUPIED POST ({len(issues)}):\n"
+                    elif issue_type == 'person_created':
+                        email_text += f"\nPERSON CREATED SUCCESSFULLY ({len(issues)}):\n"
+                    elif issue_type == 'person_creation_failed':
+                        email_text += f"\nPERSON CREATION FAILED ({len(issues)}):\n"
                     elif issue_type == 'person_name_update':
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_sk_id_update':
+                        email_text += f"\nPERSON SK_PERSON_ID UPDATED ({len(issues)}):\n"
+                    elif issue_type == 'person_sk_id_update_failed':
+                        email_text += f"\nPERSON SK_PERSON_ID UPDATE FAILED ({len(issues)}):\n"
                     elif issue_type == 'access_level_updated':
                         email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
                     elif issue_type == 'access_level_update_failed':
@@ -658,6 +725,18 @@ def send_combined_email(combined_report):
                         email_text += f"\nUSER LINKED TO PERSON SUCCESSFULLY ({len(issues)}):\n"
                     elif issue_type == 'user_person_link_update_failed':
                         email_text += f"\nUSER TO PERSON LINK FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_data_retrieval_failed':
+                        email_text += f"\nPERSON DATA RETRIEVAL FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_data_incomplete':
+                        email_text += f"\nPERSON DATA INCOMPLETE ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_added':
+                        email_text += f"\nPERSON ASSIGNED TO POST ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_removed':
+                        email_text += f"\nPERSON REMOVED FROM POST ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_add_failed':
+                        email_text += f"\nPERSON ASSIGNMENT ADD FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_remove_failed':
+                        email_text += f"\nPERSON ASSIGNMENT REMOVE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -669,7 +748,9 @@ def send_combined_email(combined_report):
                         email_text += f"\n- {post_label}\n"
                         
                         # Handle person-related issues differently
-                        if issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_mismatch']:
+                        if issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_update', 'person_name_update_failed', 
+                                         'person_created', 'person_creation_failed', 'person_sk_id_update', 'person_sk_id_update_failed',
+                                         'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             if person_uuid != 'Unknown':
                                 email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
@@ -710,12 +791,24 @@ def send_combined_email(combined_report):
                     issues = actual_by_type[issue_type]
                     if issue_type == 'person_mismatch_missing_email':
                         email_text += f"\nPERSON MISSING EMAIL IN STAATSKALENDER ({len(issues)}):\n"
-                    elif issue_type == 'person_without_user':
-                        email_text += f"\nPERSON WITHOUT USER ACCOUNT ({len(issues)}):\n"
+                    elif issue_type == 'duplicate_sk_person_id':
+                        email_text += f"\nDUPLICATE SK PERSON ID ({len(issues)}):\n"
+                    elif issue_type == 'invalid_membership':
+                        email_text += f"\nINVALID MEMBERSHIP ID ({len(issues)}):\n"
+                    elif issue_type == 'unoccupied_post':
+                        email_text += f"\nUNOCCUPIED POST ({len(issues)}):\n"
+                    elif issue_type == 'person_created':
+                        email_text += f"\nPERSON CREATED SUCCESSFULLY ({len(issues)}):\n"
+                    elif issue_type == 'person_creation_failed':
+                        email_text += f"\nPERSON CREATION FAILED ({len(issues)}):\n"
                     elif issue_type == 'person_name_update':
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_sk_id_update':
+                        email_text += f"\nPERSON SK_PERSON_ID UPDATED ({len(issues)}):\n"
+                    elif issue_type == 'person_sk_id_update_failed':
+                        email_text += f"\nPERSON SK_PERSON_ID UPDATE FAILED ({len(issues)}):\n"
                     elif issue_type == 'access_level_updated':
                         email_text += f"\nUSER ACCESS LEVEL UPDATED ({len(issues)}):\n"
                     elif issue_type == 'access_level_update_failed':
@@ -724,6 +817,18 @@ def send_combined_email(combined_report):
                         email_text += f"\nUSER LINKED TO PERSON SUCCESSFULLY ({len(issues)}):\n"
                     elif issue_type == 'user_person_link_update_failed':
                         email_text += f"\nUSER TO PERSON LINK FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_data_retrieval_failed':
+                        email_text += f"\nPERSON DATA RETRIEVAL FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_data_incomplete':
+                        email_text += f"\nPERSON DATA INCOMPLETE ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_added':
+                        email_text += f"\nPERSON ASSIGNED TO POST ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_removed':
+                        email_text += f"\nPERSON REMOVED FROM POST ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_add_failed':
+                        email_text += f"\nPERSON ASSIGNMENT ADD FAILED ({len(issues)}):\n"
+                    elif issue_type == 'person_assignment_remove_failed':
+                        email_text += f"\nPERSON ASSIGNMENT REMOVE FAILED ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -732,14 +837,7 @@ def send_combined_email(combined_report):
                         message = issue.get('message', 'No message provided')
                         
                         # Format differently for person-related issues
-                        if issue_type == 'person_without_user':
-                            person_uuid = issue.get('person_uuid', 'Unknown')
-                            given_name = issue.get('given_name', '')
-                            family_name = issue.get('family_name', '')
-                            person_name = f"{given_name} {family_name}"
-                            email_text += f"\n- Person: {person_name} (ID: {person_uuid})\n"
-                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
-                        elif issue_type == 'person_mismatch_missing_email':
+                        if issue_type == 'person_mismatch_missing_email':
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
                             family_name = issue.get('family_name', '')
@@ -752,6 +850,17 @@ def send_combined_email(combined_report):
                             person_names = issue.get('person_names', [])
                             email_text += f"\n- Duplicate sk_person_id: {sk_person_id}\n"
                             email_text += f"  Affected persons: {', '.join(person_names)}\n"
+                        elif issue_type == 'invalid_membership':
+                            sk_membership_id = issue.get('sk_membership_id', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"\n- Invalid membership ID: {sk_membership_id}\n"
+                            email_text += f"  Post: {post_label}\n"
+                        elif issue_type == 'unoccupied_post':
+                            post_label = issue.get('post_label', 'Unknown')
+                            post_uuid = issue.get('post_uuid', 'Unknown')
+                            email_text += f"\n- Unoccupied post: {post_label}\n"
+                            if post_uuid != 'Unknown':
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
                         elif issue_type in ['person_name_update', 'person_name_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
@@ -770,17 +879,7 @@ def send_combined_email(combined_report):
                             email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
-                        if issue_type == 'person_without_user':
-                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
-                            posts_count = issue.get('posts_count', 0)
-                            email_text += f"  Posts count: {posts_count}\n"
-                            email_text += f"  ACTION REQUIRED: Create a user account for this person.\n"
-                            email_text += f"  This person has posts assigned but no associated user account.\n"
-                            email_text += f"  To fix this issue:\n"
-                            email_text += f"  1. Create a user in Dataspot with this person's email address\n" 
-                            email_text += f"  2. Set the user's isPerson field to '{issue.get('family_name', '')}, {issue.get('given_name', '')}'\n"
-                            email_text += f"  3. Set the user's access level to EDITOR if this person has any Data Owner posts\n"
-                        elif issue_type == 'person_mismatch_missing_email':
+                        if issue_type == 'person_mismatch_missing_email':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             posts_count = issue.get('posts_count', 0)
                             email_text += f"  Posts count: {posts_count}\n"
@@ -791,6 +890,25 @@ def send_combined_email(combined_report):
                                 email_text += f"  The person doesn't have any posts assigned, but it's recommended to:\n"
                             email_text += f"  1. Add an email address for this person in Staatskalender, or\n"
                             email_text += f"  2. Manually create a user in Dataspot and link it to this person\n"
+                        elif issue_type == 'duplicate_sk_person_id':
+                            sk_person_id = issue.get('sk_person_id', 'Unknown')
+                            person_names = issue.get('person_names', [])
+                            email_text += f"  Duplicate sk_person_id: {sk_person_id}\n"
+                            email_text += f"  Affected persons: {', '.join(person_names)}\n"
+                            email_text += f"  ACTION REQUIRED: This is a data integrity issue that needs manual resolution.\n"
+                            email_text += f"  Please review the persons and ensure each has a unique sk_person_id.\n"
+                        elif issue_type == 'invalid_membership':
+                            sk_membership_id = issue.get('sk_membership_id', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Membership ID: {sk_membership_id}\n"
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  ACTION REQUIRED: The membership ID is invalid or not found in Staatskalender.\n"
+                            email_text += f"  Please verify the membership ID or remove it from the post.\n"
+                        elif issue_type == 'unoccupied_post':
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  ACTION REQUIRED: This post has no person assigned to it.\n"
+                            email_text += f"  Please assign a person to this post or remove the post if it's no longer needed.\n"
                         elif issue_type == 'person_name_update':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             sk_first_name = issue.get('sk_first_name', '')
@@ -799,6 +917,54 @@ def send_combined_email(combined_report):
                             email_text += f"  Previous name: {person_name}\n"
                             email_text += f"  Updated name: {sk_name}\n"
                             email_text += f"  The person's name has been automatically updated to match Staatskalender.\n"
+                        elif issue_type == 'person_created':
+                            person_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  The person has been successfully created in Dataspot.\n"
+                        elif issue_type == 'person_creation_failed':
+                            person_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to create person in Dataspot.\n"
+                            email_text += f"  Please create the person manually.\n"
+                        elif issue_type == 'person_sk_id_update':
+                            person_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            sk_person_id = issue.get('sk_person_id', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Updated sk_person_id to: {sk_person_id}\n"
+                            email_text += f"  The person's sk_person_id has been successfully updated.\n"
+                        elif issue_type == 'person_sk_id_update_failed':
+                            person_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
+                            sk_person_id = issue.get('sk_person_id', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Target sk_person_id: {sk_person_id}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to update person's sk_person_id.\n"
+                            email_text += f"  Please update the sk_person_id manually.\n"
+                        elif issue_type == 'person_assignment_added':
+                            person_name = issue.get('person_name', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  The person has been successfully assigned to the post.\n"
+                        elif issue_type == 'person_assignment_removed':
+                            person_name = issue.get('person_name', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  The person has been successfully removed from the post.\n"
+                        elif issue_type == 'person_assignment_add_failed':
+                            person_name = issue.get('person_name', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to assign person to post.\n"
+                            email_text += f"  Please assign the person to the post manually.\n"
+                        elif issue_type == 'person_assignment_remove_failed':
+                            person_name = issue.get('person_name', 'Unknown')
+                            post_label = issue.get('post_label', 'Unknown')
+                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Post: {post_label}\n"
+                            email_text += f"  ACTION REQUIRED: Failed to remove person from post.\n"
+                            email_text += f"  Please remove the person from the post manually.\n"
                         elif issue_type == 'person_name_update_failed':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             sk_first_name = issue.get('sk_first_name', '')
@@ -852,7 +1018,7 @@ def send_combined_email(combined_report):
                             email_text += f"  Dataspot name: {ds_name}\n"
                         elif issue_type == 'missing_membership':
                             email_text += f"  Issue: No sk_membership_id found\n"
-                        elif issue_type in ['invalid_membership', 'missing_person_link']:
+                        elif issue_type in ['invalid_membership', 'person_data_retrieval_failed', 'person_data_incomplete']:
                             sk_membership_id = issue.get('sk_membership_id', 'Unknown')
                             email_text += f"  Membership ID: {sk_membership_id}\n"
                         elif issue_type == 'user_created':

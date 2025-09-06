@@ -53,15 +53,17 @@ def check_1_unique_sk_person_id(dataspot_client: BaseDataspotClient) -> Dict[str
             logging.info(f"Check finished: Found {len(duplicates)} duplicate sk_person_id value(s)!")
             
             for duplicate in duplicates:
+                issue_message = f"Duplicate sk_person_id '{duplicate['sk_person_id']}' found for {len(duplicate['person_uuids'])} persons. URLs: {', '.join([f'{config.base_url}/web/{config.database_name}/persons/{uuid}' for uuid in duplicate['person_uuids']])}"
                 result['issues'].append({
                     'type': 'duplicate_sk_person_id',
                     'sk_person_id': duplicate['sk_person_id'],
                     'person_uuids': duplicate['person_uuids'],
                     'person_names': duplicate['person_names'],
-                    'message': f"Duplicate sk_person_id '{duplicate['sk_person_id']}' found for {len(duplicate['person_uuids'])} persons. URLs: {', '.join([f'{config.base_url}/web/{config.database_name}/persons/{uuid}' for uuid in duplicate['person_uuids']])}",
+                    'message': issue_message,
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
+                logging.info(issue_message)
         else:
             result['message'] = 'Check #1: All sk_person_id values are unique'
             logging.info(f"Check finished: All {len(persons_with_skid)} sk_person_ids are unique")
