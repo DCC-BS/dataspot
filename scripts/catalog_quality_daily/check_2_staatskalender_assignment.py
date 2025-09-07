@@ -272,19 +272,9 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     # Remove any quotes from sk_person_id when storing in the cache
                     clean_sk_person_id = sk_person_id.strip('"') if isinstance(sk_person_id, str) else sk_person_id
                     _person_email_cache[clean_sk_person_id] = sk_email
+                    logging.debug(f' - Added email to cache: {sk_email} for {sk_person_id}')
                 else:
-                    # No email in Staatskalender
-                    result['issues'].append({
-                        'type': 'person_mismatch_missing_email',
-                        'post_uuid': post_uuid,
-                        'post_label': post_label,
-                        'sk_membership_id': sk_membership_id,
-                        'message': f"Person email is missing in Staatskalender",
-                        'remediation_attempted': False,
-                        'remediation_success': False
-                    })
-                    logging.info(f' - Person email is missing in Staatskalender for {sk_first_name} {sk_last_name}. Continuing to create person without user account.')
-                    # Deliberately not returning here to allow for creation of person without email
+                    logging.debug(f' - No email in Staatskalender for {sk_person_id}')
 
                 # Check if a person with this sk_person_id already exists in Dataspot
                 person_with_corresponding_sk_person_id_already_exists, existing_first_name, existing_last_name, person_uuid = (
