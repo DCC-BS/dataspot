@@ -423,8 +423,8 @@ def log_combined_results(combined_report):
 
                         if issue.get('person_uuid'):
                             person_uuid = issue.get('person_uuid')
-                            first_name = issue.get('sk_first_name')
-                            last_name = issue.get('sk_last_name')
+                            first_name = issue.get('sk_first_name') or issue.get('given_name')
+                            last_name = issue.get('sk_last_name') or issue.get('family_name')
                             message = issue.get('message', 'No message')
 
                             person_name = "Unknown"
@@ -948,37 +948,42 @@ def send_combined_email(combined_report):
                             email_text += f"  ACTION REQUIRED: Failed to update person's sk_person_id.\n"
                             email_text += f"  Please update the sk_person_id manually.\n"
                         elif issue_type == 'person_assignment_added':
-                            person_name = issue.get('person_name', 'Unknown')
+                            given_name = issue.get('given_name', 'Unknown')
+                            family_name = issue.get('family_name', 'Unknown')
                             post_label = issue.get('post_label', 'Unknown')
-                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Person: {given_name} {family_name}\n"
                             email_text += f"  Post: {post_label}\n"
                             email_text += f"  The person has been successfully assigned to the post.\n"
                         elif issue_type == 'person_assignment_removed':
-                            person_name = issue.get('person_name', 'Unknown')
+                            given_name = issue.get('given_name', 'Unknown')
+                            family_name = issue.get('family_name', 'Unknown')
                             post_label = issue.get('post_label', 'Unknown')
-                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Person: {given_name} {family_name}\n"
                             email_text += f"  Post: {post_label}\n"
                             email_text += f"  The person has been successfully removed from the post.\n"
                         elif issue_type == 'person_assignment_add_failed':
-                            person_name = issue.get('person_name', 'Unknown')
+                            given_name = issue.get('given_name', 'Unknown')
+                            family_name = issue.get('family_name', 'Unknown')
                             post_label = issue.get('post_label', 'Unknown')
-                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Person: {given_name} {family_name}\n"
                             email_text += f"  Post: {post_label}\n"
                             email_text += f"  ACTION REQUIRED: Failed to assign person to post.\n"
                             email_text += f"  Please assign the person to the post manually.\n"
                         elif issue_type == 'person_assignment_remove_failed':
-                            person_name = issue.get('person_name', 'Unknown')
+                            given_name = issue.get('given_name', 'Unknown')
+                            family_name = issue.get('family_name', 'Unknown')
                             post_label = issue.get('post_label', 'Unknown')
-                            email_text += f"  Person: {person_name}\n"
+                            email_text += f"  Person: {given_name} {family_name}\n"
                             email_text += f"  Post: {post_label}\n"
                             email_text += f"  ACTION REQUIRED: Failed to remove person from post.\n"
                             email_text += f"  Please remove the person from the post manually.\n"
                         elif issue_type == 'person_name_update_failed':
-                            person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
+                            given_name = issue.get('given_name', 'Unknown')
+                            family_name = issue.get('family_name', 'Unknown')
                             sk_first_name = issue.get('sk_first_name', '')
                             sk_last_name = issue.get('sk_last_name', '')
                             sk_name = f"{sk_first_name} {sk_last_name}"
-                            email_text += f"  Current name: {person_name}\n"
+                            email_text += f"  Current name: {given_name} {family_name}\n"
                             email_text += f"  Staatskalender name: {sk_name}\n"
                             email_text += f"  ACTION REQUIRED: The person's name should be updated to match Staatskalender.\n"
                             email_text += f"  Automatic update failed. Please update the person's name manually.\n"

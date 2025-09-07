@@ -92,21 +92,19 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
     query = """
             SELECT
                 p.id as person_uuid,
-                p.given_name as first_name,
-                p.family_name as last_name
+                p.given_name as given_name,
+                p.family_name as family_name
             FROM
                 person_view p
             """
     result_names = dataspot_client.execute_query_api(sql_query=query)
     for name in result_names:
-        person_uuid = name['person_uuid']
-        person_name = f"{name['first_name']} {name['last_name']}"
-        person_names_mapping[person_uuid] = person_name
+        person_names_mapping[name['person_uuid']] = (name['given_name'], name['family_name'])
 
     # Process each person who has or should have posts with membership_ids
     for person_uuid in set(list(should_assignments.keys()) + list(is_assignments.keys())):
         # Get person name for logs
-        person_name = person_names_mapping[person_uuid]
+        given_name, family_name = person_names_mapping[person_uuid]
 
         # Get current posts with membership_ids
         current_posts = [p for p in is_assignments.get(person_uuid, []) if p in posts_to_consider]
@@ -134,7 +132,7 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
 
             # Only update if changes are needed
             if posts_to_add or posts_to_remove:
-                logging.debug(f"Person {person_name}: adding {len(posts_to_add)} posts, removing {len(posts_to_remove)} posts")
+                logging.debug(f"Person {given_name} {family_name}: adding {len(posts_to_add)} posts, removing {len(posts_to_remove)} posts")
                 if posts_to_add:
                     logging.debug(f"Posts to add: {posts_to_add}")
                 if posts_to_remove:
@@ -159,12 +157,13 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
-                            'person_name': person_name,
-                            'message': f"Person {person_name} has been assigned to post {post_label or post_uuid}",
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'message': f"Person {given_name} {family_name} has been assigned to post {post_label or post_uuid}",
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
-                        logging.info(f"Added assignment: {person_name} -> {post_label or post_uuid}")
+                        logging.info(f"Added assignment: {given_name} {family_name} -> {post_label or post_uuid}")
 
                     # Process results - removed posts
                     for post_uuid in update_results['removed']:
@@ -175,15 +174,16 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
-                            'person_name': person_name,
-                            'message': f"Removed assignment of {person_name} from post {post_label or post_uuid}",
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'message': f"Removed assignment of {given_name} {family_name} from post {post_label or post_uuid}",
                             'remediation_attempted': True,
                             'remediation_success': True
                         })
-                        logging.info(f"Removed assignment: {person_name} from {post_label or post_uuid}")
+                        logging.info(f"Removed assignment: {given_name} {family_name} from {post_label or post_uuid}")
 
                 except Exception as e:
-                    logging.error(f"Error updating posts for person {person_name}: {e}", exc_info=True)
+                    logging.error(f"Error updating posts for person {given_name} {family_name}: {e}", exc_info=True)
 
                     # Log failures for each intended change
                     for post_uuid in posts_to_add:
@@ -193,12 +193,13 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
-                            'person_name': person_name,
-                            'message': f"Failed to assign person {person_name} to post {post_label or post_uuid}",
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'message': f"Failed to assign person {given_name} {family_name} to post {post_label or post_uuid}",
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
-                        logging.error(f"Failed to assign person {person_name} to post {post_label or post_uuid}")
+                        logging.error(f"Failed to assign person {given_name} {family_name} to post {post_label or post_uuid}")
 
                     for post_uuid in posts_to_remove:
                         post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
@@ -207,14 +208,15 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             'post_uuid': post_uuid,
                             'post_label': post_label or "Unknown post",
                             'person_uuid': person_uuid,
-                            'person_name': person_name,
-                            'message': f"Failed to remove assignment of {person_name} from post {post_label or post_uuid}",
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'message': f"Failed to remove assignment of {given_name} {family_name} from post {post_label or post_uuid}",
                             'remediation_attempted': True,
                             'remediation_success': False
                         })
-                        logging.error(f"Failed to remove assignment of {person_name} from post {post_label or post_uuid}")
+                        logging.error(f"Failed to remove assignment of {given_name} {family_name} from post {post_label or post_uuid}")
             else:
-                logging.debug(f"No changes needed for person {person_name} (UUID: {person_uuid})")
+                logging.debug(f"No changes needed for person {given_name} {family_name} (UUID: {person_uuid})")
 
     # Update final status and message based on issues
     if result['issues']:

@@ -320,7 +320,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             logging.error(f' - Failed to update person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}": {str(e)}')
 
                     else:
-                        logging.info(f' - Person {sk_first_name} {sk_last_name} already exists and has correct name')
+                        logging.info(f' - Person already exists and has correct name: {sk_first_name} {sk_last_name}')
 
                     # Add to the staatskalender_post_person_mapping for use in check_3
                     result['staatskalender_post_person_mapping'].append((post_uuid, person_uuid))
@@ -587,8 +587,11 @@ def ensure_correct_person_sk_id(dataspot_client: BaseDataspotClient, person_uuid
     
     # Check if the sk_person_id is already correctly set
     if person_data.get('sk_person_id') == sk_person_id:
+        logging.debug(f'   - sk_person_id already correctly set: {sk_person_id}')
         return False
     
+    logging.debug(f'   - Updating sk_person_id from {person_data.get("sk_person_id")} to {sk_person_id}')
+
     # If not, update sk_person_id
     person_update = {
         "_type": "Person",
