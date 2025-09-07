@@ -133,7 +133,7 @@ def _get_detailed_error_info(response: requests.Response, silent_status_codes: l
         logging.error(f"Error {response.status_code}: {basic_error['message']}")
         return basic_error
 
-@retry(http_errors_to_handle, tries=1, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=13, delay=1, backoff=2)
 def requests_get(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
@@ -153,7 +153,7 @@ def requests_get(*args, **kwargs):
     return r
 
 
-@retry(http_errors_to_handle, tries=2, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=13, delay=1, backoff=2)
 def requests_post(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
@@ -173,7 +173,7 @@ def requests_post(*args, **kwargs):
     return r
 
 
-@retry(http_errors_to_handle, tries=2, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=13, delay=1, backoff=2)
 def requests_patch(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
@@ -193,7 +193,7 @@ def requests_patch(*args, **kwargs):
     return r
 
 
-@retry(http_errors_to_handle, tries=2, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=13, delay=1, backoff=2)
 def requests_put(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
@@ -213,7 +213,7 @@ def requests_put(*args, **kwargs):
     return r
 
 
-@retry(http_errors_to_handle, tries=2, delay=5, backoff=1)
+@retry(http_errors_to_handle, tries=13, delay=1, backoff=2)
 def requests_delete(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
