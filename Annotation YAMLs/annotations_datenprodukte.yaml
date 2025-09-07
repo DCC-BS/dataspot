@@ -492,6 +492,7 @@ Dataset:
               title: Beschreibung der räumlichen Ausdehnung der Daten
               group: GEO
               order: 30
+              defaultValue: "001"
               literals:
                 "001":
                   label: Kanton Basel-Stadt
@@ -1063,25 +1064,25 @@ Dataset:
         public_safety_impairment:
           label: 3. Die Sicherheit des Staates oder die öffentliche Sicherheit wird gefährdet.
           order: 3
-        public_national_or_international_relations_impairment:
+        national_or_international_relations_impairment:
           label: 4. Die Beziehungen zu einem anderen Kanton, zum Bund oder zum Ausland wird beeinträchtigt.
           order: 4
-        public_opinion_formation_impairment:
+        opinion_formation_impairment:
           label: 5. Der freie Meinungs- und Willensbildungsprozess der öffentlichen Organe wird beeinträchtigt.
           order: 5
-        public_negotiation_impairment:
+        negotiation_impairment:
           label: 6. Die Position in Verhandlungen wird beeinträchtigt.
           order: 6
-        public_police_impairment:
+        police_activity_impairment:
           label: 7. Die zielkonforme Durchführung konkreter behördlicher, insbesondere polizeilicher Massnahmen wird beeinträchtigt.
           order: 7
-        private_privacy_impairment:
+        privacy_impairment:
           label: 8. Der Schutz der Privatsphäre wird beeinträchtigt.
           order: 8
-        private_business_secret_or_copyright_impairment:
+        business_secret_or_copyright_impairment:
           label: 9. Berufs-, Fabrikations- oder Geschäftsgeheimnisse werden offenbart oder Urheberrechte werden verletzt.
           order: 9
-        private_third_party_interests_impairment:
+        third_party_interests_impairment:
           label: 10. Daten wurden freiwillig von Dritten mitgeteilt und die Geheimhaltung wurde vom öffentlichen Organ zugesichert.
           title: Daten, die dem öffentlichen Organ von Dritten freiwillig mitgeteilt worden sind und deren Geheimhaltung es zugesichert hat, sind nicht zu veröffentlichen.
           order: 10

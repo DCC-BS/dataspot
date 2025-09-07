@@ -396,10 +396,10 @@ Post:
       label: Mitgliedschaft im Staatskalender anzeigen
       title: Öffnet die Seite der verlinkten Mitgliedschaft im Staatskalender.
       icon: external-link
-      href: "https://staatskalender.bs.ch/membership/${this.membership_id}"
+      href: "https://staatskalender.bs.ch/membership/${this.sk_membership_id}"
 
     viewMembershipDetailsSecond:
       label: Zweite Mitgliedschaft im Staatskalender anzeigen
       title: Öffnet die Seite der verlinkten zweiten Mitgliedschaft im Staatskalender.
       icon: external-link
-      href: "https://staatskalender.bs.ch/membership/${this.second_membership_id}"
+      href: "https://staatskalender.bs.ch/membership/${this.sk_second_membership_id}"
