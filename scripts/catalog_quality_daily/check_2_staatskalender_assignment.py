@@ -391,7 +391,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         person_sk_id_updated = ensure_correct_person_sk_id(dataspot_client, person_uuid, sk_person_id)
                         if person_sk_id_updated:
                             result['issues'].append({
-                                'type': 'person_sk_id_update',
+                                'type': 'person_sk_id_updated',
                                 'post_uuid': post_uuid,
                                 'post_label': post_label,
                                 'sk_membership_id': sk_membership_id,

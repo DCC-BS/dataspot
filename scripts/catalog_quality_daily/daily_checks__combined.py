@@ -387,7 +387,7 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
-                    elif issue_type == 'person_sk_id_update':
+                    elif issue_type == 'person_sk_id_updated':
                         logging.info(f"   * Person SK_Person_ID Updated ({len(issues)})")
                     elif issue_type == 'person_sk_id_update_failed':
                         logging.info(f"   * Person SK_Person_ID Update Failed ({len(issues)})")
@@ -477,7 +477,7 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Name Updated From Staatskalender ({len(issues)})")
                     elif issue_type == 'person_name_update_failed':
                         logging.info(f"   * Person Name Update Failed ({len(issues)})")
-                    elif issue_type == 'person_sk_id_update':
+                    elif issue_type == 'person_sk_id_updated':
                         logging.info(f"   * Person SK_Person_ID Updated ({len(issues)})")
                     elif issue_type == 'person_sk_id_update_failed':
                         logging.info(f"   * Person SK_Person_ID Update Failed ({len(issues)})")
@@ -536,7 +536,7 @@ def log_combined_results(combined_report):
                                 logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/posts/{post_uuid}")
                             logging.info(f"       Message: {message}")
                         elif issue_type in ['person_mismatch_missing_email', 'person_name_update', 'person_name_update_failed', 
-                             'person_created', 'person_creation_failed', 'person_sk_id_update', 'person_sk_id_update_failed',
+                             'person_created', 'person_creation_failed', 'person_sk_id_updated', 'person_sk_id_update_failed',
                              'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed',
                              'access_level_updated', 'access_level_update_failed', 'user_person_link_updated', 'user_person_link_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
@@ -677,7 +677,7 @@ def send_combined_email(combined_report):
                 'user_created', 'user_creation_failed', 'person_mismatch_missing_email',
                 'user_person_link_updated', 'user_person_link_update_failed', 'access_level_updated', 'access_level_update_failed',
                 'person_created', 'person_creation_failed', 'person_name_update', 'person_name_update_failed', 
-                'person_sk_id_update', 'person_sk_id_update_failed',
+                'person_sk_id_updated', 'person_sk_id_update_failed',
                 'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed',
                 'duplicate_sk_person_id', 'unoccupied_post', 'invalid_membership', 
                 'person_data_retrieval_failed', 'person_data_incomplete', 'processing_error'
@@ -721,7 +721,7 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
-                    elif issue_type == 'person_sk_id_update':
+                    elif issue_type == 'person_sk_id_updated':
                         email_text += f"\nPERSON SK_PERSON_ID UPDATED ({len(issues)}):\n"
                     elif issue_type == 'person_sk_id_update_failed':
                         email_text += f"\nPERSON SK_PERSON_ID UPDATE FAILED ({len(issues)}):\n"
@@ -757,7 +757,7 @@ def send_combined_email(combined_report):
                         
                         # Handle person-related issues differently
                         if issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_update', 'person_name_update_failed', 
-                                         'person_created', 'person_creation_failed', 'person_sk_id_update', 'person_sk_id_update_failed',
+                                         'person_created', 'person_creation_failed', 'person_sk_id_updated', 'person_sk_id_update_failed',
                                          'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             if person_uuid != 'Unknown':
@@ -813,7 +813,7 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON NAME UPDATED FROM STAATSKALENDER ({len(issues)}):\n"
                     elif issue_type == 'person_name_update_failed':
                         email_text += f"\nPERSON NAME UPDATE FAILED ({len(issues)}):\n"
-                    elif issue_type == 'person_sk_id_update':
+                    elif issue_type == 'person_sk_id_updated':
                         email_text += f"\nPERSON SK_PERSON_ID UPDATED ({len(issues)}):\n"
                     elif issue_type == 'person_sk_id_update_failed':
                         email_text += f"\nPERSON SK_PERSON_ID UPDATE FAILED ({len(issues)}):\n"
@@ -934,7 +934,7 @@ def send_combined_email(combined_report):
                             email_text += f"  Person: {person_name}\n"
                             email_text += f"  ACTION REQUIRED: Failed to create person in Dataspot.\n"
                             email_text += f"  Please create the person manually.\n"
-                        elif issue_type == 'person_sk_id_update':
+                        elif issue_type == 'person_sk_id_updated':
                             person_name = f"{issue.get('sk_first_name', '')} {issue.get('sk_last_name', '')}"
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             email_text += f"  Person: {person_name}\n"
