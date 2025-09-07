@@ -144,11 +144,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             
             # Handle case where no email is available
             if not email:
-                # Only create an issue if the person has posts and needs a user account
-                if has_posts:
-                    # This is a real issue - person needs a user account but has no email
-                    
-                    # Add to issues since this requires attention
+                # Check if user already exists by person UUID (even without email)
+                user = users_by_person_uuid.get(person_uuid)
+                
+                if not user and has_posts:
+                    # Only create an issue if no user exists AND person has posts
                     issue_message = f"Person {person_name} has no email address in Staatskalender. " \
                                    f"Please add an email address in Staatskalender or manually create a user account."
                     result['issues'].append({
@@ -163,8 +163,11 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                         'remediation_success': False
                     })
                     logging.info(issue_message)
+                elif user:
+                    # User exists but no email - this is actually fine, just log it
+                    logging.debug(f"Person {person_name} has a user account but no email in Staatskalender - this is acceptable")
                 else:
-                    # Not an issue - just log it at debug level
+                    # No user and no posts - not an issue
                     logging.debug(f"Person {person_name} has no posts and no email in Staatskalender - no user account needed")
                 
                 # Skip to next person since we can't create a user without an email
