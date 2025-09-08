@@ -426,9 +426,21 @@ def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
                 if data_item.get('name') == 'email':
                     sk_email = data_item.get('value')
                 elif data_item.get('name') == 'first_name':
-                    sk_first_name = data_item.get('value')
+                    # Replace spaces with underscores as spaces in names are not allowed in dataspot!
+                    raw_first_name = data_item.get('value')
+                    if raw_first_name:
+                        sk_first_name = raw_first_name.strip().replace(' ', '_') if raw_first_name.strip() else None
+                        # Log if we had to replace spaces
+                        if raw_first_name.strip() and ' ' in raw_first_name:
+                            logging.debug(f'   - Replaced spaces in first name: "{raw_first_name}" -> "{sk_first_name}"')
                 elif data_item.get('name') == 'last_name':
-                    sk_last_name = data_item.get('value')
+                    # Replace spaces with underscores as spaces in names are not allowed in dataspot!
+                    raw_last_name = data_item.get('value')
+                    if raw_last_name:
+                        sk_last_name = raw_last_name.strip().replace(' ', '_') if raw_last_name.strip() else None
+                        # Log if we had to replace spaces
+                        if raw_last_name.strip() and ' ' in raw_last_name:
+                            logging.debug(f'   - Replaced spaces in last name: "{raw_last_name}" -> "{sk_last_name}"')
 
                 if sk_email and sk_first_name and sk_last_name:
                     break
