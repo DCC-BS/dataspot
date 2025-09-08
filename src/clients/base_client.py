@@ -106,7 +106,11 @@ class BaseDataspotClient:
         logging.info(f"Downloading assets from {self.scheme_name_short} scheme for mapping update")
 
         # Use the download API to retrieve assets from the scheme
-        download_path = f"/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON"
+        if filter_function and "_type" in filter_function.__code__.co_varnames:
+            download_path = f"/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON&assetTypes={filter_function._type}"
+        else:
+            download_path = f"/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON"
+
         full_url = url_join(self.base_url, download_path)
         
         logging.debug(f"Downloading all assets from scheme '{self.scheme_name}' at: {full_url}")
