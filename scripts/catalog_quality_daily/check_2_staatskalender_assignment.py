@@ -252,13 +252,9 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                                 if raw_first_name.strip() and ' ' in raw_first_name:
                                     logging.debug(f'   - Replaced spaces in first name: "{raw_first_name}" -> "{sk_first_name}"')
                         elif data_item.get('name') == 'last_name':
-                            # Replace spaces with underscores as spaces in names are not allowed in dataspot!
-                            raw_last_name = data_item.get('value')
-                            if raw_last_name:
-                                sk_last_name = raw_last_name.strip().replace(' ', '_') if raw_last_name.strip() else None
-                                # Log if we had to replace spaces
-                                if raw_last_name.strip() and ' ' in raw_last_name:
-                                    logging.debug(f'   - Replaced spaces in last name: "{raw_last_name}" -> "{sk_last_name}"')
+                            sk_last_name = data_item.get('value')
+                            if sk_last_name:
+                                sk_last_name = sk_last_name.strip() if sk_last_name.strip() else None
                         elif data_item.get('name') == 'email':
                             sk_email = data_item.get('value')
 
