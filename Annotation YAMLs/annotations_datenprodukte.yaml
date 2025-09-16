@@ -484,9 +484,6 @@ Dataset:
                 economy:
                   label: Wirtschaftliche Aktivitäten
                   order: 26
-                pipes:
-                  label: Leitungskataster
-                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -801,9 +798,6 @@ Dataset:
                 economy:
                   label: Wirtschaftliche Aktivitäten
                   order: 26
-                pipes:
-                  label: Leitungskataster
-                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -942,9 +936,6 @@ Dataset:
                 economy:
                   label: Wirtschaftliche Aktivitäten
                   order: 26
-                pipes:
-                  label: Leitungskataster
-                  order: 27
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
