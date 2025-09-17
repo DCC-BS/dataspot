@@ -3,21 +3,45 @@
 ---
 ## Setup
 Add a `.env` file in the root folder with the following content:
-```.env
+
+### Email Configuration
+```env
 DATASPOT_EMAIL_RECEIVERS_TECHNICAL_ONLY=["petra.muster@bs.ch", "peter.muster@bs.ch"]
 DATASPOT_EMAIL_RECEIVERS=["petra.muster@bs.ch", "peter.muster@bs.ch"]
 DATASPOT_EMAIL_SERVER=
 DATASPOT_EMAIL_SENDER=
-
-DATASPOT_EDITOR_USERNAME=
-DATASPOT_EDITOR_PASSWORD=
-DATASPOT_ADMIN_USERNAME=
-DATASPOT_ADMIN_PASSWORD=
-
-DATASPOT_CLIENT_ID=
-DATASPOT_AUTHENTICATION_TOKEN_URL=https://login.microsoftonline.com/organizations/oauth2/v2.0/token
-DATASPOT_API_BASE_URL=https://www.myserver.com
 ```
+
+
+### Authentication Configuration
+
+#### M2M Authentication (Recommended)
+For machine-to-machine authentication using Azure AD/Entra ID:
+```env
+# Azure AD/Entra ID configuration
+DATASPOT_TENANT_ID=your-azure-tenant-id
+DATASPOT_CLIENT_ID=your-entra-app-client-id
+DATASPOT_CLIENT_SECRET=your-entra-app-client-secret
+DATASPOT_EXPOSED_CLIENT_ID=5d25a...612
+
+# Dataspot service user access key
+DATASPOT_SERVICE_USER_ACCESS_KEY=your-service-user-access-key
+```
+
+#### Legacy Username/Password Authentication (Deprecated for DataspotAuth)
+The following environment variables can be deleted, if they still exist. They are from a legacy system.
+```env
+DATASPOT_EDITOR_USERNAME
+DATASPOT_EDITOR_PASSWORD
+DATASPOT_ADMIN_USERNAME
+DATASPOT_ADMIN_PASSWORD
+
+DATASPOT_CLIENT_ID
+DATASPOT_AUTHENTICATION_TOKEN_URL
+DATASPOT_API_BASE_URL
+```
+
+> **Note:** The authentication system has been updated to use M2M authentication. The legacy username/password authentication may be deprecated in the future.
 
 ---
 ## Managing (Data Owner) Posts
