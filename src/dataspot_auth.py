@@ -2,7 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-from src.common import requests_post
+from src.common import requests_get, requests_post
 
 
 class DataspotAuth:
@@ -69,4 +69,14 @@ if __name__=="__main__":
     auth = DataspotAuth()
     token = auth.get_bearer_token()
     print("Received token:")
-    print(token)
+    print(token[:20] + "..." + token[-3:])
+
+    print()
+    print("Testing sample request to dataspot...")
+    response = requests_get(url="https://datenkatalog.bs.ch/rest/prod/schemes/Systeme", headers=auth.get_headers())
+    response.raise_for_status()
+
+    if response.status_code == 200:
+        print("✅ Everything seems fine!")
+    else:
+        print("❌ There seems to be an error!")
