@@ -107,20 +107,6 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             
             # Get metadata from ODS and transform to Dataspot dataset
             ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            temp_bugfix_cause_automation_api_is_broken = True
-            if temp_bugfix_cause_automation_api_is_broken:
-                # Retrieve 'Herausgeber' through Explore API
-                import requests
-                explore_api_response = requests.get(url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ods_id}")
-                explore_api_publisher = explore_api_response.json().get('metas', {}).get('default', {}).get('publisher')
-                if 'default' not in ods_metadata:
-                    ods_metadata['default'] = {}
-                if 'publisher' not in ods_metadata['default']:
-                    ods_metadata['default']['publisher'] = {
-                        'override_remote_value': True,
-                        'remote_value': None,
-                        'value': explore_api_publisher
-                    }
             dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
             
             # Add to collection
