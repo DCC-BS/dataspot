@@ -594,7 +594,7 @@ def log_detailed_sync_report(sync_results):
         logging.info("")
         logging.info("--- UPDATED DATASETS ---")
         for update in sync_results['details']['updates']['items']:
-            ods_id = update.get('ods_id', 'Unknown')
+            ods_id = update.get('odsDataportalId', 'Unknown')
             title = update.get('title', 'Unknown')
             uuid = update.get('uuid', '')
             
@@ -616,7 +616,7 @@ def log_detailed_sync_report(sync_results):
         logging.info("")
         logging.info("--- CREATED DATASETS ---")
         for creation in sync_results['details']['creations']['items']:
-            ods_id = creation.get('ods_id', 'Unknown')
+            ods_id = creation.get('odsDataportalId', 'Unknown')
             title = creation.get('title', 'Unknown')
             uuid = creation.get('uuid', '')
             
@@ -631,7 +631,7 @@ def log_detailed_sync_report(sync_results):
         logging.info("")
         logging.info("--- LINKED DATASETS ---")
         for link in sync_results['details']['links']['items']:
-            ods_id = link.get('ods_id', 'Unknown')
+            ods_id = link.get('odsDataportalId', 'Unknown')
             title = link.get('title', 'Unknown')
             dataspot_link = link.get('link', '')
             compositions_created = link.get('compositions_created', 0)
@@ -739,7 +739,7 @@ def create_email_content(sync_results, database_name):
     if sync_results['details']['updates']['count'] > 0:
         email_text += "\nUPDATED DATASETS:\n"
         for update in sync_results['details']['updates']['items']:
-            ods_id = update.get('ods_id', 'Unknown')
+            ods_id = update.get('odsDataportalId', 'Unknown')
             title = update.get('title', 'Unknown')
             uuid = update.get('uuid', '')
             
@@ -760,7 +760,7 @@ def create_email_content(sync_results, database_name):
     if sync_results['details']['creations']['count'] > 0:
         email_text += "\nCREATED DATASETS:\n"
         for creation in sync_results['details']['creations']['items']:
-            ods_id = creation.get('ods_id', 'Unknown')
+            ods_id = creation.get('odsDataportalId', 'Unknown')
             title = creation.get('title', 'Unknown')
             uuid = creation.get('uuid', '')
             
@@ -774,7 +774,7 @@ def create_email_content(sync_results, database_name):
     if sync_results['details']['links']['count'] > 0:
         email_text += "\nLINKED DATASETS (to TDM components):\n"
         for link in sync_results['details']['links']['items']:
-            ods_id = link.get('ods_id', 'Unknown')
+            ods_id = link.get('odsDataportalId', 'Unknown')
             title = link.get('title', 'Unknown')
             dataspot_link = link.get('link', '')
             compositions_created = link.get('compositions_created', 0)
