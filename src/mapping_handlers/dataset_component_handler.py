@@ -8,6 +8,23 @@ from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
 from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
 
 
+def _clean_description(desc) -> str:
+    """Clean description by replacing newlines with spaces"""
+    if not desc:
+        return ""
+    return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+
+
+def _clean_description_short(desc) -> Optional[str]:
+    """Create shortened version of the description"""
+    if not desc:
+        return None
+    cleaned = _clean_description(desc)
+    if len(cleaned) > 60:
+        return cleaned[:60].rsplit(' ', 1)[0] + " ..."
+    return cleaned
+
+
 class DatasetComponentMapping(BaseDataspotMapping):
     """
     A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
@@ -26,7 +43,6 @@ class DatasetComponentMapping(BaseDataspotMapping):
             scheme (str): Name of the scheme (e.g., 'TDM')
         """
         super().__init__(database_name, "ods_id", "ods-components-dataspot", scheme)
-
 
 class DatasetComponentHandler(BaseDataspotHandler):
     """
@@ -134,22 +150,6 @@ class DatasetComponentHandler(BaseDataspotHandler):
         Returns:
             Dict[str, Any]: Result of the operation with status and details
         """
-        # Define helper functions for cleaning and truncating descriptions
-        def clean_description(desc) -> str:
-            """Clean description by replacing newlines with spaces"""
-            if not desc:
-                return ""
-            return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-        
-        def clean_description_short(desc) -> Optional[str]:
-            """Create shortened version of the description"""
-            if not desc:
-                return None
-            cleaned = clean_description(desc)
-            if len(cleaned) > 60:
-                return cleaned[:60].rsplit(' ', 1)[0] + " ..."
-            return cleaned
-        
         ods_link = f"https://data.bs.ch/explore/dataset/{ods_id}/"
 
         # Prepare dataobject data
@@ -286,125 +286,69 @@ class DatasetComponentHandler(BaseDataspotHandler):
         
         # Process each column as an attribute
         logging.info(f"Processing {len(columns)} columns as attributes...")
+        
+        # Track which columns we've processed
+        processed_columns = set()
+        
+        # First pass: Match by technical name (physicalName)
         for column in columns:
-            # Map ODS types to UML data types
-            datatype_uuid = self._get_datatype_uuid(column['type'])
-            
-            attribute = {
-                "_type": "UmlAttribute",
-                "label": column['label'],
-                "physicalName": column['name'],
-                "hasRange": datatype_uuid
-            }
-            
-            # Add description if available
-            # Note: We write the description as title to make it globally visible in dataspot.
-            if 'description' in column and column['description']:
-                # Store original description with newlines in description field
-                attribute['description'] = column['description']
-                
-                # Create clean and shortened version of the description for title
-                attribute['title'] = clean_description_short(column['description'])
-            
-            # Check if attribute exists to determine if update or create
             if column['name'] in existing_attributes:
+                processed_columns.add(column['name'])
+                
                 # Get existing attribute data
                 existing_attr = existing_attributes[column['name']]
                 attr_uuid = existing_attr.get('id')
                 
                 # Check if anything changed
                 if (existing_attr.get('label') == column['label'] and
-                    existing_attr.get('hasRange') == datatype_uuid and
+                    existing_attr.get('hasRange') == self._get_datatype_uuid(column['type']) and
                     existing_attr.get('description') == column.get('description') and
-                    existing_attr.get('title') == clean_description_short(column.get('description'))):
+                    existing_attr.get('title') == _clean_description_short(column.get('description'))):
                     # Attribute is unchanged
                     unchanged_attrs.append(column['name'])
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
                 else:
-                    # Track changes in detail with before/after values
-                    attr_changes = {}
-                    
-                    if existing_attr.get('label') != column['label']:
-                        attr_changes['label'] = {
-                            'old_value': existing_attr.get('label'),
-                            'new_value': column['label']
-                        }
-                    
-                    if existing_attr.get('hasRange') != datatype_uuid:
-                        attr_changes['datatype'] = {
-                            'old_value': existing_attr.get('hasRange'),
-                            'new_value': datatype_uuid
-                        }
-                    
-                    # Calculate cleaned description for comparison
-                    cleaned_short = clean_description_short(column.get('description'))
-                    
-                    # Check changes in title (cleaned/truncated description)
-                    if existing_attr.get('title') != cleaned_short:
-                        attr_changes['title'] = {
-                            'old_value': existing_attr.get('title'),
-                            'new_value': cleaned_short
-                        }
-                    
-                    # Check changes in actual description (raw with newlines)
-                    if existing_attr.get('description') != column.get('description'):
-                        attr_changes['description'] = {
-                            'old_value': existing_attr.get('description'),
-                            'new_value': column.get('description')
-                        }
-                    
-                    # Store changes for this attribute
-                    if attr_changes:
-                        field_changes[column['name']] = attr_changes
-                    
-                    # Log the changes
-                    changes_desc = []
-                    if 'label' in attr_changes:
-                        changes_desc.append(f"label: '{attr_changes['label']['old_value']}' → '{attr_changes['label']['new_value']}'")
-                    if 'datatype' in attr_changes:
-                        changes_desc.append(f"datatype changed")
-                    if 'title' in attr_changes:
-                        changes_desc.append(f"title (truncated description) changed")
-                    if 'description' in attr_changes:
-                        changes_desc.append(f"full description changed")
-                    
-                    logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
-                    
-                    # Update the attribute
-                    attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
-                    self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
-                    updated_attrs.append(column['name'])
-                    time.sleep(1)
+                    # Update existing attribute
+                    self._update_existing_attribute(column, existing_attr, attr_uuid, updated_attrs, field_changes)
                 
                 # Remove from existing_attributes to track what's left for deletion
                 del existing_attributes[column['name']]
-            else:
-                # Create new attribute
-                logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
-                self.client._create_asset(endpoint=attributes_endpoint, data=attribute, status="PUBLISHED")
-                created_attrs.append(column['name'])
-                time.sleep(1)
+        
+        # Second pass: For unmatched columns, check if there's an existing attribute with same label
+        for column in columns:
+            if column['name'] not in processed_columns:
+                # Look for existing attribute with same label
+                matching_attr = None
+                matching_attr_name = None
+                
+                for attr_name, attr_data in existing_attributes.items():
+                    if attr_data.get('label') == column['label']:
+                        matching_attr = attr_data
+                        matching_attr_name = attr_name
+                        break
+                
+                if matching_attr:
+                    # Technical name changed but label stayed same - delete old and create new
+                    logging.info(f"Technical name changed from '{matching_attr_name}' to '{column['name']}' for label '{column['label']}' - replacing attribute")
+                    
+                    # Delete the old attribute
+                    self._delete_attribute(matching_attr, deleted_attrs)
+                    del existing_attributes[matching_attr_name]
+                    
+                    # Create new attribute
+                    self._create_new_attribute(column, attributes_endpoint, created_attrs)
+                else:
+                    # No matching attribute found - create new
+                    self._create_new_attribute(column, attributes_endpoint, created_attrs)
+                
+                processed_columns.add(column['name'])
         
         # Handle deletions - any attributes still in existing_attributes need to be removed
         if existing_attributes:
             logging.info(f"Found {len(existing_attributes)} attributes to delete")
             
         for attr_name, attr_data in existing_attributes.items():
-            attr_uuid = attr_data.get('id')
-            if attr_uuid:
-                attr_composed_by = attr_data.get('_links', {}).get('composedBy', {}).get('href')
-                compositions_asset = self.client._get_asset(endpoint=attr_composed_by)
-                compositions_list = compositions_asset.get('_embedded', {}).get('composedBy', {})
-                for composition_asset in compositions_list:
-                    composition_endpoint = composition_asset.get('_links', {}).get('self', {}).get('href')
-                    if composition_endpoint:
-                        logging.info(f"Deleting link from dataset composition to dataobject attribute '{attr_name}'")
-                        # Note: Here, we use the TDMClient to delete an asset from the DNK, but I think this is fine.
-                        self.client._delete_asset(endpoint=composition_endpoint)
-                logging.info(f"Deleting unused attribute '{attr_name}'")
-                attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
-                self.client._delete_asset(attr_endpoint)
-                deleted_attrs.append(attr_name)
+            self._delete_attribute(attr_data, deleted_attrs)
         
         # Add a delay if any attributes were created to avoid hitting API rate limits
         if created_attrs or updated_attrs:
@@ -508,3 +452,144 @@ class DatasetComponentHandler(BaseDataspotHandler):
         self._datatype_uuid_cache[ods_type_lower] = uuid
         
         return uuid
+    
+    def _update_existing_attribute(self, column: Dict[str, Any], existing_attr: Dict[str, Any], 
+                                 attr_uuid: str, updated_attrs: List[str], field_changes: Dict[str, Any]) -> None:
+        """
+        Update an existing attribute with new column data.
+        
+        Args:
+            column: Column data from ODS
+            existing_attr: Existing attribute data from Dataspot
+            attr_uuid: UUID of the existing attribute
+            updated_attrs: List to track updated attributes
+            field_changes: Dictionary to track field changes
+        """
+        # Map ODS types to UML data types
+        datatype_uuid = self._get_datatype_uuid(column['type'])
+        
+        attribute = {
+            "_type": "UmlAttribute",
+            "label": column['label'],
+            "physicalName": column['name'],
+            "hasRange": datatype_uuid
+        }
+        
+        # Add description if available
+        if 'description' in column and column['description']:
+            attribute['description'] = column['description']
+            attribute['title'] = _clean_description_short(column['description'])
+        
+        # Track changes in detail with before/after values
+        attr_changes = {}
+        
+        if existing_attr.get('label') != column['label']:
+            attr_changes['label'] = {
+                'old_value': existing_attr.get('label'),
+                'new_value': column['label']
+            }
+        
+        if existing_attr.get('hasRange') != datatype_uuid:
+            attr_changes['datatype'] = {
+                'old_value': existing_attr.get('hasRange'),
+                'new_value': datatype_uuid
+            }
+        
+        # Calculate cleaned description for comparison
+        cleaned_short = _clean_description_short(column.get('description'))
+        
+        # Check changes in title (cleaned/truncated description)
+        if existing_attr.get('title') != cleaned_short:
+            attr_changes['title'] = {
+                'old_value': existing_attr.get('title'),
+                'new_value': cleaned_short
+            }
+        
+        # Check changes in actual description (raw with newlines)
+        if existing_attr.get('description') != column.get('description'):
+            attr_changes['description'] = {
+                'old_value': existing_attr.get('description'),
+                'new_value': column.get('description')
+            }
+        
+        # Store changes for this attribute
+        if attr_changes:
+            field_changes[column['name']] = attr_changes
+        
+        # Log the changes
+        changes_desc = []
+        if 'label' in attr_changes:
+            changes_desc.append(f"label: '{attr_changes['label']['old_value']}' → '{attr_changes['label']['new_value']}'")
+        if 'datatype' in attr_changes:
+            changes_desc.append(f"datatype changed")
+        if 'title' in attr_changes:
+            changes_desc.append(f"title (truncated description) changed")
+        if 'description' in attr_changes:
+            changes_desc.append(f"full description changed")
+        
+        logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
+        
+        # Update the attribute
+        attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
+        self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
+        updated_attrs.append(column['name'])
+        time.sleep(1)
+    
+    def _create_new_attribute(self, column: Dict[str, Any], attributes_endpoint: str, created_attrs: List[str]) -> None:
+        """
+        Create a new attribute from column data.
+        
+        Args:
+            column: Column data from ODS
+            attributes_endpoint: Endpoint for creating attributes
+            created_attrs: List to track created attributes
+        """
+        # Map ODS types to UML data types
+        datatype_uuid = self._get_datatype_uuid(column['type'])
+        
+        attribute = {
+            "_type": "UmlAttribute",
+            "label": column['label'],
+            "physicalName": column['name'],
+            "hasRange": datatype_uuid
+        }
+        
+        # Add description if available
+        if 'description' in column and column['description']:
+            attribute['description'] = column['description']
+            attribute['title'] = _clean_description_short(column['description'])
+        
+        logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
+        self.client._create_asset(endpoint=attributes_endpoint, data=attribute, status="PUBLISHED")
+        created_attrs.append(column['name'])
+        time.sleep(1)
+    
+    def _delete_attribute(self, attr_data: Dict[str, Any], deleted_attrs: List[str]) -> None:
+        """
+        Delete an attribute and its compositions.
+        
+        Args:
+            attr_data: Attribute data from Dataspot
+            deleted_attrs: List to track deleted attributes
+        """
+        attr_uuid = attr_data.get('id')
+        attr_name = attr_data.get('physicalName', 'unknown')
+        
+        if attr_uuid:
+            # Delete compositions first
+            attr_composed_by = attr_data.get('_links', {}).get('composedBy', {}).get('href')
+            if attr_composed_by:
+                compositions_asset = self.client._get_asset(endpoint=attr_composed_by)
+                if compositions_asset and '_embedded' in compositions_asset and 'composedBy' in compositions_asset['_embedded']:
+                    compositions_list = compositions_asset['_embedded']['composedBy']
+                    for composition_asset in compositions_list:
+                        composition_endpoint = composition_asset.get('_links', {}).get('self', {}).get('href')
+                        if composition_endpoint:
+                            logging.info(f"Deleting link from dataset composition to dataobject attribute '{attr_name}'")
+                            self.client._delete_asset(endpoint=composition_endpoint)
+            
+            # Delete the attribute itself
+            logging.info(f"Deleting unused attribute '{attr_name}'")
+            attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
+            self.client._delete_asset(attr_endpoint)
+            deleted_attrs.append(attr_name)
