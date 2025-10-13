@@ -997,14 +997,27 @@ Dataset:
       label: Personendaten
       title: Das Datenprodukt enthält Personendaten.
       order: 30
+      cardinality: MANY
       group: DATA_PRIVACY
       literals:
         yes:
-          label: Ja
-          order: 1
+          label: Ja - DEPRECATED
+          order: 11
         no:
-          label: Nein
+          label: Nein - DEPRECATED
+          order: 12
+        none:
+          label: Keine
+          order: 1
+        natural_person:
+          label: Personendaten natürlicher Personen
           order: 2
+        legal_person:
+          label: Personendaten juristischer Personen
+          order: 3
+        particularly_protected:
+          label: besonders schützenswerte Personendaten
+          order: 4
     protectionLevel:
       label: Schutzbedarfsstufen
       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
