@@ -305,7 +305,11 @@ class DatasetComponentHandler(BaseDataspotHandler):
                     existing_attr.get('description') == column.get('description') and
                     existing_attr.get('title') == _clean_description_short(column.get('description'))):
                     # Attribute is unchanged
-                    unchanged_attrs.append(column['name'])
+                    unchanged_attrs.append({
+                        'name': column['name'],
+                        'description': column.get('description', ''),
+                        'type': column['type']
+                    })
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
                 else:
                     # Update existing attribute
@@ -454,7 +458,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         return uuid
     
     def _update_existing_attribute(self, column: Dict[str, Any], existing_attr: Dict[str, Any], 
-                                 attr_uuid: str, updated_attrs: List[str], field_changes: Dict[str, Any]) -> None:
+                                 attr_uuid: str, updated_attrs: List[Dict[str, Any]], field_changes: Dict[str, Any]) -> None:
         """
         Update an existing attribute with new column data.
         
@@ -532,10 +536,14 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Update the attribute
         attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
         self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
-        updated_attrs.append(column['name'])
+        updated_attrs.append({
+            'name': column['name'],
+            'description': column.get('description', ''),
+            'type': column['type']
+        })
         time.sleep(1)
     
-    def _create_new_attribute(self, column: Dict[str, Any], attributes_endpoint: str, created_attrs: List[str]) -> None:
+    def _create_new_attribute(self, column: Dict[str, Any], attributes_endpoint: str, created_attrs: List[Dict[str, Any]]) -> None:
         """
         Create a new attribute from column data.
         
@@ -561,10 +569,15 @@ class DatasetComponentHandler(BaseDataspotHandler):
         
         logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
         self.client._create_asset(endpoint=attributes_endpoint, data=attribute, status="PUBLISHED")
-        created_attrs.append(column['name'])
+        created_attrs.append({
+            'name': column['name'],
+            'description': column.get('description', ''),
+            'type': column['type']
+        })
+        
         time.sleep(1)
     
-    def _delete_attribute(self, attr_data: Dict[str, Any], deleted_attrs: List[str]) -> None:
+    def _delete_attribute(self, attr_data: Dict[str, Any], deleted_attrs: List[Dict[str, Any]]) -> None:
         """
         Delete an attribute and its compositions.
         
@@ -592,4 +605,18 @@ class DatasetComponentHandler(BaseDataspotHandler):
             logging.info(f"Deleting unused attribute '{attr_name}'")
             attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
             self.client._delete_asset(attr_endpoint)
-            deleted_attrs.append(attr_name)
+            # Convert UUID to human-readable type if possible
+            hasRange = attr_data.get('hasRange', '')
+            type_name = ''
+            
+            # Try to find the type name by UUID
+            for ods_type, uuid in self._datatype_uuid_cache.items():
+                if uuid == hasRange:
+                    type_name = ods_type
+                    break
+            
+            deleted_attrs.append({
+                'name': attr_name,
+                'description': attr_data.get('description', ''),
+                'type': type_name
+            })

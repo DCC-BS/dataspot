@@ -153,7 +153,8 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         # Add created attributes details if available
                         if 'details' in result and 'created_attributes' in result['details']:
                             creation_item['created_fields'] = {}
-                            for attr in result['details']['created_attributes']:
+                            created_attributes = result['details']['created_attributes']
+                            for attr in created_attributes:
                                 attr_name = attr.get('name', 'unknown')
                                 creation_item['created_fields'][attr_name] = {
                                     'description': {
@@ -167,9 +168,10 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         sync_results['details']['creations']['items'].append(creation_item)
                     else:
                         # Check if any attributes were actually modified
-                        attrs_created = result.get('counts', {}).get('created_attributes', 0)
-                        attrs_updated = result.get('counts', {}).get('updated_attributes', 0)
-                        attrs_deleted = result.get('counts', {}).get('deleted_attributes', 0)
+                        counts = result.get('counts', {})
+                        attrs_created = counts.get('created_attributes', 0)
+                        attrs_updated = counts.get('updated_attributes', 0)
+                        attrs_deleted = counts.get('deleted_attributes', 0)
                         attrs_modified = attrs_created + attrs_updated + attrs_deleted
                         
                         if attrs_modified == 0:
@@ -214,7 +216,8 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                                 if 'changed_fields' not in update_item:
                                     update_item['changed_fields'] = {}
                                 
-                                for attr in result['details']['created_attributes']:
+                                created_attributes = result['details']['created_attributes']
+                                for attr in created_attributes:
                                     attr_name = attr.get('name', 'unknown')
                                     update_item['changed_fields'][attr_name] = {
                                         'description': {
@@ -228,10 +231,11 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                             sync_results['details']['updates']['items'].append(update_item)
                     
                     # Update attribute counts
-                    sync_results['counts']['attributes_created'] += result.get('counts', {}).get('created_attributes', 0)
-                    sync_results['counts']['attributes_updated'] += result.get('counts', {}).get('updated_attributes', 0)
-                    sync_results['counts']['attributes_deleted'] += result.get('counts', {}).get('deleted_attributes', 0)
-                    sync_results['counts']['attributes_unchanged'] += result.get('counts', {}).get('unchanged_attributes', 0)
+                    result_counts = result.get('counts', {})
+                    sync_results['counts']['attributes_created'] += result_counts.get('created_attributes', 0)
+                    sync_results['counts']['attributes_updated'] += result_counts.get('updated_attributes', 0)
+                    sync_results['counts']['attributes_deleted'] += result_counts.get('deleted_attributes', 0)
+                    sync_results['counts']['attributes_unchanged'] += result_counts.get('unchanged_attributes', 0)
                     
                     # Log success
                     logging.info(f"Successfully processed components for dataset {ods_id}: {dataset_title}")
