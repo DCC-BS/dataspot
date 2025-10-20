@@ -520,10 +520,10 @@ def link_datasets_to_components(ods_ids):
                     existing_comp_uuid = existing_comp.get('id')
                     
                     # Find the matching column in ODS by name
-                    attribute_name = attribute.get('physicalName')
+                    attribute_name = attribute.get('label')
                     
                     if not attribute_name:
-                        logging.warning(f"Attribute {attribute_label} has no physicalName. Skipping description update.")
+                        logging.warning(f"Attribute {attribute_label} has no label (technical name). Skipping description update.")
                         skipped_compositions += 1
                         continue
                         
@@ -544,14 +544,18 @@ def link_datasets_to_components(ods_ids):
                             # Clean description formatting
                             cleaned_description = _clean_description(matching_column.get('description'))
                             
-                            # Update the existing composition with description
+                            # Get human-readable name (fachlicher name) from ODS column data
+                            fachlicher_name = matching_column.get('label', attribute_label)
+                            
+                            # Update the existing composition with description and label
                             comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
                             update_data = {
                                 "_type": "Composition",
-                                "description": cleaned_description
+                                "description": cleaned_description,
+                                "label": fachlicher_name  # Set composition label to the human-readable name
                             }
                             dnk_client._update_asset(comp_endpoint, data=update_data, replace=False)
-                            logging.debug(f"Updated description for existing composition '{attribute_label}' from ODS data")
+                            logging.debug(f"Updated description and label for existing composition '{attribute_label}' from ODS data")
                             created_compositions += 1  # Count as created for reporting
                             time.sleep(1)
                         else:
@@ -569,7 +573,7 @@ def link_datasets_to_components(ods_ids):
                 }
                 
                 # Find the matching column in ODS by name
-                attribute_name = attribute.get('physicalName')
+                attribute_name = attribute.get('label')
                 
                 if attribute_name:
                     try:
@@ -584,12 +588,19 @@ def link_datasets_to_components(ods_ids):
                         # Find the matching column by name
                         matching_column = next((col for col in columns if col.get('name') == attribute_name), None)
                         
-                        # Add description if found in ODS data
-                        if matching_column and matching_column.get('description'):
-                            # Clean description formatting
-                            cleaned_description = _clean_description(matching_column.get('description'))
-                            composition_data['description'] = cleaned_description
-                            logging.debug(f"Added description from ODS data to composition for attribute '{attribute_label}'")
+                        # Add description and label (human-readable name) if found in ODS data
+                        if matching_column:
+                            # Get the human-readable name (fachlicher name)
+                            fachlicher_name = matching_column.get('label', attribute_label)
+                            composition_data['label'] = fachlicher_name
+                            logging.debug(f"Set label to '{fachlicher_name}' for composition")
+                            
+                            # Add description if available
+                            if matching_column.get('description'):
+                                # Clean description formatting
+                                cleaned_description = _clean_description(matching_column.get('description'))
+                                composition_data['description'] = cleaned_description
+                                logging.debug(f"Added description from ODS data to composition for attribute '{attribute_label}'")
                     except Exception as e:
                         logging.warning(f"Error fetching ODS data for column '{attribute_name}': {str(e)}")
                 

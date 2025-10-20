@@ -241,16 +241,16 @@ class DatasetComponentHandler(BaseDataspotHandler):
             attrs_response = self.client._get_asset(attributes_endpoint)
             if attrs_response and '_embedded' in attrs_response and 'attributes' in attrs_response['_embedded']:
                 for attr in attrs_response['_embedded']['attributes']:
-                    technical_name = attr.get('physicalName')
+                    # Use label as the key for attribute lookup
+                    technical_name = attr.get('label')
                     if not technical_name:
-                        # Handle missing physicalName gracefully
+                        # Handle missing label gracefully
                         attr_id = attr.get('id', 'unknown')
-                        attr_label = attr.get('label', 'unknown')
-                        logging.error(f"Attribute '{attr_label}' (ID: {attr_id}) is missing a physicalName (technical name). Using ID as the key.")
+                        logging.error(f"Attribute (ID: {attr_id}) is missing a label (technical name). Using ID as the key.")
                         # Use the ID as the key for deletion purposes
                         existing_attributes[f"__id__{attr_id}"] = attr
                         continue
-                    existing_attributes[attr['physicalName']] = attr
+                    existing_attributes[technical_name] = attr
                 logging.info(f"Found {len(existing_attributes)} existing attributes")
             else:
                 logging.info(f"No existing attributes found for dataset {ods_id}")
@@ -273,7 +273,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Track which columns we've processed
         processed_columns = set()
         
-        # First pass: Match by technical name (physicalName)
+        # First pass: Match by technical name (stored in label)
         for column in columns:
             if column['name'] in existing_attributes:
                 processed_columns.add(column['name'])
@@ -282,9 +282,8 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 existing_attr = existing_attributes[column['name']]
                 attr_uuid = existing_attr.get('id')
                 
-                # Check if anything changed
-                if (existing_attr.get('label') == column['label'] and
-                    existing_attr.get('hasRange') == self._get_datatype_uuid(column['type'])):
+                # Check if data type has changed
+                if existing_attr.get('hasRange') == self._get_datatype_uuid(column['type']):
                     # Attribute is unchanged
                     unchanged_attrs.append({
                         'name': column['name'],
@@ -301,19 +300,21 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Second pass: For unmatched columns, check if there's an existing attribute with same label
         for column in columns:
             if column['name'] not in processed_columns:
-                # Look for existing attribute with same label
+                # Check if any existing attribute has a matching technical name
                 matching_attr = None
                 matching_attr_name = None
                 
+                # But we still need to check if maybe the label (technical name) matches an existing attribute
+                # This is unlikely but keeping the logic for robustness
                 for attr_name, attr_data in existing_attributes.items():
-                    if attr_data.get('label') == column['label']:
+                    if attr_name == column['name']:  # Direct match on technical name
                         matching_attr = attr_data
                         matching_attr_name = attr_name
                         break
                 
                 if matching_attr:
-                    # Technical name changed but label stayed same - delete old and create new
-                    logging.info(f"Technical name changed from '{matching_attr_name}' to '{column['name']}' for label '{column['label']}' - replacing attribute")
+                    # Found attribute with matching technical name
+                    logging.info(f"Found attribute with matching technical name '{column['name']}'")
                     
                     # Delete the old attribute
                     self._delete_attribute(matching_attr, deleted_attrs)
@@ -452,20 +453,20 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Map ODS types to UML data types
         datatype_uuid = self._get_datatype_uuid(column['type'])
         
+        # Create attribute with label and datatype
         attribute = {
             "_type": "UmlAttribute",
-            "label": column['label'],
-            "physicalName": column['name'],
+            "label": column['name'],
             "hasRange": datatype_uuid
         }
 
         # Track changes in detail with before/after values
         attr_changes = {}
         
-        if existing_attr.get('label') != column['label']:
+        if existing_attr.get('label') != column['name']:
             attr_changes['label'] = {
                 'old_value': existing_attr.get('label'),
-                'new_value': column['label']
+                'new_value': column['name']
             }
         
         if existing_attr.get('hasRange') != datatype_uuid:
@@ -509,10 +510,10 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Map ODS types to UML data types
         datatype_uuid = self._get_datatype_uuid(column['type'])
         
+        # Create attribute with label and datatype
         attribute = {
             "_type": "UmlAttribute",
-            "label": column['label'],
-            "physicalName": column['name'],
+            "label": column['name'],
             "hasRange": datatype_uuid
         }
 
@@ -534,7 +535,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
             deleted_attrs: List to track deleted attributes
         """
         attr_uuid = attr_data.get('id')
-        attr_name = attr_data.get('physicalName', 'unknown')
+        attr_name = attr_data.get('label', 'unknown')
         
         if attr_uuid:
             # Delete compositions first
