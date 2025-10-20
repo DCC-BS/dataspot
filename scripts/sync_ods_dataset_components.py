@@ -157,9 +157,6 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                             for attr in created_attributes:
                                 attr_name = attr.get('name', 'unknown')
                                 creation_item['created_fields'][attr_name] = {
-                                    'description': {
-                                        'new_value': attr.get('description', '')
-                                    },
                                     'type': {
                                         'new_value': attr.get('type', '')
                                     }
@@ -220,9 +217,6 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                                 for attr in created_attributes:
                                     attr_name = attr.get('name', 'unknown')
                                     update_item['changed_fields'][attr_name] = {
-                                        'description': {
-                                            'new_value': attr.get('description', '')
-                                        },
                                         'type': {
                                             'new_value': attr.get('type', '')
                                         }
@@ -521,29 +515,11 @@ def create_email_content(sync_results, database_name):
             
             # Include some field change details if available
             if 'changed_fields' in update and update['changed_fields']:
-                deleted_attrs = []
                 updated_attrs = []
-                created_attrs = []
                 
-                # Categorize attributes by change type
+                # All attributes in changed_fields are treated as updated
                 for attr_name, changes in update['changed_fields'].items():
-                    # Check if this is a deleted attribute (has old_value but no new_value for description)
-                    if 'description' in changes and 'old_value' in changes['description'] and 'new_value' not in changes['description']:
-                        deleted_attrs.append(attr_name)
-                    # Check if this is a created attribute (has new_value but no old_value for description)
-                    elif 'description' in changes and 'new_value' in changes['description'] and 'old_value' not in changes['description']:
-                        created_attrs.append(attr_name)
-                    # Otherwise it's an updated attribute
-                    else:
-                        updated_attrs.append(attr_name)
-                
-                # List deleted attributes
-                if deleted_attrs:
-                    email_text += f"  Deleted attributes: {', '.join(deleted_attrs)}\n"
-                
-                # List created attributes
-                if created_attrs:
-                    email_text += f"  Created attributes: {', '.join(created_attrs)}\n"
+                    updated_attrs.append(attr_name)
                 
                 # List updated attributes
                 if updated_attrs:

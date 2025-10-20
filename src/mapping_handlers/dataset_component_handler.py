@@ -8,23 +8,6 @@ from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
 from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
 
 
-def _clean_description(desc) -> str:
-    """Clean description by replacing newlines with spaces"""
-    if not desc:
-        return ""
-    return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
-
-
-def _clean_description_short(desc) -> Optional[str]:
-    """Create shortened version of the description"""
-    if not desc:
-        return None
-    cleaned = _clean_description(desc)
-    if len(cleaned) > 60:
-        return cleaned[:60].rsplit(' ', 1)[0] + " ..."
-    return cleaned
-
-
 class DatasetComponentMapping(BaseDataspotMapping):
     """
     A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
@@ -301,13 +284,10 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 
                 # Check if anything changed
                 if (existing_attr.get('label') == column['label'] and
-                    existing_attr.get('hasRange') == self._get_datatype_uuid(column['type']) and
-                    existing_attr.get('description') == column.get('description') and
-                    existing_attr.get('title') == _clean_description_short(column.get('description'))):
+                    existing_attr.get('hasRange') == self._get_datatype_uuid(column['type'])):
                     # Attribute is unchanged
                     unchanged_attrs.append({
                         'name': column['name'],
-                        'description': column.get('description', ''),
                         'type': column['type']
                     })
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
@@ -478,12 +458,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
             "physicalName": column['name'],
             "hasRange": datatype_uuid
         }
-        
-        # Add description if available
-        if 'description' in column and column['description']:
-            attribute['description'] = column['description']
-            attribute['title'] = _clean_description_short(column['description'])
-        
+
         # Track changes in detail with before/after values
         attr_changes = {}
         
@@ -499,23 +474,6 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 'new_value': datatype_uuid
             }
         
-        # Calculate cleaned description for comparison
-        cleaned_short = _clean_description_short(column.get('description'))
-        
-        # Check changes in title (cleaned/truncated description)
-        if existing_attr.get('title') != cleaned_short:
-            attr_changes['title'] = {
-                'old_value': existing_attr.get('title'),
-                'new_value': cleaned_short
-            }
-        
-        # Check changes in actual description (raw with newlines)
-        if existing_attr.get('description') != column.get('description'):
-            attr_changes['description'] = {
-                'old_value': existing_attr.get('description'),
-                'new_value': column.get('description')
-            }
-        
         # Store changes for this attribute
         if attr_changes:
             field_changes[column['name']] = attr_changes
@@ -526,19 +484,15 @@ class DatasetComponentHandler(BaseDataspotHandler):
             changes_desc.append(f"label: '{attr_changes['label']['old_value']}' → '{attr_changes['label']['new_value']}'")
         if 'datatype' in attr_changes:
             changes_desc.append(f"datatype changed")
-        if 'title' in attr_changes:
-            changes_desc.append(f"title (truncated description) changed")
-        if 'description' in attr_changes:
-            changes_desc.append(f"full description changed")
         
-        logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
+        if changes_desc:
+            logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
         
         # Update the attribute
         attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
         self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
         updated_attrs.append({
             'name': column['name'],
-            'description': column.get('description', ''),
             'type': column['type']
         })
         time.sleep(1)
@@ -561,17 +515,11 @@ class DatasetComponentHandler(BaseDataspotHandler):
             "physicalName": column['name'],
             "hasRange": datatype_uuid
         }
-        
-        # Add description if available
-        if 'description' in column and column['description']:
-            attribute['description'] = column['description']
-            attribute['title'] = _clean_description_short(column['description'])
-        
+
         logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
         self.client._create_asset(endpoint=attributes_endpoint, data=attribute, status="PUBLISHED")
         created_attrs.append({
             'name': column['name'],
-            'description': column.get('description', ''),
             'type': column['type']
         })
         
@@ -617,6 +565,5 @@ class DatasetComponentHandler(BaseDataspotHandler):
             
             deleted_attrs.append({
                 'name': attr_name,
-                'description': attr_data.get('description', ''),
                 'type': type_name
             })

@@ -11,6 +11,23 @@ from src.clients.tdm_client import TDMClient
 from src.common import email_helpers as email_helpers
 import ods_utils_py as ods_utils
 from src.dataset_transformer import transform_ods_to_dnk
+from src.ods_client import ODSClient
+
+
+def _clean_description(desc):
+    """
+    Clean description by replacing newlines with spaces and handling other formatting issues.
+    
+    Args:
+        desc (str): The description text to clean
+        
+    Returns:
+        str: Cleaned description text
+    """
+    if not desc:
+        return ""
+    # Replace newlines with spaces and trim excess whitespace
+    return str(desc).replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ').strip()
 
 
 def main():
@@ -378,6 +395,7 @@ def link_datasets_to_components(ods_ids):
     # Initialize clients
     dnk_client = DNKClient()
     tdm_client = TDMClient()
+    ods_client = ODSClient()
     
     # Initialize results
     result = {
@@ -386,6 +404,9 @@ def link_datasets_to_components(ods_ids):
         'successful_links': [],
         'failed_links': []
     }
+    
+    # Cache for ODS column data to avoid repeated API calls
+    ods_columns_cache = {}
     
     # Skip if no ODS IDs provided
     if not ods_ids:
@@ -494,8 +515,51 @@ def link_datasets_to_components(ods_ids):
                 
                 # Check if composition already exists using the lookup map
                 if attribute_label in existing_compositions_by_label:
-                    logging.debug(f"Composition for '{attribute_label}' already exists. Skipping...")
-                    skipped_compositions += 1
+                    # Get existing composition
+                    existing_comp = existing_compositions_by_label[attribute_label]
+                    existing_comp_uuid = existing_comp.get('id')
+                    
+                    # Find the matching column in ODS by name
+                    attribute_name = attribute.get('physicalName')
+                    
+                    if not attribute_name:
+                        logging.warning(f"Attribute {attribute_label} has no physicalName. Skipping description update.")
+                        skipped_compositions += 1
+                        continue
+                        
+                    # Get column data from ODS to find the description
+                    try:
+                        # Check if we already have column data for this dataset in the cache
+                        if ods_id not in ods_columns_cache:
+                            # Fetch column information from ODS for this dataset
+                            logging.info(f"Fetching column information from ODS for dataset {ods_id}")
+                            ods_columns_cache[ods_id] = ods_client.get_dataset_columns(dataset_id=ods_id)
+                        
+                        columns = ods_columns_cache[ods_id]
+                        
+                        # Find the matching column by name
+                        matching_column = next((col for col in columns if col.get('name') == attribute_name), None)
+                        
+                        if matching_column and matching_column.get('description'):
+                            # Clean description formatting
+                            cleaned_description = _clean_description(matching_column.get('description'))
+                            
+                            # Update the existing composition with description
+                            comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
+                            update_data = {
+                                "_type": "Composition",
+                                "description": cleaned_description
+                            }
+                            dnk_client._update_asset(comp_endpoint, data=update_data, replace=False)
+                            logging.debug(f"Updated description for existing composition '{attribute_label}' from ODS data")
+                            created_compositions += 1  # Count as created for reporting
+                            time.sleep(1)
+                        else:
+                            logging.debug(f"No description found in ODS for column '{attribute_name}'. Skipping description update.")
+                            skipped_compositions += 1
+                    except Exception as e:
+                        logging.warning(f"Error fetching ODS data for column '{attribute_name}': {str(e)}")
+                        skipped_compositions += 1
                     continue
                 
                 # Create composition object
@@ -503,6 +567,31 @@ def link_datasets_to_components(ods_ids):
                     "_type": "Composition",
                     "composedOf": attribute_id
                 }
+                
+                # Find the matching column in ODS by name
+                attribute_name = attribute.get('physicalName')
+                
+                if attribute_name:
+                    try:
+                        # Check if we already have column data for this dataset in the cache
+                        if ods_id not in ods_columns_cache:
+                            # Fetch column information from ODS for this dataset
+                            logging.info(f"Fetching column information from ODS for dataset {ods_id}")
+                            ods_columns_cache[ods_id] = ods_client.get_dataset_columns(dataset_id=ods_id)
+                        
+                        columns = ods_columns_cache[ods_id]
+                        
+                        # Find the matching column by name
+                        matching_column = next((col for col in columns if col.get('name') == attribute_name), None)
+                        
+                        # Add description if found in ODS data
+                        if matching_column and matching_column.get('description'):
+                            # Clean description formatting
+                            cleaned_description = _clean_description(matching_column.get('description'))
+                            composition_data['description'] = cleaned_description
+                            logging.debug(f"Added description from ODS data to composition for attribute '{attribute_label}'")
+                    except Exception as e:
+                        logging.warning(f"Error fetching ODS data for column '{attribute_name}': {str(e)}")
                 
                 # Add the composition
                 dnk_client._create_asset(compositions_endpoint, data=composition_data)
