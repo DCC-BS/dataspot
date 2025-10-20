@@ -509,22 +509,6 @@ Dataset:
               baseType: STRING
               group: GEO
               order: 50
-            abbreviation:
-              label: Kürzel
-              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
-              baseType: STRING
-              group: GEO
-              order: 70
-            lastPublication:
-              label: Letzte Publikation Geoportal
-              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
-              baseType: DATETIME
-              group: GEO
-            productFilename:
-              label: Produkt Dateiname
-              title: Dateiname des Datenprodukts im DataLake Geoportal
-              baseType: STRING
-              group: GEO
             productLayername:
               label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
@@ -822,22 +806,6 @@ Dataset:
               baseType: ID
               group: GEO
               order: 50
-            abbreviation:
-              label: Kürzel
-              title: Vierstelliges Buchstabenkürzel der Geodaten gemäss Fachstelle für Geoinformation
-              baseType: STRING
-              group: GEO
-              order: 70
-            lastPublication:
-              label: Letzte Publikation Geoportal
-              title: Zeitpunkt der Publikation bzw. letzten Aktualisierung der Daten auf dem Geoportal
-              baseType: DATETIME
-              group: GEO
-            productFilename:
-              label: Produkt Dateiname
-              title: Dateiname des Datenprodukts im DataLake Geoportal
-              baseType: STRING
-              group: GEO
             productLayername:
               label: Technischer Name Layer/Tabelle
               title: Technischer Name des spezifischen Layers im Datenprodukt (nur falls mehrere Layer in einem Produkt vorhanden sind)
