@@ -1000,12 +1000,6 @@ Dataset:
       cardinality: MANY
       group: DATA_PRIVACY
       literals:
-        yes:
-          label: Ja - DEPRECATED
-          order: 11
-        no:
-          label: Nein - DEPRECATED
-          order: 12
         none:
           label: Keine
           order: 1
