@@ -958,7 +958,7 @@ Dataset:
       baseType: DATE
     publicationDate:
       label: Publikationsdatum
-      title: Datum, an dem das Datenprodukt erstmals der Öffentlichkeit zugänglich gemacht wurde.
+      title: Datum, an dem das Datenprodukt erstmals zugänglich gemacht wurde.
       order: 25
       baseType: DATE
     personalData:
