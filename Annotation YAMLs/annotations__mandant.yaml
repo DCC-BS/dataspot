@@ -123,7 +123,7 @@ Derivation:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Spezifikation für
         available_at:
-          label: Verfügbar unter
+          label: Verfügbar in
           labelEn: Available at
 
 
