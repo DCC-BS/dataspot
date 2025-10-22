@@ -90,7 +90,7 @@ class DNKClient(BaseDataspotClient):
     def mark_dataset_for_deletion(self, uuid: str) -> bool:
         """
         Mark a dataset for deletion review in Dataspot.
-        This sets the dataset's status to "REVIEWDCC2" for later review.
+        This sets the dataset's status to "DELETENEW" for later review.
         
         Args:
             uuid (str): The UUID of the dataset to mark for deletion

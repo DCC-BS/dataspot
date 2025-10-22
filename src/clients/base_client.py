@@ -267,7 +267,7 @@ class BaseDataspotClient:
 
         Args:
             endpoint (str): API endpoint path (will be joined with base_url)
-            status (str): The status to set (e.g., "WORKING", "PUBLISHED", "REVIEWDCC2")
+            status (str): The status to set (e.g., "WORKING", "PUBLISHED", "DELETENEW")
 
         Returns:
             Dict[str, Any]: JSON response from the API
@@ -325,7 +325,7 @@ class BaseDataspotClient:
     
     def _mark_asset_for_deletion(self, endpoint: str) -> None:
         """
-        Marks an asset for deletion review by changing its status to "REVIEWDCC2" (Lösch-Prüfung DCC) via PATCH request.
+        Marks an asset for deletion review by changing its status to "DELETENEW" (Löschung Kantonaler Data Steward) via PATCH request.
         This allows for a review process before actual deletion.
         
         Args:
@@ -347,11 +347,11 @@ class BaseDataspotClient:
         # Prepare update data with only the status field to change
         update_data = {
             "_type": current_asset.get("_type", "Unknown"),  # Required for PATCH
-            "status": "REVIEWDCC2"
+            "status": "DELETENEW"
         }
         
         # Mark the asset for review by changing its status
-        logging.info(f"Marking asset at {endpoint} for review (REVIEWDCC2)")
+        logging.info(f"Marking asset at {endpoint} for review (DELETENEW)")
         
         # Use PATCH to update only the status property
         response = requests_patch(full_url, headers=headers, json=update_data)
