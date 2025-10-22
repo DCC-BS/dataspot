@@ -122,6 +122,9 @@ Derivation:
         SPEZ:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Spezifikation für
+        SUB:
+          # Kennzeichnung der Berechnungsbasis einer Kennzahl
+          label: Subdatensatz von
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
