@@ -122,10 +122,6 @@ Derivation:
         SPEZ:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Spezifikation für
-        available_at:
-          label: Verfügbar in
-          labelEn: Available at
-
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
@@ -359,6 +355,10 @@ Deployment:
         EXKL:
           label: exkludiert
           labelEn: excluded
+        available_at:
+          label: Verfügbar in
+          labelEn: Available at
+
 
 #070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
 Person:
