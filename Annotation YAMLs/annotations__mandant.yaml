@@ -135,17 +135,17 @@ Asset:
 ###### Zusatzstatus Workflow ######
 
         REVIEW:
-          label: Entwurfs-Prüfung Data Steward Datenraum
-          icon: arrows-rotate
+          label: Review Data Steward Datenraum
+          icon: magnifying-glass
           group: DRAFT
           order: 100
         REVIEWDCC:
-          label: Entwurfs-Prüfung DCC
-          icon: arrows-rotate
+          label: Review Kantonaler Data Steward
+          icon: magnifying-glass
           group: DRAFT
           order: 120
         FADO:
-          label: Finale Abnahme Data Owner
+          label: Abnahme Data Owner
           icon: user-check
           group: DRAFT
           order: 140
@@ -240,6 +240,42 @@ Asset:
           icon: arrow-up
           order: 560
           group: DRAFT
+        DELETEDO:
+          label: Abnahme Data Owner Löschung
+          labelEn: Published
+          icon: solid-trash
+          order: 580
+          group: PUBLIC
+        DELETENEW:
+          label: Löschung Kantonaler Data Steward
+          labelEn: Published
+          icon: solid-trash
+          order: 600
+          group: PUBLIC
+        ARCHIVEDO:
+          label: Abnahme Data Owner Archivierung
+          labelEn: Published
+          icon: inbox
+          order: 620
+          group: PUBLIC
+        ARCHIVEDSDT:
+          label: Abnahme Data Steward Datenraum Archivierung
+          labelEn: Published
+          icon: inbox
+          order: 640
+          group: PUBLIC
+        ARCHIVEMETA:
+          label: Archiviert
+          labelEn: Published
+          icon: inbox
+          order: 660
+          group: NOT_PUBLIC
+        ARCHIVEKDS:
+          label: Archivierung Kantonaler Data Steward
+          labelEn: Published
+          icon: inbox
+          order: 680
+          group: PUBLIC
 
 ##### Status aus Standard Workflow d. #####
         WORKING:
@@ -290,6 +326,11 @@ Asset:
           labelEn: Rejected
           icon: thumbs-down
           order: 60
+          group: DRAFT
+        REVIEWRELEASE:
+          label: Review Data Steward Datenrelease
+          icon: magnifying-glass
+          order: 70
           group: DRAFT
 
 
