@@ -80,7 +80,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'errors': 0,
             'processed': 0,
             'linked': 0,
-            'link_errors': 0
+            'link_errors': 0,
+            'deleted_compositions': 0
         },
         'details': {
             'creations': {
@@ -106,6 +107,10 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'link_errors': {
                 'count': 0,
                 'items': []
+            },
+            'deleted_compositions': {
+                'count': 0,
+                'items': []
             }
         }
     }
@@ -115,6 +120,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
         logging.info(f"Found {len(ods_ids)} datasets to process")
+
+        # Only turn this off for debugging!!!
+        process_all_ods_ids = True
         
         # Process datasets
         logging.info("Step 2: Processing datasets - downloading metadata and transforming...")
@@ -210,7 +218,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # Find datasets that are in Dataspot but not in the current ODS fetch
         datasets_to_delete = dataspot_ods_ids - all_processed_ods_ids
         
-        if datasets_to_delete:
+        if process_all_ods_ids and datasets_to_delete:
             logging.info(f"Found {len(datasets_to_delete)} datasets to mark for deletion")
             
             # Process each dataset for deletion
@@ -275,10 +283,21 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # Update sync results with link results
         sync_results['counts']['linked'] = link_results.get('linked', 0)
         sync_results['counts']['link_errors'] = link_results.get('errors', 0)
+        sync_results['counts']['deleted_compositions'] = link_results.get('deleted', 0)
         sync_results['details']['links']['count'] = len(link_results.get('successful_links', []))
         sync_results['details']['links']['items'] = link_results.get('successful_links', [])
         sync_results['details']['link_errors']['count'] = len(link_results.get('failed_links', []))
         sync_results['details']['link_errors']['items'] = link_results.get('failed_links', [])
+        
+        # Add deleted compositions details if available
+        if link_results.get('deleted_compositions'):
+            if 'deleted_compositions' not in sync_results['details']:
+                sync_results['details']['deleted_compositions'] = {
+                    'count': 0,
+                    'items': []
+                }
+            sync_results['details']['deleted_compositions']['count'] = len(link_results.get('deleted_compositions', []))
+            sync_results['details']['deleted_compositions']['items'] = link_results.get('deleted_compositions', [])
 
         # Update final report status and message
         sync_results['status'] = 'success'
@@ -286,7 +305,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             f"ODS datasets synchronization completed with {sync_results['counts']['total']} changes: "
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
-            f"Linked {sync_results['counts']['linked']} datasets to components."
+            f"Linked {sync_results['counts']['linked']} datasets to components with {sync_results['counts']['deleted_compositions']} obsolete compositions removed."
         )
         
     except Exception as e:
@@ -380,15 +399,26 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
 
 def link_datasets_to_components(ods_ids):
     """
-    Links DNK datasets to TDM components by creating composition objects.
-    This function creates connections (compositions) between datasets in DNK
-    and their corresponding components in TDM that have the same odsDataportalId.
+    Links DNK datasets to TDM components by creating composition objects and removes obsolete ones.
+    This function syncs DNK compositions with ODS columns using TDM attributes as the linking mechanism.
+    
+    For each dataset, this function:
+    1. Fetches columns from ODS as the source of truth
+    2. Fetches existing compositions from DNK
+    3. Fetches attributes from TDM for linking
+    4. Creates compositions that should exist but don't
+    5. Updates existing compositions with latest data
+    6. Deletes compositions that shouldn't exist anymore
+    
+    This function assumes that sync_ods_dataset_components.py has already been run,
+    which ensures that TDM attributes exist with labels matching the technical names
+    from ODS.
     
     Args:
         ods_ids (set or list): Collection of ODS IDs to process
         
     Returns:
-        dict: Summary of linking operation with counts of successful and failed links
+        dict: Summary of linking operation with counts of successful, failed, and deleted links
     """
     logging.info("Starting to link datasets to their components...")
     
@@ -401,8 +431,10 @@ def link_datasets_to_components(ods_ids):
     result = {
         'linked': 0,
         'errors': 0,
+        'deleted': 0,
         'successful_links': [],
-        'failed_links': []
+        'failed_links': [],
+        'deleted_compositions': []
     }
     
     # Cache for ODS column data to avoid repeated API calls
@@ -489,6 +521,12 @@ def link_datasets_to_components(ods_ids):
             created_compositions = 0
             skipped_compositions = 0
             
+            # Fetch ODS column data for this dataset once at the beginning
+            logging.info(f"Fetching column information from ODS for dataset {ods_id} (one-time)")
+            ods_columns_cache[ods_id] = ods_client.get_dataset_columns(dataset_id=ods_id)
+            ods_dataset_columns = ods_columns_cache[ods_id]
+            logging.debug(f"Found {len(ods_dataset_columns)} columns in ODS for dataset {ods_id}")
+            
             # Fetch all existing compositions for this dataset in one call
             all_compositions_response = dnk_client._get_asset(compositions_endpoint)
             existing_compositions_by_label = {}
@@ -503,124 +541,144 @@ def link_datasets_to_components(ods_ids):
                         existing_compositions_by_label[comp_label] = comp
                 
                 logging.debug(f"Found {len(existing_compositions_by_label)} existing compositions for dataset '{dataset_title}'")
+                logging.debug(f"Existing composition labels: {list(existing_compositions_by_label.keys())}")
             
-            # Step 5: Add a composition for each attribute
+            # Build a mapping between ODS columns and TDM attributes
+            # This will help us know which compositions should exist
+            valid_compositions = {}
+            processed_compositions = set()
+            
+            logging.info(f"Mapping ODS columns to TDM attributes for dataset {ods_id}")
             for attribute in tdm_attributes:
-                attribute_label = attribute.get('label')
+                attribute_label = attribute.get('label')  # This should match ODS technical name
                 attribute_id = attribute.get('id')
                 
                 if not attribute_label or not attribute_id:
                     logging.warning(f"Skipping attribute with missing label or ID: {attribute}")
                     continue
                 
-                # Check if composition already exists using the lookup map
-                if attribute_label in existing_compositions_by_label:
-                    # Get existing composition
-                    existing_comp = existing_compositions_by_label[attribute_label]
-                    existing_comp_uuid = existing_comp.get('id')
-                    
-                    # Find the matching column in ODS by name
-                    attribute_name = attribute.get('label')
-                    
-                    if not attribute_name:
-                        logging.warning(f"Attribute {attribute_label} has no label (technical name). Skipping description update.")
-                        skipped_compositions += 1
-                        continue
-                        
-                    # Get column data from ODS to find the description
-                    try:
-                        # Check if we already have column data for this dataset in the cache
-                        if ods_id not in ods_columns_cache:
-                            # Fetch column information from ODS for this dataset
-                            logging.info(f"Fetching column information from ODS for dataset {ods_id}")
-                            ods_columns_cache[ods_id] = ods_client.get_dataset_columns(dataset_id=ods_id)
-                        
-                        columns = ods_columns_cache[ods_id]
-                        
-                        # Find the matching column by name
-                        matching_column = next((col for col in columns if col.get('name') == attribute_name), None)
-                        
-                        if matching_column and matching_column.get('description'):
-                            # Clean description formatting
-                            cleaned_description = _clean_description(matching_column.get('description'))
-                            
-                            # Get human-readable name (fachlicher name) from ODS column data
-                            fachlicher_name = matching_column.get('label', attribute_label)
-                            
-                            # Update the existing composition with description and label
-                            comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
-                            update_data = {
-                                "_type": "Composition",
-                                "description": cleaned_description,
-                                "label": fachlicher_name  # Set composition label to the human-readable name
-                            }
-                            dnk_client._update_asset(comp_endpoint, data=update_data, replace=False)
-                            logging.debug(f"Updated description and label for existing composition '{attribute_label}' from ODS data")
-                            created_compositions += 1  # Count as created for reporting
-                            time.sleep(1)
-                        else:
-                            logging.debug(f"No description found in ODS for column '{attribute_name}'. Skipping description update.")
-                            skipped_compositions += 1
-                    except Exception as e:
-                        logging.warning(f"Error fetching ODS data for column '{attribute_name}': {str(e)}")
-                        skipped_compositions += 1
+                # Find matching ODS column
+                matching_column = next((col for col in ods_dataset_columns if col.get('name') == attribute_label), None)
+                
+                # Skip if no matching column - this is a critical error in our assumption
+                if not matching_column:
+                    logging.error(f"No ODS column found matching TDM attribute '{attribute_label}'. This breaks our assumption.")
                     continue
                 
-                # Create composition object
-                composition_data = {
-                    "_type": "Composition",
-                    "composedOf": attribute_id
+                # Get human-readable name (fachlicher name) from ODS
+                fachlicher_name = matching_column.get('label', attribute_label)
+                
+                # Store the mapping with all necessary information
+                valid_compositions[fachlicher_name] = {
+                    'attribute_id': attribute_id,
+                    'attribute_label': attribute_label,
+                    'ods_column': matching_column,
+                    'description': _clean_description(matching_column.get('description', ''))
                 }
+            
+            # Log mapping info
+            logging.info(f"Found {len(valid_compositions)} valid compositions that should exist for dataset {ods_id}")
+            
+            # Step 5: Process compositions - create, update, delete as needed
+            created_compositions = 0
+            updated_compositions = 0
+            skipped_compositions = 0
+            deleted_compositions = 0
+            
+            # First: Update or create compositions
+            for fachlicher_name, comp_data in valid_compositions.items():
+                attribute_id = comp_data['attribute_id']
+                attribute_label = comp_data['attribute_label']
+                description = comp_data['description']
                 
-                # Find the matching column in ODS by name
-                attribute_name = attribute.get('label')
-                
-                if attribute_name:
-                    try:
-                        # Check if we already have column data for this dataset in the cache
-                        if ods_id not in ods_columns_cache:
-                            # Fetch column information from ODS for this dataset
-                            logging.info(f"Fetching column information from ODS for dataset {ods_id}")
-                            ods_columns_cache[ods_id] = ods_client.get_dataset_columns(dataset_id=ods_id)
-                        
-                        columns = ods_columns_cache[ods_id]
-                        
-                        # Find the matching column by name
-                        matching_column = next((col for col in columns if col.get('name') == attribute_name), None)
-                        
-                        # Add description and label (human-readable name) if found in ODS data
-                        if matching_column:
-                            # Get the human-readable name (fachlicher name)
-                            fachlicher_name = matching_column.get('label', attribute_label)
-                            composition_data['label'] = fachlicher_name
-                            logging.debug(f"Set label to '{fachlicher_name}' for composition")
-                            
-                            # Add description if available
-                            if matching_column.get('description'):
-                                # Clean description formatting
-                                cleaned_description = _clean_description(matching_column.get('description'))
-                                composition_data['description'] = cleaned_description
-                                logging.debug(f"Added description from ODS data to composition for attribute '{attribute_label}'")
-                    except Exception as e:
-                        logging.warning(f"Error fetching ODS data for column '{attribute_name}': {str(e)}")
-                
-                # Add the composition
-                dnk_client._create_asset(compositions_endpoint, data=composition_data)
-                logging.debug(f"Created composition for attribute '{attribute_label}'")
-                created_compositions += 1
+                # Check if composition exists
+                if fachlicher_name in existing_compositions_by_label:
+                    # Update existing composition
+                    existing_comp = existing_compositions_by_label[fachlicher_name]
+                    existing_comp_uuid = existing_comp.get('id')
+                    processed_compositions.add(fachlicher_name)
+
+                    existing_comp_description = existing_comp.get('description', '')
+
+                    # Update description if available
+                    if description != existing_comp_description:
+                        comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
+                        update_data = {
+                            "_type": "Composition",
+                            "description": description
+                        }
+                        dnk_client._update_asset(comp_endpoint, data=update_data, replace=False)
+                        logging.debug(f"Updated description for existing composition '{fachlicher_name}'")
+                        updated_compositions += 1
+                    else:
+                        skipped_compositions += 1
+                        logging.debug(f"No description to update for composition '{fachlicher_name}'")
+                else:
+                    # Create new composition
+                    logging.debug(f"Creating new composition for attribute '{attribute_label}' with label '{fachlicher_name}'")
+                    
+                    composition_data = {
+                        "_type": "Composition",
+                        "composedOf": attribute_id,
+                        "label": fachlicher_name
+                    }
+                    
+                    # Add description if available
+                    if description:
+                        composition_data['description'] = description
+                    
+                    # Create the composition
+                    create_response = dnk_client._create_asset(compositions_endpoint, data=composition_data)
+                    if create_response:
+                        logging.info(f"Created composition for attribute '{attribute_label}' with label '{fachlicher_name}'")
+                        created_compositions += 1
+                        processed_compositions.add(fachlicher_name)
+                    else:
+                        logging.warning(f"Failed to create composition for attribute '{attribute_label}' - empty response")
+                        skipped_compositions += 1
+                    time.sleep(1)
+            
+            # Second: Delete compositions that shouldn't exist
+            compositions_to_delete = []
+            for comp_label, comp in existing_compositions_by_label.items():
+                if comp_label not in valid_compositions:
+                    compositions_to_delete.append({
+                        'label': comp_label,
+                        'id': comp.get('id'),
+                        'composedOf': comp.get('composedOf')
+                    })
+            
+            # Process deletions
+            for comp in compositions_to_delete:
+                comp_uuid = comp.get('id')
+                comp_label = comp.get('label')
+                if not comp_uuid:
+                    continue
+                    
+                try:
+                    # Delete the composition
+                    delete_endpoint = f"/rest/{dnk_client.database_name}/compositions/{comp_uuid}"
+                    dnk_client._delete_asset(delete_endpoint)
+                    logging.info(f"Deleted obsolete composition '{comp_label}' with id {comp_uuid}")
+                    deleted_compositions += 1
+                    
+                    # Track deletion
+                    result['deleted'] += 1
+                    result['deleted_compositions'].append({
+                        'ods_id': ods_id,
+                        'dataset_title': dataset_title,
+                        'composition_label': comp_label
+                    })
+                    
+                except Exception as e:
+                    logging.error(f"Failed to delete composition '{comp_label}': {str(e)}")
+                    
                 time.sleep(1)
             
-            # If we created at least one composition, count this as a successful link
-            if created_compositions > 0:
+            # Count as a successful link if we did any operation
+            if created_compositions > 0 or updated_compositions > 0 or deleted_compositions > 0:
                 # Create Dataspot link
                 dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{dataset_uuid}" if dataset_uuid else ''
-                
-                # Get list of newly created attribute compositions
-                created_attribute_names = []
-                for attribute in tdm_attributes:
-                    attr_label = attribute.get('label')
-                    if attr_label and attr_label not in existing_compositions_by_label:
-                        created_attribute_names.append(attr_label)
                 
                 # Track successful link
                 result['linked'] += 1
@@ -630,14 +688,18 @@ def link_datasets_to_components(ods_ids):
                     'uuid': dataset_uuid,
                     'link': dataspot_link,
                     'compositions_created': created_compositions,
-                    'compositions_skipped': skipped_compositions,
-                    'created_attribute_names': created_attribute_names
+                    'compositions_updated': updated_compositions,
+                    'compositions_deleted': deleted_compositions,
+                    'compositions_skipped': skipped_compositions
                 })
                 
-                logging.info(f"Successfully linked dataset '{dataset_title}' (odsDataportalId: {ods_id}) to TDM component: "
-                           f"{created_compositions} compositions created, {skipped_compositions} already existed")
+                logging.info(f"Successfully processed dataset '{dataset_title}' (odsDataportalId: {ods_id}): "
+                           f"{created_compositions} compositions created, "
+                           f"{updated_compositions} updated, "
+                           f"{deleted_compositions} deleted, "
+                           f"{skipped_compositions} unchanged")
             else:
-                logging.info(f"No new compositions needed for dataset '{dataset_title}' (odsDataportalId: {ods_id})")
+                logging.info(f"No changes needed for dataset '{dataset_title}' (odsDataportalId: {ods_id})")
                 
         except Exception as e:
             error_msg = f"Error linking dataset with odsDataportalId {ods_id} to TDM component: {str(e)}"
@@ -652,7 +714,7 @@ def link_datasets_to_components(ods_ids):
             })
     
     logging.info(f"Finished linking datasets to components. "
-               f"Linked {result['linked']} datasets with {result['errors']} errors.")
+               f"Processed {result['linked']} datasets with {result['deleted']} compositions deleted and {result['errors']} errors.")
     
     return result
 
@@ -675,6 +737,7 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['errors']} errors")
     logging.info(f"Dataset links: {sync_results['counts']['linked']} linked to components, "
+               f"{sync_results['counts']['deleted_compositions']} obsolete compositions deleted, "
                f"{sync_results['counts']['link_errors']} link errors")
     
     # Log detailed information about deleted datasets
@@ -735,16 +798,18 @@ def log_detailed_sync_report(sync_results):
             title = link.get('title', 'Unknown')
             dataspot_link = link.get('link', '')
             compositions_created = link.get('compositions_created', 0)
+            compositions_updated = link.get('compositions_updated', 0)
+            compositions_deleted = link.get('compositions_deleted', 0)
             compositions_skipped = link.get('compositions_skipped', 0)
             
             # Show link directly after title in brackets
             logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
-            logging.info(f"  - Created {compositions_created} compositions, {compositions_skipped} already existed")
+            logging.info(f"  - Created: {compositions_created}, Updated: {compositions_updated}, "
+                       f"Deleted: {compositions_deleted}, Unchanged: {compositions_skipped}")
             
             # Show the names of the attributes for which compositions were created
-            created_attribute_names = link.get('created_attribute_names', [])
-            if created_attribute_names:
-                logging.info(f"  - Created compositions for attributes: {', '.join(created_attribute_names)}")
+            # No longer tracking individual attribute names for brevity
+            # TODO: Re-add tracking of individual attribute names
     
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
@@ -878,16 +943,14 @@ def create_email_content(sync_results, database_name):
             title = link.get('title', 'Unknown')
             dataspot_link = link.get('link', '')
             compositions_created = link.get('compositions_created', 0)
+            compositions_updated = link.get('compositions_updated', 0)
+            compositions_deleted = link.get('compositions_deleted', 0)
             compositions_skipped = link.get('compositions_skipped', 0)
             
             # Show link directly after title in brackets with composition stats
             email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
-            email_text += f"Created {compositions_created} compositions, {compositions_skipped} already existed\n"
-            
-            # Show the names of the attributes for which compositions were created
-            created_attribute_names = link.get('created_attribute_names', [])
-            if created_attribute_names:
-                email_text += f"Created compositions for attributes: {', '.join(created_attribute_names)}\n"
+            email_text += f"Created: {compositions_created}, Updated: {compositions_updated}, "
+            email_text += f"Deleted: {compositions_deleted}, Unchanged: {compositions_skipped}\n"
     
     if is_error:
         email_text += "\nThe synchronization process did not complete successfully. "

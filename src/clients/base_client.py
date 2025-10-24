@@ -318,7 +318,9 @@ class BaseDataspotClient:
             
         headers = self.auth.get_headers()
         full_url = url_join(self.base_url, endpoint)
-        
+
+        # TODO: Retrieve asset, and print its label here aswell (not only endpoint that becomes invalid)
+
         # Completely delete the asset using DELETE request
         logging.info(f"Permanently deleting asset at {endpoint}")
         requests_delete(full_url, headers=headers)
