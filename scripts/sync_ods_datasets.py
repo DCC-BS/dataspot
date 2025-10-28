@@ -201,7 +201,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         ods_filter = lambda asset: (
             asset.get('_type') == 'Dataset' and
             asset.get('odsDataportalId') is not None and
-            asset.get('status') not in ['INTERMINATION2']) # Ignore archived assets
+            asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']) # Ignore archived assets
         
         # Get all datasets from Dataspot with odsDataportalId
         all_dataspot_datasets = dataspot_client.get_all_assets_from_scheme(filter_function=ods_filter)
@@ -452,7 +452,7 @@ def link_datasets_to_components(ods_ids):
     dnk_filter = lambda asset: (
         asset.get('_type') == 'Dataset' and
         asset.get('odsDataportalId') is not None and
-        asset.get('status') not in ['INTERMINATION2']  # Ignore archived assets
+        asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']  # Ignore archived assets
     )
     dnk_datasets = dnk_client.get_all_assets_from_scheme(filter_function=dnk_filter)
     
