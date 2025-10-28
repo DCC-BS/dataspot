@@ -49,6 +49,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
             'updated': 0,
             'unchanged': 0,
             'errors': 0,
+            'deleted': 0,
             'attributes_created': 0,
             'attributes_updated': 0,
             'attributes_deleted': 0,
@@ -63,6 +64,10 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                 'count': 0,
                 'items': []
             },
+            'deletions': {
+                'count': 0,
+                'items': []
+            },
             'errors': {
                 'count': 0,
                 'items': []
@@ -74,13 +79,23 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
     total_processed = 0
     total_successful = 0
     total_failed = 0
+    all_processed_ods_ids = set()  # To track all processed ODS IDs for deletion check
     report_filename = None
     
     try:
         # Get all public dataset IDs
         logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
-        logging.info(f"Found {len(ods_ids)} datasets to process")
+        
+        # Filter out archived datasets (similar to sync_ods_datasets.py)
+        filtered_ods_ids = []
+        for ods_id in ods_ids:
+            metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            if metadata and metadata.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']:
+                filtered_ods_ids.append(ods_id)
+                
+        logging.info(f"Found {len(ods_ids)} datasets, filtered to {len(filtered_ods_ids)} non-archived datasets")
+        ods_ids = filtered_ods_ids
         
         # Process datasets
         logging.info("Step 2: Processing dataset components - downloading column information and creating TDM objects...")
@@ -231,6 +246,9 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     sync_results['counts']['attributes_deleted'] += result_counts.get('deleted_attributes', 0)
                     sync_results['counts']['attributes_unchanged'] += result_counts.get('unchanged_attributes', 0)
                     
+                    # Add to processed IDs for deletion tracking
+                    all_processed_ods_ids.add(ods_id)
+                    
                     # Log success
                     logging.info(f"Successfully processed components for dataset {ods_id}: {dataset_title}")
                     total_successful += 1
@@ -249,6 +267,86 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     total_failed += 1
                 
                 total_processed += 1
+                
+        # After processing all datasets, handle deletions
+        logging.info("Step 3: Processing deletions - identifying components no longer in ODS...")
+
+        # Define a filter function to get only components with odsDataportalId
+        tdm_filter = lambda asset: (
+            asset.get('_type') == 'UmlClass' and 
+            asset.get('stereotype') == 'ogd_dataset' and
+            asset.get('odsDataportalId') is not None
+        )
+
+        # Get all components from TDM with odsDataportalId
+        all_tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+
+        # Extract ODS IDs from the components
+        tdm_ods_ids = set()
+        for component in all_tdm_components:
+            ods_id = component.get('odsDataportalId')
+            if ods_id:
+                tdm_ods_ids.add(ods_id)
+
+        # Find components that are in TDM but not in the current ODS fetch
+        components_to_delete = tdm_ods_ids - all_processed_ods_ids
+
+        if components_to_delete:
+            logging.info(f"Found {len(components_to_delete)} components to delete")
+            
+            # Process each component for deletion
+            for ods_id in components_to_delete:
+                try:
+                    # Find the component info
+                    component_info = next((c for c in all_tdm_components if c.get('odsDataportalId') == ods_id), None)
+                    
+                    if component_info:
+                        component_title = component_info.get('label', f"<Unnamed Component {ods_id}>")
+                        component_uuid = component_info.get('id')
+                        
+                        # Create Dataspot link
+                        dataspot_link = f"{config.base_url}/web/{tdm_client.database_name}/classifiers/{component_uuid}" if component_uuid else ''
+                        
+                        # Construct the endpoint for the component
+                        component_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{component_uuid}"
+                        
+                        # Mark the component for deletion using the inherited method
+                        try:
+                            tdm_client._mark_asset_for_deletion(endpoint=component_endpoint)
+                            deleted = True
+                        except Exception as delete_error:
+                            logging.error(f"Failed to mark component for deletion: {str(delete_error)}")
+                            deleted = False
+                            
+                        if deleted:
+                            # Track deletion
+                            sync_results['counts']['deleted'] += 1
+                            sync_results['counts']['total_changes'] += 1
+                            sync_results['details']['deletions']['count'] += 1
+                            
+                            # Add to deletion details
+                            deletion_entry = {
+                                "ods_id": ods_id,
+                                "title": component_title,
+                                "uuid": component_uuid,
+                                "link": dataspot_link
+                            }
+                            
+                            sync_results['details']['deletions']['items'].append(deletion_entry)
+                            logging.info(f"Deleted component with odsDataportalId {ods_id}: {component_title}")
+                        
+                except Exception as e:
+                    error_msg = f"Error deleting component with odsDataportalId {ods_id}: {str(e)}"
+                    logging.error(error_msg)
+                    
+                    sync_results['counts']['errors'] += 1
+                    sync_results['details']['errors']['count'] += 1
+                    sync_results['details']['errors']['items'].append({
+                        "ods_id": ods_id,
+                        "message": error_msg
+                    })
+        else:
+            logging.info("No components found for deletion")
         
         # Update final report status and message
         sync_results['status'] = 'success'
@@ -256,6 +354,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
             f"ODS dataset components synchronization completed with {sync_results['counts']['total_changes']} changes: "
             f"{sync_results['counts']['created']} new dataobjects created, "
             f"{sync_results['counts']['updated']} existing dataobjects updated, "
+            f"{sync_results['counts']['deleted']} dataobjects deleted, "
             f"and {sync_results['counts']['unchanged']} were unchanged. "
             f"Attribute changes: {sync_results['counts']['attributes_created']} created, "
             f"{sync_results['counts']['attributes_updated']} updated, "
@@ -364,6 +463,7 @@ def log_detailed_sync_report(sync_results):
     logging.info(f"Changes: "
                f"{sync_results['counts']['created']} created, "
                f"{sync_results['counts']['updated']} updated, "
+               f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['unchanged']} unchanged, "
                f"{sync_results['counts']['errors']} errors")
     logging.info(f"Attribute changes: "
@@ -404,6 +504,18 @@ def log_detailed_sync_report(sync_results):
                         logging.info(f"      - {field}:")
                         logging.info(f"        - Old value: '{old_val}'")
                         logging.info(f"        - New value: '{new_val}'")
+    
+    # Log information about deleted dataobjects
+    if sync_results['details']['deletions']['count'] > 0:
+        logging.info("")
+        logging.info("--- DELETED DATAOBJECTS ---")
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            link = deletion.get('link', '')
+            
+            # Display link right after title
+            logging.info(f"Deleted dataobject for ODS dataset {ods_id}: {title} (Link: {link})")
     
     # Log information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
@@ -460,14 +572,14 @@ def create_email_content(sync_results, database_name):
     is_error = sync_results['status'] == 'error'
     
     # Send email if there were changes or errors
-    if total_changes == 0 and counts.get('errors', 0) == 0 and not is_error:
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('deleted', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary
     if is_error:
         email_subject = f"[ERROR][{database_name}] ODS Dataset Components: Processing failed after {counts['total_processed']} datasets"
     else:
-        email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated"
+        email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
         if counts.get('errors', 0) > 0:
             email_subject += f", {counts['errors']} errors"
     
@@ -485,6 +597,7 @@ def create_email_content(sync_results, database_name):
     email_text += f"Datasets processed: {counts['total_processed']} total\n"
     email_text += f"- Created: {counts['created']} dataobjects\n"
     email_text += f"- Updated: {counts['updated']} dataobjects\n"
+    email_text += f"- Deleted: {counts['deleted']} dataobjects\n"
     email_text += f"- Unchanged: {counts['unchanged']} dataobjects\n"
     if counts.get('errors', 0) > 0:
         email_text += f"- Errors: {counts['errors']}\n"
@@ -535,6 +648,17 @@ def create_email_content(sync_results, database_name):
                         email_text += f"      - Old value: '{old_val}'\n"
                         email_text += f"      - New value: '{new_val}'\n"
 
+    
+    # Include information about deleted dataobjects first
+    if sync_results['details']['deletions']['count'] > 0:
+        email_text += "\nDELETED DATAOBJECTS:\n"
+        for deletion in sync_results['details']['deletions']['items']:
+            ods_id = deletion.get('ods_id', 'Unknown')
+            title = deletion.get('title', 'Unknown')
+            link = deletion.get('link', '')
+            
+            # Display link right after title
+            email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
     
     # Include information about created dataobjects
     if sync_results['details']['creations']['count'] > 0:
