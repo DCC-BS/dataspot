@@ -368,6 +368,10 @@ Rule:
           label: Filter
           order: 50
           icon: filter
+        AGGREGATION:
+          label: Aggregation
+          order: 60
+          icon: merge
 
 
 #060 - KENNZEICHNUNG VON HERKUNFT
