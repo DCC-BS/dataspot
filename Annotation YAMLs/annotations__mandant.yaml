@@ -125,6 +125,8 @@ Derivation:
         SUB:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Subdatensatz von
+        HARVESTER:
+          label: Harvester
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
