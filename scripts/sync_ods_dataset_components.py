@@ -86,16 +86,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         # Get all public dataset IDs
         logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
-        
-        # Filter out archived datasets (similar to sync_ods_datasets.py)
-        filtered_ods_ids = []
-        for ods_id in ods_ids:
-            metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            if metadata and metadata.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']:
-                filtered_ods_ids.append(ods_id)
-                
-        logging.info(f"Found {len(ods_ids)} datasets, filtered to {len(filtered_ods_ids)} non-archived datasets")
-        ods_ids = filtered_ods_ids
+        logging.info(f"Found {len(ods_ids)} datasets to process")
         
         # Process datasets
         logging.info("Step 2: Processing dataset components - downloading column information and creating TDM objects...")
@@ -275,7 +266,8 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         tdm_filter = lambda asset: (
             asset.get('_type') == 'UmlClass' and 
             asset.get('stereotype') == 'ogd_dataset' and
-            asset.get('odsDataportalId') is not None
+            asset.get('odsDataportalId') is not None and
+            asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']  # Ignore archived assets
         )
 
         # Get all components from TDM with odsDataportalId
@@ -291,6 +283,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         # Find components that are in TDM but not in the current ODS fetch
         components_to_delete = tdm_ods_ids - all_processed_ods_ids
 
+        # TODO: Also mark for deletion the attributes of the components
         if components_to_delete:
             logging.info(f"Found {len(components_to_delete)} components to delete")
             
