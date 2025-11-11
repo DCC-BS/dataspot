@@ -131,8 +131,14 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             logging.info(f"[{idx+1}/{len(ods_ids)}] Processing dataset {ods_id}...")
             
             # Get metadata from ODS and transform to Dataspot dataset
-            ods_metadata = ods_utils.get_dataset_metadata(dataset_id=ods_id)
-            dataset = transform_ods_to_dnk(ods_metadata=ods_metadata, ods_dataset_id=ods_id)
+            ods_metadata_from_automation_api = ods_utils.get_dataset_metadata(dataset_id=ods_id)
+            # The following is a dirty quick solution so that it works.
+            # Will break as soon as the Explore API V2.1 is deprecated, since the entire url is hardcoded.
+            ods_metadata_from_explore_api_response = ods_utils.requests_get(url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ods_id}")
+            ods_metadata_from_explore_api = ods_metadata_from_explore_api_response.json()
+            dataset = transform_ods_to_dnk(ods_metadata_from_automation_api=ods_metadata_from_automation_api,
+                                           ods_metadata_from_explore_api=ods_metadata_from_explore_api,
+                                           ods_dataset_id=ods_id)
             
             # Add to collection
             all_datasets.append(dataset)

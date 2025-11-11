@@ -7,46 +7,6 @@ import datetime
 from src.dataspot_dataset import OGDDataset
 
 
-# Map of ODS geographic reference codes to human-readable locations
-# TODO (Renato): Add these codes to the RDM manually, and then use them instead of this map
-GEOGRAPHIC_REFERENCE_MAP = {
-    "world_ch": "Schweiz",
-    "ch_80_2703": "Riehen",
-    "ch_80_2702": "Bettingen",
-    "ch_80_2701": "Basel",
-    "ch_80_2765": "Binningen",
-    "ch_80_2762": "Allschwil",
-    "ch_80_2766": "Birsfelden",
-    "ch_80_2767": "Bottmingen",
-    "ch_80_2774": "Schönenbuch",
-    "ch_40_12": "Basel-Stadt",
-    "ch_40_13": "Basel-Landschaft",
-    "ch_80_2761": "Aesch (BL)",
-    "ch_80_2763": "Arlesheim",
-    "ch_80_2822": "Augst",
-    "ch_80_2473": "Dornach",
-    "ch_80_4161": "Eiken",
-    "ch_80_2768": "Ettingen",
-    "ch_80_2824": "Frenkendorf",
-    "ch_80_4163": "Frick",
-    "ch_80_2825": "Füllinsdorf",
-    "ch_80_4165": "Gipf-Oberfrick",
-    "ch_80_4252": "Kaiseraugst",
-    "ch_80_2828": "Lausen",
-    "ch_80_2829": "Liestal",
-    "ch_80_4254": "Möhlin",
-    "ch_80_2769": "Münchenstein",
-    "ch_80_2770": "Muttenz",
-    "ch_80_2771": "Oberwil (BL)",
-    "ch_80_4175": "Oeschgen",
-    "ch_80_2772": "Pfeffingen",
-    "ch_80_2831": "Pratteln",
-    "ch_80_2773": "Reinach (BL)",
-    "ch_80_4258": "Rheinfelden",
-    "ch_80_2775": "Therwil",
-    "ch_80_4261": "Wallbach"
-}
-
 # Map of ODS rights values to descriptions
 RECHTE_MAP = {
     "N/A": "N/A",
@@ -76,7 +36,9 @@ LICENSE_MAP = {
     "ce0mv1b": "https://opendata.swiss/de/terms-of-use/",                                       # Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
 }
 
-def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> OGDDataset:
+def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
+                         ods_metadata_from_explore_api: Dict[str, Any],
+                         ods_dataset_id: str) -> OGDDataset:
     """
     Transforms metadata from OpenDataSoft (ODS) format to Dataspot DNK format.
     
@@ -85,18 +47,19 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     It maps fields from the ODS metadata structure to their corresponding Dataspot fields.
     
     Args:
-        ods_metadata (Dict[str, Any]): The metadata dictionary obtained from ODS API.
+        ods_metadata_from_automation_api (Dict[str, Any]): The metadata dictionary obtained from ODS Automation API.
             Expected to contain fields like dataset name, description, keywords, etc.
+        ods_metadata_from_explore_api (Dict[str, Any]): The metadata dictionary obtained from ODS Explore API.
         ods_dataset_id (str): The ODS dataset ID, used for identification.
     
     Returns:
         OGDDataset: A dataset object containing the metadata in Dataspot format.
     """
     # Extract basic metadata fields
-    title = _get_field_value(ods_metadata['default']['title'])
-    description = _get_field_value(ods_metadata['default'].get('description', {}))
-    keywords = _get_field_value(ods_metadata['default'].get('keyword', {}))
-    tags = _get_field_value(ods_metadata.get('custom', {}).get('tags', {}))
+    title = _get_field_value(ods_metadata_from_automation_api['default']['title'])
+    description = _get_field_value(ods_metadata_from_automation_api['default'].get('description', {}))
+    keywords = _get_field_value(ods_metadata_from_automation_api['default'].get('keyword', {}))
+    tags = _get_field_value(ods_metadata_from_automation_api.get('custom', {}).get('tags', {}))
 
     # Add OGD keyword to the title
     if title:
@@ -104,56 +67,35 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     
     # Get the dataset timezone if available, otherwise default to UTC
     dataset_timezone = None
-    if 'default' in ods_metadata and 'timezone' in ods_metadata['default']:
-        dataset_timezone = _get_field_value(ods_metadata['default']['timezone'])
+    if 'default' in ods_metadata_from_automation_api and 'timezone' in ods_metadata_from_automation_api['default']:
+        dataset_timezone = _get_field_value(ods_metadata_from_automation_api['default']['timezone'])
     
     # Extract update and publication information
     accrualperiodicity = _get_field_value(
-        ods_metadata.get('dcat', {}).get('accrualperiodicity', {'value': None})
+        ods_metadata_from_automation_api.get('dcat', {}).get('accrualperiodicity', {'value': None})
     )
     
     # For publication date (PD), normalize to midnight in source timezone
     publication_date = _iso_8601_to_unix_timestamp(
-        _get_field_value(ods_metadata.get('dcat', {}).get('issued')),
+        _get_field_value(ods_metadata_from_automation_api.get('dcat', {}).get('issued')),
         dataset_timezone,
         normalize_to_midnight=True  # Only normalize PD field to midnight
     )
     
     # Extract geographical/spatial information
     geographical_dimension = None
-    if 'default' in ods_metadata and 'geographic_reference' in ods_metadata['default']:
-        geo_refs = _get_field_value(ods_metadata['default']['geographic_reference'])
-        if geo_refs and isinstance(geo_refs, list) and len(geo_refs) > 0:
-            # Check if all codes are in the map
-            all_codes_in_map = True
-            unknown_codes = []
-            for geo_code in geo_refs:
-                if geo_code is not None and geo_code not in GEOGRAPHIC_REFERENCE_MAP:
-                    all_codes_in_map = False
-                    unknown_codes.append(geo_code)
-            
-            if unknown_codes:
-                # Only throw an error for unknown codes (not for None)
-                raise ValueError(f"Unknown geographic reference code(s): {unknown_codes}")
-            
-            # If all codes are in the map, add all of them
-            if all_codes_in_map:
-                # Create a list of geo dimensions for valid codes, filter out None values
-                geo_dimensions = [GEOGRAPHIC_REFERENCE_MAP[geo_code] for geo_code in geo_refs if geo_code is not None]
-                
-                # Join the values into a single string with comma and space separator
-                geographical_dimension = ", ".join(geo_dimensions) if geo_dimensions else None
-                
-                if len(geo_refs) > 1:
-                    logging.debug(f"Multiple geographic references found in ODS metadata: {geo_refs}. Joined as: {geographical_dimension}")
+    territories_list = ods_metadata_from_explore_api.get('metas', {}).get('default', {}).get('territory', [])
+    if territories_list:
+        territories_list.sort()
+        geographical_dimension = ", ".join(territories_list)
 
     # Extract license/rights information
     license = None
     rechte = None
 
     # Get Nutzungsrechte from dcat_ap_ch.rights
-    if 'dcat_ap_ch' in ods_metadata and 'rights' in ods_metadata['dcat_ap_ch']:
-        rechte_wert = _get_field_value(ods_metadata['dcat_ap_ch']['rights'])
+    if 'dcat_ap_ch' in ods_metadata_from_automation_api and 'rights' in ods_metadata_from_automation_api['dcat_ap_ch']:
+        rechte_wert = _get_field_value(ods_metadata_from_automation_api['dcat_ap_ch']['rights'])
         if rechte_wert and rechte_wert not in RECHTE_MAP:
             logging.error(f"Unknown rights value: {rechte_wert}")
             raise ValueError(f"Unknown rights value: {rechte_wert}")
@@ -162,8 +104,8 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
             logging.debug(f"Found rights value: {rechte}")
 
     # Get Lizenz from internal.license_id
-    if 'internal' in ods_metadata and 'license_id' in ods_metadata['internal']:
-        license_id = _get_field_value(ods_metadata['internal']['license_id'])
+    if 'internal' in ods_metadata_from_automation_api and 'license_id' in ods_metadata_from_automation_api['internal']:
+        license_id = _get_field_value(ods_metadata_from_automation_api['internal']['license_id'])
         if license_id and license_id not in LICENSE_MAP:
             logging.error(f"Unknown license ID: {license_id}")
             raise ValueError(f"Unknown license ID: {license_id}")
@@ -174,10 +116,10 @@ def transform_ods_to_dnk(ods_metadata: Dict[str, Any], ods_dataset_id: str) -> O
     # TODO (Renato): Map temporal coverage information (example: "1939-08-01/2025-03-31" or "2024-02-10/2032-08-08")
 
     # Get Herausgeber from dcat.creator
-    herausgeber = _get_field_value(ods_metadata.get('default', {}).get('publisher', {}))
+    herausgeber = _get_field_value(ods_metadata_from_automation_api.get('default', {}).get('publisher', {}))
 
     # and Publizierende Organisation from default.publisher
-    publizierende_organisation = _get_field_value(ods_metadata.get('custom', {}).get('publizierende-organisation', {}))
+    publizierende_organisation = _get_field_value(ods_metadata_from_automation_api.get('custom', {}).get('publizierende-organisation', {}))
     
     # TODO (Renato): Map default.references to appropriate field (example: "https://statistik.bs.ch/unterthema/9#Preise")
     
