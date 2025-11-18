@@ -970,16 +970,24 @@ Dataset:
       literals:
         none:
           label: Keine
+          title: keine Personendaten nach IDG, Art. 3; bzw. keine Personendaten nach DSG, Art. 5 lit. a
           order: 1
+          icon: circle-check
         natural_person:
           label: Personendaten natürlicher Personen
+          title: Personendaten nach IDG, Art. 3; bzw. Personendaten natürlicher Personen nach DSG, Art. 5 lit. a
           order: 2
+          icon: person
+        particularly_protected:
+          label: Besondere Personendaten
+          title: Besondere Personendaten nach IDG, Art. 4; bzw. Besonders schützenswerte Personendaten nach DSG, Art. 5 lit. c
+          order: 3
+          icon: person-circle-exclamation
         legal_person:
           label: Personendaten juristischer Personen
-          order: 3
-        particularly_protected:
-          label: besonders schützenswerte Personendaten
+          title: Personendaten juristischer Personen
           order: 4
+          icon: people-roof
     protectionLevel:
       label: Schutzbedarfsstufen
       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
