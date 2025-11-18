@@ -29,9 +29,9 @@ organizations_name = "Data%20Excellence"
 
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration
-dnk_ods_imports_collection_name = 'OGD-Datensätze aus ODS'
+dnk_ods_imports_collection_name = 'OGD-Datensätze aus Huwise'
 dnk_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']
 
 # TDM client configuration
-tdm_ods_imports_collection_name = 'OGD-Datensätze aus ODS'
+tdm_ods_imports_collection_name = 'OGD-Datensätze in Huwise'
 tdm_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']
