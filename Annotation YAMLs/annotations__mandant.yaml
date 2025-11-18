@@ -18,6 +18,13 @@ Theme:
       #appBarBackgroundColor: ff0000 # Rot
       #appBarBackgroundColor: 40E0D0 # Türkis
     LIGHT:
+      appFont: Inter
+      appBarColor: 204453
+      appBarBackgroundColor: ddecde # Basel-Grün
+      statusDraftColor: 9156b4
+      statusPublicColor: 32834a
+      #statusNotPublicColor: 32834a
+      statusNoneColor: 333333
       #appBarBackgroundColor: 167a3e # Grün
       #appBarBackgroundColor: ff0000 # Rot
       #appBarBackgroundColor: 40E0D0 # Türkis
