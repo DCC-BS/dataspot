@@ -408,6 +408,9 @@ Deployment:
         available_at:
           label: Verfügbar in
           labelEn: Available at
+        managed_in:
+          label: Verwaltet in
+          labelEn: Managed in
 
 
 #070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
