@@ -21,7 +21,7 @@ Theme:
       appFont: Inter
       appBarColor: 204453
       appBarBackgroundColor: ddecde # Basel-Grün
-      statusDraftColor: 9156b4
+      statusDraftColor: 723d8e # Violet
       statusPublicColor: 32834a
       #statusNotPublicColor: 32834a
       statusNoneColor: 333333
