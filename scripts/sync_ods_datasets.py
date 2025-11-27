@@ -156,7 +156,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                     logging.info(f"Step 3: Syncing batch of {batch_num} datasets...")
                     
                     # Sync datasets - the method handles updates properly
-                    sync_summary = dataspot_client.sync_datasets(datasets=all_datasets)
+                    sync_summary = dataspot_client.sync_datasets(datasets=all_datasets, status="PUBLISHED")
                     
                     logging.info(f"Batch sync completed. Response summary: {sync_summary}")
                     
@@ -613,7 +613,7 @@ def link_datasets_to_components(ods_ids):
                             "_type": "Composition",
                             "description": description
                         }
-                        dnk_client._update_asset(comp_endpoint, data=update_data, replace=False)
+                        dnk_client._update_asset(comp_endpoint, data=update_data, replace=False, status="PUBLISHED")
                         logging.debug(f"Updated description for existing composition '{fachlicher_name}'")
                         updated_compositions += 1
                     else:
@@ -634,7 +634,7 @@ def link_datasets_to_components(ods_ids):
                         composition_data['description'] = description
                     
                     # Create the composition
-                    create_response = dnk_client._create_asset(compositions_endpoint, data=composition_data)
+                    create_response = dnk_client._create_asset(compositions_endpoint, data=composition_data, status="PUBLISHED")
                     if create_response:
                         logging.info(f"Created composition for attribute '{attribute_label}' with label '{fachlicher_name}'")
                         created_compositions += 1

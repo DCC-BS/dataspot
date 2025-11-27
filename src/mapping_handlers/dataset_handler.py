@@ -68,7 +68,7 @@ class DatasetHandler(BaseDataspotHandler):
 
         logging.debug(f"Default dataset path: {self.default_dataset_path_full}")
 
-    def sync_datasets(self, datasets: List[Dataset]) -> Dict[str, Any]:
+    def sync_datasets(self, datasets: List[Dataset], status: str = "WORKING") -> Dict[str, Any]:
         """
         Synchronize datasets between ODS and Dataspot.
         This is the main public method for dataset synchronization.
@@ -83,6 +83,8 @@ class DatasetHandler(BaseDataspotHandler):
 
         Args:
             datasets: List of Dataset objects to synchronize with Dataspot
+            status: Status to set on created/updated datasets. Defaults to "WORKING" (DRAFT group).
+                   Use "PUBLISHED" to make datasets public immediately.
             
         Returns:
             Dict[str, Any]: Report of the synchronization process
@@ -211,7 +213,8 @@ class DatasetHandler(BaseDataspotHandler):
                             response = self.client._update_asset(
                                 endpoint=endpoint, 
                                 data=dataset_json, 
-                                replace=False
+                                replace=False,
+                                status=status
                             )
                             
                             # Extract UUID (should be the same as entry[1])
@@ -281,7 +284,7 @@ class DatasetHandler(BaseDataspotHandler):
                     
                     try:
                         # Create the dataset
-                        response = self.create_dataset(dataset)
+                        response = self.create_dataset(dataset, status=status)
                         
                         # Get UUID from response
                         uuid = get_uuid_from_response(response)
@@ -484,12 +487,14 @@ class DatasetHandler(BaseDataspotHandler):
         logging.info(f"Bulk dataset creation completed successfully")
         return response
 
-    def create_dataset(self, dataset: Dataset) -> dict:
+    def create_dataset(self, dataset: Dataset, status: str = "WORKING") -> dict:
         """
         Create a new dataset in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
         
         Args:
             dataset (Dataset): The dataset instance to be uploaded.
+            status: Status to set on the dataset. Defaults to "WORKING" (DRAFT group).
+                   Use "PUBLISHED" to make the dataset public immediately.
             
         Returns:
             dict: The JSON response from the API containing the dataset data
@@ -536,7 +541,8 @@ class DatasetHandler(BaseDataspotHandler):
 
         response = self.client._create_asset(
             endpoint=dataset_creation_endpoint,
-            data=dataset_json
+            data=dataset_json,
+            status=status
         )
         
         # Store the mapping for future reference

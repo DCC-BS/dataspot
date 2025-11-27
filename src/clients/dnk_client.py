@@ -159,14 +159,16 @@ class DNKClient(BaseDataspotClient):
         """
         return self.org_handler.sync_org_units(org_data, status=status)
     
-    def sync_datasets(self, datasets: List[Dataset]) -> Dict[str, Any]:
+    def sync_datasets(self, datasets: List[Dataset], status: str = "WORKING") -> Dict[str, Any]:
         """
         Synchronize datasets between ODS and Dataspot.
         
         Args:
             datasets: List of Dataset objects to synchronize
+            status: Status to set on created/updated datasets. Defaults to "WORKING" (DRAFT group).
+                   Use "PUBLISHED" to make datasets public immediately.
             
         Returns:
             Dict: Report of the synchronization process
         """
-        return self.dataset_handler.sync_datasets(datasets)
+        return self.dataset_handler.sync_datasets(datasets, status=status)
