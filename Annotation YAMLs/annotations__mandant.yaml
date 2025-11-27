@@ -368,7 +368,7 @@ Rule:
         DESCRIBED:
           label: wie beschrieben
           order: 30
-          icon: angry
+          icon: note-sticky
         JOIN:
           label: Join
           order: 40
