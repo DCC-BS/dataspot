@@ -18,8 +18,9 @@ ReferenceDataModel:
           icon: book
 
 ReferenceObject:
-  label: Element
-  ling: s1p1n
+  label: Referenzliste
+  plural: Referenzlisten
+  title: Eine Referenzliste ist eine Aufzählung von gültigen Referenzwerten, die zur Klassifizierung bestimmter Eigenschaften dienen.
   properties:
     stereotype:
       label: Typ
