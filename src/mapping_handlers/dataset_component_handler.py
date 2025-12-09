@@ -57,6 +57,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         self._datatype_mapping = {
             'text': '/Datentypmodell/Text',
             'int': '/Datentypmodell/Ganzzahl',
+            'identifier': '/Datentypmodell/identifier',
             'boolean': '/Datentypmodell/Wahrheitswert',
             'double': '/Datentypmodell/Dezimalzahl',
             'datetime': '/Datentypmodell/Zeitpunkt',
