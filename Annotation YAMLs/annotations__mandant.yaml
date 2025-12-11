@@ -422,13 +422,44 @@ Deployment:
 
 #070 - PERSONEN, BENUTZER, ROLLEN, POSTEN
 Person:
+  groups:
+    STATE_CALENDAR:
+      label: Staatskalender-Anbindung
+      icon: memo-pad
+      order: 2
+
+  properties:
+    email:
+      label: E-Mail (bitte leer lassen)
+    telephone:
+      label: Telefon (bitte leer lassen)
   customProperties:
+    email_custom_property:
+      label: E-Mail
+      order: 1
+      width: 2
+    phone:
+      label: Telefon
+      order: 2
+      width: 2
+      baseType: TEXT
+    teams:
+      label: Teams
+      order: 3
+      width: 2
+      baseType: TEXT
+    state_calendar_website:
+      label: Kontaktwebseite
+      order: 4
+      width: 2
+      baseType: TEXT
     sk_person_id:
       label: Person-ID
+      group: STATE_CALENDAR
       baseType: STRING
       title: Person-ID im Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/person/c056392e5fc842e4a92ddacc8580db58)
       width: 1
-      order: 1
+      order: 80
 
   customFunctions:
     openStaatskalender:

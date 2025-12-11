@@ -24,6 +24,10 @@ Abhängigkeiten und Zweck:
    - Abhängigkeiten: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung)  
    - Zweck: Erstellt Benutzerkonten und weist Berechtigungen zu, nachdem alle Personen-/Postendaten finalisiert sind
 
+6. Kontaktdetails bei Personen
+   - Abhängigkeiten: Check #2 (Personensynchronisation aus dem Staatskalender)
+   - Zweck: Erstellt/aktualisiert Kontaktdetails aus dem Staatskalender
+
 ---
 
 1 Eindeutigkeitsprüfung
@@ -99,3 +103,18 @@ Falls nicht:
 - Wenn der Benutzer nicht korrekt mit der Person verknüpft ist, wird der Benutzer mit der korrekten Person verknüpft
 - Wenn die Zugriffsrechte des Benutzers READ_ONLY sind, werden sie zu EDITOR geändert
 - Eine E-Mail mit allen Problemen und Änderungen wird an dcc@bs.ch gesendet
+
+---
+6 Kontaktdetails bei Personen  
+
+Alle Personen mit sk_person_id haben die korrekten Kontakt-Daten (Tel/E-Mail/Teams-Link/Kontaktwebseite) aus dem Staatskalender.
+
+Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:  
+- Die Telefonnummer im Staatskalender und in dataspot sind identisch
+- Die E-Mail Adresse im Staatskalender und in dataspot sind identisch
+- Der Teams-Link enthält die korrekte E-Mail Adresse
+- Die Kontaktwebseite ist korrekt ausgefüllt
+
+Falls nicht:
+- Wenn die Details nicht übereinstimmen werden die Details in dataspot angepasst
+- Eine E-Mail mit allen Änderungen wird an dcc@bs.ch gesendet
