@@ -371,7 +371,7 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
         custom_properties['phone'] = None
     
     # state_calendar_website
-    custom_properties['state_calendar_website'] = f"[Kontaktwebseite im Staatskalender öffnen](https://staatskalender.bs.ch/person/{sk_person_id})"
+    custom_properties['state_calendar_website'] = f"[Kontaktseite im Staatskalender öffnen](https://staatskalender.bs.ch/person/{sk_person_id})"
     
     # teams - only if email exists
     if sk_email:

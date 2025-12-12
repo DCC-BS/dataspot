@@ -433,6 +433,8 @@ Person:
       label: E-Mail (bitte leer lassen)
     telephone:
       label: Telefon (bitte leer lassen)
+    url:
+      label: Kontaktseite (bitte leer lassen)
   customProperties:
     email_custom_property:
       label: E-Mail
@@ -449,7 +451,7 @@ Person:
       width: 2
       baseType: TEXT
     state_calendar_website:
-      label: Kontaktwebseite
+      label: Kontaktseite
       order: 4
       width: 2
       baseType: TEXT
