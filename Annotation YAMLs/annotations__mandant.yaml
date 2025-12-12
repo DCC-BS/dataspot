@@ -426,7 +426,7 @@ Person:
     STATE_CALENDAR:
       label: Staatskalender-Anbindung
       icon: memo-pad
-      order: 2
+      order: 80
 
   properties:
     email:
@@ -472,6 +472,12 @@ Person:
 
 
 Post:
+  groups:
+    STATE_CALENDAR:
+      label: Staatskalender-Anbindung
+      icon: memo-pad
+      order: 80
+
   customProperties:
     sk_membership_id:
       label: Mitgliedschaft-ID
@@ -479,6 +485,7 @@ Post:
       title: Mitgliedschaft-ID aus Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/membership/6503d554f7ef46fd9b0775edb54bf1f2)
       width: 1
       order: 1
+      group: STATE_CALENDAR
 
     sk_second_membership_id:
       label: Zweite Mitgliedschaft-ID
@@ -486,6 +493,7 @@ Post:
       title: Mitgliedschaft-ID aus Staatskalender (z.B. bei Co-Präsidium)
       width: 1
       order: 2
+      group: STATE_CALENDAR
 
   customFunctions:
     viewMembershipDetails:
