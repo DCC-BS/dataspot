@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 import config
 from src.common import requests_get, requests_patch
 from src.clients.base_client import BaseDataspotClient
+from src.staatskalender_auth import StaatskalenderAuth
 
 # Global cache for person data
 _person_with_sk_id_cache = None
@@ -66,8 +67,11 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
 
         logging.info(f"Found {len(posts_with_membership)} posts with membership IDs to verify")
 
+        # Initialize Staatskalender authentication
+        staatskalender_auth = StaatskalenderAuth()
+
         # Process person synchronization from Staatskalender
-        process_person_sync(posts_with_membership, base_dataspot_client, result)
+        process_person_sync(posts_with_membership, base_dataspot_client, result, staatskalender_auth)
 
         # Update final status and message
         if result['issues']:
@@ -144,7 +148,7 @@ def get_posts_with_sk_membership_ids(dataspot_client: BaseDataspotClient) -> Dic
     return result_dict
 
 
-def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client: BaseDataspotClient, result: Dict[str, any]) -> None:
+def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client: BaseDataspotClient, result: Dict[str, any], staatskalender_auth: StaatskalenderAuth) -> None:
     """
     Process person synchronization from Staatskalender.
     
@@ -159,6 +163,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
         posts: Posts data with membership information
         dataspot_client: Database client
         result: Result dictionary to update with issues and staatskalender_post_person_mapping
+        staatskalender_auth: Authentication object for Staatskalender API
 
     Returns:
         None (updates the result dictionary)
@@ -178,7 +183,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
             try:
                 # Get person info from Staatskalender using the sk_membership_id
                 membership_url = f"https://staatskalender.bs.ch/api/memberships/{sk_membership_id}"
-                membership_response = requests_get(url=membership_url)
+                membership_response = requests_get(url=membership_url, auth=staatskalender_auth.get_auth())
 
                 if membership_response.status_code != 200:
                     result['issues'].append({
@@ -219,7 +224,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     return
 
                 # Get person data from Staatskalender
-                person_response = requests_get(url=person_link)
+                person_response = requests_get(url=person_link, auth=staatskalender_auth.get_auth())
 
                 if person_response.status_code != 200:
                     result['issues'].append({

@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, Any, Optional
 import config
 from src.common import requests_get, requests_patch
 from src.clients.base_client import BaseDataspotClient
+from src.staatskalender_auth import StaatskalenderAuth
 
 # Global cache for person data
 _person_with_sk_id_cache = None
@@ -63,6 +64,9 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
         
         logging.info(f"Found {len(persons_with_contact_details)} persons with sk_person_id to verify")
         
+        # Initialize Staatskalender authentication
+        staatskalender_auth = StaatskalenderAuth()
+        
         # Process each person
         total_persons = len(persons_with_contact_details)
         for current_idx, person in enumerate(persons_with_contact_details, 1):
@@ -76,7 +80,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
             time.sleep(1)
             
             # Get person data from Staatskalender
-            sk_data = get_person_details_from_staatskalender(sk_person_id)
+            sk_data = get_person_details_from_staatskalender(sk_person_id, staatskalender_auth)
             
             if not sk_data:
                 result['issues'].append({
@@ -259,12 +263,13 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     return _contact_details_cache
 
 
-def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
+def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_auth: StaatskalenderAuth) -> Dict[str, Any]:
     """
     Retrieve person details from Staatskalender by sk_person_id with caching.
     
     Args:
         sk_person_id: Staatskalender person ID
+        staatskalender_auth: Authentication object for Staatskalender API
         
     Returns:
         dict: Person details including email, phone, first_name, last_name or empty dict if error
@@ -283,7 +288,7 @@ def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
     
     person_url = f"https://staatskalender.bs.ch/api/people/{sk_person_id}"
     try:
-        person_response = requests_get(url=person_url)
+        person_response = requests_get(url=person_url, auth=staatskalender_auth.get_auth())
         
         if person_response.status_code != 200:
             logging.warning(f"Failed to retrieve person data from Staatskalender. Status code: {person_response.status_code}")
