@@ -38,6 +38,14 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
     """
     logging.info("Starting Check #6: Kontaktdetails bei Personen...")
 
+    # Always refresh caches to avoid stale data when the external state was reset
+    global _person_with_sk_id_cache, _person_cache, _person_email_cache, _contact_details_cache, _staatskalender_data_cache
+    _person_with_sk_id_cache = None
+    _person_cache = None
+    _person_email_cache = {}
+    _contact_details_cache = None
+    _staatskalender_data_cache = {}
+
     result = {
         'status': 'success',
         'message': 'All persons that are linked to the Staatskalender have consistent contact details with Staatskalender info.',
@@ -60,9 +68,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
         for current_idx, person in enumerate(persons_with_contact_details, 1):
             person_uuid = person['person_uuid']
             sk_person_id = person['sk_person_id'].strip('"')
-            given_name = person['given_name']
-            family_name = person['family_name']
-            person_name = f"{given_name} {family_name}"
+            person_name = person['title']
             
             logging.info(f"[{current_idx}/{total_persons}] {person_name}:")
             
@@ -90,8 +96,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
                 sk_person_id=sk_person_id,
                 sk_email=sk_data.get('email'),
                 sk_phone=sk_data.get('phone'),
-                given_name=given_name,
-                family_name=family_name
+                person_title=person_name
             )
             
             # Compare and update if needed
@@ -184,6 +189,9 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
         p.id AS person_uuid,
         p.given_name,
         p.family_name,
+        p.additional_name,
+        p.honorific_prefix,
+        p.honorific_suffix,
         cp_sk.value AS sk_person_id,
         cp_email.value AS email_custom_property,
         cp_phone.value AS phone,
@@ -211,11 +219,34 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     _contact_details_cache = []
     
     for result in results:
-        # Strip quotes from string values
+        # Strip quotes from string values and build title from available parts
+        honorific_prefix = (result.get('honorific_prefix') or '').strip('"').strip() if result.get('honorific_prefix') else ''
+        given_name = (result.get('given_name') or '').strip('"').strip()
+        additional_name = (result.get('additional_name') or '').strip('"').strip() if result.get('additional_name') else ''
+        family_name = (result.get('family_name') or '').strip('"').strip()
+        honorific_suffix = (result.get('honorific_suffix') or '').strip('"').strip() if result.get('honorific_suffix') else ''
+
+        # given_name and family_name are mandatory; abort loudly if missing
+        if not given_name or not family_name:
+            raise ValueError("Person record missing mandatory given_name or family_name")
+
+        title_parts = []
+        if honorific_prefix:
+            title_parts.append(honorific_prefix)
+        title_parts.append(given_name)
+        if additional_name:
+            title_parts.append(additional_name)
+        title_parts.append(family_name)
+
+        title_main = ' '.join(part for part in title_parts if part)
+        if honorific_suffix:
+            title_full = f"{title_main}, {honorific_suffix}"
+        else:
+            title_full = title_main
+
         person_data = {
             'person_uuid': result['person_uuid'],
-            'given_name': result['given_name'],
-            'family_name': result['family_name'],
+            'title': title_full,
             'sk_person_id': result['sk_person_id'],
             'email_custom_property': result.get('email_custom_property', '').strip('"') if result.get('email_custom_property') else None,
             'phone': result.get('phone', '').strip('"') if result.get('phone') else None,
@@ -308,7 +339,7 @@ def get_person_details_from_staatskalender(sk_person_id: str) -> Dict[str, Any]:
 
 
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
-                                    given_name: str, family_name: str) -> Dict[str, Optional[str]]:
+                                    person_title: str) -> Dict[str, Optional[str]]:
     """
     Build the target customProperties payload based on Staatskalender data.
     
@@ -316,13 +347,12 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
         sk_person_id: Staatskalender person ID
         sk_email: Email from Staatskalender
         sk_phone: Phone from Staatskalender
-        given_name: Person's first name
-        family_name: Person's last name
+        person_title: Person's title (full name)
         
     Returns:
         dict: Target customProperties to set
     """
-    custom_properties = {}
+    custom_properties: Dict[str, Optional[str]] = {}
     
     # email_custom_property
     if sk_email:
@@ -345,7 +375,7 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     
     # teams - only if email exists
     if sk_email:
-        custom_properties['teams'] = f"[Teams-Chat mit {given_name} {family_name} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
+        custom_properties['teams'] = f"[Teams-Chat mit {person_title} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
     else:
         custom_properties['teams'] = None
     

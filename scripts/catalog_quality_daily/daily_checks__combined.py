@@ -145,9 +145,9 @@ def run_all_checks():
     logging.info("   Starting Check #5: User Assignment...")
     logging.info("   " + "-" * 50)
     from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
-    
+
     logging.debug(f"   Using staatskalender_person_email_cache from check_2 with {len(staatskalender_person_email_cache)} email mappings")
-    
+
     result = check_5_user_assignment(
         dataspot_client=dataspot_base_client,
         staatskalender_person_email_cache=staatskalender_person_email_cache
@@ -452,16 +452,23 @@ def log_combined_results(combined_report):
                             message = issue.get('message', 'No message')
 
                             # Try to get person_name directly first (for contact_details_updated, etc.)
-                            person_name = issue.get('person_name')
+                            person_name = issue.get('person_name') or issue.get('title')
                             
-                            # If not available, try to construct from first/last name
+                            # If not available, try to construct from available name parts
                             if not person_name or person_name == 'Unknown':
                                 first_name = issue.get('sk_first_name') or issue.get('given_name')
                                 last_name = issue.get('sk_last_name') or issue.get('family_name')
                                 if first_name and last_name:
                                     person_name = f"{first_name} {last_name}"
                                 else:
-                                    person_name = "Unknown"
+                                    title = issue.get('title')
+                                    if title:
+                                        person_name = title
+                                    else:
+                                        given_name = (issue.get('given_name') or '').strip()
+                                        family_name = (issue.get('family_name') or '').strip()
+                                        combined_name = f"{given_name} {family_name}".strip()
+                                        person_name = combined_name if combined_name else "Unknown"
 
                             logging.info(f"     - {person_name}")
                             logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
@@ -578,9 +585,11 @@ def log_combined_results(combined_report):
                              'access_level_updated', 'access_level_update_failed', 'user_person_link_updated', 'user_person_link_update_failed',
                              'contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
-                            given_name = issue.get('given_name', '')
-                            family_name = issue.get('family_name', '')
-                            person_name = f"{given_name} {family_name}"
+                            person_name = issue.get('person_name') or issue.get('title', '')
+                            if not person_name:
+                                given_name = (issue.get('given_name', '')).strip()
+                                family_name = (issue.get('family_name', '')).strip()
+                                person_name = f"{given_name} {family_name}".strip() or 'Unknown'
                             
                             logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
                             if person_uuid != 'Unknown':
