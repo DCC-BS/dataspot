@@ -354,9 +354,35 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
         # Update final status and message
         if result['issues']:
             issue_count = len(result['issues'])
-            result['status'] = 'warning'
-            result['message'] = f"Check #5: Found {issue_count} issues with user assignments"
-            logging.info(f"Check finished: Found {issue_count} issues with user assignments")
+
+            # Consider an issue "unresolved" if it was not successfully remediated
+            unresolved_issues = [
+                issue for issue in result['issues']
+                if not (issue.get('remediation_attempted') and issue.get('remediation_success'))
+            ]
+            unresolved_count = len(unresolved_issues)
+
+            if unresolved_issues:
+                # Only set status to warning if there are unresolved issues
+                result['status'] = 'warning'
+                result['message'] = (
+                    f"Check #5: Found {issue_count} issues with user assignments "
+                    f"({unresolved_count} requiring attention)"
+                )
+                logging.info(
+                    f"Check finished: Found {issue_count} issues with user assignments "
+                    f"({unresolved_count} requiring attention)"
+                )
+            else:
+                # All issues were automatically remediated successfully -> keep status as success
+                result['message'] = (
+                    f"Check #5: Found {issue_count} issues with user assignments, "
+                    f"all automatically remediated"
+                )
+                logging.info(
+                    "Check finished: All detected issues with user assignments were "
+                    "automatically remediated"
+                )
         else:
             logging.info("Check finished: All persons with posts have correct user assignments")
     
