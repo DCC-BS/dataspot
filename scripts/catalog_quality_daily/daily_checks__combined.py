@@ -451,24 +451,15 @@ def log_combined_results(combined_report):
                             person_uuid = issue.get('person_uuid')
                             message = issue.get('message', 'No message')
 
-                            # Try to get person_name directly first (for contact_details_updated, etc.)
-                            person_name = issue.get('person_name') or issue.get('title')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
                             
-                            # If not available, try to construct from available name parts
-                            if not person_name or person_name == 'Unknown':
-                                first_name = issue.get('sk_first_name') or issue.get('given_name')
-                                last_name = issue.get('sk_last_name') or issue.get('family_name')
-                                if first_name and last_name:
-                                    person_name = f"{first_name} {last_name}"
-                                else:
-                                    title = issue.get('title')
-                                    if title:
-                                        person_name = title
-                                    else:
-                                        given_name = (issue.get('given_name') or '').strip()
-                                        family_name = (issue.get('family_name') or '').strip()
-                                        combined_name = f"{given_name} {family_name}".strip()
-                                        person_name = combined_name if combined_name else "Unknown"
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                # Fallback to person_name if given_name/family_name not available
+                                person_name = issue.get('person_name', 'Unknown')
 
                             logging.info(f"     - {person_name}")
                             logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
@@ -585,11 +576,14 @@ def log_combined_results(combined_report):
                              'access_level_updated', 'access_level_update_failed', 'user_person_link_updated', 'user_person_link_update_failed',
                              'contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
-                            person_name = issue.get('person_name') or issue.get('title', '')
-                            if not person_name:
-                                given_name = (issue.get('given_name', '')).strip()
-                                family_name = (issue.get('family_name', '')).strip()
-                                person_name = f"{given_name} {family_name}".strip() or 'Unknown'
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
+                                if person_name == 'Unknown':
+                                    person_name = 'Unknown'
                             
                             logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
                             if person_uuid != 'Unknown':
@@ -630,13 +624,22 @@ def log_combined_results(combined_report):
                                 logging.info(f"       SK Person ID: {sk_person_id}")
                             
                             logging.info(f"       Message: {message}")
-                        elif issue_type == 'user_created':
+                        elif issue_type in ['user_created', 'user_creation_failed']:
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
+                            
+                            logging.info(f"     - Person: {person_name} (ID: {person_uuid})")
+                            if person_uuid != 'Unknown':
+                                logging.info(f"       URL: https://datenkatalog.bs.ch/web/{combined_report.get('database_name')}/persons/{person_uuid}")
+                            
                             user_email = issue.get('user_email', '')
-                            logging.info(f"       User email: {user_email}")
-                            logging.info(f"       Message: {message}")
-                        elif issue_type == 'user_creation_failed':
-                            user_email = issue.get('user_email', '')
-                            logging.info(f"       User email: {user_email}")
+                            if user_email:
+                                logging.info(f"       User email: {user_email}")
                             logging.info(f"       Message: {message}")
                         else:
                             logging.warning(f"Unknown issue type: {issue_type}")
@@ -819,7 +822,13 @@ def send_combined_email(combined_report):
                                          'contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed',
                                          'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
-                            person_name = issue.get('person_name', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
                             if person_name != 'Unknown':
                                 email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
@@ -964,7 +973,13 @@ def send_combined_email(combined_report):
                             email_text += f"  Staatskalender name: {sk_name}\n"
                         elif issue_type in ['contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
-                            person_name = issue.get('person_name', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
                             email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
                                 email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
@@ -1076,16 +1091,34 @@ def send_combined_email(combined_report):
                             email_text += f"  ACTION REQUIRED: Failed to remove person from post.\n"
                             email_text += f"  Please remove the person from the post manually.\n"
                         elif issue_type == 'contact_details_updated':
-                            person_name = issue.get('person_name', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
                             email_text += f"  Person: {person_name}\n"
                             email_text += f"  The contact details have been automatically updated to match Staatskalender.\n"
                         elif issue_type == 'contact_details_update_failed':
-                            person_name = issue.get('person_name', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
                             email_text += f"  Person: {person_name}\n"
                             email_text += f"  ACTION REQUIRED: Failed to update contact details.\n"
                             email_text += f"  Please update the contact details manually to match Staatskalender.\n"
                         elif issue_type == 'staatskalender_data_retrieval_failed':
-                            person_name = issue.get('person_name', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             email_text += f"  Person: {person_name}\n"
                             email_text += f"  SK Person ID: {sk_person_id}\n"
@@ -1148,13 +1181,30 @@ def send_combined_email(combined_report):
                         elif issue_type in ['invalid_membership', 'person_data_retrieval_failed', 'person_data_incomplete']:
                             sk_membership_id = issue.get('sk_membership_id', 'Unknown')
                             email_text += f"  Membership ID: {sk_membership_id}\n"
-                        elif issue_type == 'user_created':
-                            email_text += f"  User: {issue.get('user_email', 'Unknown')}\n"
-                            email_text += f"  The user account has been created.\n"
-                        elif issue_type == 'user_creation_failed':
-                            email_text += f"  User: {issue.get('user_email', 'Unknown')}\n"
-                            email_text += f"  ACTION REQUIRED: Failed to create user account.\n"
-                            email_text += f"  Please create the user account manually.\n"
+                        elif issue_type in ['user_created', 'user_creation_failed']:
+                            person_uuid = issue.get('person_uuid', 'Unknown')
+                            # Construct person_name from given_name and family_name only (exclude additionalName)
+                            given_name = issue.get('given_name') or issue.get('sk_first_name')
+                            family_name = issue.get('family_name') or issue.get('sk_last_name')
+                            if given_name and family_name:
+                                person_name = f"{given_name} {family_name}".strip()
+                            else:
+                                person_name = issue.get('person_name', 'Unknown')
+                            
+                            if person_name != 'Unknown':
+                                email_text += f"\n- Person: {person_name}\n"
+                            if person_uuid != 'Unknown':
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                            
+                            user_email = issue.get('user_email', '')
+                            if user_email:
+                                email_text += f"  User: {user_email}\n"
+                            
+                            if issue_type == 'user_created':
+                                email_text += f"  The user account has been created.\n"
+                            else:
+                                email_text += f"  ACTION REQUIRED: Failed to create user account.\n"
+                                email_text += f"  Please create the user account manually.\n"
                         
                         email_text += f"  Message: {message}\n"
 

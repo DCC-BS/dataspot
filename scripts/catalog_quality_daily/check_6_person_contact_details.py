@@ -72,8 +72,10 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
         for current_idx, person in enumerate(persons_with_contact_details, 1):
             person_uuid = person['person_uuid']
             sk_person_id = person['sk_person_id'].strip('"')
-            person_name = person['title']
-            
+            given_name = person.get('given_name', '')
+            family_name = person.get('family_name', '')
+            person_name = f"{given_name} {family_name}".strip()
+
             logging.info(f"[{current_idx}/{total_persons}] {person_name}:")
             
             # Add delay to prevent overwhelming the API
@@ -86,7 +88,8 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
                 result['issues'].append({
                     'type': 'staatskalender_data_retrieval_failed',
                     'person_uuid': person_uuid,
-                    'person_name': person_name,
+                    'given_name': given_name,
+                    'family_name': family_name,
                     'sk_person_id': sk_person_id,
                     'message': f"Could not retrieve person data from Staatskalender",
                     'remediation_attempted': False,
@@ -100,7 +103,9 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
                 sk_person_id=sk_person_id,
                 sk_email=sk_data.get('email'),
                 sk_phone=sk_data.get('phone'),
-                person_title=person_name
+                given_name=given_name,
+                family_name=family_name,
+                additional_name=person.get('additional_name')
             )
             
             # Compare and update if needed
@@ -125,7 +130,8 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
                     result['issues'].append({
                         'type': 'contact_details_updated',
                         'person_uuid': person_uuid,
-                        'person_name': person_name,
+                        'given_name': given_name,
+                        'family_name': family_name,
                         'sk_person_id': sk_person_id,
                         'differences': differences,
                         'message': f"Updated contact details for {person_name}",
@@ -137,7 +143,8 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
                     result['issues'].append({
                         'type': 'contact_details_update_failed',
                         'person_uuid': person_uuid,
-                        'person_name': person_name,
+                        'given_name': given_name,
+                        'family_name': family_name,
                         'sk_person_id': sk_person_id,
                         'differences': differences,
                         'message': f"Failed to update contact details for {person_name}: {str(e)}",
@@ -194,8 +201,6 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
         p.given_name,
         p.family_name,
         p.additional_name,
-        p.honorific_prefix,
-        p.honorific_suffix,
         cp_sk.value AS sk_person_id,
         cp_email.value AS email_custom_property,
         cp_phone.value AS phone,
@@ -223,34 +228,20 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     _contact_details_cache = []
     
     for result in results:
-        # Strip quotes from string values and build title from available parts
-        honorific_prefix = (result.get('honorific_prefix') or '').strip('"').strip() if result.get('honorific_prefix') else ''
+        # Strip quotes from string values
         given_name = (result.get('given_name') or '').strip('"').strip()
         additional_name = (result.get('additional_name') or '').strip('"').strip() if result.get('additional_name') else ''
         family_name = (result.get('family_name') or '').strip('"').strip()
-        honorific_suffix = (result.get('honorific_suffix') or '').strip('"').strip() if result.get('honorific_suffix') else ''
 
         # given_name and family_name are mandatory; abort loudly if missing
         if not given_name or not family_name:
             raise ValueError("Person record missing mandatory given_name or family_name")
 
-        title_parts = []
-        if honorific_prefix:
-            title_parts.append(honorific_prefix)
-        title_parts.append(given_name)
-        if additional_name:
-            title_parts.append(additional_name)
-        title_parts.append(family_name)
-
-        title_main = ' '.join(part for part in title_parts if part)
-        if honorific_suffix:
-            title_full = f"{title_main}, {honorific_suffix}"
-        else:
-            title_full = title_main
-
         person_data = {
             'person_uuid': result['person_uuid'],
-            'title': title_full,
+            'given_name': given_name,
+            'family_name': family_name,
+            'additional_name': additional_name if additional_name else None,
             'sk_person_id': result['sk_person_id'],
             'email_custom_property': result.get('email_custom_property', '').strip('"') if result.get('email_custom_property') else None,
             'phone': result.get('phone', '').strip('"') if result.get('phone') else None,
@@ -344,7 +335,7 @@ def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_aut
 
 
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
-                                    person_title: str) -> Dict[str, Optional[str]]:
+                                    given_name: str, family_name: str, additional_name: Optional[str] = None) -> Dict[str, Optional[str]]:
     """
     Build the target customProperties payload based on Staatskalender data.
     
@@ -352,7 +343,9 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
         sk_person_id: Staatskalender person ID
         sk_email: Email from Staatskalender
         sk_phone: Phone from Staatskalender
-        person_title: Person's title (full name)
+        given_name: Person's given name
+        family_name: Person's family name
+        additional_name: Person's additional name (optional)
         
     Returns:
         dict: Target customProperties to set
@@ -380,7 +373,7 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     
     # teams - only if email exists
     if sk_email:
-        custom_properties['teams'] = f"[Teams-Chat mit {person_title} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
+        custom_properties['teams'] = f"[Teams-Chat mit {given_name} {family_name} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
     else:
         custom_properties['teams'] = None
     
