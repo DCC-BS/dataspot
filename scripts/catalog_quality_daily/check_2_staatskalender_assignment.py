@@ -3,16 +3,15 @@ import time
 from typing import Dict, List, Tuple
 
 import config
-from src.common import requests_get, requests_patch
+from src.common import requests_patch
 from src.clients.base_client import BaseDataspotClient
-from src.staatskalender_auth import StaatskalenderAuth
+from src.staatskalender_cache import StaatskalenderCache
 
 # Global cache for person data
 _person_with_sk_id_cache = None
 _person_cache = None
-_person_email_cache = {}
 
-def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Dict[str, any]:
+def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient, staatskalender_cache: StaatskalenderCache) -> Dict[str, any]:
     """
     Check #2: Personensynchronisation aus dem Staatskalender
     
@@ -33,6 +32,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
     
     Args:
         dataspot_client: Base client for database operations
+        staatskalender_cache: Cache instance for Staatskalender API data
         
     Returns:
         dict: Check results including status, issues, any errors, and a mapping of post_uuid to person_uuid
@@ -47,8 +47,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         'message': 'All persons from Staatskalender are correctly present in Dataspot.',
         'issues': [],
         'error': None,
-        'staatskalender_post_person_mapping': [],
-        'staatskalender_person_email_cache': {}
+        'staatskalender_post_person_mapping': []
     }
 
     try:
@@ -67,11 +66,8 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
 
         logging.info(f"Found {len(posts_with_membership)} posts with membership IDs to verify")
 
-        # Initialize Staatskalender authentication
-        staatskalender_auth = StaatskalenderAuth()
-
         # Process person synchronization from Staatskalender
-        process_person_sync(posts_with_membership, base_dataspot_client, result, staatskalender_auth)
+        process_person_sync(posts_with_membership, base_dataspot_client, result, staatskalender_cache)
 
         # Update final status and message
         if result['issues']:
@@ -92,10 +88,6 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient) -> Di
         result['error'] = str(e)
         result['message'] = f"Error in Check #2 (Personensynchronisation aus dem Staatskalender): {str(e)}"
         logging.error(f"Error in Check #2 (Personensynchronisation aus dem Staatskalender): {str(e)}", exc_info=True)
-    
-    # Add the email cache to the result
-    global _person_email_cache
-    result['staatskalender_person_email_cache'] = _person_email_cache or {}
     
     return result
 
@@ -148,7 +140,7 @@ def get_posts_with_sk_membership_ids(dataspot_client: BaseDataspotClient) -> Dic
     return result_dict
 
 
-def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client: BaseDataspotClient, result: Dict[str, any], staatskalender_auth: StaatskalenderAuth) -> None:
+def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client: BaseDataspotClient, result: Dict[str, any], staatskalender_cache: StaatskalenderCache) -> None:
     """
     Process person synchronization from Staatskalender.
     
@@ -163,12 +155,11 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
         posts: Posts data with membership information
         dataspot_client: Database client
         result: Result dictionary to update with issues and staatskalender_post_person_mapping
-        staatskalender_auth: Authentication object for Staatskalender API
+        staatskalender_cache: Cache instance for Staatskalender API data
 
     Returns:
         None (updates the result dictionary)
     """
-    global _person_email_cache
     total_posts = len(posts)
     
     for current_post, (post_uuid, (post_label, memberships)) in enumerate(posts.items(), 1):
@@ -179,94 +170,16 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
             # Add a delay to prevent overwhelming the API
             time.sleep(5)
 
-            # Retrieve membership data from staatskalender
+            # Retrieve membership and person data from staatskalender using cache
             try:
                 # Get person info from Staatskalender using the sk_membership_id
-                membership_url = f"https://staatskalender.bs.ch/api/memberships/{sk_membership_id}"
-                membership_response = requests_get(url=membership_url, auth=staatskalender_auth.get_auth())
-
-                if membership_response.status_code != 200:
-                    result['issues'].append({
-                        'type': 'invalid_membership',
-                        'post_uuid': post_uuid,
-                        'post_label': post_label,
-                        'sk_membership_id': sk_membership_id,
-                        'message': f"Invalid membership ID {sk_membership_id} - not found in Staatskalender",
-                        'remediation_attempted': False,
-                        'remediation_success': False
-                    })
-                    logging.info(f' - Invalid membership ID {sk_membership_id} - not found in Staatskalender')
-                    return
-
-                # Extract person link from membership data
-                membership_data = membership_response.json()
-                person_link = None
-
-                for item in membership_data.get('collection', {}).get('items', []):
-                    for link in item.get('links', []):
-                        if link.get('rel') == 'person':
-                            person_link = link.get('href')
-                            break
-                    if person_link:
-                        break
-
-                if not person_link:
-                    result['issues'].append({
-                        'type': 'person_data_retrieval_failed',
-                        'post_uuid': post_uuid,
-                        'post_label': post_label,
-                        'sk_membership_id': sk_membership_id,
-                        'message': f"Could not find person link in membership data",
-                        'remediation_attempted': False,
-                        'remediation_success': False
-                    })
-                    logging.info(f' - Could not find person link in membership data for {sk_membership_id}')
-                    return
-
-                # Get person data from Staatskalender
-                person_response = requests_get(url=person_link, auth=staatskalender_auth.get_auth())
-
-                if person_response.status_code != 200:
-                    result['issues'].append({
-                        'type': 'person_data_retrieval_failed',
-                        'post_uuid': post_uuid,
-                        'post_label': post_label,
-                        'sk_membership_id': sk_membership_id,
-                        'message': f"Could not retrieve person data from Staatskalender. Status code: {person_response.status_code}",
-                        'remediation_attempted': False,
-                        'remediation_success': False
-                    })
-                    logging.info(f' - Could not retrieve person data from Staatskalender (Status: {person_response.status_code})')
-                    return
-
-                # Extract person details
-                person_data = person_response.json()
-                sk_person_id = person_link.rsplit('/', 1)[1]
-                sk_first_name = None
-                sk_additional_name = None
-                sk_last_name = None
-                sk_email = None
-
-                for item in person_data.get('collection', {}).get('items', []):
-                    for data_item in item.get('data', []):
-                        if data_item.get('name') == 'first_name':
-                            # Split first_name into givenName and additionalName
-                            raw_first_name = data_item.get('value')
-                            if raw_first_name:
-                                cleaned_first_name = raw_first_name.strip()
-                                if cleaned_first_name:
-                                    parts = cleaned_first_name.split(' ', 1)
-                                    sk_first_name = parts[0]
-                                    sk_additional_name = parts[1] if len(parts) > 1 else None
-                        elif data_item.get('name') == 'last_name':
-                            sk_last_name = data_item.get('value')
-                            if sk_last_name:
-                                sk_last_name = sk_last_name.strip() if sk_last_name.strip() else None
-                        elif data_item.get('name') == 'email':
-                            sk_email = data_item.get('value')
-
-                        if sk_first_name and sk_last_name and sk_email:
-                            break
+                person_data = staatskalender_cache.get_person_by_membership(sk_membership_id)
+                
+                sk_person_id = person_data['person_id']
+                sk_first_name = person_data['given_name']
+                sk_additional_name = person_data.get('additional_name')
+                sk_last_name = person_data['family_name']
+                sk_email = person_data.get('email')
 
                 if not sk_first_name or not sk_last_name:
                     # Missing essential person data
@@ -280,16 +193,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         'remediation_success': False
                     })
                     logging.info(f' - Person data is incomplete in Staatskalender for {sk_membership_id}')
-                    return
-
-                # Add to the person email cache
-                if sk_email:
-                    # Remove any quotes from sk_person_id when storing in the cache
-                    clean_sk_person_id = sk_person_id.strip('"') if isinstance(sk_person_id, str) else sk_person_id
-                    _person_email_cache[clean_sk_person_id] = sk_email
-                    logging.debug(f' - Added email to cache: {sk_email} for {sk_person_id}')
-                else:
-                    logging.debug(f' - No email in Staatskalender for {sk_person_id}')
+                    continue
 
                 # Check if a person with this sk_person_id already exists in Dataspot
                 person_with_corresponding_sk_person_id_already_exists, existing_first_name, existing_last_name, person_uuid = (
@@ -438,16 +342,26 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
             except Exception as e:
+                # Handle API errors - could be invalid membership or network errors after retries
+                error_message = str(e)
+                if "Could not find person link" in error_message or "not found" in error_message.lower():
+                    issue_type = 'invalid_membership'
+                    message = f"Invalid membership ID {sk_membership_id} - not found in Staatskalender"
+                else:
+                    issue_type = 'person_data_retrieval_failed'
+                    message = f"Error processing membership ID {sk_membership_id}: {error_message}"
+                
                 result['issues'].append({
-                    'type': 'processing_error',
+                    'type': issue_type,
                     'post_uuid': post_uuid,
                     'post_label': post_label,
                     'sk_membership_id': sk_membership_id,
-                    'message': f"Error processing membership ID {sk_membership_id}: {str(e)}",
+                    'message': message,
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
-                logging.error(f"Error processing membership ID {sk_membership_id}. It might not be valid: https://staatskalender.bs.ch/membership/{sk_membership_id}")
+                logging.error(f"Error processing membership ID {sk_membership_id}: {error_message}")
+                logging.error(f"Membership URL: https://staatskalender.bs.ch/membership/{sk_membership_id}")
 
 
 # DONE

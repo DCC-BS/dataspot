@@ -2,12 +2,12 @@ import logging
 from typing import Dict, List, Any
 
 import config
-from src.common import requests_get, requests_patch, requests_post
+from src.common import requests_patch, requests_post
 from src.clients.base_client import BaseDataspotClient
-from src.staatskalender_auth import StaatskalenderAuth
+from src.staatskalender_cache import StaatskalenderCache
 
 
-def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_person_email_cache: Dict[str, str] = None) -> Dict[str, any]:
+def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_cache: StaatskalenderCache) -> Dict[str, any]:
     """
     Check #5: Benutzerkontensynchronisation
     
@@ -31,7 +31,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
     
     Args:
         dataspot_client: Base client for database operations
-        staatskalender_person_email_cache: Cache of sk_person_id to email mappings from check_2
+        staatskalender_cache: Cache instance for Staatskalender API data
         
     Returns:
         dict: Check results including status, issues, and any errors
@@ -45,10 +45,6 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
         'error': None
     }
     
-    if not staatskalender_person_email_cache:
-        staatskalender_person_email_cache = {}
-        logging.warning("No person email cache provided, will need to retrieve email information")
-    
     try:
         # Get all persons with sk_person_id and their post assignments
         persons_with_sk_id = get_persons_with_sk_person_id(dataspot_client)
@@ -58,9 +54,6 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             return result
             
         logging.info(f"Found {len(persons_with_sk_id)} persons with sk_person_id to verify")
-        
-        # Initialize Staatskalender authentication
-        staatskalender_auth = StaatskalenderAuth()
         
         # Get all users from Dataspot
         users = get_all_users(dataspot_client)
@@ -91,62 +84,73 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             
             logging.debug(f"Processing person: {person_name} (UUID: {person_uuid}) - Has posts: {has_posts}")
             
-            # Get email from cache or from Staatskalender
-            email = staatskalender_person_email_cache.get(sk_person_id) if staatskalender_person_email_cache else None
-            if not email:
-                sk_details = get_person_details_from_staatskalender(sk_person_id, staatskalender_auth)
-                email = sk_details.get('email')
+            # Get person data from Staatskalender cache
+            try:
+                person_data = staatskalender_cache.get_person_by_id(sk_person_id)
+                email = person_data.get('email')
+                sk_first_name = person_data.get('given_name')
+                sk_additional_name = person_data.get('additional_name')
+                sk_last_name = person_data.get('family_name')
                 
                 # Update person name if different from Staatskalender
-                if sk_details and sk_details.get('first_name') and sk_details.get('last_name'):
-                    sk_first_name = sk_details['first_name']
-                    sk_additional_name = sk_details.get('additional_name')
-                    sk_last_name = sk_details['last_name']
+                if sk_first_name and sk_last_name and (sk_first_name != given_name or sk_last_name != family_name):
+                    update_success = update_person_name(
+                        dataspot_client=dataspot_client,
+                        person_uuid=person_uuid,
+                        first_name=sk_first_name,
+                        last_name=sk_last_name,
+                        additional_name=sk_additional_name
+                    )
                     
-                    if sk_first_name != given_name or sk_last_name != family_name:
-                        update_success = update_person_name(
-                            dataspot_client=dataspot_client,
-                            person_uuid=person_uuid,
-                            first_name=sk_first_name,
-                            last_name=sk_last_name,
-                            additional_name=sk_additional_name
-                        )
+                    # Log person name update result
+                    if update_success:
+                        # Log the update
+                        issue_message = f"Updated person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
+                        result['issues'].append({
+                            'type': 'person_name_update',
+                            'person_uuid': person_uuid,
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'sk_first_name': sk_first_name,
+                            'sk_last_name': sk_last_name,
+                            'message': issue_message,
+                            'remediation_attempted': True,
+                            'remediation_success': True
+                        })
+                        logging.info(issue_message)
                         
-                        # Log person name update result
-                        if update_success:
-                            # Log the update
-                            issue_message = f"Updated person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
-                            result['issues'].append({
-                                'type': 'person_name_update',
-                                'person_uuid': person_uuid,
-                                'given_name': given_name,
-                                'family_name': family_name,
-                                'sk_first_name': sk_first_name,
-                                'sk_last_name': sk_last_name,
-                                'message': issue_message,
-                                'remediation_attempted': True,
-                                'remediation_success': True
-                            })
-                            logging.info(issue_message)
-                            
-                            # Update the local variables to use the new name in subsequent logs and operations
-                            given_name = sk_first_name
-                            family_name = sk_last_name
-                            person_name = f"{given_name} {family_name}"
-                        else:
-                            issue_message = f"Failed to update person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
-                            result['issues'].append({
-                                'type': 'person_name_update_failed',
-                                'person_uuid': person_uuid,
-                                'given_name': given_name,
-                                'family_name': family_name,
-                                'sk_first_name': sk_first_name,
-                                'sk_last_name': sk_last_name,
-                                'message': issue_message,
-                                'remediation_attempted': True,
-                                'remediation_success': False
-                            })
-                            logging.info(issue_message)
+                        # Update the local variables to use the new name in subsequent logs and operations
+                        given_name = sk_first_name
+                        family_name = sk_last_name
+                        person_name = f"{given_name} {family_name}"
+                    else:
+                        issue_message = f"Failed to update person name from '{person_name}' to '{sk_first_name} {sk_last_name}'"
+                        result['issues'].append({
+                            'type': 'person_name_update_failed',
+                            'person_uuid': person_uuid,
+                            'given_name': given_name,
+                            'family_name': family_name,
+                            'sk_first_name': sk_first_name,
+                            'sk_last_name': sk_last_name,
+                            'message': issue_message,
+                            'remediation_attempted': True,
+                            'remediation_success': False
+                        })
+                        logging.info(issue_message)
+            except Exception as e:
+                # If we can't retrieve person data from Staatskalender, log error and skip
+                logging.error(f"Error retrieving person data from Staatskalender for {sk_person_id}: {str(e)}")
+                result['issues'].append({
+                    'type': 'person_data_retrieval_failed',
+                    'person_uuid': person_uuid,
+                    'given_name': given_name,
+                    'family_name': family_name,
+                    'sk_person_id': sk_person_id,
+                    'message': f"Could not retrieve person data from Staatskalender: {str(e)}",
+                    'remediation_attempted': False,
+                    'remediation_success': False
+                })
+                continue
             
             # Handle case where no email is available
             if not email:
@@ -421,79 +425,6 @@ def get_persons_with_sk_person_id(dataspot_client: BaseDataspotClient) -> List[D
         p.family_name, p.given_name
     """
     return dataspot_client.execute_query_api(sql_query=query)
-
-
-def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_auth: StaatskalenderAuth) -> Dict[str, Any]:
-    """
-    Retrieve person details from Staatskalender by sk_person_id.
-    
-    Args:
-        sk_person_id: Staatskalender person ID
-        staatskalender_auth: Authentication object for Staatskalender API
-        
-    Returns:
-        dict: Person details including first_name, last_name, email or empty dict if error
-    """
-    logging.debug(f"Retrieving person details from Staatskalender for person with SK ID: {sk_person_id}")
-    
-    # Add a delay to prevent overwhelming the API
-    import time
-    time.sleep(1)
-    
-    person_url = f"https://staatskalender.bs.ch/api/people/{sk_person_id}"
-    try:
-        person_response = requests_get(url=person_url, auth=staatskalender_auth.get_auth())
-        
-        if person_response.status_code != 200:
-            logging.warning(f"Failed to retrieve person data from Staatskalender. Status code: {person_response.status_code}")
-            return {}
-            
-        # Extract person details
-        person_data = person_response.json()
-        sk_email = None
-        sk_first_name = None
-        sk_additional_name = None
-        sk_last_name = None
-        
-        for item in person_data.get('collection', {}).get('items', []):
-            for data_item in item.get('data', []):
-                if data_item.get('name') == 'email':
-                    sk_email = data_item.get('value')
-                elif data_item.get('name') == 'first_name':
-                    # Split first_name into givenName and additionalName
-                    raw_first_name = data_item.get('value')
-                    if raw_first_name:
-                        cleaned_first_name = raw_first_name.strip()
-                        if cleaned_first_name:
-                            parts = cleaned_first_name.split(' ', 1)
-                            sk_first_name = parts[0]
-                            sk_additional_name = parts[1] if len(parts) > 1 else None
-                elif data_item.get('name') == 'last_name':
-                    sk_last_name = data_item.get('value')
-                    if sk_last_name:
-                        sk_last_name = sk_last_name.strip() if sk_last_name.strip() else None
-
-                if sk_email and sk_first_name and sk_last_name:
-                    break
-
-        if sk_email:
-            logging.debug(f"Found email in Staatskalender: {sk_email}")
-        else:
-            logging.debug(f"No email found in Staatskalender for this person")
-            
-        if sk_first_name and sk_last_name:
-            logging.info(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
-            
-        return {
-            'first_name': sk_first_name,
-            'additional_name': sk_additional_name,
-            'last_name': sk_last_name,
-            'email': sk_email
-        }
-        
-    except Exception as e:
-        logging.error(f"Error retrieving person data from Staatskalender: {str(e)}")
-        return {}
 
 
 def get_all_users(dataspot_client: BaseDataspotClient) -> List[Dict[str, any]]:

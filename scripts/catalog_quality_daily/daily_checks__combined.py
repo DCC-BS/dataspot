@@ -5,6 +5,7 @@ import datetime
 import config
 from src.common import email_helpers
 from src.clients.base_client import BaseDataspotClient
+from src.staatskalender_cache import StaatskalenderCache
 
 
 def main():
@@ -52,8 +53,10 @@ def run_all_checks():
     dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
                                          scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
+    # Initialize Staatskalender cache (shared across all checks)
+    staatskalender_cache = StaatskalenderCache()
+
     staatskalender_post_person_mapping = []
-    staatskalender_person_email_cache = {}
 
     if run_check_1:
         # Check #1: Unique sk_person_id verification
@@ -83,7 +86,10 @@ def run_all_checks():
         logging.info("   Starting Check #2: Person Assignment (Staatskalender)...")
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_2_staatskalender_assignment import check_2_staatskalender_assignment
-        check_2_result = check_2_staatskalender_assignment(dataspot_client=dataspot_base_client)
+        check_2_result = check_2_staatskalender_assignment(
+            dataspot_client=dataspot_base_client,
+            staatskalender_cache=staatskalender_cache
+        )
         check_results.append({
             'check_name': 'check_2_staatskalender_assignment',
             'title': 'Check #2: Person Assignment (Staatskalender)',
@@ -91,7 +97,6 @@ def run_all_checks():
             'results': check_2_result
         })
         staatskalender_post_person_mapping = check_2_result['staatskalender_post_person_mapping']
-        staatskalender_person_email_cache = check_2_result.get('staatskalender_person_email_cache', {})
 
         logging.info("")
         logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
@@ -159,11 +164,9 @@ def run_all_checks():
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_5_user_assignment import check_5_user_assignment
 
-        logging.debug(f"   Using staatskalender_person_email_cache from check_2 with {len(staatskalender_person_email_cache)} email mappings")
-
         result = check_5_user_assignment(
             dataspot_client=dataspot_base_client,
-            staatskalender_person_email_cache=staatskalender_person_email_cache
+            staatskalender_cache=staatskalender_cache
         )
         check_results.append({
             'check_name': 'check_5_user_assignment',
@@ -186,7 +189,10 @@ def run_all_checks():
         logging.info("   Starting Check #6: Person Contact Details...")
         logging.info("   " + "-" * 50)
         from scripts.catalog_quality_daily.check_6_person_contact_details import check_6_person_contact_details
-        check_6_result = check_6_person_contact_details(dataspot_client=dataspot_base_client)
+        check_6_result = check_6_person_contact_details(
+            dataspot_client=dataspot_base_client,
+            staatskalender_cache=staatskalender_cache
+        )
         check_results.append({
             'check_name': 'check_6_person_contact_details',
             'title': 'Check #6: Person Contact Details',

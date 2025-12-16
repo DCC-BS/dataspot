@@ -3,18 +3,14 @@ import time
 from typing import Dict, List, Tuple, Any, Optional
 
 import config
-from src.common import requests_get, requests_patch
+from src.common import requests_patch
 from src.clients.base_client import BaseDataspotClient
-from src.staatskalender_auth import StaatskalenderAuth
+from src.staatskalender_cache import StaatskalenderCache
 
-# Global cache for person data
-_person_with_sk_id_cache = None
-_person_cache = None
-_person_email_cache = {}
+# Global cache for person data (Dataspot database caches, not Staatskalender)
 _contact_details_cache = None
-_staatskalender_data_cache = {}
 
-def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[str, any]:
+def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatskalender_cache: StaatskalenderCache) -> Dict[str, any]:
     """
     Check #6: Kontaktdetails bei Personen
 
@@ -33,19 +29,16 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
 
     Args:
         dataspot_client: Base client for database operations
+        staatskalender_cache: Cache instance for Staatskalender API data
 
     Returns:
         dict: Check results including status, issues, and any errors.
     """
     logging.info("Starting Check #6: Kontaktdetails bei Personen...")
 
-    # Always refresh caches to avoid stale data when the external state was reset
-    global _person_with_sk_id_cache, _person_cache, _person_email_cache, _contact_details_cache, _staatskalender_data_cache
-    _person_with_sk_id_cache = None
-    _person_cache = None
-    _person_email_cache = {}
+    # Always refresh contact details cache to avoid stale data when the external state was reset
+    global _contact_details_cache
     _contact_details_cache = None
-    _staatskalender_data_cache = {}
 
     result = {
         'status': 'success',
@@ -64,9 +57,6 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
         
         logging.info(f"Found {len(persons_with_contact_details)} persons with sk_person_id to verify")
         
-        # Initialize Staatskalender authentication
-        staatskalender_auth = StaatskalenderAuth()
-        
         # Process each person
         total_persons = len(persons_with_contact_details)
         for current_idx, person in enumerate(persons_with_contact_details, 1):
@@ -81,28 +71,30 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient) -> Dict[
             # Add delay to prevent overwhelming the API
             time.sleep(1)
             
-            # Get person data from Staatskalender
-            sk_data = get_person_details_from_staatskalender(sk_person_id, staatskalender_auth)
-            
-            if not sk_data:
+            # Get person data from Staatskalender cache
+            try:
+                person_data = staatskalender_cache.get_person_by_id(sk_person_id)
+                sk_email = person_data.get('email')
+                sk_phone = person_data.get('phone')
+            except Exception as e:
                 result['issues'].append({
                     'type': 'staatskalender_data_retrieval_failed',
                     'person_uuid': person_uuid,
                     'given_name': given_name,
                     'family_name': family_name,
                     'sk_person_id': sk_person_id,
-                    'message': f"Could not retrieve person data from Staatskalender",
+                    'message': f"Could not retrieve person data from Staatskalender: {str(e)}",
                     'remediation_attempted': False,
                     'remediation_success': False
                 })
-                logging.info(f' - Could not retrieve person data from Staatskalender for {sk_person_id}')
+                logging.info(f' - Could not retrieve person data from Staatskalender for {sk_person_id}: {str(e)}')
                 continue
             
             # Build target customProperties
             target_custom_properties = build_target_custom_properties(
                 sk_person_id=sk_person_id,
-                sk_email=sk_data.get('email'),
-                sk_phone=sk_data.get('phone'),
+                sk_email=sk_email,
+                sk_phone=sk_phone,
                 given_name=given_name,
                 family_name=family_name,
                 additional_name=person.get('additional_name')
@@ -252,86 +244,6 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     
     logging.debug(f"Persons with contact details cache loaded with {len(_contact_details_cache)} entries")
     return _contact_details_cache
-
-
-def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_auth: StaatskalenderAuth) -> Dict[str, Any]:
-    """
-    Retrieve person details from Staatskalender by sk_person_id with caching.
-    
-    Args:
-        sk_person_id: Staatskalender person ID
-        staatskalender_auth: Authentication object for Staatskalender API
-        
-    Returns:
-        dict: Person details including email, phone, first_name, last_name or empty dict if error
-    """
-    global _staatskalender_data_cache
-    
-    # Check cache first
-    if sk_person_id in _staatskalender_data_cache:
-        logging.debug(f"Using cached Staatskalender data for person {sk_person_id}")
-        return _staatskalender_data_cache[sk_person_id]
-    
-    logging.debug(f"Retrieving person details from Staatskalender for person with SK ID: {sk_person_id}")
-    
-    # Add a delay to prevent overwhelming the API
-    time.sleep(1)
-    
-    person_url = f"https://staatskalender.bs.ch/api/people/{sk_person_id}"
-    try:
-        person_response = requests_get(url=person_url, auth=staatskalender_auth.get_auth())
-        
-        if person_response.status_code != 200:
-            logging.warning(f"Failed to retrieve person data from Staatskalender. Status code: {person_response.status_code}")
-            _staatskalender_data_cache[sk_person_id] = {}
-            return {}
-            
-        # Extract person details
-        person_data = person_response.json()
-        sk_email = None
-        sk_phone = None
-        sk_first_name = None
-        sk_last_name = None
-        
-        for item in person_data.get('collection', {}).get('items', []):
-            for data_item in item.get('data', []):
-                field_name = data_item.get('name')
-                field_value = data_item.get('value')
-                
-                if field_name == 'email':
-                    sk_email = field_value
-                elif field_name == 'phone' or field_name == 'telephone' or field_name == 'phone_number':
-                    sk_phone = field_value
-                elif field_name == 'first_name':
-                    raw_first_name = field_value
-                    if raw_first_name:
-                        sk_first_name = raw_first_name.strip()
-                elif field_name == 'last_name':
-                    sk_last_name = field_value
-                    if sk_last_name:
-                        sk_last_name = sk_last_name.strip()
-        
-        result = {
-            'email': sk_email,
-            'phone': sk_phone,
-            'first_name': sk_first_name,
-            'last_name': sk_last_name
-        }
-        
-        # Cache the result
-        _staatskalender_data_cache[sk_person_id] = result
-        
-        if sk_email:
-            logging.debug(f"Found email in Staatskalender: {sk_email}")
-        if sk_phone:
-            logging.debug(f"Found phone in Staatskalender: {sk_phone}")
-            
-        return result
-        
-    except Exception as e:
-        logging.error(f"Error retrieving person data from Staatskalender: {str(e)}")
-        _staatskalender_data_cache[sk_person_id] = {}
-        return {}
 
 
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
