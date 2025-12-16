@@ -1183,6 +1183,10 @@ def send_combined_email(combined_report):
         logging.info("Combined email notification sent successfully")
     except Exception as e:
         logging.error(f"Failed to send combined email notification: {str(e)}")
+        logging.info("Email text that could not be sent:")
+        logging.info("-" * 78)
+        logging.info(email_text)
+        logging.info("-" * 78)
 
 
 if __name__ == '__main__':
