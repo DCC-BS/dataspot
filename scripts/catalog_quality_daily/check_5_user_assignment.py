@@ -100,6 +100,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 # Update person name if different from Staatskalender
                 if sk_details and sk_details.get('first_name') and sk_details.get('last_name'):
                     sk_first_name = sk_details['first_name']
+                    sk_additional_name = sk_details.get('additional_name')
                     sk_last_name = sk_details['last_name']
                     
                     if sk_first_name != given_name or sk_last_name != family_name:
@@ -107,7 +108,8 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                             dataspot_client=dataspot_client,
                             person_uuid=person_uuid,
                             first_name=sk_first_name,
-                            last_name=sk_last_name
+                            last_name=sk_last_name,
+                            additional_name=sk_additional_name
                         )
                         
                         # Log person name update result
@@ -424,6 +426,7 @@ def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_aut
         person_data = person_response.json()
         sk_email = None
         sk_first_name = None
+        sk_additional_name = None
         sk_last_name = None
         
         for item in person_data.get('collection', {}).get('items', []):
@@ -431,13 +434,14 @@ def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_aut
                 if data_item.get('name') == 'email':
                     sk_email = data_item.get('value')
                 elif data_item.get('name') == 'first_name':
-                    # Replace spaces with underscores as spaces in names are not allowed in dataspot!
+                    # Split first_name into givenName and additionalName
                     raw_first_name = data_item.get('value')
                     if raw_first_name:
-                        sk_first_name = raw_first_name.strip().replace(' ', '_') if raw_first_name.strip() else None
-                        # Log if we had to replace spaces
-                        if raw_first_name.strip() and ' ' in raw_first_name:
-                            logging.debug(f'   - Replaced spaces in first name: "{raw_first_name}" -> "{sk_first_name}"')
+                        cleaned_first_name = raw_first_name.strip()
+                        if cleaned_first_name:
+                            parts = cleaned_first_name.split(' ', 1)
+                            sk_first_name = parts[0]
+                            sk_additional_name = parts[1] if len(parts) > 1 else None
                 elif data_item.get('name') == 'last_name':
                     sk_last_name = data_item.get('value')
                     if sk_last_name:
@@ -456,6 +460,7 @@ def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_aut
             
         return {
             'first_name': sk_first_name,
+            'additional_name': sk_additional_name,
             'last_name': sk_last_name,
             'email': sk_email
         }
@@ -488,7 +493,7 @@ def get_all_users(dataspot_client: BaseDataspotClient) -> List[Dict[str, any]]:
     return dataspot_client.execute_query_api(sql_query=query)
 
 
-def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, first_name: str, last_name: str) -> bool:
+def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, first_name: str, last_name: str, additional_name: str = None) -> bool:
     """
     Update a person's name in Dataspot to match the name in Staatskalender.
     
@@ -514,6 +519,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, fi
     payload = {
         "_type": "Person",
         "givenName": first_name,
+        "additionalName": additional_name,
         "familyName": last_name
     }
     

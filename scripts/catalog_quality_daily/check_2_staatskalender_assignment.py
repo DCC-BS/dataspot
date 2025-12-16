@@ -243,19 +243,21 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                 person_data = person_response.json()
                 sk_person_id = person_link.rsplit('/', 1)[1]
                 sk_first_name = None
+                sk_additional_name = None
                 sk_last_name = None
                 sk_email = None
 
                 for item in person_data.get('collection', {}).get('items', []):
                     for data_item in item.get('data', []):
                         if data_item.get('name') == 'first_name':
-                            # Replace spaces with underscores as spaces in names are not allowed in dataspot!
+                            # Split first_name into givenName and additionalName
                             raw_first_name = data_item.get('value')
                             if raw_first_name:
-                                sk_first_name = raw_first_name.strip().replace(' ', '_') if raw_first_name.strip() else None
-                                # Log if we had to replace spaces
-                                if raw_first_name.strip() and ' ' in raw_first_name:
-                                    logging.debug(f'   - Replaced spaces in first name: "{raw_first_name}" -> "{sk_first_name}"')
+                                cleaned_first_name = raw_first_name.strip()
+                                if cleaned_first_name:
+                                    parts = cleaned_first_name.split(' ', 1)
+                                    sk_first_name = parts[0]
+                                    sk_additional_name = parts[1] if len(parts) > 1 else None
                         elif data_item.get('name') == 'last_name':
                             sk_last_name = data_item.get('value')
                             if sk_last_name:
@@ -299,7 +301,13 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     if sk_first_name != existing_first_name or sk_last_name != existing_last_name:
                         # Update name
                         try:
-                            update_person_name(dataspot_client=dataspot_client, person_uuid=person_uuid, given_name=sk_first_name,family_name=sk_last_name)
+                            update_person_name(
+                                dataspot_client=dataspot_client,
+                                person_uuid=person_uuid,
+                                given_name=sk_first_name,
+                                additional_name=sk_additional_name,
+                                family_name=sk_last_name
+                            )
                             result['issues'].append({
                                 'type': 'person_name_update',
                                 'post_uuid': post_uuid,
@@ -536,7 +544,7 @@ def find_person_by_name(dataspot_client: BaseDataspotClient, first_name: str, la
     return False, "no_person_uuid"
 
 # DONE
-def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, given_name: str, family_name: str) -> None:
+def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, given_name: str, family_name: str, additional_name: str = None) -> None:
     """
     Update the name of a person.
 
@@ -544,7 +552,8 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, gi
         dataspot_client: Database client
         person_uuid: Person UUID to update
         given_name: Person's first name
-        family_name: Person's last name
+        family_name: Person's last name(s)
+        additional_name: Person's middle name(s)
 
     Returns:
         None
@@ -553,6 +562,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, gi
     person_update = {
         "_type": "Person",
         "givenName": given_name,
+        "additionalName": additional_name,
         "familyName": family_name
     }
 
