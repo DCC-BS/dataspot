@@ -482,7 +482,7 @@ def get_person_details_from_staatskalender(sk_person_id: str, staatskalender_aut
             logging.debug(f"No email found in Staatskalender for this person")
             
         if sk_first_name and sk_last_name:
-            logging.debug(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
+            logging.info(f"Found name in Staatskalender: {sk_first_name} {sk_last_name}")
             
         return {
             'first_name': sk_first_name,
