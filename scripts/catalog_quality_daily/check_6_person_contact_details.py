@@ -96,8 +96,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
                 sk_email=sk_email,
                 sk_phone=sk_phone,
                 given_name=given_name,
-                family_name=family_name,
-                additional_name=person.get('additional_name')
+                family_name=family_name
             )
             
             # Compare and update if needed
@@ -247,7 +246,7 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
 
 
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
-                                    given_name: str, family_name: str, additional_name: Optional[str] = None) -> Dict[str, Optional[str]]:
+                                    given_name: str, family_name: str) -> Dict[str, Optional[str]]:
     """
     Build the target customProperties payload based on Staatskalender data.
     
@@ -257,7 +256,6 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
         sk_phone: Phone from Staatskalender
         given_name: Person's given name
         family_name: Person's family name
-        additional_name: Person's additional name (optional)
         
     Returns:
         dict: Target customProperties to set
