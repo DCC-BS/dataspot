@@ -118,18 +118,19 @@ class DatasetComponentHandler(BaseDataspotHandler):
         
         logging.info(f"Prefetched {len(self._datatype_uuid_cache)} datatype UUIDs")
 
-    def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]], title: Optional[str] = None) -> Dict[str, Any]:
         """
         Create or update a TDM dataobject for a dataset with its columns as attributes.
         
         Args:
             ods_id (str): The ODS ID of the dataset
-            name (str): The name of the dataset/dataobject
+            name (str): The name of the dataset/dataobject (used as label)
             columns (List[Dict[str, Any]]): List of column definitions, each containing:
                 - label: Human-readable label
                 - name: Technical column name
                 - type: Data type of the column
                 - description: Description of the column
+            title (str, optional): The title of the dataset/dataobject. If provided, will be set as the "title" field.
                 
         Returns:
             Dict[str, Any]: Result of the operation with status and details
@@ -140,6 +141,9 @@ class DatasetComponentHandler(BaseDataspotHandler):
         dataobject = {
             "_type": "UmlClass",
             "label": name,
+            "title": title,
+            "description": "*-*",
+            "physicalName": ods_id,
             "stereotype": "ogd_dataset",
             "customProperties": {
                 "odsDataportalId": ods_id,

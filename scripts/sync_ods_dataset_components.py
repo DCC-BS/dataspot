@@ -124,6 +124,9 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     
                     logging.info(f"Retrieved dataset title: '{dataset_title}'")
                     
+                    # Create TDM title in the format {ods-id}@data.bs.ch
+                    tdm_title = f"{ods_id}@data.bs.ch"
+                    
                     # Get dataset columns
                     columns = ods_client.get_dataset_columns(dataset_id=ods_id)
                     if not columns:
@@ -134,7 +137,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     
                     # Sync dataset components
                     logging.info(f"Synchronizing dataset components for {ods_id}: '{dataset_title}'")
-                    result = tdm_client.sync_dataset_components(ods_id=ods_id, name=dataset_title, columns=columns)
+                    result = tdm_client.sync_dataset_components(ods_id=ods_id, name=tdm_title, columns=columns, title=dataset_title)
                     
                     # Parse result
                     is_new = result.get('is_new', False)
@@ -149,7 +152,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         # Store creation details
                         creation_item = {
                             'ods_id': ods_id,
-                            'title': dataset_title,
+                            'title': tdm_title,
                             'uuid': result.get('uuid'),
                             'link': result.get('link', ''),
                             'columns_count': len(columns),
@@ -199,7 +202,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                             # Store update details in a more structured format similar to other handlers
                             update_item = {
                                 'ods_id': ods_id,
-                                'title': dataset_title,
+                                'title': tdm_title,
                                 'uuid': result.get('uuid'),
                                 'link': result.get('link', ''),
                                 'columns_count': len(columns),
