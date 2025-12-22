@@ -93,8 +93,8 @@ Derivation:
       # Definition der Ausprägungen von Kennzeichnung
       literals:
         SPOT:
-          label: SPOT
-          labelEn: SPOT
+          label: Single Point of Truth
+          labelEn: Single Point of Truth
         GOLD:
           label: Golden Source
           labelEn: golden record
@@ -389,8 +389,8 @@ Deployment:
     qualifier:
       literals:
         SPOT:
-          label: SPOT
-          labelEn: SPOT
+          label: Single Point of Truth
+          labelEn: Single Point of Truth
         GOLD:
           label: Golden Source
           labelEn: golden record
