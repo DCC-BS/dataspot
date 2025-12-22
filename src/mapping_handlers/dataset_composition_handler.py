@@ -8,36 +8,36 @@ from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
 from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
 
 
-class DatasetComponentMapping(BaseDataspotMapping):
+class DatasetCompositionMapping(BaseDataspotMapping):
     """
     A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Stores the mapping in a CSV file for persistence. Handles only dataset components.
+    Stores the mapping in a CSV file for persistence. Handles only dataset compositions.
     The REST endpoint is constructed dynamically.
     """
 
     def __init__(self, database_name: str, scheme: str):
         """
-        Initialize the mapping table for dataset components.
+        Initialize the mapping table for dataset compositions.
         The CSV filename is derived from the database_name and scheme.
 
         Args:
             database_name (str): Name of the database to use for file naming.
-                                 Example: "feature-staatskalender_TDM_ods-components-dataspot-mapping.csv"
+                                 Example: "feature-staatskalender_TDM_ods-compositions-dataspot-mapping.csv"
             scheme (str): Name of the scheme (e.g., 'TDM')
         """
-        super().__init__(database_name, "ods_id", "ods-components-dataspot", scheme)
+        super().__init__(database_name, "ods_id", "ods-compositions-dataspot", scheme)
 
-class DatasetComponentHandler(BaseDataspotHandler):
+class DatasetCompositionHandler(BaseDataspotHandler):
     """
-    Handler for dataset component synchronization operations in Dataspot.
-    Provides methods to sync dataset components between ODS and Dataspot.
+    Handler for dataset composition synchronization operations in Dataspot.
+    Provides methods to sync dataset compositions between ODS and Dataspot.
     """
     # Set configuration values for the base handler
     asset_id_field = 'odsDataportalId'
     
     def __init__(self, client: BaseDataspotClient):
         """
-        Initialize the DatasetComponentHandler.
+        Initialize the DatasetCompositionHandler.
         
         Args:
             client: BaseDataspotClient instance to use for API operations
@@ -45,8 +45,8 @@ class DatasetComponentHandler(BaseDataspotHandler):
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the dataset component mapping
-        self.mapping = DatasetComponentMapping(database_name=client.database_name, scheme=client.scheme_name_short)
+        # Initialize the dataset composition mapping
+        self.mapping = DatasetCompositionMapping(database_name=client.database_name, scheme=client.scheme_name_short)
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: (asset.get('_type') == 'UmlClass' and 
@@ -80,11 +80,11 @@ class DatasetComponentHandler(BaseDataspotHandler):
             raise ValueError("The default path or name in config.py contains special characters ('/' or '.') that need escaping. This functionality is not yet supported and needs to be properly implemented as needed.")
 
         if self.client.ods_imports_collection_path:
-            self.default_component_path_full = url_join(*self.client.ods_imports_collection_path, self.client.ods_imports_collection_name)
+            self.default_composition_path_full = url_join(*self.client.ods_imports_collection_path, self.client.ods_imports_collection_name)
         else:
-            self.default_component_path_full = self.client.ods_imports_collection_name
+            self.default_composition_path_full = self.client.ods_imports_collection_name
 
-        logging.debug(f"Default component path: {self.default_component_path_full}")
+        logging.debug(f"Default composition path: {self.default_composition_path_full}")
         
         # Prefetch all datatype UUIDs
         self._prefetch_datatype_uuids()
@@ -118,7 +118,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
         
         logging.info(f"Prefetched {len(self._datatype_uuid_cache)} datatype UUIDs")
 
-    def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]], title: Optional[str] = None) -> Dict[str, Any]:
+    def sync_dataset_compositions(self, ods_id: str, name: str, columns: List[Dict[str, Any]], title: Optional[str] = None) -> Dict[str, Any]:
         """
         Create or update a TDM dataobject for a dataset with its columns as attributes.
         
@@ -213,7 +213,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
                 response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False, status="PUBLISHED")
                 
                 # Add to mapping
-                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_component_path_full)
+                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_composition_path_full)
         
         # If still no asset_uuid, create a new dataobject
         if not asset_uuid:
@@ -233,7 +233,7 @@ class DatasetComponentHandler(BaseDataspotHandler):
             else:
                 logging.info(f"Successfully created new dataobject (UUID: {asset_uuid})")
                 # Add to mapping
-                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_component_path_full)
+                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_composition_path_full)
         
         # Process attributes (columns)
         attributes_endpoint = f"/rest/{self.client.database_name}/classifiers/{asset_uuid}/attributes"

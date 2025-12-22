@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Optional
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
-from src.mapping_handlers.dataset_component_handler import DatasetComponentHandler
+from src.mapping_handlers.dataset_composition_handler import DatasetCompositionHandler
 from src.ods_client import ODSClient
 
 class TDMClient(BaseDataspotClient):
@@ -23,7 +23,7 @@ class TDMClient(BaseDataspotClient):
         
         # Initialize the handlers
         self.org_handler = OrgStructureHandler(self)
-        self.component_handler = DatasetComponentHandler(self)
+        self.composition_handler = DatasetCompositionHandler(self)
 
     # Synchronization methods
     def sync_org_units(self, org_data: Dict[str, Any], status: str = "WORKING") -> Dict[str, Any]:
@@ -40,7 +40,7 @@ class TDMClient(BaseDataspotClient):
         """
         return self.org_handler.sync_org_units(org_data, status=status)
         
-    def sync_dataset_components(self, ods_id: str, name: str, columns: List[Dict[str, Any]], title: Optional[str] = None) -> Dict[str, Any]:
+    def sync_dataset_compositions(self, ods_id: str, name: str, columns: List[Dict[str, Any]], title: Optional[str] = None) -> Dict[str, Any]:
         """
         Create or update a TDM dataobject for a dataset with its columns as attributes.
         
@@ -57,4 +57,4 @@ class TDMClient(BaseDataspotClient):
         Returns:
             Dict[str, Any]: Result of the operation with status and details
         """
-        return self.component_handler.sync_dataset_components(ods_id, name, columns, title)
+        return self.composition_handler.sync_dataset_compositions(ods_id, name, columns, title)

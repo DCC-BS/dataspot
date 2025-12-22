@@ -13,15 +13,15 @@ import ods_utils_py as ods_utils
 
 
 def main():
-    sync_ods_dataset_components()
+    sync_ods_dataset_compositions()
 
 
-def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
+def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50):
     """
-    Synchronize ODS dataset components (columns) with Dataspot using TDMClient.
+    Synchronize ODS dataset compositions (columns) with Dataspot using TDMClient.
     
     This method:
-    1. Creates a TDMClient instance for ODS dataset component synchronization
+    1. Creates a TDMClient instance for ODS dataset composition synchronization
     2. Retrieves public dataset IDs from ODS
     3. For each dataset, retrieves column information and creates/updates TDM dataobjects
     4. Processes datasets in batches to avoid memory issues
@@ -32,7 +32,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         max_datasets (int, optional): Maximum number of datasets to process. Defaults to None (all datasets).
         batch_size (int, optional): Number of datasets to process in each batch. Defaults to 50.
     """
-    logging.info("Starting ODS dataset components synchronization...")
+    logging.info("Starting ODS dataset compositions synchronization...")
 
     # Initialize clients
     tdm_client = TDMClient()
@@ -89,7 +89,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         logging.info(f"Found {len(ods_ids)} datasets to process")
         
         # Process datasets
-        logging.info("Step 2: Processing dataset components - downloading column information and creating TDM objects...")
+        logging.info("Step 2: Processing dataset compositions - downloading column information and creating TDM objects...")
         
         # Process datasets in batches
         for batch_start in range(0, len(ods_ids), batch_size):
@@ -135,9 +135,9 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     else:
                         logging.info(f"Retrieved {len(columns)} columns for dataset {ods_id}")
                     
-                    # Sync dataset components
-                    logging.info(f"Synchronizing dataset components for {ods_id}: '{dataset_title}'")
-                    result = tdm_client.sync_dataset_components(ods_id=ods_id, name=tdm_title, columns=columns, title=dataset_title)
+                    # Sync dataset compositions
+                    logging.info(f"Synchronizing dataset compositions for {ods_id}: '{dataset_title}'")
+                    result = tdm_client.sync_dataset_compositions(ods_id=ods_id, name=tdm_title, columns=columns, title=dataset_title)
                     
                     # Parse result
                     is_new = result.get('is_new', False)
@@ -244,11 +244,11 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                     all_processed_ods_ids.add(ods_id)
                     
                     # Log success
-                    logging.info(f"Successfully processed components for dataset {ods_id}: {dataset_title}")
+                    logging.info(f"Successfully processed compositions for dataset {ods_id}: {dataset_title}")
                     total_successful += 1
                     
                 except Exception as e:
-                    error_msg = f"Error processing components for dataset {ods_id}: {str(e)}"
+                    error_msg = f"Error processing compositions for dataset {ods_id}: {str(e)}"
                     logging.error(error_msg)
                     
                     # Track error
@@ -263,9 +263,9 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                 total_processed += 1
                 
         # After processing all datasets, handle deletions
-        logging.info("Step 3: Processing deletions - identifying components no longer in ODS...")
+        logging.info("Step 3: Processing deletions - identifying compositions no longer in ODS...")
 
-        # Define a filter function to get only components with odsDataportalId
+        # Define a filter function to get only compositions with odsDataportalId
         tdm_filter = lambda asset: (
             asset.get('_type') == 'UmlClass' and 
             asset.get('stereotype') == 'ogd_dataset' and
@@ -273,45 +273,45 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
             asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']  # Ignore archived assets
         )
 
-        # Get all components from TDM with odsDataportalId
-        all_tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+        # Get all compositions from TDM with odsDataportalId
+        all_tdm_compositions = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
 
-        # Extract ODS IDs from the components
+        # Extract ODS IDs from the compositions
         tdm_ods_ids = set()
-        for component in all_tdm_components:
-            ods_id = component.get('odsDataportalId')
+        for composition in all_tdm_compositions:
+            ods_id = composition.get('odsDataportalId')
             if ods_id:
                 tdm_ods_ids.add(ods_id)
 
-        # Find components that are in TDM but not in the current ODS fetch
-        components_to_delete = tdm_ods_ids - all_processed_ods_ids
+        # Find compositions that are in TDM but not in the current ODS fetch
+        compositions_to_delete = tdm_ods_ids - all_processed_ods_ids
 
-        # TODO: Also mark for deletion the attributes of the components
-        if components_to_delete:
-            logging.info(f"Found {len(components_to_delete)} components to delete")
+        # TODO: Also mark for deletion the attributes of the compositions
+        if compositions_to_delete:
+            logging.info(f"Found {len(compositions_to_delete)} compositions to delete")
             
-            # Process each component for deletion
-            for ods_id in components_to_delete:
+            # Process each composition for deletion
+            for ods_id in compositions_to_delete:
                 try:
-                    # Find the component info
-                    component_info = next((c for c in all_tdm_components if c.get('odsDataportalId') == ods_id), None)
+                    # Find the composition info
+                    composition_info = next((c for c in all_tdm_compositions if c.get('odsDataportalId') == ods_id), None)
                     
-                    if component_info:
-                        component_title = component_info.get('label', f"<Unnamed Component {ods_id}>")
-                        component_uuid = component_info.get('id')
+                    if composition_info:
+                        composition_title = composition_info.get('label', f"<Unnamed Composition {ods_id}>")
+                        composition_uuid = composition_info.get('id')
                         
                         # Create Dataspot link
-                        dataspot_link = f"{config.base_url}/web/{tdm_client.database_name}/classifiers/{component_uuid}" if component_uuid else ''
+                        dataspot_link = f"{config.base_url}/web/{tdm_client.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
                         
-                        # Construct the endpoint for the component
-                        component_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{component_uuid}"
+                        # Construct the endpoint for the composition
+                        composition_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{composition_uuid}"
                         
-                        # Mark the component for deletion using the inherited method
+                        # Mark the composition for deletion using the inherited method
                         try:
-                            tdm_client._mark_asset_for_deletion(endpoint=component_endpoint)
+                            tdm_client._mark_asset_for_deletion(endpoint=composition_endpoint)
                             deleted = True
                         except Exception as delete_error:
-                            logging.error(f"Failed to mark component for deletion: {str(delete_error)}")
+                            logging.error(f"Failed to mark composition for deletion: {str(delete_error)}")
                             deleted = False
                             
                         if deleted:
@@ -323,16 +323,16 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                             # Add to deletion details
                             deletion_entry = {
                                 "ods_id": ods_id,
-                                "title": component_title,
-                                "uuid": component_uuid,
+                                "title": composition_title,
+                                "uuid": composition_uuid,
                                 "link": dataspot_link
                             }
                             
                             sync_results['details']['deletions']['items'].append(deletion_entry)
-                            logging.info(f"Deleted component with odsDataportalId {ods_id}: {component_title}")
+                            logging.info(f"Deleted composition with odsDataportalId {ods_id}: {composition_title}")
                         
                 except Exception as e:
-                    error_msg = f"Error deleting component with odsDataportalId {ods_id}: {str(e)}"
+                    error_msg = f"Error deleting composition with odsDataportalId {ods_id}: {str(e)}"
                     logging.error(error_msg)
                     
                     sync_results['counts']['errors'] += 1
@@ -342,12 +342,12 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
                         "message": error_msg
                     })
         else:
-            logging.info("No components found for deletion")
+            logging.info("No compositions found for deletion")
         
         # Update final report status and message
         sync_results['status'] = 'success'
         sync_results['message'] = (
-            f"ODS dataset components synchronization completed with {sync_results['counts']['total_changes']} changes: "
+            f"ODS dataset compositions synchronization completed with {sync_results['counts']['total_changes']} changes: "
             f"{sync_results['counts']['created']} new dataobjects created, "
             f"{sync_results['counts']['updated']} existing dataobjects updated, "
             f"{sync_results['counts']['deleted']} dataobjects deleted, "
@@ -367,7 +367,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         # Update the sync_results with error status
         sync_results['status'] = 'error'
         sync_results['message'] = (
-            f"ODS dataset components synchronization failed after processing {total_processed} datasets. "
+            f"ODS dataset compositions synchronization failed after processing {total_processed} datasets. "
             f"Error: {error_message}. "
             f"Successfully processed: {total_successful}, errors: {total_failed}. "
             f"Changes before failure: {sync_results['counts']['total_changes']} total - "
@@ -379,7 +379,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         sync_results['counts']['total_processed'] = total_processed
         
         # Log final summary
-        logging.info(f"Completed processing components for {total_processed} datasets: {total_successful} successful, {total_failed} failed")
+        logging.info(f"Completed processing compositions for {total_processed} datasets: {total_successful} successful, {total_failed} failed")
         
         # Write detailed report to file for email/reference purposes
         # Get project root directory (one level up from scripts)
@@ -394,7 +394,7 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         
         # Generate filename with timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_filename = os.path.join(reports_dir, f"ods_dataset_components_sync_report_{timestamp}.json")
+        report_filename = os.path.join(reports_dir, f"ods_dataset_compositions_sync_report_{timestamp}.json")
         
         try:
             # Write report to file
@@ -435,11 +435,11 @@ def sync_ods_dataset_components(max_datasets: int = None, batch_size: int = 50):
         
         # Re-raise the exception if we had one
         if sync_results['status'] == 'error':
-            logging.info("ODS dataset components synchronization process finished with errors")
+            logging.info("ODS dataset compositions synchronization process finished with errors")
             logging.info("===============================================")
             return total_processed
 
-    logging.info("ODS dataset components synchronization process finished")
+    logging.info("ODS dataset compositions synchronization process finished")
     logging.info("===============================================")
     
     return total_processed
@@ -452,7 +452,7 @@ def log_detailed_sync_report(sync_results):
     Args:
         sync_results (dict): The synchronization results dictionary
     """
-    logging.info("===== DETAILED ODS DATASET COMPONENTS SYNC REPORT =====")
+    logging.info("===== DETAILED ODS DATASET COMPOSITIONS SYNC REPORT =====")
     logging.info(f"Status: {sync_results['status']}")
     logging.info(f"Message: {sync_results['message']}")
     logging.info(f"Total datasets processed: {sync_results['counts']['total_processed']}")
@@ -573,20 +573,20 @@ def create_email_content(sync_results, database_name):
     
     # Create email subject with summary
     if is_error:
-        email_subject = f"[ERROR][{database_name}] ODS Dataset Components: Processing failed after {counts['total_processed']} datasets"
+        email_subject = f"[ERROR][{database_name}] ODS Dataset Compositions: Processing failed after {counts['total_processed']} datasets"
     else:
-        email_subject = f"[{database_name}] ODS Dataset Components: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
+        email_subject = f"[{database_name}] ODS Dataset Compositions: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
         if counts.get('errors', 0) > 0:
             email_subject += f", {counts['errors']} errors"
     
     email_text = f"Hi there,\n\n"
     
     if is_error:
-        email_text += f"There was an error during the ODS dataset components synchronization.\n"
+        email_text += f"There was an error during the ODS dataset compositions synchronization.\n"
         email_text += f"The process failed after processing {counts['total_processed']} datasets.\n"
         email_text += f"Here's a summary of what was processed before the failure:\n\n"
     else:
-        email_text += f"I've just synchronized ODS dataset components with Dataspot's TDM scheme.\n"
+        email_text += f"I've just synchronized ODS dataset compositions with Dataspot's TDM scheme.\n"
         email_text += f"Here's a summary of the synchronization:\n\n"
     
     # Add summary counts
@@ -700,7 +700,7 @@ def create_email_content(sync_results, database_name):
         email_text += "\nPlease review the synchronization results in Dataspot.\n\n"
     
     email_text += "Best regards,\n"
-    email_text += "Your Dataspot ODS Components Sync Assistant"
+    email_text += "Your Dataspot ODS Compositions Sync Assistant"
     
     return email_subject, email_text, True
 

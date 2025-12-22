@@ -408,7 +408,7 @@ class BaseDataspotClient:
             if type(item) != str:
                 logging.error(f"Path defined in config.py contains {item}, which is not a string.")
                 raise ValueError(
-                    f"Invalid path component in ods_imports_collection_path: {item}. All path components must be strings.")
+                    f"Invalid path composition in ods_imports_collection_path: {item}. All path compositions must be strings.")
 
         if self.ods_imports_collection_path:
             logging.debug(f"Using configured path for ODS-Imports: {'/'.join(self.ods_imports_collection_path)}")

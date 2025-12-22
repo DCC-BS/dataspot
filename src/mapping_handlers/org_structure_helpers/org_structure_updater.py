@@ -268,8 +268,8 @@ class OrgStructureUpdater:
         """
         # Sort changes based on the source hierarchy layer (golden source)
         # Process root/parent collections first
-        sorted_changes = sorted(changes, 
-                               key=lambda c: len(unescape_path_components(c.details.get("source_unit", {}).get("inCollection", ""))))
+        sorted_changes = sorted(changes,
+                                key=lambda c: len(unescape_path_components(c.details.get("source_unit", {}).get("inCollection", ""))))
         
         # Process each change
         for change in sorted_changes:

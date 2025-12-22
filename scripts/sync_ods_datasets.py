@@ -47,7 +47,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     6. Processes deletions by identifying datasets no longer in ODS
     7. Provides a summary of changes and logs a detailed report
     8. Sends an email notification if there were changes
-    9. Links datasets to their corresponding components in TDM
+    9. Links datasets to their corresponding compositions in TDM
     
     Args:
         max_datasets (int, optional): Maximum number of datasets to process. Defaults to None (all datasets).
@@ -282,9 +282,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         else:
             logging.info("No datasets found for deletion")
         
-        # Step 5: Link datasets to their components in TDM
-        logging.info("Step 5: Linking datasets to their components in TDM...")
-        link_results = link_datasets_to_components(all_processed_ods_ids)
+        # Step 5: Link datasets to their compositions in TDM
+        logging.info("Step 5: Linking datasets to their compositions in TDM...")
+        link_results = link_datasets_to_compositions(all_processed_ods_ids)
         
         # Update sync results with link results
         sync_results['counts']['linked'] = link_results.get('linked', 0)
@@ -311,7 +311,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             f"ODS datasets synchronization completed with {sync_results['counts']['total']} changes: "
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
-            f"Linked {sync_results['counts']['linked']} datasets to components with {sync_results['counts']['deleted_compositions']} obsolete compositions removed."
+            f"Linked {sync_results['counts']['linked']} datasets to compositions with {sync_results['counts']['deleted_compositions']} obsolete compositions removed."
         )
         
     except Exception as e:
@@ -403,9 +403,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     return processed_ids
 
 
-def link_datasets_to_components(ods_ids):
+def link_datasets_to_compositions(ods_ids):
     """
-    Links DNK datasets to TDM components by creating composition objects and removes obsolete ones.
+    Links DNK datasets to TDM compositions by creating composition objects and removes obsolete ones.
     This function syncs DNK compositions with ODS columns using TDM attributes as the linking mechanism.
     
     For each dataset, this function:
@@ -416,7 +416,7 @@ def link_datasets_to_components(ods_ids):
     5. Updates existing compositions with latest data
     6. Deletes compositions that shouldn't exist anymore
     
-    This function assumes that sync_ods_dataset_components.py has already been run,
+    This function assumes that sync_ods_dataset_compositions.py has already been run,
     which ensures that TDM attributes exist with labels matching the technical names
     from ODS.
     
@@ -426,7 +426,7 @@ def link_datasets_to_components(ods_ids):
     Returns:
         dict: Summary of linking operation with counts of successful, failed, and deleted links
     """
-    logging.info("Starting to link datasets to their components...")
+    logging.info("Starting to link datasets to their compositions...")
     
     # Initialize clients
     dnk_client = DNKClient()
@@ -448,10 +448,10 @@ def link_datasets_to_components(ods_ids):
     
     # Skip if no ODS IDs provided
     if not ods_ids:
-        logging.warning("No ODS IDs provided for linking datasets to components")
+        logging.warning("No ODS IDs provided for linking datasets to compositions")
         return result
     
-    logging.info(f"Processing {len(ods_ids)} datasets for linking to components...")
+    logging.info(f"Processing {len(ods_ids)} datasets for linking to compositions...")
     
     # Step 1: Get all DNK datasets with odsDataportalId
     logging.info("Getting all DNK datasets with odsDataportalId...")
@@ -469,21 +469,21 @@ def link_datasets_to_components(ods_ids):
         if ods_id:
             dnk_datasets_by_ods_id[ods_id] = dataset
     
-    # Step 2: Get all TDM components with odsDataportalId
-    logging.info("Getting all TDM components with odsDataportalId...")
+    # Step 2: Get all TDM compositions with odsDataportalId
+    logging.info("Getting all TDM compositions with odsDataportalId...")
     tdm_filter = lambda asset: (
         asset.get('_type') == 'UmlClass' and
         asset.get('stereotype') == 'ogd_dataset' and
         asset.get('odsDataportalId') is not None
     )
-    tdm_components = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+    tdm_compositions = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
     
-    # Create lookup dictionary for TDM components by odsDataportalId
-    tdm_components_by_ods_id = {}
-    for component in tdm_components:
-        ods_id = component.get('odsDataportalId')
+    # Create lookup dictionary for TDM compositions by odsDataportalId
+    tdm_compositions_by_ods_id = {}
+    for composition in tdm_compositions:
+        ods_id = composition.get('odsDataportalId')
         if ods_id:
-            tdm_components_by_ods_id[ods_id] = component
+            tdm_compositions_by_ods_id[ods_id] = composition
     
     # Sort ODS IDs alphabetically before processing
     sorted_ods_ids = sorted(ods_ids)
@@ -494,31 +494,31 @@ def link_datasets_to_components(ods_ids):
             logging.warning(f"DNK dataset with odsDataportalId {ods_id} not found, skipping link creation")
             continue
             
-        if ods_id not in tdm_components_by_ods_id:
-            logging.warning(f"TDM component with odsDataportalId {ods_id} not found, skipping link creation")
+        if ods_id not in tdm_compositions_by_ods_id:
+            logging.warning(f"TDM composition with odsDataportalId {ods_id} not found, skipping link creation")
             continue
         
-        # Get dataset and component
+        # Get dataset and composition
         dataset = dnk_datasets_by_ods_id[ods_id]
-        component = tdm_components_by_ods_id[ods_id]
+        composition = tdm_compositions_by_ods_id[ods_id]
         
         dataset_uuid = dataset.get('id')
-        component_uuid = component.get('id')
+        composition_uuid = composition.get('id')
         dataset_title = dataset.get('label', f"<Unnamed Dataset {ods_id}>")
         
-        logging.info(f"[{idx+1}/{len(sorted_ods_ids)}] Linking DNK dataset '{dataset_title}' (odsDataportalId: {ods_id}) to TDM component...")
+        logging.info(f"[{idx+1}/{len(sorted_ods_ids)}] Linking DNK dataset '{dataset_title}' (odsDataportalId: {ods_id}) to TDM composition...")
         
         try:
-            # Step 3: Get all TDM attributes for this component
-            attributes_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{component_uuid}/attributes"
+            # Step 3: Get all TDM attributes for this composition
+            attributes_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{composition_uuid}/attributes"
             attributes_response = tdm_client._get_asset(attributes_endpoint)
             
             if not attributes_response or '_embedded' not in attributes_response or 'attributes' not in attributes_response['_embedded']:
-                logging.warning(f"No attributes found for TDM component with odsDataportalId {ods_id}, skipping link creation")
+                logging.warning(f"No attributes found for TDM composition with odsDataportalId {ods_id}, skipping link creation")
                 continue
                 
             tdm_attributes = attributes_response['_embedded']['attributes']
-            logging.info(f"Found {len(tdm_attributes)} attributes for TDM component with odsDataportalId {ods_id}")
+            logging.info(f"Found {len(tdm_attributes)} attributes for TDM composition with odsDataportalId {ods_id}")
             
             # Step 4: Create compositions endpoint for linking
             compositions_endpoint = f"/rest/{dnk_client.database_name}/datasets/{dataset_uuid}/compositions"
@@ -708,7 +708,7 @@ def link_datasets_to_components(ods_ids):
                 logging.info(f"No changes needed for dataset '{dataset_title}' (odsDataportalId: {ods_id})")
                 
         except Exception as e:
-            error_msg = f"Error linking dataset with odsDataportalId {ods_id} to TDM component: {str(e)}"
+            error_msg = f"Error linking dataset with odsDataportalId {ods_id} to TDM composition: {str(e)}"
             logging.error(error_msg)
             
             result['errors'] += 1
@@ -719,7 +719,7 @@ def link_datasets_to_components(ods_ids):
                 'message': error_msg
             })
     
-    logging.info(f"Finished linking datasets to components. "
+    logging.info(f"Finished linking datasets to compositions. "
                f"Processed {result['linked']} datasets with {result['deleted']} compositions deleted and {result['errors']} errors.")
     
     return result
@@ -742,7 +742,7 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['unchanged']} unchanged, "
                f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['errors']} errors")
-    logging.info(f"Dataset links: {sync_results['counts']['linked']} linked to components, "
+    logging.info(f"Dataset links: {sync_results['counts']['linked']} linked to compositions, "
                f"{sync_results['counts']['deleted_compositions']} obsolete compositions deleted, "
                f"{sync_results['counts']['link_errors']} link errors")
     
@@ -888,7 +888,7 @@ def create_email_content(sync_results, database_name):
     email_text += f"- Deleted: {counts['deleted']} datasets\n"
     if counts.get('errors', 0) > 0:
         email_text += f"- Errors: {counts['errors']}\n"
-    email_text += f"\nDataset links: {counts['linked']} datasets linked to components"
+    email_text += f"\nDataset links: {counts['linked']} datasets linked to compositions"
     if counts.get('link_errors', 0) > 0:
         email_text += f", {counts['link_errors']} link errors"
     email_text += f"\n\nTotal datasets processed: {counts['processed']}\n\n"
@@ -943,7 +943,7 @@ def create_email_content(sync_results, database_name):
     
     # Finally show linked datasets
     if sync_results['details']['links']['count'] > 0:
-        email_text += "\nLINKED DATASETS (to TDM components):\n"
+        email_text += "\nLINKED DATASETS (to TDM compositions):\n"
         for link in sync_results['details']['links']['items']:
             ods_id = link.get('odsDataportalId', 'Unknown')
             title = link.get('title', 'Unknown')
