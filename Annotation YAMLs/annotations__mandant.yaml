@@ -437,21 +437,21 @@ Person:
       label: Kontaktseite (bitte leer lassen)
   customProperties:
     email_custom_property:
-      label: E-Mail
+      label: E-Mail-Adresse # E-Mail
       order: 1
       width: 2
     phone:
-      label: Telefon
+      label: Telefon-Nr. #Telefon
       order: 2
       width: 2
       baseType: TEXT
     teams:
-      label: Teams
+      label: Teams-Chat #Teams
       order: 3
       width: 2
       baseType: TEXT
     state_calendar_website:
-      label: Kontaktseite
+      label: Kontaktseite im Staatskalender #Kontaktseite
       order: 4
       width: 2
       baseType: TEXT
