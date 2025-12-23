@@ -275,8 +275,9 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         # Process each column as an attribute
         logging.info(f"Processing {len(columns)} columns as attributes...")
         
-        # Track which columns we've processed
+        # Track which columns we've processed and preserve order (1-based)
         processed_columns = set()
+        column_order_by_name = {col['name']: idx for idx, col in enumerate(columns, start=1)}
         
         # First pass: Match by technical name (stored in label)
         for column in columns:
@@ -287,8 +288,11 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 existing_attr = existing_attributes[column['name']]
                 attr_uuid = existing_attr.get('id')
                 
-                # Check if data type has changed
-                if existing_attr.get('hasRange') == self._get_datatype_uuid(column['type']):
+                desired_order = column_order_by_name.get(column['name'])
+
+                # Check if data type and order have changed
+                if (existing_attr.get('hasRange') == self._get_datatype_uuid(column['type'])
+                        and existing_attr.get('order') == desired_order):
                     # Attribute is unchanged
                     unchanged_attrs.append({
                         'name': column['name'],
@@ -297,7 +301,14 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                     logging.debug(f"Attribute '{column['name']}' is unchanged")
                 else:
                     # Update existing attribute
-                    self._update_existing_attribute(column, existing_attr, attr_uuid, updated_attrs, field_changes)
+                    self._update_existing_attribute(
+                        column,
+                        existing_attr,
+                        attr_uuid,
+                        desired_order,
+                        updated_attrs,
+                        field_changes
+                    )
                 
                 # Remove from existing_attributes to track what's left for deletion
                 del existing_attributes[column['name']]
@@ -326,10 +337,10 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                     del existing_attributes[matching_attr_name]
                     
                     # Create new attribute
-                    self._create_new_attribute(column, attributes_endpoint, created_attrs)
+                    self._create_new_attribute(column, attributes_endpoint, created_attrs, column_order_by_name)
                 else:
                     # No matching attribute found - create new
-                    self._create_new_attribute(column, attributes_endpoint, created_attrs)
+                    self._create_new_attribute(column, attributes_endpoint, created_attrs, column_order_by_name)
                 
                 processed_columns.add(column['name'])
         
@@ -443,8 +454,9 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         
         return uuid
     
-    def _update_existing_attribute(self, column: Dict[str, Any], existing_attr: Dict[str, Any], 
-                                 attr_uuid: str, updated_attrs: List[Dict[str, Any]], field_changes: Dict[str, Any]) -> None:
+    def _update_existing_attribute(self, column: Dict[str, Any], existing_attr: Dict[str, Any],
+                                 attr_uuid: str, desired_order: int,
+                                 updated_attrs: List[Dict[str, Any]], field_changes: Dict[str, Any]) -> None:
         """
         Update an existing attribute with new column data.
         
@@ -462,7 +474,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         attribute = {
             "_type": "UmlAttribute",
             "label": column['name'],
-            "hasRange": datatype_uuid
+            "hasRange": datatype_uuid,
+            "order": desired_order
         }
 
         # Track changes in detail with before/after values
@@ -478,6 +491,12 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             attr_changes['datatype'] = {
                 'old_value': existing_attr.get('hasRange'),
                 'new_value': datatype_uuid
+            }
+
+        if existing_attr.get('order') != desired_order:
+            attr_changes['order'] = {
+                'old_value': existing_attr.get('order'),
+                'new_value': desired_order
             }
         
         # Store changes for this attribute
@@ -503,7 +522,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         })
         time.sleep(1)
     
-    def _create_new_attribute(self, column: Dict[str, Any], attributes_endpoint: str, created_attrs: List[Dict[str, Any]]) -> None:
+    def _create_new_attribute(self, column: Dict[str, Any], attributes_endpoint: str,
+                             created_attrs: List[Dict[str, Any]], column_order_by_name: Dict[str, int]) -> None:
         """
         Create a new attribute from column data.
         
@@ -519,7 +539,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         attribute = {
             "_type": "UmlAttribute",
             "label": column['name'],
-            "hasRange": datatype_uuid
+            "hasRange": datatype_uuid,
+            "order": column_order_by_name.get(column['name'])
         }
 
         logging.info(f"Creating new attribute '{column['name']}' with type '{column['type']}'")
