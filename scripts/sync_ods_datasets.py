@@ -551,6 +551,10 @@ def link_datasets_to_compositions(ods_ids):
             
             # Build a mapping between ODS columns and TDM attributes
             # This will help us know which compositions should exist
+            # Also keep the ODS column order (first column should be order 1)
+            column_order_by_name = {
+                col.get('name'): idx for idx, col in enumerate(ods_dataset_columns, start=1)
+            }
             valid_compositions = {}
             processed_compositions = set()
             
@@ -579,7 +583,8 @@ def link_datasets_to_compositions(ods_ids):
                     'attribute_id': attribute_id,
                     'attribute_label': attribute_label,
                     'ods_column': matching_column,
-                    'description': _clean_description(matching_column.get('description', ''))
+                    'description': _clean_description(matching_column.get('description', '')),
+                    'order': column_order_by_name.get(attribute_label)
                 }
             
             # Log mapping info
@@ -605,20 +610,27 @@ def link_datasets_to_compositions(ods_ids):
                     processed_compositions.add(fachlicher_name)
 
                     existing_comp_description = existing_comp.get('description', '')
+                    existing_comp_order = existing_comp.get('order')
+                    desired_order = comp_data.get('order')
+
+                    update_data = {"_type": "Composition"}
 
                     # Update description if available
                     if description != existing_comp_description:
+                        update_data["description"] = description
+
+                    # Update order if it differs
+                    if desired_order != existing_comp_order:
+                        update_data["order"] = desired_order
+
+                    if len(update_data) > 1:
                         comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
-                        update_data = {
-                            "_type": "Composition",
-                            "description": description
-                        }
                         dnk_client._update_asset(comp_endpoint, data=update_data, replace=False, status="PUBLISHED")
-                        logging.debug(f"Updated description for existing composition '{fachlicher_name}'")
+                        logging.debug(f"Updated composition '{fachlicher_name}' (fields: {', '.join(update_data.keys() - {'_type'})})")
                         updated_compositions += 1
                     else:
                         skipped_compositions += 1
-                        logging.debug(f"No description to update for composition '{fachlicher_name}'")
+                        logging.debug(f"No description or order change for composition '{fachlicher_name}'")
                 else:
                     # Create new composition
                     logging.debug(f"Creating new composition for attribute '{attribute_label}' with label '{fachlicher_name}'")
@@ -626,7 +638,8 @@ def link_datasets_to_compositions(ods_ids):
                     composition_data = {
                         "_type": "Composition",
                         "composedOf": attribute_id,
-                        "label": fachlicher_name
+                        "label": fachlicher_name,
+                        "order": comp_data.get('order')
                     }
                     
                     # Add description if available
