@@ -43,7 +43,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
     2. Retrieves public dataset IDs from ODS
     3. For each dataset, retrieves metadata and transforms it
     4. Processes datasets in batches to avoid memory issues
-    5. Uses the sync_datasets method to properly update existing datasets
+    5. Uses the sync_datasets method to update existing datasets
     6. Processes deletions by identifying datasets no longer in ODS
     7. Provides a summary of changes and logs a detailed report
     8. Sends an email notification if there were changes
@@ -81,8 +81,10 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'processed': 0,
             'linked': 0,
             'link_errors': 0,
-            'deleted_compositions': 0
-        },
+            'deleted_compositions': 0,
+            'deployments_created': 0,
+            'deployment_errors': 0
+        }, # TODO: Cleanup: Remove all count keys:
         'details': {
             'creations': {
                 'count': 0,
@@ -109,6 +111,10 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                 'items': []
             },
             'deleted_compositions': {
+                'count': 0,
+                'items': []
+            },
+            'deployments': {
                 'count': 0,
                 'items': []
             }
@@ -155,7 +161,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                     batch_num = len(all_datasets)
                     logging.info(f"Step 3: Syncing batch of {batch_num} datasets...")
                     
-                    # Sync datasets - the method handles updates properly
+                    # Sync datasets
                     sync_summary = dataspot_client.sync_datasets(datasets=all_datasets, status="PUBLISHED")
                     
                     logging.info(f"Batch sync completed. Response summary: {sync_summary}")
@@ -193,6 +199,15 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                         if 'errors' in sync_summary['details']:
                             sync_results['details']['errors']['count'] += sync_summary['details']['errors'].get('count', 0)
                             sync_results['details']['errors']['items'].extend(sync_summary['details']['errors'].get('items', []))
+                        
+                        # Merge deployments (created by sync_datasets for each dataset)
+                        if 'deployments' in sync_summary['details']:
+                            sync_results['details']['deployments']['count'] += sync_summary['details']['deployments'].get('count', 0)
+                            sync_results['details']['deployments']['items'].extend(sync_summary['details']['deployments'].get('items', []))
+                    
+                    # Update deployment counts from sync_summary
+                    sync_results['counts']['deployments_created'] += sync_summary.get('deployments_created', 0)
+                    sync_results['counts']['deployment_errors'] += sync_summary.get('deployment_errors', 0)
                     
                     # Clear the batch for the next iteration
                     all_datasets = []
@@ -311,7 +326,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             f"ODS datasets synchronization completed with {sync_results['counts']['total']} changes: "
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
-            f"Linked {sync_results['counts']['linked']} datasets to compositions with {sync_results['counts']['deleted_compositions']} obsolete compositions removed."
+            f"Linked {sync_results['counts']['linked']} datasets to compositions with {sync_results['counts']['deleted_compositions']} obsolete compositions removed. "
+            f"Huwise deployments: {sync_results['counts']['deployments_created']} created."
         )
         
     except Exception as e:
@@ -758,6 +774,8 @@ def log_detailed_sync_report(sync_results):
     logging.info(f"Dataset links: {sync_results['counts']['linked']} linked to compositions, "
                f"{sync_results['counts']['deleted_compositions']} obsolete compositions deleted, "
                f"{sync_results['counts']['link_errors']} link errors")
+    logging.info(f"Huwise deployments: {sync_results['counts']['deployments_created']} created, "
+               f"{sync_results['counts']['deployment_errors']} errors")
     
     # Log detailed information about deleted datasets
     if sync_results['details']['deletions']['count'] > 0:
@@ -830,6 +848,20 @@ def log_detailed_sync_report(sync_results):
             # No longer tracking individual attribute names for brevity
             # TODO: Re-add tracking of individual attribute names
     
+    # Log detailed information about created Huwise deployments
+    if sync_results['details']['deployments']['count'] > 0:
+        logging.info("")
+        logging.info("--- HUWISE DEPLOYMENTS CREATED ---")
+        for deployment in sync_results['details']['deployments']['items']:
+            ods_id = deployment.get('ods_id', 'Unknown')
+            title = deployment.get('title', 'Unknown')
+            uuid = deployment.get('uuid', '')
+            
+            # Create Dataspot link
+            dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else ''
+            
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
+    
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
         logging.info("")
@@ -872,7 +904,7 @@ def create_email_content(sync_results, database_name):
     is_error = sync_results['status'] == 'error'
     
     # Send email if there were changes or errors
-    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and not is_error:
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and counts.get('deployments_created', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary following the requested format
@@ -904,6 +936,9 @@ def create_email_content(sync_results, database_name):
     email_text += f"\nDataset links: {counts['linked']} datasets linked to compositions"
     if counts.get('link_errors', 0) > 0:
         email_text += f", {counts['link_errors']} link errors"
+    email_text += f"\n\nHuwise deployments: {counts.get('deployments_created', 0)} created"
+    if counts.get('deployment_errors', 0) > 0:
+        email_text += f", {counts['deployment_errors']} errors"
     email_text += f"\n\nTotal datasets processed: {counts['processed']}\n\n"
     
     # Add detailed information if available
@@ -970,6 +1005,19 @@ def create_email_content(sync_results, database_name):
             email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
             email_text += f"Created: {compositions_created}, Updated: {compositions_updated}, "
             email_text += f"Deleted: {compositions_deleted}, Unchanged: {compositions_skipped}\n"
+    
+    # Show Huwise deployments created
+    if sync_results['details']['deployments']['count'] > 0:
+        email_text += "\nHUWISE DEPLOYMENTS CREATED:\n"
+        for deployment in sync_results['details']['deployments']['items']:
+            ods_id = deployment.get('ods_id', 'Unknown')
+            title = deployment.get('title', 'Unknown')
+            uuid = deployment.get('uuid', '')
+            
+            # Create Dataspot link
+            dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else ''
+            
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
     
     if is_error:
         email_text += "\nThe synchronization process did not complete successfully. "

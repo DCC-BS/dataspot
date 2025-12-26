@@ -27,6 +27,9 @@ sk_scheme_name_short = 'SK'
 tenant_name = "Mandant"
 organizations_name = "Data%20Governance"
 
+# System UUIDs
+huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
+
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration
 dnk_ods_imports_collection_name = 'OGD-Datensätze aus Huwise'
