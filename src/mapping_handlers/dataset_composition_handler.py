@@ -2,10 +2,108 @@ import logging
 import time
 from typing import List, Dict, Any, Optional
 
+import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
+from src.common import requests_post
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
 from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
+
+
+# Module-level cache for existing Huwise composition deployments
+_huwise_composition_deployments_cache = None
+
+
+def get_existing_huwise_composition_deployments(client: BaseDataspotClient):
+    """
+    Get all composition UUIDs that already have a Huwise deployment with qualifier 'available_at'.
+    
+    Uses lazy-loading: the SQL query is only executed on the first call, and the result
+    is cached for subsequent calls.
+    
+    Args:
+        client: The Dataspot client to use for the SQL query
+        
+    Returns:
+        set: Set of composition UUIDs (strings) that already have the Huwise deployment
+    """
+    global _huwise_composition_deployments_cache
+    
+    if _huwise_composition_deployments_cache is not None:
+        return _huwise_composition_deployments_cache
+    
+    logging.info("Fetching existing Huwise composition deployments from Dataspot...")
+    
+    query = f"""
+        SELECT 
+          di.resource_id AS composition_id
+        FROM
+          deployedin_view di
+        JOIN classifier_view c ON di.resource_id = c.id
+        WHERE
+          di.qualifier = 'available_at'
+        AND
+          c.stereotype = 'ogd_dataset'
+        AND
+          di.deployed_in = '{config.huwise_system_uuid}'
+    """
+    
+    try:
+        results = client.execute_query_api(sql_query=query)
+        _huwise_composition_deployments_cache = {row['composition_id'] for row in results}
+        logging.info(f"Found {len(_huwise_composition_deployments_cache)} existing Huwise composition deployments")
+    except Exception as e:
+        logging.error(f"Error fetching existing Huwise composition deployments: {str(e)}")
+        _huwise_composition_deployments_cache = set()
+    
+    return _huwise_composition_deployments_cache
+
+
+def ensure_huwise_composition_deployment(client: BaseDataspotClient, composition_uuid: str, composition_title: str):
+    """
+    Ensure that a composition has a deployment link to the Huwise system.
+    
+    Checks the cache for existing deployments and creates one if missing.
+    
+    Args:
+        client: The Dataspot client to use for API requests
+        composition_uuid: The UUID of the composition (UmlClass)
+        composition_title: The title of the composition (for logging)
+        
+    Returns:
+        bool: True if a deployment was created, False if it already existed or on error
+    """
+    # Check if deployment already exists
+    existing_deployments = get_existing_huwise_composition_deployments(client)
+    
+    if composition_uuid in existing_deployments:
+        logging.debug(f"Huwise deployment already exists for composition '{composition_title}' ({composition_uuid})")
+        return False
+    
+    # Create deployment
+    deployment_url = f"{client.base_url}/rest/{client.database_name}/deployments"
+    
+    payload = {
+        "_type": "Deployment",
+        "deploymentOf": composition_uuid,
+        "deployedIn": config.huwise_system_uuid,
+        "qualifier": "available_at",
+        "order": 1,
+        "favorite": True
+    }
+
+    try:
+        response = requests_post(
+            url=deployment_url,
+            json=payload,
+            headers=client.auth.get_headers()
+        )
+        response.raise_for_status()
+        logging.info(f"Created Huwise deployment for composition '{composition_title}' ({composition_uuid})")
+        return True
+    except Exception as e:
+        logging.error(f"Error creating Huwise deployment for composition '{composition_title}' ({composition_uuid}): {str(e)}")
+        return False
 
 
 class DatasetCompositionMapping(BaseDataspotMapping):
@@ -367,6 +465,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             "link": dataspot_link,
             "ods_id": ods_id,
             "title": name,
+            "deployments_created": 0,
+            "deployment_errors": 0,
             "counts": {
                 "created_attributes": len(created_attrs),
                 "updated_attributes": len(updated_attrs),
@@ -379,7 +479,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 "updated_attributes": updated_attrs,
                 "unchanged_attributes": unchanged_attrs,
                 "deleted_attributes": deleted_attrs,
-                "field_changes": field_changes
+                "field_changes": field_changes,
+                "deployments": {"count": 0, "items": []}
             },
             "is_new": is_new
         }
@@ -402,6 +503,17 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 logging.info(f"Updated dataobject for dataset {ods_id} with changes: {', '.join(changes)}")
             else:
                 logging.info(f"No changes made to dataobject for dataset {ods_id}")
+        
+        # Ensure Huwise deployment exists for this composition
+        deployment_created = ensure_huwise_composition_deployment(self.client, asset_uuid, title or name)
+        if deployment_created:
+            result["deployments_created"] = 1
+            result["details"]["deployments"]["count"] = 1
+            result["details"]["deployments"]["items"].append({
+                "ods_id": ods_id,
+                "title": name,
+                "uuid": asset_uuid
+            })
         
         # Update mappings after changes
         self.update_mappings_after_upload([ods_id])

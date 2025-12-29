@@ -53,7 +53,9 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             'attributes_created': 0,
             'attributes_updated': 0,
             'attributes_deleted': 0,
-            'attributes_unchanged': 0
+            'attributes_unchanged': 0,
+            'deployments_created': 0,
+            'deployment_errors': 0
         },
         'details': {
             'creations': {
@@ -69,6 +71,10 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                 'items': []
             },
             'errors': {
+                'count': 0,
+                'items': []
+            },
+            'deployments': {
                 'count': 0,
                 'items': []
             }
@@ -240,6 +246,15 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                     sync_results['counts']['attributes_deleted'] += result_counts.get('deleted_attributes', 0)
                     sync_results['counts']['attributes_unchanged'] += result_counts.get('unchanged_attributes', 0)
                     
+                    # Update deployment counts
+                    sync_results['counts']['deployments_created'] += result.get('deployments_created', 0)
+                    sync_results['counts']['deployment_errors'] += result.get('deployment_errors', 0)
+                    
+                    # Merge deployment details
+                    if 'deployments' in result.get('details', {}):
+                        sync_results['details']['deployments']['count'] += result['details']['deployments'].get('count', 0)
+                        sync_results['details']['deployments']['items'].extend(result['details']['deployments'].get('items', []))
+                    
                     # Add to processed IDs for deletion tracking
                     all_processed_ods_ids.add(ods_id)
                     
@@ -354,7 +369,8 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             f"and {sync_results['counts']['unchanged']} were unchanged. "
             f"Attribute changes: {sync_results['counts']['attributes_created']} created, "
             f"{sync_results['counts']['attributes_updated']} updated, "
-            f"{sync_results['counts']['attributes_deleted']} deleted."
+            f"{sync_results['counts']['attributes_deleted']} deleted. "
+            f"Huwise deployments: {sync_results['counts']['deployments_created']} created."
         )
         
     except Exception as e:
@@ -467,6 +483,9 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['attributes_updated']} updated, "
                f"{sync_results['counts']['attributes_deleted']} deleted, "
                f"{sync_results['counts']['attributes_unchanged']} unchanged")
+    logging.info(f"Huwise deployments: "
+               f"{sync_results['counts']['deployments_created']} created, "
+               f"{sync_results['counts']['deployment_errors']} errors")
     
     # Log information about updated dataobjects
     if sync_results['details']['updates']['count'] > 0:
@@ -500,6 +519,17 @@ def log_detailed_sync_report(sync_results):
                         logging.info(f"      - {field}:")
                         logging.info(f"        - Old value: '{old_val}'")
                         logging.info(f"        - New value: '{new_val}'")
+    
+    # Log information about created Huwise deployments
+    if sync_results['details']['deployments']['count'] > 0:
+        logging.info("")
+        logging.info("--- HUWISE DEPLOYMENTS CREATED ---")
+        for deployment in sync_results['details']['deployments']['items']:
+            ods_id = deployment.get('ods_id', 'Unknown')
+            title = deployment.get('title', 'Unknown')
+            uuid = deployment.get('uuid', '')
+            link = f"{config.base_url}/web/{config.database_name}/classifiers/{uuid}" if uuid else ''
+            logging.info(f"Created deployment for composition {ods_id}: '{title}' (UUID: {uuid}, Link: {link})")
     
     # Log information about deleted dataobjects
     if sync_results['details']['deletions']['count'] > 0:
@@ -567,8 +597,8 @@ def create_email_content(sync_results, database_name):
     # Modified to send email on error or if changes happened
     is_error = sync_results['status'] == 'error'
     
-    # Send email if there were changes or errors
-    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('deleted', 0) == 0 and not is_error:
+    # Send email if there were changes, deployments, or errors
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('deleted', 0) == 0 and counts.get('deployments_created', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary
@@ -576,6 +606,8 @@ def create_email_content(sync_results, database_name):
         email_subject = f"[ERROR][{database_name}] ODS Dataset Compositions: Processing failed after {counts['total_processed']} datasets"
     else:
         email_subject = f"[{database_name}] ODS Dataset Compositions: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
+        if counts.get('deployments_created', 0) > 0:
+            email_subject += f", {counts['deployments_created']} deployments created"
         if counts.get('errors', 0) > 0:
             email_subject += f", {counts['errors']} errors"
     
@@ -604,6 +636,12 @@ def create_email_content(sync_results, database_name):
     email_text += f"- Updated: {counts['attributes_updated']} attributes\n"
     email_text += f"- Deleted: {counts['attributes_deleted']} attributes\n"
     email_text += f"- Unchanged: {counts['attributes_unchanged']} attributes\n"
+    
+    # Add Huwise deployment summary
+    email_text += f"\n\nHuwise deployments: {counts.get('deployments_created', 0)} created"
+    if counts.get('deployment_errors', 0) > 0:
+        email_text += f", {counts['deployment_errors']} errors"
+    email_text += "\n"
     
     # Add information about updated dataobjects with significant changes
     significant_updates = []
@@ -683,6 +721,15 @@ def create_email_content(sync_results, database_name):
                         new_val = values.get('new_value', 'None')
                         email_text += f"    - {field}: '{new_val}'\n"
 
+    # Show Huwise deployments created
+    if sync_results['details']['deployments']['count'] > 0:
+        email_text += "\nHUWISE DEPLOYMENTS CREATED:\n"
+        for deployment in sync_results['details']['deployments']['items']:
+            ods_id = deployment.get('ods_id', 'Unknown')
+            title = deployment.get('title', 'Unknown')
+            uuid = deployment.get('uuid', '')
+            link = f"{config.base_url}/web/{database_name}/classifiers/{uuid}" if uuid else ''
+            email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
     
     # Include some error information if any
     if sync_results['details']['errors']['count'] > 0:
