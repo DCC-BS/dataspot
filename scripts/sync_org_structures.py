@@ -35,7 +35,7 @@ def main():
     tdm_client = TDMClient()
     sync_org_structures(dataspot_client=tdm_client)
 
-def sync_org_structures(dataspot_client: BaseDataspotClient):
+def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUBLISHED"):
     """
     Synchronize organizational structures (consisting of org units) of the specified dataspot client
     with the latest data from ODS API.
@@ -55,6 +55,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
     
     Args:
         dataspot_client: The Dataspot client instance to use for synchronization
+        default_status: The default status that created and updated org structures have
         
     Raises:
         ValueError: If duplicate stateCalendarId values are detected in either ODS or Dataspot data
@@ -104,7 +105,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient):
         # To mark for deletion review, deletions use "DELETENEW" (handled automatically)
         sync_result = dataspot_client.sync_org_units(
             all_organizations, 
-            status="PUBLISHED"
+            status=default_status
         )
 
     except ValueError as e:
