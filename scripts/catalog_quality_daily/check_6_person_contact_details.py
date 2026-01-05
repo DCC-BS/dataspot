@@ -3,8 +3,10 @@ import time
 from typing import Dict, List, Tuple, Any, Optional
 
 import config
+import requests
 from src.common import requests_patch
 from src.clients.base_client import BaseDataspotClient
+from src.dataspot_auth import DataspotAuth
 from src.staatskalender_cache import StaatskalenderCache
 
 # Global cache for person data (Dataspot database caches, not Staatskalender)
@@ -245,6 +247,25 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     return _contact_details_cache
 
 
+def email_is_valid_teams_email_address(email_address: str) -> bool:
+    """
+    Checks whether a given email address is available in Entra ID
+
+    Args:
+        email_address: Email from Staatskalender
+
+    Returns:
+        bool: True if email is valid, False otherwise.
+    """
+
+    global dataspot_auth
+
+    url = f"https://graph.microsoft.com/v1.0/users?$filter=mail eq '{email_address}'"
+    response = requests.get(url=url, headers=dataspot_auth.get_headers())
+    assert False
+    # TODO: Implement this once the Entra APP exists and has sufficient authorization
+    return True
+
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
                                     given_name: str, family_name: str) -> Dict[str, Optional[str]]:
     """
@@ -281,8 +302,8 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     # state_calendar_website
     custom_properties['state_calendar_website'] = f"[Kontaktseite im Staatskalender öffnen](https://staatskalender.bs.ch/person/{sk_person_id})"
     
-    # teams - only if email exists
-    if sk_email:
+    # teams - only if valid email exists
+    if email_is_valid_teams_email_address(sk_email):
         custom_properties['teams'] = f"[Teams-Chat mit {given_name} {family_name} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
     else:
         custom_properties['teams'] = None
@@ -354,3 +375,29 @@ def update_person_contact_details(dataspot_client: BaseDataspotClient, person_uu
     # Reset cache since person data was modified
     global _contact_details_cache
     _contact_details_cache = None
+
+if __name__=='__main__':
+    print("Hello, world!")
+
+    dataspot_auth = DataspotAuth()
+    token_url = dataspot_auth.token_url
+    token_data = {
+        'grant_type': 'client_credentials',
+        'client_id': dataspot_auth.client_id,
+        'client_secret': dataspot_auth.client_secret,
+        'scope': 'https://graph.microsoft.com/.default'
+    }
+    token_response = requests.post(url=token_url, data=token_data)
+    access_token = token_response.json()['access_token']
+
+    headers = {'Authorization': f'Bearer {access_token}'}
+    email_to_check = 'renato.farruggio@bs.ch'
+    url = f"https://graph.microsoft.com/v1.0/users?$filter=mail eq '{email_to_check}' or userPrincipalName eq '{email_to_check}'&$select=id,displayName,mail"
+    response = requests.get(url, headers=headers)  # Currently returns "insufficient privileges" error
+    # TODO: Check privileges at https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/82efb63b-e1a6-49a8-bc67-23a5b58caf74/isMSAApp~/false
+    # Current Perplexity.ai chat: https://www.perplexity.ai/search/entra-id-check-if-mail-exists-kSwm.sjPSQCF7tSuMJY6UA#1
+    # TODO: Check this person mail (not valid teams-mail): https://datenkatalog.bs.ch/web/prod/persons/a010e53b-0ba2-462e-b344-b33b4a0cbf8e
+    # TODO: Check renato person mail: renato.farruggio@bs.ch
+
+    #email_is_valid_teams_email_address('renato.farruggio@bs.ch')
+    pass
