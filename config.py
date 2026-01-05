@@ -22,6 +22,8 @@ tdm_scheme_name = 'Datenbankobjekte'
 tdm_scheme_name_short = 'TDM'
 sk_scheme_name = 'Systeme'
 sk_scheme_name_short = 'SK'
+kq_scheme_name = 'Katalogqualität'
+kq_scheme_name_short = 'KQ'
 
 # Special names
 tenant_name = "Mandant"

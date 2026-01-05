@@ -285,6 +285,12 @@ Asset:
           icon: inbox
           order: 680
           group: PUBLIC
+        TEMPLATE:
+          label: Vorlage
+          labelEn: Template
+          icon: clone
+          order: 700
+          group: DRAFT
 
 ##### Status aus Standard Workflow d. #####
         WORKING:
