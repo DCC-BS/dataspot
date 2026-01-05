@@ -70,7 +70,7 @@ class ODSClient:
         url = f"https://data.bs.ch/api/explore/{self.explore_api_version}/catalog/datasets/100349/records"
         
         params = {
-            "select": "id,title,parent_id,url_website,children_id",
+            "select": "id,title,parent_id,url_website,website,children_id",
             "order_by": "id",
             "limit": limit,
             "offset": offset

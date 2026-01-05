@@ -125,6 +125,17 @@ class OrgStructureComparer:
                 "new": source_unit.get("label")
             }
         
+        # Check description - only update if source has a description
+        # If source has no description, leave existing description unchanged
+        source_description = source_unit.get("description")
+        if source_description is not None:
+            dataspot_description = dataspot_unit.get("description", "")
+            if source_description != dataspot_description:
+                changes["description"] = {
+                    "old": dataspot_description,
+                    "new": source_description
+                }
+        
         # Check custom properties - specifically stateCalendarLink
         # Source units have properties in customProperties, but download API returns properties flat
         source_url = source_unit.get("customProperties", {}).get("stateCalendarLink", "")

@@ -14,26 +14,31 @@ from src.clients.rdm_client import RDMClient
 from src.clients.kv_client import KVClient
 from src.clients.tdm_client import TDMClient
 from src.common import email_helpers as email_helpers
-
+from src.common.website_description_extractor import invalid_urls, clear_description_cache, build_org_descriptions_cache
 
 def main():
+    # Clear the description cache at the start of a full run
+    # The cache will persist across all schemes for efficiency
+    clear_description_cache()
+    
     dnk_client = DNKClient()
     sync_org_structures(dataspot_client=dnk_client)
 
-    fdm_client = FDMClient()
-    sync_org_structures(dataspot_client=fdm_client)
+    if False:
+        fdm_client = FDMClient()
+        sync_org_structures(dataspot_client=fdm_client)
 
-    rdm_client = RDMClient()
-    sync_org_structures(dataspot_client=rdm_client)
+        rdm_client = RDMClient()
+        sync_org_structures(dataspot_client=rdm_client)
 
-    kv_client = KVClient()
-    sync_org_structures(dataspot_client=kv_client)
+        kv_client = KVClient()
+        sync_org_structures(dataspot_client=kv_client)
 
-    sk_client = SKClient()
-    sync_org_structures(dataspot_client=sk_client)
+        sk_client = SKClient()
+        sync_org_structures(dataspot_client=sk_client)
 
-    tdm_client = TDMClient()
-    sync_org_structures(dataspot_client=tdm_client)
+        tdm_client = TDMClient()
+        sync_org_structures(dataspot_client=tdm_client)
 
 def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUBLISHED"):
     """
@@ -47,11 +52,12 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
     This method:
     1. Retrieves organization data from the ODS API
     2. Validates that no duplicate stateCalendarId values exist in ODS data (throws an error if duplicates are found)
-    3. Fetches existing organizational units from Dataspot 
-    4. Validates that no duplicate stateCalendarId values exist in Dataspot (throws an error if duplicates are found)
-    5. Compares with existing organization data in Dataspot
-    6. Updates only the changed organizations
-    7. Provides a summary of changes
+    3. Pre-extracts descriptions from bs.ch websites (from the 'website' field in ODS dataset 100349) for all unique URLs
+    4. Fetches existing organizational units from Dataspot 
+    5. Validates that no duplicate stateCalendarId values exist in Dataspot (throws an error if duplicates are found)
+    6. Compares with existing organization data in Dataspot (using cached descriptions)
+    7. Updates only the changed organizations (including description updates)
+    8. Provides a summary of changes
     
     Args:
         dataspot_client: The Dataspot client instance to use for synchronization
@@ -66,6 +72,10 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
     # Initialize clients
     ods_client = ODSClient()
     
+    # Clear any previously tracked invalid URLs from previous runs
+    # Note: Description cache is NOT cleared here - it persists across schemes for efficiency
+    invalid_urls.clear()
+    
     # Initialize variables outside the try block for use in the finally block
     sync_result = {
         'status': 'pending',
@@ -76,12 +86,14 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
             'updated': 0,
             'deleted': 0,
             'directly_deleted': 0,
-            'marked_for_deletion': 0
+            'marked_for_deletion': 0,
+            'invalid_urls': 0
         },
         'details': {
             'creations': {'count': 0, 'items': []},
             'updates': {'count': 0, 'items': []},
-            'deletions': {'count': 0, 'items': []}
+            'deletions': {'count': 0, 'items': []},
+            'invalid_urls': {'count': 0, 'items': []}
         }
     }
     
@@ -96,8 +108,15 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         logging.info(
             f"Total organizations retrieved: {len(all_organizations['results'])} (out of {all_organizations['total_count']})")
 
+        # Pre-extract all bs.ch website descriptions before synchronization
+        # This batches all HTTP requests upfront, making the process more efficient
+        logging.info("Pre-extracting website descriptions for all organizations...")
+        build_org_descriptions_cache(all_organizations)
+
         # Synchronize organization data
-        logging.info("Synchronizing organization data with Dataspot...")
+        # Note: During synchronization, descriptions will be retrieved from cache
+        # using the 'website' field from ODS (not 'url_website' which is used for stateCalendarLink)
+        logging.info("Synchronizing organization data with Dataspot (using cached descriptions)...")
         
         # Use the sync org units method
         # By default, updates use "WORKING" status (DRAFT group)
@@ -175,6 +194,28 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         # Get the base URL and database name for asset links
         base_url = dataspot_client.base_url
         database_name = dataspot_client.database_name
+        
+        # Get invalid URLs from description extraction and add to sync_result
+        invalid_urls_list = list(invalid_urls)
+        if invalid_urls_list:
+            # Ensure sync_result has the right structure for invalid_urls_list
+            if 'counts' not in sync_result:
+                sync_result['counts'] = {}
+            if 'details' not in sync_result:
+                sync_result['details'] = {}
+            
+            sync_result['counts']['invalid_urls'] = len(invalid_urls_list)
+            sync_result['details']['invalid_urls'] = {
+                'count': len(invalid_urls_list),
+                'items': invalid_urls_list
+            }
+            logging.warning(f"Found {len(invalid_urls_list)} invalid website URLs of {sum([len(inv.get('org_titles', [])) for inv in invalid_urls])} organisation units during description extraction")
+            for invalid_url in invalid_urls_list:
+                logging.warning(f" - {invalid_url['url']} ({invalid_url['error']})")
+                org_titles = invalid_url['org_titles']
+                org_staatskalender_urls = invalid_url['org_staatskalender_urls']
+                for title, sk_url in zip(org_titles, org_staatskalender_urls):
+                    logging.warning(f"  - {sk_url}: {title}")
         
         # Write detailed report to file for email/reference purposes
         try:
@@ -371,8 +412,11 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     details = sync_result.get('details', {})
     is_error = sync_result.get('status') == 'error'
 
-    # Send email if there were changes or errors
-    if total_changes == 0 and not is_error:
+    # Get invalid URLs count
+    invalid_urls_count = counts.get('invalid_urls', 0)
+
+    # Send email if there were changes, errors, or invalid URLs
+    if total_changes == 0 and not is_error and invalid_urls_count == 0:
         return None, None, False
 
     # Get more detailed deletion counts if available
@@ -384,6 +428,8 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
         email_subject = f"[ERROR][{database_name}/{scheme_name_short}] Org Structure: Sync failed"
     else:
         email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
+        if invalid_urls_count > 0:
+            email_subject += f", {invalid_urls_count} invalid URLs"
 
     email_text = f"Hi there,\n\n"
     
@@ -473,6 +519,20 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
                     if value:
                         email_text += f"  {key}: '{value}'\n"
         email_text += "\n"
+
+    # Add invalid URLs section if any were found during description extraction
+    if invalid_urls_count > 0 and 'invalid_urls' in details:
+        invalid_urls = details['invalid_urls'].get('items', [])
+        email_text += f"INVALID WEBSITE URLs ({len(invalid_urls)}):\n"
+        email_text += "The following website URLs could not be accessed for description extraction.\n"
+        email_text += "Please verify these URLs in the Staatskalender:\n\n"
+        for invalid_url in invalid_urls:
+            url = invalid_url.get('url', '(Unknown)')
+            org_title = invalid_url.get('org_title', '(Unknown)')
+            error = invalid_url.get('error', '(Unknown error)')
+            email_text += f"- {org_title}\n"
+            email_text += f"  URL: {url}\n"
+            email_text += f"  Error: {error}\n\n"
 
     if is_error:
         email_text += "Please check the logs for more details about the error.\n"

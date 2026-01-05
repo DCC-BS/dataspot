@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List, Set, Tuple
 
 from src.clients.helpers import escape_special_chars
+from src.common.website_description_extractor import retrieve_meta_description
 
 
 class OrgStructureTransformer:
@@ -94,8 +95,15 @@ class OrgStructureTransformer:
                     logging.warning(f"Organization {org_id} missing title, skipping")
                     continue
                 
-                # Get URL
+                # Get URL for stateCalendarLink
                 url_website = org.get('url_website', '')
+                
+                # Get website URL for description extraction
+                website = org.get('website', '')
+                description = None
+                if website:
+                    # TODO: I think we can remove these 2 parameters (title and urls), but I keep it for now, just to be save
+                    description = retrieve_meta_description(website, org_titles=[title.strip()], org_staatskalender_urls=[url_website])
                 
                 # Create unit data
                 unit_data = {
@@ -104,6 +112,10 @@ class OrgStructureTransformer:
                     "stereotype": "organizationalUnit",
                     "stateCalendarId": org_id
                 }
+                
+                # Add description if extraction succeeded
+                if description:
+                    unit_data["description"] = description
                 
                 # Add custom properties
                 custom_properties = {}
