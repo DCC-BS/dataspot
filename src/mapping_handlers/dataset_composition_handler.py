@@ -240,7 +240,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             "_type": "UmlClass",
             "label": name,
             "title": title,
-            "description": "*-*",
+            "description": "*automatisch generiert, siehe [OGD-Datensätze in Huwise](https://datenkatalog.bs.ch/web/prod/collections/6f3f4121-34a5-4898-b1bb-781163596baf)*",
             "physicalName": ods_id,
             "stereotype": "ogd_dataset",
             "customProperties": {
