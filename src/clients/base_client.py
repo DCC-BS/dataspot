@@ -626,11 +626,6 @@ class BaseDataspotClient:
             logging.warning(f"Response was not valid JSON. Content: {response.text[:1000]}...")
             return {"response_text": response.text}
 
-    # This method exists to avoid a pycharm warning.
-    #  I don't really want to add an entire interface for just this case
-    def sync_org_units(self, all_organizations: dict, status: str = "WORKING"):
-        raise NotImplementedError("Error: sync_org_units should never be called in the BaseClient! If you see this, then this is a bug.")
-
     def get_org_units_by_staatskalender_ids(self, staatskalender_ids: List[str]) -> Dict[str, Dict[str, Any]]:
         """
         Fetch organization units by their staatskalender_id values.

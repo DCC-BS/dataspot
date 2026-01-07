@@ -103,7 +103,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         # By default, updates use "WORKING" status (DRAFT group)
         # To automatically publish updates, use status="PUBLISHED"
         # To mark for deletion review, deletions use "DELETENEW" (handled automatically)
-        sync_result = dataspot_client.sync_org_units(
+        sync_result = dataspot_client.org_handler.sync_org_units(
             all_organizations, 
             status=default_status
         )

@@ -162,7 +162,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                     logging.info(f"Step 3: Syncing batch of {batch_num} datasets...")
                     
                     # Sync datasets
-                    sync_summary = dataspot_client.sync_datasets(datasets=all_datasets, status="PUBLISHED")
+                    sync_summary = dataspot_client.dataset_handler.sync_datasets(datasets=all_datasets, status="PUBLISHED")
                     
                     logging.info(f"Batch sync completed. Response summary: {sync_summary}")
                     

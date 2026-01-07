@@ -198,7 +198,7 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                     
                     # Sync dataset compositions
                     logging.info(f"Synchronizing dataset compositions for {ods_id}: '{dataset_title}'")
-                    result = tdm_client.sync_dataset_compositions(ods_id=ods_id, name=tdm_title, columns=columns, title=dataset_title)
+                    result = tdm_client.composition_handler.sync_dataset_compositions(ods_id=ods_id, name=tdm_title, columns=columns, title=dataset_title)
                     
                     # Parse result
                     is_new = result.get('is_new', False)

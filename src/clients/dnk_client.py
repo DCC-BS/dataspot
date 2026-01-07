@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 import logging
 
 import config
@@ -69,24 +69,6 @@ class DNKClient(BaseDataspotClient):
         endpoint = f"/rest/{self.database_name}/datasets/{uuid}"
         return self._update_asset(endpoint=endpoint, data=dataset.to_json(), replace=force_replace, status=status)
     
-    def delete_dataset(self, ods_id: str, fail_if_not_exists: bool = False) -> bool:
-        """
-        Delete a dataset from the DNK by marking it for deletion review,
-        or update local tracking if already deleted from Dataspot.
-        
-        This is a higher-level method that handles checking for existence,
-        marking for deletion, and updating the mapping.
-        
-        Args:
-            ods_id (str): The ODS ID of the dataset to delete
-            fail_if_not_exists (bool): Whether to raise an error if the dataset doesn't exist
-            
-        Returns:
-            bool: True if the dataset was deleted or marked for deletion, or if it didn't exist but tracking was updated.
-                 False if it didn't exist in mapping and fail_if_not_exists is False.
-        """
-        return self.dataset_handler.delete_dataset(ods_id, fail_if_not_exists)
-    
     def mark_dataset_for_deletion(self, uuid: str) -> bool:
         """
         Mark a dataset for deletion review in Dataspot.
@@ -143,32 +125,3 @@ class DNKClient(BaseDataspotClient):
             dry_run=dry_run,
             status=status
         )
-    
-    # Synchronization methods
-    def sync_org_units(self, org_data: Dict[str, Any], status: str = "WORKING") -> Dict[str, Any]:
-        """
-        Synchronize organizational units in Dataspot with data from the Staatskalender ODS API.
-        
-        Args:
-            org_data: Dictionary containing organization data from ODS API
-            status: Status to set on updated org units. Defaults to "WORKING" (DRAFT group).
-                   Use "PUBLISHED" to make updates public immediately.
-            
-        Returns:
-            Dict: Summary of the synchronization process
-        """
-        return self.org_handler.sync_org_units(org_data, status=status)
-    
-    def sync_datasets(self, datasets: List[Dataset], status: str = "WORKING") -> Dict[str, Any]:
-        """
-        Synchronize datasets between ODS and Dataspot.
-        
-        Args:
-            datasets: List of Dataset objects to synchronize
-            status: Status to set on created/updated datasets. Defaults to "WORKING" (DRAFT group).
-                   Use "PUBLISHED" to make datasets public immediately.
-            
-        Returns:
-            Dict: Report of the synchronization process
-        """
-        return self.dataset_handler.sync_datasets(datasets, status=status)
