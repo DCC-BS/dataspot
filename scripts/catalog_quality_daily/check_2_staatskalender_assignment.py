@@ -3,7 +3,7 @@ import time
 from typing import Dict, List, Tuple
 
 import config
-from src.common import requests_patch
+from src.common import requests_patch, requests_get
 from src.clients.base_client import BaseDataspotClient
 from src.staatskalender_cache import StaatskalenderCache
 
