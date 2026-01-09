@@ -3,30 +3,34 @@ from typing import Dict, Any, List, Optional
 
 from src.clients.base_client import BaseDataspotClient
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
+from src.mapping_handlers.in_memory_mapping import InMemoryMapping
 from src.mapping_handlers.org_structure_helpers.org_structure_transformer import OrgStructureTransformer
 from src.mapping_handlers.org_structure_helpers.org_structure_comparer import OrgStructureComparer
 from src.mapping_handlers.org_structure_helpers.org_structure_updater import OrgStructureUpdater
 
 
-class OrgStructureMapping(BaseDataspotMapping):
+class OrgStructureMapping(InMemoryMapping):
     """
     A lookup table that maps Staatskalender IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Stores the mapping in a CSV file for persistence. Handles organizational units.
-    The REST endpoint is constructed dynamically.
+    Fetches mappings from Dataspot API, stores in memory. Handles organizational units.
     """
 
-    def __init__(self, database_name: str, scheme: str):
+    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
         """
-        Initialize the mapping table for organizational units.
-        The CSV filename is derived from the database_name and scheme.
+        Initialize the mapping table for organizational units by fetching from Dataspot API.
 
         Args:
-            database_name (str): Name of the database to use for file naming.
-                                 Example: "feature-staatskalender_DNK_staatskalender-dataspot-mapping.csv"
+            database_name (str): Name of the database
             scheme (str): Name of the scheme (e.g., 'DNK', 'TDM')
+            client (BaseDataspotClient): Client instance to use for API operations
         """
-        super().__init__(database_name, "staatskalender_id", "staatskalender-dataspot", scheme)
+        # Filter function: Collection with stereotype='organizationalUnit' and stateCalendarId field
+        filter_function = lambda asset: (
+            asset.get('_type') == 'Collection' and 
+            asset.get('stereotype') == 'organizationalUnit' and
+            asset.get('stateCalendarId') is not None
+        )
+        super().__init__(database_name, "staatskalender_id", scheme, client, filter_function)
 
 
 class OrgStructureHandler(BaseDataspotHandler):
@@ -48,8 +52,8 @@ class OrgStructureHandler(BaseDataspotHandler):
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the organization mapping
-        self.mapping = OrgStructureMapping(database_name=client.database_name, scheme=client.scheme_name_short)
+        # Initialize the organization mapping (fetches from Dataspot API)
+        self.mapping = OrgStructureMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
         
         # Set the asset type filter based on asset_id_field and stereotype
         self.asset_type_filter = lambda asset: (
@@ -207,7 +211,6 @@ class OrgStructureHandler(BaseDataspotHandler):
         
         # Update mappings after upload
         self.update_mappings_after_upload(staatskalender_ids)
-        self.mapping.save_to_csv()
         
         # Determine overall result
         if upload_errors:
@@ -305,10 +308,9 @@ class OrgStructureHandler(BaseDataspotHandler):
             logging.info(f"No organizational units found in Dataspot. Performing initial bulk upload with status '{status}'...")
             result = self._initialize_org_hierarchy_from_ods(org_data, status=status)
             
-            # Save updated mappings
+            # Update mappings
             source_ids = [str(org_unit['id']) for org_unit in org_data.get('results', [])]
             self.update_mappings_after_upload(source_ids)
-            self.mapping.save_to_csv()
             
             return {
                 "status": result.get("status", "unknown"),
@@ -345,7 +347,6 @@ class OrgStructureHandler(BaseDataspotHandler):
         if changes:
             # Update all mappings to ensure hierarchy changes are captured properly
             self.update_mappings_after_upload()
-            self.mapping.save_to_csv()
         
         # Generate detailed report with all changes
         detailed_report = OrgStructureComparer.generate_detailed_sync_report(changes, stats=stats)

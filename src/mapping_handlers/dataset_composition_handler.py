@@ -7,7 +7,7 @@ from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
 from src.common import requests_post
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
+from src.mapping_handlers.in_memory_mapping import InMemoryMapping
 
 
 # Module-level cache for existing Huwise composition deployments
@@ -106,24 +106,31 @@ def ensure_huwise_composition_deployment(client: BaseDataspotClient, composition
         return False
 
 
-class DatasetCompositionMapping(BaseDataspotMapping):
+class DatasetCompositionMapping(InMemoryMapping):
     """
     A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Stores the mapping in a CSV file for persistence. Handles only dataset compositions.
-    The REST endpoint is constructed dynamically.
+    Fetches mappings from Dataspot API, stores in memory. Handles only dataset compositions.
     """
 
-    def __init__(self, database_name: str, scheme: str):
+    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
         """
-        Initialize the mapping table for dataset compositions.
-        The CSV filename is derived from the database_name and scheme.
+        Initialize the mapping table for dataset compositions by fetching from Dataspot API.
 
         Args:
-            database_name (str): Name of the database to use for file naming.
-                                 Example: "feature-staatskalender_TDM_ods-compositions-dataspot-mapping.csv"
+            database_name (str): Name of the database
             scheme (str): Name of the scheme (e.g., 'TDM')
+            client (BaseDataspotClient): Client instance to use for API operations
         """
-        super().__init__(database_name, "ods_id", "ods-compositions-dataspot", scheme)
+        # Filter function: UmlClass with stereotype='ogd_dataset' and odsDataportalId field
+        filter_function = lambda asset: (
+            asset.get('_type') == 'UmlClass' and 
+            asset.get('stereotype') == 'ogd_dataset' and 
+            asset.get('odsDataportalId') is not None
+        )
+        # Note: id_field_name is "ods_id" (the mapping key name), but assets have "odsDataportalId" field
+        # We need to extract from "odsDataportalId" field, so we'll override the extraction in the filter
+        # Actually, let's use "odsDataportalId" as id_field_name to match the asset field
+        super().__init__(database_name, "odsDataportalId", scheme, client, filter_function)
 
 class DatasetCompositionHandler(BaseDataspotHandler):
     """
@@ -143,8 +150,8 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the dataset composition mapping
-        self.mapping = DatasetCompositionMapping(database_name=client.database_name, scheme=client.scheme_name_short)
+        # Initialize the dataset composition mapping (fetches from Dataspot API)
+        self.mapping = DatasetCompositionMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: (asset.get('_type') == 'UmlClass' and 
@@ -517,9 +524,6 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         
         # Update mappings after changes
         self.update_mappings_after_upload([ods_id])
-        
-        # Save mapping to CSV
-        self.mapping.save_to_csv()
         
         return result
         

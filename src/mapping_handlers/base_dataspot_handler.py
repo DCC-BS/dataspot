@@ -2,7 +2,6 @@ import logging
 from typing import List, Dict, Any
 
 from src.clients.base_client import BaseDataspotClient
-from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
 
 
 class BaseDataspotHandler:
@@ -14,7 +13,7 @@ class BaseDataspotHandler:
     asset_id_field = None  # Field name for the external ID (e.g., 'odsDataportalId', 'stateCalendarId')
     asset_type_filter = None  # Filter function or criteria for asset type
     
-    mapping: BaseDataspotMapping
+    mapping: Any  # InMemoryMapping or subclass
 
     def __init__(self, client: BaseDataspotClient):
         """

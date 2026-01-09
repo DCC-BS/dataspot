@@ -7,7 +7,7 @@ from src.clients.helpers import url_join, get_uuid_from_response
 from src.common import requests_post
 from src.dataspot_dataset import Dataset
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.base_dataspot_mapping import BaseDataspotMapping
+from src.mapping_handlers.in_memory_mapping import InMemoryMapping
 
 
 # Module-level cache for existing Huwise deployments
@@ -106,24 +106,24 @@ def ensure_huwise_deployment(client: BaseDataspotClient, dataset_uuid: str, data
         return False
 
 
-class DatasetMapping(BaseDataspotMapping):
+class DatasetMapping(InMemoryMapping):
     """
     A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Stores the mapping in a CSV file for persistence. Handles only datasets for now.
-    The REST endpoint is constructed dynamically.
+    Fetches mappings from Dataspot API, stores in memory. Handles only datasets for now.
     """
 
-    def __init__(self, database_name: str, scheme: str):
+    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
         """
-        Initialize the mapping table for datasets.
-        The CSV filename is derived from the database_name and scheme.
+        Initialize the mapping table for datasets by fetching from Dataspot API.
 
         Args:
-            database_name (str): Name of the database to use for file naming.
-                                 Example: "feature-staatskalender_DNK_ods-dataspot-mapping.csv"
+            database_name (str): Name of the database
             scheme (str): Name of the scheme (e.g., 'DNK', 'TDM')
+            client (BaseDataspotClient): Client instance to use for API operations
         """
-        super().__init__(database_name, "odsDataportalId", "ods-dataspot", scheme)
+        # Filter function: asset must have odsDataportalId field
+        filter_function = lambda asset: asset.get("odsDataportalId") is not None
+        super().__init__(database_name, "odsDataportalId", scheme, client, filter_function)
 
 
 class DatasetHandler(BaseDataspotHandler):
@@ -144,8 +144,8 @@ class DatasetHandler(BaseDataspotHandler):
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the dataset mapping
-        self.mapping = DatasetMapping(database_name=client.database_name, scheme=client.scheme_name_short)
+        # Initialize the dataset mapping (fetches from Dataspot API)
+        self.mapping = DatasetMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: asset.get(self.asset_id_field) is not None
@@ -462,10 +462,6 @@ class DatasetHandler(BaseDataspotHandler):
         logging.info("Step 5: Updating mappings after upload...")
         if odsDataportalIds:
             self.update_mappings_after_upload(odsDataportalIds, result)
-
-        # Step 6: Save mappings to CSV
-        logging.info("Step 6: Saving mappings to CSV...")
-        self.mapping.save_to_csv()
 
         # Generate result message
         result["message"] = (
