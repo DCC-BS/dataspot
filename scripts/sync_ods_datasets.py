@@ -215,17 +215,11 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # After all batches have been processed, handle deletions
         logging.info("Step 4: Processing deletions - identifying datasets no longer in ODS...")
         
-        # Get all existing ODS dataset IDs from Dataspot using the asset filter
+        # Get all existing ODS dataset IDs from Dataspot
         logging.info("Getting all ODS dataset IDs from Dataspot...")
-
-        # Define a filter function to get only datasets with odsDataportalId
-        ods_filter = lambda asset: (
-            asset.get('_type') == 'Dataset' and
-            asset.get('odsDataportalId') is not None and
-            asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']) # Ignore archived assets
         
-        # Get all datasets from Dataspot with odsDataportalId
-        all_dataspot_datasets = dataspot_client.get_all_assets_from_scheme(filter_function=ods_filter)
+        # Get all datasets from Dataspot
+        all_dataspot_datasets = dataspot_client.get_datasets_with_cache()
         
         # Extract ODS IDs from the datasets
         dataspot_ods_ids = set()

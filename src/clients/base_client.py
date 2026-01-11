@@ -91,71 +91,6 @@ class BaseDataspotClient:
 
         return response.json()
 
-    def _download_all_assets_from_scheme(self, asset_types: str | None = None) -> List[Dict[str, Any]]:
-        """
-        Download all assets from the scheme with optional asset type filtering.
-        
-        Args:
-            asset_types: Optional asset type to filter by (e.g., 'Collection', 'Dataset').
-                        If provided, appends &assetTypes={asset_types} to the download URL.
-        
-        Returns:
-            List[Dict[str, Any]]: List of assets from the scheme
-            
-        Raises:
-            HTTPError: If API requests fail
-            ValueError: If the response format is unexpected or invalid
-        """
-        download_path = f"/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON"
-        if asset_types:
-            download_path += f"&assetTypes={asset_types}"
-        full_url = url_join(self.base_url, download_path)
-        
-        logging.debug(f"Downloading all assets from scheme '{self.scheme_name}' at: {full_url}")
-        response = requests_get(full_url, headers=self.auth.get_headers())
-        response.raise_for_status()
-        
-        assets = response.json()
-        
-        if isinstance(assets, list):
-            return assets
-        else:
-            logging.error(f"Received unexpected response format from {full_url}. Expected a list of assets.")
-            logging.debug(f"Response content: {assets}")
-            raise ValueError(f"Unexpected response format from download API. Expected a list but got: {type(assets)}")
-
-    def get_all_assets_from_scheme(self, filter_function=None) -> List[Dict[str, Any]]:
-        """
-        Download all assets from a scheme using the Download API with optional filtering.
-        
-        .. deprecated::
-            This method is deprecated for Compositions, Datasets, and Collections. Use the dedicated
-            cache methods instead: TDMClient.get_compositions_with_cache(), 
-            DNKClient.get_datasets_with_cache(), and get_collections_with_cache().
-        
-        Args:
-            filter_function: Optional function that takes an asset and returns True if it should be included.
-                **IMPORTANT:** Note that the filter is applied on flat asset, i.e. no customProperties field is present!
-
-        Returns:
-            List[Dict[str, Any]]: List of assets from the scheme (filtered if filter_function provided)
-                
-        Raises:
-            HTTPError: If API requests fail
-            ValueError: If the response format is unexpected or invalid
-        """
-        # Download without caching (subclasses may override for their specific caching)
-        logging.info(f"Downloading assets from {self.scheme_name_short} scheme for mapping update")
-        assets = self._download_all_assets_from_scheme()
-        logging.info(f"Downloaded {len(assets)} assets from scheme '{self.scheme_name}'")
-        
-        if filter_function:
-            filtered_assets = [asset for asset in assets if filter_function(asset)]
-            logging.info(f"Filtered to {len(filtered_assets)} assets")
-            return filtered_assets
-        
-        return assets
-
     def get_collections_with_cache(self) -> List[Dict[str, Any]]:
         """
         Get Collection objects (org units) with caching support.
@@ -172,7 +107,21 @@ class BaseDataspotClient:
         
         # Cache is empty, download and populate (using assetTypes filter to reduce payload)
         logging.info(f"Downloading Collection assets from {self.scheme_name_short} scheme using Download API with assetTypes filter")
-        all_assets = self._download_all_assets_from_scheme(asset_types='Collection')
+        
+        # Download all Collection assets from the scheme
+        download_url = f"{self.base_url}/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON&assetTypes=Collection"
+        
+        logging.debug(f"Downloading all Collections from scheme '{self.scheme_name}' at: {download_url}")
+        response = requests_get(download_url, headers=self.auth.get_headers())
+        response.raise_for_status()
+        
+        all_assets = response.json()
+        
+        if not isinstance(all_assets, list):
+            logging.error(f"Received unexpected response format from {download_url}. Expected a list of assets.")
+            logging.debug(f"Response content: {all_assets}")
+            raise ValueError(f"Unexpected response format from download API. Expected a list but got: {type(all_assets)}")
+        
         logging.info(f"Downloaded {len(all_assets)} Collection assets from scheme '{self.scheme_name}'")
         
         # Cache only Collection objects with stereotype='organizationalUnit' and stateCalendarId
