@@ -111,13 +111,28 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             
             for idx, ods_id in enumerate(current_batch):
                 logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
-                logging.info(f"First, waiting 10 seconds for server to cool down")
-                time.sleep(10)
                 
                 try:
                     # Get dataset title
-                    dataset_title = ods_utils.get_dataset_title(dataset_id=ods_id)
-                    if not dataset_title:
+                    # TODO: Clean this up - Create an ods_id parameter in the cache; possibly save it in a dict instead of a list
+                    tmp_titles = [item['label'] for item in tdm_client.get_compositions_with_cache() if item['odsDataportalId'] == ods_id]
+                    logging.info(f"Filtered to {len(tmp_titles)} Compositions")
+
+                    if len(tmp_titles) > 1:
+                        error_msg = f"Found more than one dataset for dataset {ods_id}"
+                        logging.error(error_msg)
+
+                        # Track error
+                        sync_results['counts']['errors'] += 1
+                        sync_results['details']['errors']['count'] += 1
+                        sync_results['details']['errors']['items'].append({
+                            'ods_id': ods_id,
+                            'message': error_msg
+                        })
+                        total_failed += 1
+                        continue
+
+                    if not tmp_titles:
                         error_msg = f"Could not retrieve title for dataset {ods_id}"
                         logging.error(error_msg)
                         
@@ -130,7 +145,9 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                         })
                         total_failed += 1
                         continue
-                    
+
+                    dataset_title = tmp_titles[0]
+
                     logging.info(f"Retrieved dataset title: '{dataset_title}'")
                     
                     # Create TDM title in the format {ods-id}@data.bs.ch
@@ -143,16 +160,11 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                         logging.info(f"No columns found for dataset {ods_id}: {dataset_title}")
                         
                         # Check if a composition already exists for this ods_id
-                        existing_filter = lambda asset: (
-                            asset.get('_type') == 'UmlClass' and
-                            asset.get('stereotype') == 'ogd_dataset' and
-                            asset.get('odsDataportalId') == ods_id and
-                            asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']
-                        )
-                        existing_compositions = tdm_client.get_all_assets_from_scheme(filter_function=existing_filter)
+                        existing_compositions = [c for c in tdm_client.get_compositions_with_cache() if c.get('odsDataportalId') == ods_id]
                         
                         if existing_compositions:
                             # Composition exists - delete it since dataset has no columns
+                            # TODO: This is a potential bug! Several compositions could exist (although very unlikely)!
                             composition = existing_compositions[0]
                             composition_uuid = composition.get('id')
                             composition_title = composition.get('label', f"<Unnamed Composition {ods_id}>")
@@ -336,16 +348,8 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             # After processing all datasets, handle deletions
             logging.info("Step 3: Processing deletions - identifying compositions no longer in ODS...")
 
-            # Define a filter function to get only compositions with odsDataportalId
-            tdm_filter = lambda asset: (
-                asset.get('_type') == 'UmlClass' and
-                asset.get('stereotype') == 'ogd_dataset' and
-                asset.get('odsDataportalId') is not None and
-                asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']  # Ignore archived assets
-            )
-
             # Get all compositions from TDM with odsDataportalId
-            all_tdm_compositions = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+            all_tdm_compositions = tdm_client.get_compositions_with_cache()
 
             # Extract ODS IDs from the compositions
             tdm_ods_ids = set()

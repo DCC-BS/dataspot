@@ -49,16 +49,12 @@ class BaseDataspotHandler:
         
         logging.info(f"Downloading assets from {self.scheme_name} scheme")
         
-        # Get assets from the scheme
-        assets = self.client.get_all_assets_from_scheme()
+        # Get assets from the scheme, passing the filter to enable caching
+        assets = self.client.get_all_assets_from_scheme(filter_function=self.asset_type_filter)
         
         if not assets:
             logging.warning(f"No assets found in {self.scheme_name}")
             return 0
-        
-        # Apply asset type filtering if it's a function
-        if callable(self.asset_type_filter):
-            assets = [asset for asset in assets if self.asset_type_filter(asset)]
         
         # Create a lookup dictionary for faster access
         asset_by_id = {}

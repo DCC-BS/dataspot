@@ -93,3 +93,29 @@ def escape_special_chars(name: str) -> str:
     
     logging.debug(f"No need to escape special characters for '{orig_name}'")
     return name
+
+def strip_quotes(value: str | None) -> str | None:
+    """
+    Strip leading and trailing quotes from a string value.
+    
+    This is useful for values returned from SQL Query API that may be stored
+    as JSON strings and come back with quotes (e.g., '"100079"' -> '100079').
+    
+    Args:
+        value: The string value to strip quotes from, or None
+        
+    Returns:
+        str: The value with quotes stripped, or None if input was None
+    """
+    if value is None:
+        return None
+    
+    if not isinstance(value, str):
+        return value
+    
+    # Strip leading and trailing quotes (both single and double)
+    value = value.strip()
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        return value[1:-1]
+    
+    return value

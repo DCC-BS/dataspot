@@ -1,13 +1,17 @@
 import logging
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
 from src.common import requests_post
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.in_memory_mapping import InMemoryMapping
+
+# Import TDMClient with TYPE_CHECKING to avoid circular import at runtime
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from src.clients.tdm_client import TDMClient
 
 
 # Module-level cache for existing Huwise composition deployments
@@ -106,32 +110,6 @@ def ensure_huwise_composition_deployment(client: BaseDataspotClient, composition
         return False
 
 
-class DatasetCompositionMapping(InMemoryMapping):
-    """
-    A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Fetches mappings from Dataspot API, stores in memory. Handles only dataset compositions.
-    """
-
-    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
-        """
-        Initialize the mapping table for dataset compositions by fetching from Dataspot API.
-
-        Args:
-            database_name (str): Name of the database
-            scheme (str): Name of the scheme (e.g., 'TDM')
-            client (BaseDataspotClient): Client instance to use for API operations
-        """
-        # Filter function: UmlClass with stereotype='ogd_dataset' and odsDataportalId field
-        filter_function = lambda asset: (
-            asset.get('_type') == 'UmlClass' and 
-            asset.get('stereotype') == 'ogd_dataset' and 
-            asset.get('odsDataportalId') is not None
-        )
-        # Note: id_field_name is "ods_id" (the mapping key name), but assets have "odsDataportalId" field
-        # We need to extract from "odsDataportalId" field, so we'll override the extraction in the filter
-        # Actually, let's use "odsDataportalId" as id_field_name to match the asset field
-        super().__init__(database_name, "odsDataportalId", scheme, client, filter_function)
-
 class DatasetCompositionHandler(BaseDataspotHandler):
     """
     Handler for dataset composition synchronization operations in Dataspot.
@@ -140,18 +118,30 @@ class DatasetCompositionHandler(BaseDataspotHandler):
     # Set configuration values for the base handler
     asset_id_field = 'odsDataportalId'
     
-    def __init__(self, client: BaseDataspotClient):
+    def __init__(self, client: "TDMClient"):
         """
         Initialize the DatasetCompositionHandler.
         
         Args:
-            client: BaseDataspotClient instance to use for API operations
+            client: TDMClient instance to use for API operations
         """
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the dataset composition mapping (fetches from Dataspot API)
-        self.mapping = DatasetCompositionMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
+        # Initialize the dataset composition mapping from cache
+        # Dict structure: ods_id -> (type, uuid, inCollection)
+        self.mapping: Dict[str, Tuple[str, str, Optional[str]]] = {}
+        
+        # Populate mapping from cached compositions
+        compositions = client.get_compositions_with_cache()
+        for comp in compositions:
+            ods_id = comp.get('odsDataportalId')
+            if ods_id:
+                self.mapping[str(ods_id)] = (
+                    comp.get('_type', 'UmlClass'),
+                    comp.get('id'),
+                    comp.get('inCollection')
+                )
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: (asset.get('_type') == 'UmlClass' and 
@@ -193,9 +183,6 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         
         # Prefetch all datatype UUIDs
         self._prefetch_datatype_uuids()
-        
-        # Update mappings during initialization to ensure fresh data
-        self.update_mappings_before_upload()
 
     def _prefetch_datatype_uuids(self):
         """
@@ -261,7 +248,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         asset_uuid = None
         
         # Check if asset already exists with this odsDataportalId using mapping
-        existing_entry = self.mapping.get_entry(ods_id)
+        existing_entry = self.mapping.get(ods_id)
         
         if existing_entry:
             # Asset exists in mapping, verify it still exists in Dataspot
@@ -283,19 +270,15 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             else:
                 # Asset doesn't exist in Dataspot anymore, remove from mapping
                 logging.warning(f"Dataobject for dataset {ods_id} found in mapping but not in Dataspot. Removing from mapping.")
-                self.mapping.remove_entry(ods_id)
+                self.mapping.pop(ods_id, None)
                 asset_uuid = None
                 is_new = True
         
         # If not found in mapping or not existing in Dataspot, check if asset exists with this odsDataportalId
         if not existing_entry or not asset_uuid:
-            asset_filter = lambda asset: (
-                asset.get('_type') == 'UmlClass' and
-                asset.get('stereotype') == 'ogd_dataset' and
-                asset.get('odsDataportalId') == ods_id
-            )
-            
-            existing_assets = self.client.get_all_assets_from_scheme(filter_function=asset_filter)
+            # Use cached compositions and filter in-memory
+            all_compositions = self.client.get_compositions_with_cache()
+            existing_assets = [c for c in all_compositions if c.get('odsDataportalId') == ods_id]
     
             if existing_assets:
                 if len(existing_assets) > 1:
@@ -318,7 +301,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False, status="PUBLISHED")
                 
                 # Add to mapping
-                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_composition_path_full)
+                self.mapping[ods_id] = ("UmlClass", asset_uuid, self.default_composition_path_full)
         
         # If still no asset_uuid, create a new dataobject
         if not asset_uuid:
@@ -338,7 +321,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             else:
                 logging.info(f"Successfully created new dataobject (UUID: {asset_uuid})")
                 # Add to mapping
-                self.mapping.add_entry(ods_id, "UmlClass", asset_uuid, self.default_composition_path_full)
+                self.mapping[ods_id] = ("UmlClass", asset_uuid, self.default_composition_path_full)
         
         # Process attributes (columns)
         attributes_endpoint = f"/rest/{self.client.database_name}/classifiers/{asset_uuid}/attributes"
@@ -456,11 +439,6 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         for attr_name, attr_data in existing_attributes.items():
             self._delete_attribute(attr_data, deleted_attrs)
         
-        # Add a delay if any attributes were created to avoid hitting API rate limits
-        if created_attrs or updated_attrs:
-            logging.info(f"Added {len(created_attrs)} new attributes and {len(updated_attrs)} updated attributes. Waiting 10 seconds to avoid API rate limits...")
-            time.sleep(10)
-        
         # Asset link for reference in results
         dataspot_link = f"{self.client.base_url}/web/{self.client.database_name}/assets/{asset_uuid}" if asset_uuid else ""
         
@@ -521,9 +499,6 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 "title": name,
                 "uuid": asset_uuid
             })
-        
-        # Update mappings after changes
-        self.update_mappings_after_upload([ods_id])
         
         return result
         

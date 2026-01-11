@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 import config
 from src.clients.base_client import BaseDataspotClient
@@ -7,7 +7,10 @@ from src.clients.helpers import url_join, get_uuid_from_response
 from src.common import requests_post
 from src.dataspot_dataset import Dataset
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.in_memory_mapping import InMemoryMapping
+
+# Import DNKClient with TYPE_CHECKING to avoid circular import at runtime
+if TYPE_CHECKING:
+    from src.clients.dnk_client import DNKClient
 
 
 # Module-level cache for existing Huwise deployments
@@ -106,26 +109,6 @@ def ensure_huwise_deployment(client: BaseDataspotClient, dataset_uuid: str, data
         return False
 
 
-class DatasetMapping(InMemoryMapping):
-    """
-    A lookup table that maps ODS IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Fetches mappings from Dataspot API, stores in memory. Handles only datasets for now.
-    """
-
-    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
-        """
-        Initialize the mapping table for datasets by fetching from Dataspot API.
-
-        Args:
-            database_name (str): Name of the database
-            scheme (str): Name of the scheme (e.g., 'DNK', 'TDM')
-            client (BaseDataspotClient): Client instance to use for API operations
-        """
-        # Filter function: asset must have odsDataportalId field
-        filter_function = lambda asset: asset.get("odsDataportalId") is not None
-        super().__init__(database_name, "odsDataportalId", scheme, client, filter_function)
-
-
 class DatasetHandler(BaseDataspotHandler):
     """
     Handler for dataset synchronization operations in Dataspot.
@@ -134,18 +117,30 @@ class DatasetHandler(BaseDataspotHandler):
     # Set configuration values for the base handler
     asset_id_field = 'odsDataportalId'
     
-    def __init__(self, client: BaseDataspotClient):
+    def __init__(self, client: "DNKClient"):
         """
         Initialize the DatasetHandler.
         
         Args:
-            client: BaseDataspotClient instance to use for API operations
+            client: DNKClient instance to use for API operations
         """
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the dataset mapping (fetches from Dataspot API)
-        self.mapping = DatasetMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
+        # Initialize the dataset mapping from cache
+        # Dict structure: ods_id -> (type, uuid, inCollection)
+        self.mapping: Dict[str, Tuple[str, str, Optional[str]]] = {}
+        
+        # Populate mapping from cached datasets
+        datasets = client.get_datasets_with_cache()
+        for dataset in datasets:
+            ods_id = dataset.get('odsDataportalId')
+            if ods_id:
+                self.mapping[str(ods_id)] = (
+                    dataset.get('_type', 'Dataset'),
+                    dataset.get('id'),
+                    dataset.get('inCollection')
+                )
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: asset.get(self.asset_id_field) is not None
@@ -197,12 +192,8 @@ class DatasetHandler(BaseDataspotHandler):
 
         logging.info(f"Starting synchronization of {len(datasets)} datasets...")
 
-        # Step 1: Update mappings before upload
-        logging.info("Step 1: Updating mappings before upload...")
-        self.update_mappings_before_upload()
-
-        # Step 2: Extract ODS IDs and separate datasets into new and existing
-        logging.info("Step 2: Separating datasets into new and existing...")
+        # Step 1: Extract ODS IDs and separate datasets into new and existing
+        logging.info("Step 1: Separating datasets into new and existing...")
         new_datasets = []
         existing_datasets = []
         odsDataportalIds = []
@@ -214,7 +205,7 @@ class DatasetHandler(BaseDataspotHandler):
                 odsDataportalIds.append(odsDataportalId)
                 
                 # Check if dataset exists in mapping
-                existing_entry = self.mapping.get_entry(odsDataportalId)
+                existing_entry = self.mapping.get(odsDataportalId)
                 if existing_entry:
                     existing_datasets.append((dataset, odsDataportalId, existing_entry))
                 else:
@@ -240,8 +231,8 @@ class DatasetHandler(BaseDataspotHandler):
             }
         }
 
-        # Step 3: Process existing datasets with individual updates to preserve other fields
-        logging.info(f"Step 3: Updating {len(existing_datasets)} existing datasets individually...")
+        # Step 2: Process existing datasets with individual updates to preserve other fields
+        logging.info(f"Step 2: Updating {len(existing_datasets)} existing datasets individually...")
         
         if existing_datasets:
             for dataset, odsDataportalId, entry in existing_datasets:
@@ -395,8 +386,8 @@ class DatasetHandler(BaseDataspotHandler):
                         "message": error_msg
                     })
 
-        # Step 4: Upload new datasets using bulk_create_or_update_datasets
-        logging.info(f"Step 4: Creating {len(new_datasets)} new datasets with bulk upload...")
+        # Step 3: Upload new datasets using bulk_create_or_update_datasets
+        logging.info(f"Step 3: Creating {len(new_datasets)} new datasets with bulk upload...")
         
         if new_datasets:
             try:
@@ -458,11 +449,6 @@ class DatasetHandler(BaseDataspotHandler):
                 logging.error(error_msg)
                 result["errors"] += 1
 
-        # Step 5: Update mappings after all operations
-        logging.info("Step 5: Updating mappings after upload...")
-        if odsDataportalIds:
-            self.update_mappings_after_upload(odsDataportalIds, result)
-
         # Generate result message
         result["message"] = (
             f"Synchronized {len(datasets)} datasets: "
@@ -473,49 +459,6 @@ class DatasetHandler(BaseDataspotHandler):
 
         logging.info(f"Dataset synchronization completed: {result['updated']} updated, {result['created']} created, {result['deleted']} deleted, {result['errors']} errors")
         return result
-
-    def update_mappings_after_upload(self, odsDataportalIds: List[str], result: Dict[str, Any] = None) -> None:
-        """
-        Updates the mapping between ODS IDs and Dataspot UUIDs after uploading datasets.
-        Uses the download API to retrieve all datasets and then updates the mapping for matching ODS IDs.
-        Also updates the creation/update items in the result with UUIDs if provided.
-        
-        Args:
-            odsDataportalIds (List[str]): List of ODS IDs to update in the mapping
-            result (Dict[str, Any], optional): Result dictionary to update with UUIDs
-            
-        Raises:
-            HTTPError: If API requests fail
-            ValueError: If unable to retrieve dataset information
-        """
-        # Call the base class method with our specific ID type
-        super().update_mappings_after_upload(odsDataportalIds)
-        
-        # Update sync result with UUIDs if result is provided
-        if result and 'details' in result:
-            details = result['details']
-            
-            # Update UUIDs in creation items
-            if 'creations' in details and details['creations']['count'] > 0:
-                for i, creation in enumerate(details['creations']['items']):
-                    odsDataportalId = creation.get('odsDataportalId')
-                    if odsDataportalId:
-                        # Get the UUID from mapping
-                        entry = self.mapping.get_entry(odsDataportalId)
-                        if entry and len(entry) >= 2:
-                            uuid = entry[1]
-                            details['creations']['items'][i]['uuid'] = uuid
-            
-            # Update UUIDs in update items
-            if 'updates' in details and details['updates']['count'] > 0:
-                for i, update in enumerate(details['updates']['items']):
-                    odsDataportalId = update.get('odsDataportalId')
-                    if odsDataportalId and not update.get('uuid'):  # Only update if not already set
-                        # Get the UUID from mapping
-                        entry = self.mapping.get_entry(odsDataportalId)
-                        if entry and len(entry) >= 2:
-                            uuid = entry[1]
-                            details['updates']['items'][i]['uuid'] = uuid
 
     def bulk_create_or_update_datasets(self, datasets: List[Dataset],
                                       operation: str = "ADD", dry_run: bool = False) -> dict:
@@ -572,7 +515,8 @@ class DatasetHandler(BaseDataspotHandler):
             logging.debug(f"Processing dataset '{title}' with ODS ID: {odsDataportalId}")
             
             # Check if this dataset has a stored inCollection (business key)
-            inCollection = self.mapping.get_inCollection(odsDataportalId)
+            entry = self.mapping.get(odsDataportalId)
+            inCollection = entry[2] if entry else None
             
             if inCollection:
                 # Use the stored inCollection business key
@@ -609,13 +553,6 @@ class DatasetHandler(BaseDataspotHandler):
             dry_run=dry_run
         )
 
-        logging.info(f"Bulk creation complete")
-
-        # Update mapping for each dataset (only for non-dry runs)
-        if not dry_run:
-            # After bulk upload, retrieve the datasets and update mapping
-            self.update_mappings_after_upload(odsDataportalIds, response)
-        
         logging.info(f"Bulk dataset creation completed successfully")
         return response
 
@@ -643,7 +580,7 @@ class DatasetHandler(BaseDataspotHandler):
             raise ValueError("Dataset must have an 'odsDataportalId' property to use as ODS ID")
         
         # Check if dataset with this ODS ID already exists
-        existing_entry = self.mapping.get_entry(odsDataportalId)
+        existing_entry = self.mapping.get(odsDataportalId)
         if existing_entry:
             # Entry is now (_type, uuid, inCollection)
             _type, uuid, _ = existing_entry
@@ -684,7 +621,7 @@ class DatasetHandler(BaseDataspotHandler):
                 # For newly created datasets, store the ODS-Imports collection name as the business key
                 # The _type for datasets created here is always "Dataset"
                 logging.debug(f"Adding mapping entry for ODS ID {odsDataportalId} with Type 'Dataset', UUID {uuid}, and inCollection '{self.client.ods_imports_collection_name}'")
-                self.mapping.add_entry(odsDataportalId, "Dataset", uuid, self.client.ods_imports_collection_name)
+                self.mapping[odsDataportalId] = ("Dataset", uuid, self.client.ods_imports_collection_name)
             else:
                 logging.warning(f"Could not extract UUID from response for dataset '{title}'")
         
@@ -719,7 +656,8 @@ class DatasetHandler(BaseDataspotHandler):
         logging.info(f"Updating dataset: '{title}' with ODS ID: {odsDataportalId}")
         
         # Get the inCollection from mapping if available (this is now a business key)
-        inCollection = self.mapping.get_inCollection(odsDataportalId)
+        entry = self.mapping.get(odsDataportalId)
+        inCollection = entry[2] if entry else None
         
         # Set inCollection in the dataset JSON
         dataset_json = dataset.to_json()
@@ -755,7 +693,7 @@ class DatasetHandler(BaseDataspotHandler):
                 # Use the determined inCollection value (either from mapping or default)
                 final_inCollection = dataset_json.get('inCollection')
                 logging.debug(f"Updating mapping for ODS ID {odsDataportalId} with Type 'Dataset', UUID {uuid}, inCollection {final_inCollection}")
-                self.mapping.add_entry(odsDataportalId, "Dataset", uuid, final_inCollection)
+                self.mapping[odsDataportalId] = ("Dataset", uuid, final_inCollection)
             else:
                 logging.warning(f"Could not extract UUID from response for dataset '{title}'")
         
@@ -812,7 +750,7 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Check mapping for existing entry
         logging.debug(f"Checking if dataset with ODS ID {odsDataportalId} exists in mapping")
-        entry = self.mapping.get_entry(odsDataportalId)
+        entry = self.mapping.get(odsDataportalId)
         if entry:
             dataset_exists = True
             # Build the API href from the UUID (which is the second item in the entry tuple)
@@ -827,7 +765,7 @@ class DatasetHandler(BaseDataspotHandler):
                 # Dataset doesn't exist at the expected location
                 logging.warning(f"Dataset no longer exists at {href}, removing from mapping")
                 dataset_exists = False
-                self.mapping.remove_entry(odsDataportalId)
+                self.mapping.pop(odsDataportalId, None)
         
         # Handle according to update strategy
         if dataset_exists:
@@ -868,7 +806,7 @@ class DatasetHandler(BaseDataspotHandler):
             HTTPError: If API requests fail
         """
         # Check if the dataset exists in the mapping
-        entry = self.mapping.get_entry(odsDataportalId)
+        entry = self.mapping.get(odsDataportalId)
         
         if not entry:
             if fail_if_not_exists:
@@ -892,6 +830,6 @@ class DatasetHandler(BaseDataspotHandler):
             logging.info(f"Dataset with ODS ID '{odsDataportalId}' (UUID: {uuid}) already deleted in Dataspot, updating local mapping only")
         
         # Remove entry from mapping in both cases
-        self.mapping.remove_entry(odsDataportalId)
+        self.mapping.pop(odsDataportalId, None)
         
         return True

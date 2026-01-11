@@ -69,7 +69,8 @@ class OrgStructureComparer:
                                 "uuid": dataspot_unit.get("id"),
                                 "changes": changes_needed,
                                 "source_unit": unit,
-                                "current_unit": dataspot_unit
+                                "current_unit": dataspot_unit,
+                                "layer": layer
                             }
                         ))
                 else:
@@ -79,7 +80,8 @@ class OrgStructureComparer:
                         title=title,
                         change_type="create",
                         details={
-                            "source_unit": unit
+                            "source_unit": unit,
+                            "layer": layer
                         }
                     ))
         

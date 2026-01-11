@@ -54,18 +54,15 @@ class InMemoryMapping:
         logging.info(f"Fetching mappings from Dataspot API for scheme '{self._scheme}' (field: {self._id_field_name})")
         
         try:
-            # Get all assets from the scheme
-            assets = client.get_all_assets_from_scheme()
+            # Get all assets from the scheme, passing the filter to enable caching
+            assets = client.get_all_assets_from_scheme(filter_function=filter_function)
             
             if not assets:
                 logging.warning(f"No assets found in scheme '{self._scheme}'")
                 return
             
-            # Apply filter if provided, otherwise use simple ID field check
-            if filter_function:
-                assets = [asset for asset in assets if filter_function(asset)]
-            else:
-                # Default filter: asset must have the ID field
+            # If no filter was provided, apply default filter: asset must have the ID field
+            if filter_function is None:
                 assets = [asset for asset in assets if asset.get(self._id_field_name) is not None]
             
             # Build mapping dict

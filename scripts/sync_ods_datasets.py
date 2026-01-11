@@ -471,12 +471,7 @@ def link_datasets_to_compositions(ods_ids):
     
     # Step 1: Get all DNK datasets with odsDataportalId
     logging.info("Getting all DNK datasets with odsDataportalId...")
-    dnk_filter = lambda asset: (
-        asset.get('_type') == 'Dataset' and
-        asset.get('odsDataportalId') is not None and
-        asset.get('status') not in ['INTERMINATION2', 'ARCHIVEMETA']  # Ignore archived assets
-    )
-    dnk_datasets = dnk_client.get_all_assets_from_scheme(filter_function=dnk_filter)
+    dnk_datasets = dnk_client.get_datasets_with_cache()
     
     # Create lookup dictionary for DNK datasets by odsDataportalId
     dnk_datasets_by_ods_id = {}
@@ -487,12 +482,7 @@ def link_datasets_to_compositions(ods_ids):
     
     # Step 2: Get all TDM compositions with odsDataportalId
     logging.info("Getting all TDM compositions with odsDataportalId...")
-    tdm_filter = lambda asset: (
-        asset.get('_type') == 'UmlClass' and
-        asset.get('stereotype') == 'ogd_dataset' and
-        asset.get('odsDataportalId') is not None
-    )
-    tdm_compositions = tdm_client.get_all_assets_from_scheme(filter_function=tdm_filter)
+    tdm_compositions = tdm_client.get_compositions_with_cache()
     
     # Create lookup dictionary for TDM compositions by odsDataportalId
     tdm_compositions_by_ods_id = {}
@@ -1033,7 +1023,7 @@ def create_email_content(sync_results, database_name):
 
 if __name__ == '__main__':
     logging.basicConfig(
-        level=logging.DEBUG
+        level=logging.INFO
     )
     logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')

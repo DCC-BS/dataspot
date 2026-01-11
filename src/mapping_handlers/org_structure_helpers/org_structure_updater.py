@@ -73,18 +73,22 @@ class OrgStructureUpdater:
         """
         self.client = client
         self.database_name = client.database_name
-        self._org_units_cache = None
+        self._indexes_cache = None  # Cache for indexed org units (per-layer)
     
-    def _fetch_all_org_units(self) -> Dict[str, Dict[str, Any]]:
+    def _get_org_units_indexed(self) -> Dict[str, Dict[str, Any]]:
         """
-        Fetch all organizational units from Dataspot.
+        Build indexed lookups from client cache, with per-layer caching during updates.
+        
+        The indexes are cached to avoid rebuilding for each update within a layer.
+        Cache should be cleared (via _clear_indexes_cache) after creations in each layer.
         
         Returns:
-            Dict mapping org unit label to its full data, including UUID
+            Dict with 'by_uuid', 'by_label', 'by_sk_id' lookup dictionaries
         """
-        if self._org_units_cache is not None:
-            return self._org_units_cache
-            
+        # If indexes are cached (from current layer's updates), reuse them
+        if self._indexes_cache is not None:
+            return self._indexes_cache
+        
         # Define the filter function for org units
         org_filter = lambda asset: (
             asset.get('_type') == 'Collection' and 
@@ -92,12 +96,14 @@ class OrgStructureUpdater:
             asset.get('stateCalendarId') is not None
         )
         
-        # Fetch all org units
-        logging.info("Pre-fetching all organizational units from Dataspot...")
+        # Fetch org units from client cache
+        logging.info("Building indexed lookups from organizational units...")
         org_units = self.client.get_all_assets_from_scheme(org_filter)
         
-        # Build lookup dictionaries by UUID and by label
-        self._org_units_cache = {
+        # Build lookup dictionaries by UUID, by label, and by staatskalender ID
+        # TODO: Check if these are all needed
+        # TODO: The if statement in the by_sk_id map should be unnecessary
+        indexes = {
             'by_uuid': {unit.get('id'): unit for unit in org_units if 'id' in unit},
             'by_label': {unit.get('label'): unit for unit in org_units if 'label' in unit},
             'by_sk_id': {str(unit.get('stateCalendarId')): unit
@@ -105,12 +111,21 @@ class OrgStructureUpdater:
                         if 'stateCalendarId' in unit and unit.get('stateCalendarId') is not None}
         }
         
-        logging.info(f"Cached {len(org_units)} organizational units for quick lookup")
-        return self._org_units_cache
+        # Cache indexes for reuse during updates in current layer
+        self._indexes_cache = indexes
+        logging.info(f"Cached indexes for {len(org_units)} organizational units")
+        return indexes
+    
+    def _clear_indexes_cache(self) -> None:
+        """Clear the indexes cache. Call this after creations to force rebuild with fresh data."""
+        self._indexes_cache = None
     
     def apply_changes(self, changes: List[OrgUnitChange], is_initial_run: bool = False, status: str = "WORKING") -> Dict[str, int]:
         """
-        Apply the identified changes to the system.
+        Apply the identified changes to the system, processing layer by layer.
+        
+        Changes are grouped by layer (depth) and processed sequentially to ensure
+        parent organizations exist before their children are updated.
         
         Args:
             changes: List of changes to apply
@@ -127,9 +142,6 @@ class OrgStructureUpdater:
             
         logging.info(f"Applying {len(changes)} changes...")
         
-        # Pre-fetch all org units for efficient lookups
-        self._fetch_all_org_units()
-        
         stats = {
             "created": 0,
             "updated": 0,
@@ -139,28 +151,47 @@ class OrgStructureUpdater:
             "marked_for_deletion": 0
         }
         
-        # Group changes by type for clearer processing
-        changes_by_type = {
-            "create": [c for c in changes if c.change_type == "create"],
-            "update": [c for c in changes if c.change_type == "update"],
-            "delete": [c for c in changes if c.change_type == "delete"]
-        }
+        # Separate deletions from other changes (deletions happen in different order from the other changes)
+        deletion_changes = [c for c in changes if c.change_type == "delete"]
+        non_deletion_changes = [c for c in changes if c.change_type != "delete"]
         
-        # Process deletions first
-        self._process_deletions(list(reversed(changes_by_type["delete"])), stats)
+        # Process deletions first (in reverse order - deepest first)
+        if deletion_changes:
+            self._process_deletions(list(reversed(deletion_changes)), stats)
         
-        # Process creations before updates to ensure parent organizations exist
-        # This fixes the issue where an update refers to a parent that needs to be created first
-        self._process_creations(changes_by_type["create"], stats, status)
+        # Group non-deletion changes by layer, then by type
+        # Changes without layer info default to layer 999 (processed last)
+        changes_by_layer = {}
+        for change in non_deletion_changes:
+            layer = change.details.get("layer", 999)
+            if layer not in changes_by_layer:
+                changes_by_layer[layer] = {"create": [], "update": []}
+            changes_by_layer[layer][change.change_type].append(change)
         
-        # Refresh org units cache after creations to ensure new units are available for updates
-        if changes_by_type["create"]:
-            logging.info("Refreshing organization units cache after creating new units...")
-            self._org_units_cache = None
-            self._fetch_all_org_units()
+        # Process layers in ascending order (depth 0, 1, 2, ...)
+        sorted_layers = sorted(changes_by_layer.keys())
         
-        # Finally handle updates
-        self._process_updates(changes_by_type["update"], is_initial_run, stats, status)
+        for layer in sorted_layers:
+            layer_changes = changes_by_layer[layer]
+            creations = layer_changes["create"]
+            updates = layer_changes["update"]
+            
+            if creations or updates:
+                logging.info(f"Processing layer {layer}: {len(creations)} creations, {len(updates)} updates")
+            
+            # Process creations for this layer
+            if creations:
+                self._process_creations(creations, stats, status)
+                
+                # Clear both caches after creations so fresh data is available for updates
+                logging.info(f"Clearing caches after creating {len(creations)} units in layer {layer}")
+                self.client.clear_collections_cache()
+                self._clear_indexes_cache()
+            
+            # Process updates for this layer
+            # Indexes will be built once (if needed) and cached for all updates in this layer
+            if updates:
+                self._process_updates(updates, is_initial_run, stats, status)
         
         logging.info(f"Change application complete: {stats['created']} created, {stats['updated']} updated, "
                      f"{stats['deleted']} deleted ({stats['directly_deleted']} empty collections directly deleted, "
@@ -391,8 +422,8 @@ class OrgStructureUpdater:
                     # The last component is the immediate parent we need to find
                     parent_label = path_components[-1] if path_components else ""
                     
-                    # Look up the parent collection by its label in our cache
-                    org_units = self._fetch_all_org_units()
+                    # Look up the parent collection by its label in our indexed cache
+                    org_units = self._get_org_units_indexed()
                     parent_found = False
                     
                     # Find the parent Staatskalender ID from the source_unit
