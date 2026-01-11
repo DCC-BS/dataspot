@@ -91,28 +91,6 @@ class BaseDataspotClient:
 
         return response.json()
 
-    def _is_collections_filter(self, filter_function) -> bool:
-        """
-        Check if the filter function is requesting Collection objects (org units).
-        
-        Args:
-            filter_function: The filter function to check
-            
-        Returns:
-            bool: True if the filter is for Collection objects with stereotype='organizationalUnit'
-        """
-        if filter_function is None:
-            return False
-        
-        # Check the filter function's source code for Collection and organizationalUnit patterns
-        try:
-            source = filter_function.__code__.co_consts
-            has_collection = 'Collection' in source
-            has_org_unit = 'organizationalUnit' in source
-            return has_collection and has_org_unit
-        except (AttributeError, TypeError):
-            return False
-
     def _download_all_assets_from_scheme(self, asset_types: str | None = None) -> List[Dict[str, Any]]:
         """
         Download all assets from the scheme with optional asset type filtering.
@@ -151,13 +129,10 @@ class BaseDataspotClient:
         Download all assets from a scheme using the Download API with optional filtering.
         
         .. deprecated::
-            This method is deprecated for Compositions and Datasets. Use the dedicated
-            cache methods instead: TDMClient.get_compositions_with_cache() and 
-            DNKClient.get_datasets_with_cache(). This method is still used for Collections.
+            This method is deprecated for Compositions, Datasets, and Collections. Use the dedicated
+            cache methods instead: TDMClient.get_compositions_with_cache(), 
+            DNKClient.get_datasets_with_cache(), and get_collections_with_cache().
         
-        This method implements caching for Collection objects (org units) to avoid redundant downloads.
-        Other asset types are downloaded directly without caching (subclasses may implement their own caching).
-                                        
         Args:
             filter_function: Optional function that takes an asset and returns True if it should be included.
                 **IMPORTANT:** Note that the filter is applied on flat asset, i.e. no customProperties field is present!
@@ -169,11 +144,7 @@ class BaseDataspotClient:
             HTTPError: If API requests fail
             ValueError: If the response format is unexpected or invalid
         """
-        # Check if this is a request for Collection objects (org units)
-        if self._is_collections_filter(filter_function):
-            return self._get_collections_with_cache(filter_function)
-        
-        # For other asset types, download without caching (subclasses may override for their specific caching)
+        # Download without caching (subclasses may override for their specific caching)
         logging.info(f"Downloading assets from {self.scheme_name_short} scheme for mapping update")
         assets = self._download_all_assets_from_scheme()
         logging.info(f"Downloaded {len(assets)} assets from scheme '{self.scheme_name}'")
@@ -185,15 +156,14 @@ class BaseDataspotClient:
         
         return assets
 
-    def _get_collections_with_cache(self, filter_function=None) -> List[Dict[str, Any]]:
+    def get_collections_with_cache(self) -> List[Dict[str, Any]]:
         """
         Get Collection objects (org units) with caching support.
         
-        Args:
-            filter_function: Optional function to filter the collections (applied during cache population)
+        Filters for Collection assets with stereotype='organizationalUnit' and stateCalendarId is not None.
             
         Returns:
-            List[Dict[str, Any]]: List of Collection assets
+            List[Dict[str, Any]]: List of Collection assets representing organizational units
         """
         # Check if cache is populated
         if self._collections_cache is not None:
@@ -205,18 +175,13 @@ class BaseDataspotClient:
         all_assets = self._download_all_assets_from_scheme(asset_types='Collection')
         logging.info(f"Downloaded {len(all_assets)} Collection assets from scheme '{self.scheme_name}'")
         
-        # Cache only Collection objects with stereotype='organizationalUnit'
-        # Apply additional filter during cache population if provided
-        if filter_function:
-            self._collections_cache = [
-                asset for asset in all_assets
-                if filter_function(asset)
-            ]
-        else:
-            self._collections_cache = [
-                asset for asset in all_assets
-                if asset.get('_type') == 'Collection' and asset.get('stereotype') == 'organizationalUnit'
-            ]
+        # Cache only Collection objects with stereotype='organizationalUnit' and stateCalendarId
+        self._collections_cache = [
+            asset for asset in all_assets
+            if (asset.get('_type') == 'Collection' and 
+                asset.get('stereotype') == 'organizationalUnit' and
+                asset.get('stateCalendarId') is not None)
+        ]
         logging.info(f"Cached {len(self._collections_cache)} Collections from {self.scheme_name_short} scheme")
         
         return list(self._collections_cache)
@@ -744,14 +709,8 @@ class BaseDataspotClient:
         if not staatskalender_ids:
             return {}
             
-        # Get all org units with the appropriate filter function
-        org_filter = lambda asset: (
-            asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'organizationalUnit' and
-            asset.get('stateCalendarId') is not None
-        )
-        
-        units = self.get_all_assets_from_scheme(org_filter)
+        # Get all org units from the cache
+        units = self.get_collections_with_cache()
         
         # Build a lookup table mapping staatskalender_id to unit data
         result = {}

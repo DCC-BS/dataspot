@@ -89,16 +89,9 @@ class OrgStructureUpdater:
         if self._indexes_cache is not None:
             return self._indexes_cache
         
-        # Define the filter function for org units
-        org_filter = lambda asset: (
-            asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'organizationalUnit' and
-            asset.get('stateCalendarId') is not None
-        )
-        
         # Fetch org units from client cache
         logging.info("Building indexed lookups from organizational units...")
-        org_units = self.client.get_all_assets_from_scheme(org_filter)
+        org_units = self.client.get_collections_with_cache()
         
         # Build lookup dictionaries by UUID, by label, and by staatskalender ID
         # TODO: Check if these are all needed

@@ -1,36 +1,11 @@
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 from src.clients.base_client import BaseDataspotClient
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
-from src.mapping_handlers.in_memory_mapping import InMemoryMapping
 from src.mapping_handlers.org_structure_helpers.org_structure_transformer import OrgStructureTransformer
 from src.mapping_handlers.org_structure_helpers.org_structure_comparer import OrgStructureComparer
 from src.mapping_handlers.org_structure_helpers.org_structure_updater import OrgStructureUpdater
-
-
-class OrgStructureMapping(InMemoryMapping):
-    """
-    A lookup table that maps Staatskalender IDs to Dataspot asset type, UUID, and optionally inCollection.
-    Fetches mappings from Dataspot API, stores in memory. Handles organizational units.
-    """
-
-    def __init__(self, database_name: str, scheme: str, client: BaseDataspotClient):
-        """
-        Initialize the mapping table for organizational units by fetching from Dataspot API.
-
-        Args:
-            database_name (str): Name of the database
-            scheme (str): Name of the scheme (e.g., 'DNK', 'TDM')
-            client (BaseDataspotClient): Client instance to use for API operations
-        """
-        # Filter function: Collection with stereotype='organizationalUnit' and stateCalendarId field
-        filter_function = lambda asset: (
-            asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'organizationalUnit' and
-            asset.get('stateCalendarId') is not None
-        )
-        super().__init__(database_name, "staatskalender_id", scheme, client, filter_function)
 
 
 class OrgStructureHandler(BaseDataspotHandler):
@@ -52,18 +27,8 @@ class OrgStructureHandler(BaseDataspotHandler):
         # Call parent's __init__ method first
         super().__init__(client)
         
-        # Initialize the organization mapping (fetches from Dataspot API)
-        self.mapping = OrgStructureMapping(database_name=client.database_name, scheme=client.scheme_name_short, client=client)
-        
-        # Set the asset type filter based on asset_id_field and stereotype
-        self.asset_type_filter = lambda asset: (
-            asset.get('_type') == 'Collection' and 
-            asset.get('stereotype') == 'organizationalUnit' and
-            asset.get(self.asset_id_field) is not None
-        )
-        
         # Create component instances
-        self.updater = OrgStructureUpdater(client)
+        self.org_structure_updater = OrgStructureUpdater(client)
     
     def bulk_create_or_update_organizational_units(
         self, 
@@ -151,16 +116,11 @@ class OrgStructureHandler(BaseDataspotHandler):
             logging.warning("No organizational units to upload")
             return {"status": "error", "message": "No organizational units to upload"}
         
-        # Set status on all units and extract Staatskalender IDs for mapping updates
-        staatskalender_ids = []
+        # Set status on all units
         for depth, units in units_by_depth.items():
             for unit in units:
                 # Set the status on each unit
                 unit["status"] = status
-                
-                staatskalender_id = unit.get("stateCalendarId")
-                if staatskalender_id:
-                    staatskalender_ids.append(staatskalender_id)
         
         # Track uploaded units to handle failures
         level_results = {}
@@ -208,9 +168,6 @@ class OrgStructureHandler(BaseDataspotHandler):
                 error_msg = f"Error uploading level {depth}: {str(e)}"
                 logging.error(error_msg)
                 upload_errors.append(error_msg)
-        
-        # Update mappings after upload
-        self.update_mappings_after_upload(staatskalender_ids)
         
         # Determine overall result
         if upload_errors:
@@ -292,13 +249,10 @@ class OrgStructureHandler(BaseDataspotHandler):
         self._check_for_duplicate_ids_in_ods_staatskalender_data(org_data)
         
         # Fetch current org data from Dataspot
-        dataspot_units = self._fetch_current_org_units()
+        dataspot_units = self.client.get_collections_with_cache()
 
         # Check for duplicate stateCalendarId values in Dataspot
         self._check_for_duplicate_ids_in_dataspot(dataspot_units)
-
-        # Update mappings before making changes
-        self.update_mappings_before_upload()
         
         # Check if this is an initial run (no org units in Dataspot)
         is_initial_run = len(dataspot_units) == 0
@@ -307,10 +261,6 @@ class OrgStructureHandler(BaseDataspotHandler):
         if is_initial_run:
             logging.info(f"No organizational units found in Dataspot. Performing initial bulk upload with status '{status}'...")
             result = self._initialize_org_hierarchy_from_ods(org_data, status=status)
-            
-            # Update mappings
-            source_ids = [str(org_unit['id']) for org_unit in org_data.get('results', [])]
-            self.update_mappings_after_upload(source_ids)
             
             return {
                 "status": result.get("status", "unknown"),
@@ -341,47 +291,9 @@ class OrgStructureHandler(BaseDataspotHandler):
             }
         
         # Apply changes with the specified status
-        stats = self.updater.apply_changes(changes, is_initial_run=False, status=status)
-        
-        # Update mappings after changes
-        if changes:
-            # Update all mappings to ensure hierarchy changes are captured properly
-            self.update_mappings_after_upload()
+        stats = self.org_structure_updater.apply_changes(changes, is_initial_run=False, status=status)
         
         # Generate detailed report with all changes
         detailed_report = OrgStructureComparer.generate_detailed_sync_report(changes, stats=stats)
         
         return detailed_report
-    
-    def _fetch_current_org_units(self) -> List[Dict[str, Any]]:
-        """
-        Fetch current organizational units from Dataspot.
-        
-        Returns:
-            List of organizational units currently in Dataspot
-        """
-        logging.info("Fetching current organizational units from Dataspot...")
-        return self.client.get_all_assets_from_scheme(self.asset_type_filter)
-    
-    def update_mappings_after_upload(self, staatskalender_ids: Optional[List[str]] = None) -> int:
-        """
-        Update local mappings after uploading organizational units.
-        
-        Args:
-            staatskalender_ids: List of Staatskalender IDs to update mappings for
-            
-        Returns:
-            int: Number of mappings successfully updated
-        """
-        # Use the base implementation to update mappings
-        return self._download_and_update_mappings(staatskalender_ids)
-    
-    def update_mappings_before_upload(self) -> int:
-        """
-        Update local mappings before uploading organizational units.
-        
-        Returns:
-            int: Number of mappings successfully updated
-        """
-        # Update all mappings without filtering by ID
-        return self._download_and_update_mappings()
