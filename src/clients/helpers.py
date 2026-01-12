@@ -23,20 +23,6 @@ def url_join(*parts: str, leading_slash: bool = False) -> str:
 
     return "/".join([part.strip("/") for part in parts])
 
-def get_uuid_from_response(response: dict) -> str | None:
-    """
-    Extract UUID from a Dataspot API response.
-    
-    The UUID is at response['id'].
-    
-    Args:
-        response (dict): The JSON response from Dataspot API
-        
-    Returns:
-        str: UUID or None if not found
-    """
-    return response.get('id')
-
 def escape_special_chars(name: str) -> str:
     '''
     Escape special characters in asset names for Dataspot API according to the business key rules. Also remove leading

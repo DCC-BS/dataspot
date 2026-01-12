@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.clients.helpers import url_join, get_uuid_from_response
+from src.clients.helpers import url_join
 from src.common import requests_post
 from src.dataspot_dataset import Dataset
 from src.mapping_handlers.base_dataspot_handler import BaseDataspotHandler
@@ -402,7 +402,7 @@ class DatasetHandler(BaseDataspotHandler):
                         response = self.create_dataset(dataset, status=status)
                         
                         # Get UUID from response
-                        uuid = get_uuid_from_response(response)
+                        uuid = response['id']
                         
                         # Track successful creation
                         result["created"] += 1
@@ -616,7 +616,7 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Store the mapping for future reference
         if odsDataportalId:
-            uuid = get_uuid_from_response(response)
+            uuid = response['id']
             if uuid:
                 # For newly created datasets, store the ODS-Imports collection name as the business key
                 # The _type for datasets created here is always "Dataset"
@@ -687,7 +687,7 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Ensure the mapping is updated
         if odsDataportalId:
-            uuid = get_uuid_from_response(response)
+            uuid = response['id']
             if uuid:
                 # The _type for datasets updated here is always "Dataset"
                 # Use the determined inCollection value (either from mapping or default)
