@@ -96,15 +96,6 @@ class DNKClient(BaseDataspotClient):
         self._datasets_cache = None
         logging.info(f"Cleared Datasets cache for {self.scheme_name_short} scheme")
 
-    def get_datasets_cache(self) -> List[Dict[str, Any]] | None:
-        """
-        Get the current Datasets cache for debugging/inspection.
-        
-        Returns:
-            List[Dict[str, Any]] | None: The cached Datasets, or None if cache is not populated
-        """
-        return self._datasets_cache
-
     # Direct API operations for datasets
     def create_dataset(self, dataset: Dataset, status: str = "WORKING") -> dict:
         """
