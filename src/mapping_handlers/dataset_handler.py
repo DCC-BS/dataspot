@@ -114,6 +114,9 @@ class DatasetHandler(BaseDataspotHandler):
     Handler for dataset synchronization operations in Dataspot.
     Provides methods to sync datasets between ODS and Dataspot.
     """
+    # Type annotation override: this handler requires a DNKClient specifically
+    client: "DNKClient"
+    
     # Set configuration values for the base handler
     asset_id_field = 'odsDataportalId'
     

@@ -115,6 +115,9 @@ class DatasetCompositionHandler(BaseDataspotHandler):
     Handler for dataset composition synchronization operations in Dataspot.
     Provides methods to sync dataset compositions between ODS and Dataspot.
     """
+    # Type annotation override: this handler requires a TDMClient specifically
+    client: "TDMClient"
+    
     # Set configuration values for the base handler
     asset_id_field = 'odsDataportalId'
     
