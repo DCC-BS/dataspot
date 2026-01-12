@@ -3,6 +3,9 @@
 # Database name
 database_name = 'prod'
 
+# Logging config
+logging_for_prod = True
+
 # Base URL
 base_url = 'https://datenkatalog.bs.ch'
 database_name_prod = 'prod'

@@ -476,9 +476,14 @@ def create_email_content(sync_result, scheme_name_short) -> (str | None, str | N
     return email_subject, email_text, True
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.INFO
-    )
+    if config.logging_for_prod:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
     logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
     logging.info(f'Executing {__file__}...')
     main()
