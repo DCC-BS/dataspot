@@ -24,14 +24,12 @@ class BaseDataspotClient:
        parameter applied to all assets in the operation.
     """
 
-    def __init__(self, base_url: str, database_name: str, scheme_name: str, scheme_name_short: str, 
+    def __init__(self, scheme_name: str, scheme_name_short: str,
                  ods_imports_collection_name: str = None, ods_imports_collection_path: List[str] = None):
         """
         Initialize the DataspotClient with the necessary credentials and configurations.
         
         Args:
-            base_url: The base URL of the Dataspot API
-            database_name: The name of the database
             scheme_name: The name of the scheme
             scheme_name_short: The short name of the scheme
             ods_imports_collection_name: Optional. The name of the default imports collection
@@ -39,8 +37,6 @@ class BaseDataspotClient:
         """
         self.auth = DataspotAuth()
 
-        self.base_url = base_url
-        self.database_name = database_name
         self.scheme_name = scheme_name
         self.scheme_name_short = scheme_name_short
         self.ods_imports_collection_name = ods_imports_collection_name
@@ -74,17 +70,12 @@ class BaseDataspotClient:
         }
 
         # API endpoint
-        # TODO: Remove base_url and database_name as arguments of the constructor! They are always config.*
-        #  then remove the following three lines.
-        import config
-        base_url = config.base_url
-        database = config.database_name
-        endpoint = f"{base_url}/api/{database}/queries/download?format=JSON"
+        url = f"{config.base_url}/api/{config.database_name}/queries/download?format=JSON"
 
-        logging.debug(f"Sending query to endpoint: {endpoint}")
+        logging.debug(f"Sending query to endpoint: {url}")
 
         response = requests_put(
-            url=endpoint,
+            url=url,
             json=query_data,
             headers=self.auth.get_headers()
         )
@@ -109,7 +100,7 @@ class BaseDataspotClient:
         logging.info(f"Downloading Collection assets from {self.scheme_name_short} scheme using Download API with assetTypes filter")
         
         # Download all Collection assets from the scheme
-        download_url = f"{self.base_url}/api/{self.database_name}/schemes/{self.scheme_name}/download?format=JSON&assetTypes=Collection"
+        download_url = f"{config.base_url}/api/{config.database_name}/schemes/{self.scheme_name}/download?format=JSON&assetTypes=Collection"
         
         logging.debug(f"Downloading all Collections from scheme '{self.scheme_name}' at: {download_url}")
         response = requests_get(download_url, headers=self.auth.get_headers())
@@ -168,7 +159,7 @@ class BaseDataspotClient:
             HTTPError: If API requests fail with status codes other than 404
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
 
         try:
             # Pass silent_status_codes to prevent logging 404 and 410 errors
@@ -200,7 +191,7 @@ class BaseDataspotClient:
             TODO (Renato) IMPORTANT BUT NOT URGENT: What happens if the asset already exists? -> Should throw an error. Inspect the error it actually throws, and handle it accordingly.
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
 
         # Clone the data to avoid modifying the original
         data_to_send = dict(data)
@@ -243,7 +234,7 @@ class BaseDataspotClient:
               (inCollection field).
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
 
         # Clone the data to avoid modifying the original
         data_to_send = dict(data)
@@ -296,7 +287,7 @@ class BaseDataspotClient:
             ValueError: If the asset does not exist
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
 
         # First, get the current asset to determine its type
         current_asset = self._get_asset(endpoint)
@@ -336,7 +327,7 @@ class BaseDataspotClient:
             return self._mark_asset_for_deletion(endpoint)
             
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
 
         # TODO: Retrieve asset, and print its label here aswell (not only endpoint that becomes invalid)
 
@@ -357,7 +348,7 @@ class BaseDataspotClient:
             ValueError: If the asset does not exist or cannot be accessed
         """
         headers = self.auth.get_headers()
-        full_url = url_join(self.base_url, endpoint)
+        full_url = url_join(config.base_url, endpoint)
         
         # First, check if the asset exists
         current_asset = self._get_asset(endpoint)
@@ -389,7 +380,7 @@ class BaseDataspotClient:
             ValueError: If the scheme doesn't exist
             HTTPError: If API requests fail
         """
-        scheme_path = url_join('rest', self.database_name, 'schemes', self.scheme_name)
+        scheme_path = url_join('rest', config.database_name, 'schemes', self.scheme_name)
         scheme_response = self._get_asset(scheme_path)
         if not scheme_response:
             raise ValueError(f"Scheme '{self.scheme_name}' does not exist")
@@ -446,7 +437,7 @@ class BaseDataspotClient:
         # Check if the configured path exists
         if not self.ods_imports_collection_path:
             # No path specified, check directly under scheme
-            parent_endpoint = url_join('rest', self.database_name, 'schemes', self.scheme_name)
+            parent_endpoint = url_join('rest', config.database_name, 'schemes', self.scheme_name)
             parent_response = self._get_asset(parent_endpoint)
             if not parent_response:
                 error_msg = f"Scheme '{self.scheme_name}' does not exist"
@@ -479,7 +470,7 @@ class BaseDataspotClient:
         else:
             # Construct business key path to check if the full path exists
             # Format: /rest/{db}/schemes/{scheme}/collections/{col1}/collections/{col2}/...
-            path_elements = ['rest', self.database_name, 'schemes', self.scheme_name]
+            path_elements = ['rest', config.database_name, 'schemes', self.scheme_name]
 
             # Build up the path with 'collections' between each element
             for folder in self.ods_imports_collection_path:
@@ -591,7 +582,7 @@ class BaseDataspotClient:
 
         # Create upload endpoint directly with scheme name
         # The API endpoint is always "/api/<database>/schemes/<scheme_name>/upload"
-        upload_path = f"/api/{self.database_name}/schemes/{scheme_name}/upload"
+        upload_path = f"/api/{config.database_name}/schemes/{scheme_name}/upload"
         logging.debug(f"Creating upload path for scheme '{scheme_name}': {upload_path}")
 
         # Add query parameters
@@ -614,7 +605,7 @@ class BaseDataspotClient:
             del headers['Content-Type']
 
         # Create full URL
-        full_url = url_join(self.base_url, upload_path)
+        full_url = url_join(config.base_url, upload_path)
         logging.debug(f"Upload endpoint URL: {full_url}")
 
         # Convert data to JSON string
@@ -690,9 +681,9 @@ class BaseDataspotClient:
         logging.info(f"Ensuring person exists: {first_name} {last_name}")
 
         # Get all persons from the database
-        persons_endpoint = f"/rest/{self.database_name}/persons/"
+        persons_endpoint = f"/rest/{config.database_name}/persons/"
         response = requests_get(
-            url_join(self.base_url, persons_endpoint),
+            url=url_join(config.base_url, persons_endpoint),
             headers=self.auth.get_headers()
         )
         response.raise_for_status()
@@ -720,7 +711,7 @@ class BaseDataspotClient:
         logging.info(f"Person not found, creating new: {first_name} {last_name}")
 
         # Determine Data Excellence UUID
-        dx_response = requests_get(f"{self.base_url}/rest/{self.database_name}/organizations/{config.organizations_name}",
+        dx_response = requests_get(f"{config.base_url}/rest/{config.database_name}/organizations/{config.organizations_name}",
                                    headers=self.auth.get_headers())
 
         dx_response.raise_for_status()
@@ -737,7 +728,7 @@ class BaseDataspotClient:
         }
 
         # Create the person
-        create_endpoint = f"/rest/{self.database_name}/persons"
+        create_endpoint = f"/rest/{config.database_name}/persons"
 
         new_person = self._create_asset(
             endpoint=create_endpoint,
@@ -771,9 +762,9 @@ class BaseDataspotClient:
         logging.info(f"Ensuring user exists: {email}")
 
         # Get all users from the database via the tenants endpoint
-        users_endpoint = f"/api/{self.database_name}/tenants/Mandant/download?format=JSON"
+        users_endpoint = f"/api/{config.database_name}/tenants/Mandant/download?format=JSON"
         response = requests_get(
-            url_join(self.base_url, users_endpoint),
+            url_join(config.base_url, users_endpoint),
             headers=self.auth.get_headers()
         )
         response.raise_for_status()
@@ -800,7 +791,7 @@ class BaseDataspotClient:
         }
 
         # Create the user via API
-        users_create_url = f"{self.base_url}/rest/{self.database_name}/users"
+        users_create_url = f"{config.base_url}/rest/{config.database_name}/users"
 
         response = requests_post(
             url=users_create_url,

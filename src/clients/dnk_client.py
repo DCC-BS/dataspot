@@ -15,9 +15,7 @@ class DNKClient(BaseDataspotClient):
         """
         Initialize the DNK client.
         """
-        super().__init__(base_url=config.base_url,
-                         database_name=config.database_name,
-                         scheme_name=config.dnk_scheme_name,
+        super().__init__(scheme_name=config.dnk_scheme_name,
                          scheme_name_short=config.dnk_scheme_name_short,
                          ods_imports_collection_name=config.dnk_ods_imports_collection_name,
                          ods_imports_collection_path=config.dnk_ods_imports_collection_path)
@@ -131,7 +129,7 @@ class DNKClient(BaseDataspotClient):
         dataset_json['inCollection'] = self.ods_imports_collection_name
         
         # Create the dataset directly
-        endpoint = f"/rest/{self.database_name}/collections/{collection_uuid}/datasets"
+        endpoint = f"/rest/{config.database_name}/collections/{collection_uuid}/datasets"
         return self._create_asset(endpoint=endpoint, data=dataset_json, status=status)
     
     def update_dataset(self, dataset: Dataset, uuid: str, force_replace: bool = False, status: str = "WORKING") -> dict:
@@ -148,7 +146,7 @@ class DNKClient(BaseDataspotClient):
         Returns:
             dict: The JSON response containing the updated dataset data
         """
-        endpoint = f"/rest/{self.database_name}/datasets/{uuid}"
+        endpoint = f"/rest/{config.database_name}/datasets/{uuid}"
         return self._update_asset(endpoint=endpoint, data=dataset.to_json(), replace=force_replace, status=status)
     
     def mark_dataset_for_deletion(self, uuid: str) -> bool:
@@ -162,7 +160,7 @@ class DNKClient(BaseDataspotClient):
         Returns:
             bool: True if the dataset was marked successfully, False if it doesn't exist
         """
-        endpoint = f"/rest/{self.database_name}/datasets/{uuid}"
+        endpoint = f"/rest/{config.database_name}/datasets/{uuid}"
         try:
             # Check if asset exists first
             if self._get_asset(endpoint) is None:

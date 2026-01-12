@@ -85,7 +85,7 @@ def ensure_huwise_composition_deployment(client: BaseDataspotClient, composition
         return False
     
     # Create deployment
-    deployment_url = f"{client.base_url}/rest/{client.database_name}/deployments"
+    deployment_url = f"{config.base_url}/rest/{config.database_name}/deployments"
     
     payload = {
         "_type": "Deployment",
@@ -198,7 +198,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             type_name = parts[-1]
             
             # Build path to datatype
-            dtype_endpoint = f"/rest/{self.client.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
+            dtype_endpoint = f"/rest/{config.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
             
             # Get datatype UUID
             response = self.client._get_asset(dtype_endpoint)
@@ -256,7 +256,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             asset_uuid = uuid
             
             # Get the endpoint for this asset
-            endpoint = f"/rest/{self.client.database_name}/assets/{asset_uuid}"
+            endpoint = f"/rest/{config.database_name}/assets/{asset_uuid}"
             
             # Check if asset still exists
             current_asset = self.client._get_asset(endpoint=endpoint)
@@ -296,7 +296,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                     raise ValueError(f"Found existing dataobject for {ods_id} but could not get UUID")
                     
                 # Update the existing dataobject
-                endpoint = f"/rest/{self.client.database_name}/assets/{asset_uuid}"
+                endpoint = f"/rest/{config.database_name}/assets/{asset_uuid}"
                 logging.info(f"Updating existing dataobject properties for dataset {ods_id}...")
                 response = self.client._update_asset(endpoint=endpoint, data=dataobject, replace=False, status="PUBLISHED")
                 
@@ -312,7 +312,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             
             # Create the dataobject
             logging.info(f"Creating new dataobject for dataset {ods_id} in collection {self.client.ods_imports_collection_name}...")
-            endpoint = f"/rest/{self.client.database_name}/collections/{collection_uuid}/assets"
+            endpoint = f"/rest/{config.database_name}/collections/{collection_uuid}/assets"
             response = self.client._create_asset(endpoint=endpoint, data=dataobject, status="PUBLISHED")
             asset_uuid = response.get('id')
             
@@ -324,7 +324,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
                 self.mapping[ods_id] = ("UmlClass", asset_uuid, self.default_composition_path_full)
         
         # Process attributes (columns)
-        attributes_endpoint = f"/rest/{self.client.database_name}/classifiers/{asset_uuid}/attributes"
+        attributes_endpoint = f"/rest/{config.database_name}/classifiers/{asset_uuid}/attributes"
         
         # Get existing attributes to determine what to update vs create
         existing_attributes = {}
@@ -440,7 +440,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             self._delete_attribute(attr_data, deleted_attrs)
         
         # Asset link for reference in results
-        dataspot_link = f"{self.client.base_url}/web/{self.client.database_name}/assets/{asset_uuid}" if asset_uuid else ""
+        dataspot_link = f"{config.base_url}/web/{config.database_name}/assets/{asset_uuid}" if asset_uuid else ""
         
         # Prepare result
         result = {
@@ -532,7 +532,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         type_name = parts[-1]
         
         # Build path to datatype
-        dtype_endpoint = f"/rest/{self.client.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
+        dtype_endpoint = f"/rest/{config.database_name}/schemes/{config.datatype_scheme_name}/datatypes/{type_name}"
         
         # Get datatype UUID
         response = self.client._get_asset(dtype_endpoint)
@@ -605,7 +605,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             logging.info(f"Updating attribute '{column['name']}': {', '.join(changes_desc)}")
         
         # Update the attribute
-        attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
+        attr_endpoint = f"/rest/{config.database_name}/attributes/{attr_uuid}"
         self.client._update_asset(endpoint=attr_endpoint, data=attribute, replace=False, status="PUBLISHED")
         updated_attrs.append({
             'name': column['name'],
@@ -669,7 +669,7 @@ class DatasetCompositionHandler(BaseDataspotHandler):
             
             # Delete the attribute itself
             logging.info(f"Deleting unused attribute '{attr_name}'")
-            attr_endpoint = f"/rest/{self.client.database_name}/attributes/{attr_uuid}"
+            attr_endpoint = f"/rest/{config.database_name}/attributes/{attr_uuid}"
             self.client._delete_asset(attr_endpoint)
             # Convert UUID to human-readable type if possible
             hasRange = attr_data.get('hasRange', '')

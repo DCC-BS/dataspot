@@ -14,9 +14,7 @@ class TDMClient(BaseDataspotClient):
         """
         Initialize the TDM client.
         """
-        super().__init__(base_url=config.base_url,
-                         database_name=config.database_name,
-                         scheme_name=config.tdm_scheme_name,
+        super().__init__(scheme_name=config.tdm_scheme_name,
                          scheme_name_short=config.tdm_scheme_name_short,
                          ods_imports_collection_name=config.tdm_ods_imports_collection_name,
                          ods_imports_collection_path=config.tdm_ods_imports_collection_path)

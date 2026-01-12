@@ -23,7 +23,6 @@ class BaseDataspotHandler:
         self.client = client
         
         # Load common properties from client
-        self.database_name = client.database_name
         self.scheme_name = client.scheme_name
         self.scheme_name_short = client.scheme_name_short
     

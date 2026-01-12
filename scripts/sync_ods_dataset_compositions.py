@@ -168,12 +168,12 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                             composition = existing_compositions[0]
                             composition_uuid = composition.get('id')
                             composition_title = composition.get('label', f"<Unnamed Composition {ods_id}>")
-                            dataspot_link = f"{config.base_url}/web/{tdm_client.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
+                            dataspot_link = f"{config.base_url}/web/{config.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
                             
                             logging.info(f"Deleting composition for dataset {ods_id} (no columns): {composition_title}")
                             
                             try:
-                                composition_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{composition_uuid}"
+                                composition_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}"
                                 tdm_client._mark_asset_for_deletion(endpoint=composition_endpoint)
                                 
                                 # Track deletion
@@ -376,10 +376,10 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                             composition_uuid = composition_info.get('id')
 
                             # Create Dataspot link
-                            dataspot_link = f"{config.base_url}/web/{tdm_client.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
+                            dataspot_link = f"{config.base_url}/web/{config.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
 
                             # Construct the endpoint for the composition
-                            composition_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{composition_uuid}"
+                            composition_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}"
 
                             # Mark the composition for deletion using the inherited method
                             try:
@@ -482,10 +482,7 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             logging.error(f"Failed to write report file: {str(report_error)}")
 
         # Create email content
-        email_subject, email_content, should_send = create_email_content(
-            sync_results=sync_results,
-            database_name=tdm_client.database_name
-        )
+        email_subject, email_content, should_send = create_email_content(sync_results=sync_results)
         
         # Print a detailed report to the logs
         log_detailed_sync_report(sync_results)
@@ -640,13 +637,12 @@ def log_detailed_sync_report(sync_results):
     logging.info("=============================================")
 
 
-def create_email_content(sync_results, database_name):
+def create_email_content(sync_results):
     """
     Create email content based on synchronization results.
 
     Args:
         sync_results (dict): Synchronization result data
-        database_name (str): Name of the database
 
     Returns:
         tuple: (email_subject, email_text, should_send)
@@ -663,9 +659,9 @@ def create_email_content(sync_results, database_name):
     
     # Create email subject with summary
     if is_error:
-        email_subject = f"[ERROR][{database_name}] ODS Dataset Compositions: Processing failed after {counts['total_processed']} datasets"
+        email_subject = f"[ERROR][{config.database_name}] ODS Dataset Compositions: Processing failed after {counts['total_processed']} datasets"
     else:
-        email_subject = f"[{database_name}] ODS Dataset Compositions: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
+        email_subject = f"[{config.database_name}] ODS Dataset Compositions: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
         if counts.get('deployments_created', 0) > 0:
             email_subject += f", {counts['deployments_created']} deployments created"
         if counts.get('errors', 0) > 0:
@@ -788,7 +784,7 @@ def create_email_content(sync_results, database_name):
             ods_id = deployment.get('ods_id', 'Unknown')
             title = deployment.get('title', 'Unknown')
             uuid = deployment.get('uuid', '')
-            link = f"{config.base_url}/web/{database_name}/classifiers/{uuid}" if uuid else ''
+            link = f"{config.base_url}/web/{config.database_name}/classifiers/{uuid}" if uuid else ''
             email_text += f"\n- {title} (ODS ID: {ods_id}, Link: {link})\n"
     
     # Include some error information if any

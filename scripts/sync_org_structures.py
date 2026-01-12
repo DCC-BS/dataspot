@@ -172,10 +172,6 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         sync_result['message'] = f"Synchronization failed: {str(e)}"
 
     finally:
-        # Get the base URL and database name for asset links
-        base_url = dataspot_client.base_url
-        database_name = dataspot_client.database_name
-        
         # Write detailed report to file for email/reference purposes
         try:
             # Get project root directory (one level up from src)
@@ -251,7 +247,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
                     uuid = creation.get('uuid', '')  # UUID might be missing for newly created items
                     
                     # Create asset link if UUID is available
-                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}" if uuid else "(Link not available)"
+                    asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}" if uuid else "(Link not available)"
                     
                     # Display in new format with link in the first line
                     logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
@@ -276,7 +272,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
                     uuid = update.get('uuid', '(Unknown)')
 
                     # Create asset link
-                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                    asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}"
 
                     # Display in new format with link in the first line
                     logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
@@ -306,7 +302,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
                     title = deletion.get('title', '(Unknown)')
                     staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
                     uuid = deletion.get('uuid', '(Unknown)')
-                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                    asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}"
                     logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
                     logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
                 
@@ -315,7 +311,7 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
                     title = deletion.get('title', '(Unknown)')
                     staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
                     uuid = deletion.get('uuid', '(Unknown)')
-                    asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+                    asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}"
                     logging.info(f"{i}. '{title}' (ID: {staatskalender_id}, link: {asset_link})")
                     logging.info(f"   - Path: '{deletion.get('inCollection', '')}'")
         else:
@@ -327,8 +323,6 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         # Create email content
         email_subject, email_content, should_send = create_email_content(
             sync_result=sync_result,
-            base_url=base_url,
-            database_name=database_name,
             scheme_name_short=dataspot_client.scheme_name_short
         )
 
@@ -353,14 +347,12 @@ def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUB
         logging.info("===============================================")
 
 
-def create_email_content(sync_result, base_url, database_name, scheme_name_short) -> (str | None, str | None, bool):
+def create_email_content(sync_result, scheme_name_short) -> (str | None, str | None, bool):
     """
     Create email content based on synchronization results.
 
     Args:
         sync_result (dict): Synchronization result data
-        base_url (str): Base URL for asset links
-        database_name (str): Database name for asset links
         scheme_name_short (str): Short name of the scheme
 
     Returns:
@@ -381,9 +373,9 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
     
     # Create email subject with summary of changes
     if is_error:
-        email_subject = f"[ERROR][{database_name}/{scheme_name_short}] Org Structure: Sync failed"
+        email_subject = f"[ERROR][{config.database_name}/{scheme_name_short}] Org Structure: Sync failed"
     else:
-        email_subject = f"[{database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
+        email_subject = f"[{config.database_name}/{scheme_name_short}] Org Structure: {counts.get('created', 0)} created, {counts.get('updated', 0)} updated, {counts.get('deleted', 0)} deleted"
 
     email_text = f"Hi there,\n\n"
     
@@ -427,7 +419,7 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
             title = deletion.get('title', '(Unknown)')
             staatskalender_id = deletion.get('staatskalender_id', '(Unknown)')
             uuid = deletion.get('uuid', '(Unknown)')
-            asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+            asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}"
             email_text += f"  * {title} (ID: {staatskalender_id}, link: {asset_link})\n"
             email_text += f"    Path: '{deletion.get('inCollection', '')}'\n"
         
@@ -448,7 +440,7 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
             title = update.get('title', '(Unknown)')
             staatskalender_id = update.get('staatskalender_id', '(Unknown)')
             uuid = update.get('uuid', '(Unknown)')
-            asset_link = f"{base_url}/web/{database_name}/collections/{uuid}"
+            asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}"
             email_text += f"- {title} (ID: {staatskalender_id}, link: {asset_link})\n"
             for field_name, changes in update.get('changed_fields', {}).items():
                 old_value = changes.get('old_value', '')
@@ -465,7 +457,7 @@ def create_email_content(sync_result, base_url, database_name, scheme_name_short
             title = creation.get('title', '(Unknown)')
             staatskalender_id = creation.get('staatskalender_id', '(Unknown)')
             uuid = creation.get('uuid', '')
-            asset_link = f"{base_url}/web/{database_name}/collections/{uuid}" if uuid else "Link not available"
+            asset_link = f"{config.base_url}/web/{config.database_name}/collections/{uuid}" if uuid else "Link not available"
             email_text += f"- {title} (ID: {staatskalender_id}, link: {asset_link})\n"
             props = creation.get('properties', {})
             if props:

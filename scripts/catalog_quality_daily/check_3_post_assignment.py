@@ -319,7 +319,7 @@ def update_holds_post(dataspot_client: BaseDataspotClient, person_uuid: str, pos
     
     try:
         # Update holdsPost relationship
-        person_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+        person_url = f"{config.base_url}/rest/{config.database_name}/persons/{person_uuid}"
         
         payload = {
             "_type": 'Person',

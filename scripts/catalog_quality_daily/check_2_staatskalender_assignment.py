@@ -52,9 +52,7 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient, staat
 
     try:
         # Initialize BaseDataspotClient
-        base_dataspot_client = BaseDataspotClient(base_url=config.base_url,
-                                                  database_name=config.database_name,
-                                                  scheme_name="NOT_IN_USE",
+        base_dataspot_client = BaseDataspotClient(scheme_name="NOT_IN_USE",
                                                   scheme_name_short="404NotFound")
         
         # Get all posts with sk_membership_id or sk_second_membership_id
@@ -481,7 +479,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, gi
     }
 
     # Update person via REST API
-    update_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+    update_url = f"{config.base_url}/rest/{config.database_name}/persons/{person_uuid}"
 
     response = requests_patch(
         url=update_url,
@@ -510,7 +508,7 @@ def ensure_correct_person_sk_id(dataspot_client: BaseDataspotClient, person_uuid
         bool: True if the sk_person_id was updated, False otherwise
     """
     # First check if the property already exists using the REST API
-    person_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+    person_url = f"{config.base_url}/rest/{config.database_name}/persons/{person_uuid}"
     response = requests_get(
         url=person_url,
         headers=dataspot_client.auth.get_headers()

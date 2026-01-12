@@ -247,7 +247,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                 
                 # Get user API endpoint
                 user_uuid = user['user_uuid']
-                api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users/{user_uuid}"
+                api_url = f"{config.base_url}/rest/{config.database_name}/users/{user_uuid}"
                 
                 # Build the update payload with isPerson in "lastname, firstname" format
                 payload = {
@@ -470,7 +470,7 @@ def update_person_name(dataspot_client: BaseDataspotClient, person_uuid: str, fi
     logging.debug(f"Updating person name for UUID {person_uuid} to {first_name} {last_name}")
     
     # Construct the API URL to update person
-    api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+    api_url = f"{config.base_url}/rest/{config.database_name}/persons/{person_uuid}"
     
     # Build the update payload
     payload = {
@@ -520,7 +520,7 @@ def create_user_for_person(dataspot_client: BaseDataspotClient, email: str, give
     logging.debug(f"Creating new user for person {given_name} {family_name} with email {email}")
     
     # Construct the API URL to create user
-    api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users"
+    api_url = f"{config.base_url}/rest/{config.database_name}/users"
     
     # Determine access level based on whether person has posts
     access_level = "EDITOR" if has_posts else "READ_ONLY"
@@ -592,7 +592,7 @@ def update_user_access_level(dataspot_client: BaseDataspotClient, user_uuid: str
     logging.debug(f"Updating user access level for UUID {user_uuid} to {access_level}")
     
     # Construct the API URL to update user
-    api_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/users/{user_uuid}"
+    api_url = f"{config.base_url}/rest/{config.database_name}/users/{user_uuid}"
     
     # Build the update payload
     payload = {

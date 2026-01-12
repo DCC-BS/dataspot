@@ -50,8 +50,7 @@ def run_all_checks():
     run_check_6 = True
 
     # Initialize client for SQL calls
-    dataspot_base_client = BaseDataspotClient(base_url=config.base_url, database_name=config.database_name,
-                                         scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
+    dataspot_base_client = BaseDataspotClient(scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
 
     # Initialize Staatskalender cache (shared across all checks)
     staatskalender_cache = StaatskalenderCache()
@@ -699,19 +698,16 @@ def send_combined_email(combined_report):
         logging.info("All checks passed, no email notification needed")
         return
 
-    # Create email subject based on overall status
-    database_name = combined_report.get('database_name', 'unknown')
-
     if overall_status == 'error':
-        email_subject = f"[ERROR][{database_name}] Dataspot Daily Checks Failed"
+        email_subject = f"[ERROR][{config.database_name}] Dataspot Daily Checks Failed"
     elif overall_status == 'warning':
-        email_subject = f"[{database_name}] Dataspot Daily Checks: {total_issues} Issues Found"
+        email_subject = f"[{config.database_name}] Dataspot Daily Checks: {total_issues} Issues Found"
     else:
-        email_subject = f"[INFO][{database_name}] Dataspot Daily Checks Report"
+        email_subject = f"[INFO][{config.database_name}] Dataspot Daily Checks Report"
 
     # Begin building email content
     email_text = f"Hi there,\n\n"
-    email_text += f"I've just completed the daily checks for {database_name}.\n\n"
+    email_text += f"I've just completed the daily checks for {config.database_name}.\n\n"
 
     # Add summary section
     email_text += "=== SUMMARY ===\n"
@@ -852,7 +848,7 @@ def send_combined_email(combined_report):
                             if person_name != 'Unknown':
                                 email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/persons/{person_uuid}\n"
                             
                             # Add specific details for contact details updates
                             if issue_type in ['contact_details_updated', 'contact_details_update_failed']:
@@ -869,7 +865,7 @@ def send_combined_email(combined_report):
                             email_text += f"\n- {post_label}\n"
                             post_uuid = issue.get('post_uuid', 'Unknown')
                             if post_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
                         if issue_type == 'person_mismatch':
@@ -963,7 +959,7 @@ def send_combined_email(combined_report):
                             person_name = f"{given_name} {family_name}"
                             email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/persons/{person_uuid}\n"
                         elif issue_type == 'duplicate_sk_person_id':
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             person_names = issue.get('person_names', [])
@@ -979,7 +975,7 @@ def send_combined_email(combined_report):
                             post_uuid = issue.get('post_uuid', 'Unknown')
                             email_text += f"\n- Unoccupied post: {post_label}\n"
                             if post_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{post_uuid}\n"
                         elif issue_type in ['person_name_update', 'person_name_update_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
                             given_name = issue.get('given_name', '')
@@ -989,7 +985,7 @@ def send_combined_email(combined_report):
                             sk_last_name = issue.get('sk_last_name', '')
                             sk_name = f"{sk_first_name} {sk_last_name}"
                             email_text += f"\n- Person: {person_name}\n"
-                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/persons/{person_uuid}\n"
                             email_text += f"  Staatskalender name: {sk_name}\n"
                         elif issue_type in ['contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed']:
                             person_uuid = issue.get('person_uuid', 'Unknown')
@@ -1002,7 +998,7 @@ def send_combined_email(combined_report):
                                 person_name = issue.get('person_name', 'Unknown')
                             email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/persons/{person_uuid}\n"
                             
                             if issue_type in ['contact_details_updated', 'contact_details_update_failed']:
                                 differences = issue.get('differences', {})
@@ -1017,7 +1013,7 @@ def send_combined_email(combined_report):
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
                             email_text += f"\n- {post_label}\n"
-                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/posts/{post_uuid}\n"
+                            email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
                         if issue_type == 'person_mismatch_missing_email':
@@ -1214,7 +1210,7 @@ def send_combined_email(combined_report):
                             if person_name != 'Unknown':
                                 email_text += f"\n- Person: {person_name}\n"
                             if person_uuid != 'Unknown':
-                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{database_name}/persons/{person_uuid}\n"
+                                email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/persons/{person_uuid}\n"
                             
                             user_email = issue.get('user_email', '')
                             if user_email:

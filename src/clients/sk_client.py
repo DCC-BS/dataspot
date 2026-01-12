@@ -9,9 +9,7 @@ class SKClient(BaseDataspotClient):
         """
         Initialize the new client.
         """
-        super().__init__(base_url=config.base_url,
-                         database_name=config.database_name,
-                         scheme_name=config.sk_scheme_name,
+        super().__init__(scheme_name=config.sk_scheme_name,
                          scheme_name_short=config.sk_scheme_name_short)
         
         # Initialize the handlers

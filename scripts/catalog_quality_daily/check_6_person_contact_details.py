@@ -341,7 +341,7 @@ def update_person_contact_details(dataspot_client: BaseDataspotClient, person_uu
         "customProperties": custom_properties
     }
     
-    update_url = f"{dataspot_client.base_url}/rest/{dataspot_client.database_name}/persons/{person_uuid}"
+    update_url = f"{config.base_url}/rest/{config.database_name}/persons/{person_uuid}"
     
     response = requests_patch(
         url=update_url,

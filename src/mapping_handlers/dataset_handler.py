@@ -84,7 +84,7 @@ def ensure_huwise_deployment(client: BaseDataspotClient, dataset_uuid: str, data
         return False
     
     # Create deployment
-    deployment_url = f"{client.base_url}/rest/{client.database_name}/deployments"
+    deployment_url = f"{config.base_url}/rest/{config.database_name}/deployments"
     
     payload = {
         "_type": "Deployment",
@@ -241,7 +241,7 @@ class DatasetHandler(BaseDataspotHandler):
                     uuid = entry[1]
                     
                     # Get the endpoint for this dataset
-                    endpoint = f"/rest/{self.client.database_name}/datasets/{uuid}"
+                    endpoint = f"/rest/{config.database_name}/datasets/{uuid}"
                     
                     # First, get the current dataset to compare
                     current_dataset = self.client._get_asset(endpoint=endpoint)
@@ -599,7 +599,7 @@ class DatasetHandler(BaseDataspotHandler):
             logging.error(error_msg)
             raise ValueError(error_msg)
 
-        collection_href = url_join('rest', self.database_name, 'collections', collection_uuid, leading_slash=True)
+        collection_href = url_join('rest', config.database_name, 'collections', collection_uuid, leading_slash=True)
         logging.debug(f"Using collection UUID: {collection_uuid} and constructed href: {collection_href}")
         
         # Create a new dataset
@@ -755,7 +755,7 @@ class DatasetHandler(BaseDataspotHandler):
             dataset_exists = True
             # Build the API href from the UUID (which is the second item in the entry tuple)
             uuid = entry[1]
-            href = url_join('rest', self.database_name, 'datasets', uuid, leading_slash=True)
+            href = url_join('rest', config.database_name, 'datasets', uuid, leading_slash=True)
             logging.debug(f"Found existing dataset in mapping with UUID: {uuid}, building href: {href}")
             
             # Verify that the dataset still exists at this href
@@ -816,7 +816,7 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Get UUID from the entry and build the href dynamically
         _type, uuid, _inCollection = entry
-        href = url_join('rest', self.database_name, 'datasets', uuid, leading_slash=True)
+        href = url_join('rest', config.database_name, 'datasets', uuid, leading_slash=True)
         
         # Check if the dataset still exists in Dataspot
         asset_exists = self.client._get_asset(href) is not None

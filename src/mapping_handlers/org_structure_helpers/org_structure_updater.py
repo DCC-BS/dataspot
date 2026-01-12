@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, Any, List
 
+import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join, escape_special_chars
 from src.mapping_handlers.org_structure_helpers.org_structure_comparer import OrgUnitChange
@@ -72,7 +73,6 @@ class OrgStructureUpdater:
             client: BaseDataspotClient instance to use for API operations
         """
         self.client = client
-        self.database_name = client.database_name
         self._indexes_cache = None  # Cache for indexed org units (per-layer)
     
     def _get_org_units_indexed(self) -> Dict[str, Dict[str, Any]]:
@@ -208,7 +208,7 @@ class OrgStructureUpdater:
                 continue
             
             # Construct endpoint for deletion
-            endpoint = url_join('rest', self.database_name, 'collections', uuid, leading_slash=True)
+            endpoint = url_join('rest', config.database_name, 'collections', uuid, leading_slash=True)
             
             # First check if the asset still exists
             try:
@@ -305,7 +305,7 @@ class OrgStructureUpdater:
             
             # Get fresh asset data to ensure we have current state (especially for moves)
             try:
-                endpoint = url_join('rest', self.database_name, 'assets', uuid, leading_slash=True)
+                endpoint = url_join('rest', config.database_name, 'assets', uuid, leading_slash=True)
                 current_asset = self.client._get_asset(endpoint)
                 if not current_asset:
                     logging.warning(f"Failed to get current state of asset {change.title} (ID: {uuid})")
@@ -319,7 +319,7 @@ class OrgStructureUpdater:
                 continue
             
             # Construct endpoint for update
-            endpoint = url_join('rest', self.database_name, 'collections', uuid, leading_slash=True)
+            endpoint = url_join('rest', config.database_name, 'collections', uuid, leading_slash=True)
             logging.info(f"Updating org unit '{change.title}' (ID: {change.staatskalender_id}) with status '{status}'")
             
             # Create update data with only necessary fields
@@ -393,7 +393,7 @@ class OrgStructureUpdater:
                     update_data["inCollection"] = None
                     
                     # Get the scheme UUID
-                    scheme_endpoint = url_join('rest', self.database_name, 'schemes', self.client.scheme_name, leading_slash=True)
+                    scheme_endpoint = url_join('rest', config.database_name, 'schemes', self.client.scheme_name, leading_slash=True)
 
                     scheme_data = self.client._get_asset(scheme_endpoint)
                     if scheme_data and "id" in scheme_data:

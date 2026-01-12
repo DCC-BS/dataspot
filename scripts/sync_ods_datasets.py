@@ -374,10 +374,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             logging.error(f"Failed to write report file: {str(report_error)}")
 
         # Create email content
-        email_subject, email_content, should_send = create_email_content(
-            sync_results=sync_results,
-            database_name=dataspot_client.database_name
-        )
+        email_subject, email_content, should_send = create_email_content(sync_results=sync_results)
         
         # Print a detailed report to the logs
         log_detailed_sync_report(sync_results)
@@ -510,7 +507,7 @@ def link_datasets_to_compositions(ods_ids):
         
         try:
             # Step 3: Get all TDM attributes for this composition
-            attributes_endpoint = f"/rest/{tdm_client.database_name}/classifiers/{composition_uuid}/attributes"
+            attributes_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}/attributes"
             attributes_response = tdm_client._get_asset(attributes_endpoint)
             
             if not attributes_response or '_embedded' not in attributes_response or 'attributes' not in attributes_response['_embedded']:
@@ -521,7 +518,7 @@ def link_datasets_to_compositions(ods_ids):
             logging.info(f"Found {len(tdm_attributes)} attributes for TDM composition with odsDataportalId {ods_id}")
             
             # Step 4: Create compositions endpoint for linking
-            compositions_endpoint = f"/rest/{dnk_client.database_name}/datasets/{dataset_uuid}/compositions"
+            compositions_endpoint = f"/rest/{config.database_name}/datasets/{dataset_uuid}/compositions"
             
             # Track counts for this dataset
             created_compositions = 0
@@ -624,7 +621,7 @@ def link_datasets_to_compositions(ods_ids):
                         update_data["order"] = desired_order
 
                     if len(update_data) > 1:
-                        comp_endpoint = f"/rest/{dnk_client.database_name}/compositions/{existing_comp_uuid}"
+                        comp_endpoint = f"/rest/{config.database_name}/compositions/{existing_comp_uuid}"
                         dnk_client._update_asset(comp_endpoint, data=update_data, replace=False, status="PUBLISHED")
                         logging.debug(f"Updated composition '{fachlicher_name}' (fields: {', '.join(update_data.keys() - {'_type'})})")
                         updated_compositions += 1
@@ -676,7 +673,7 @@ def link_datasets_to_compositions(ods_ids):
                     
                 try:
                     # Delete the composition
-                    delete_endpoint = f"/rest/{dnk_client.database_name}/compositions/{comp_uuid}"
+                    delete_endpoint = f"/rest/{config.database_name}/compositions/{comp_uuid}"
                     dnk_client._delete_asset(delete_endpoint)
                     logging.info(f"Deleted obsolete composition '{comp_label}' with id {comp_uuid}")
                     deleted_compositions += 1
@@ -870,13 +867,12 @@ def log_detailed_sync_report(sync_results):
     logging.info("=============================================")
 
 
-def create_email_content(sync_results, database_name):
+def create_email_content(sync_results):
     """
     Create email content based on synchronization results.
 
     Args:
         sync_results (dict): Synchronization result data
-        database_name (str): Name of the database
 
     Returns:
         tuple: (email_subject, email_text, should_send)
@@ -893,9 +889,9 @@ def create_email_content(sync_results, database_name):
     
     # Create email subject with summary following the requested format
     if is_error:
-        email_subject = f"[ERROR][{database_name}] ODS Datasets: Processing failed after {counts['processed']} datasets"
+        email_subject = f"[ERROR][{config.database_name}] ODS Datasets: Processing failed after {counts['processed']} datasets"
     else:
-        email_subject = f"[{database_name}] ODS Datasets: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
+        email_subject = f"[{config.database_name}] ODS Datasets: {counts['created']} created, {counts['updated']} updated, {counts['deleted']} deleted"
         if counts.get('errors', 0) > 0:
             email_subject += f", {counts['errors']} errors"
     
