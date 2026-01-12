@@ -85,7 +85,6 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
     total_processed = 0
     total_successful = 0
     total_failed = 0
-    all_processed_ods_ids = set()  # To track all processed ODS IDs for deletion check
     report_filename = None
     
     try:
@@ -113,64 +112,20 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                 logging.info(f"[{batch_start + idx + 1}/{len(ods_ids)}] Processing dataset {ods_id}...")
                 
                 try:
-                    # Get dataset title
-                    # TODO: Clean this up - Create an ods_id parameter in the cache; possibly save it in a dict instead of a list
-                    tmp_titles = [item['label'] for item in tdm_client.get_compositions_with_cache() if item['odsDataportalId'] == ods_id]
-                    logging.info(f"Filtered to {len(tmp_titles)} Compositions")
-
-                    if len(tmp_titles) > 1:
-                        error_msg = f"Found more than one dataset for dataset {ods_id}"
-                        logging.error(error_msg)
-
-                        # Track error
-                        sync_results['counts']['errors'] += 1
-                        sync_results['details']['errors']['count'] += 1
-                        sync_results['details']['errors']['items'].append({
-                            'ods_id': ods_id,
-                            'message': error_msg
-                        })
-                        total_failed += 1
-                        continue
-
-                    if not tmp_titles:
-                        error_msg = f"Could not retrieve title for dataset {ods_id}"
-                        logging.error(error_msg)
-                        
-                        # Track error
-                        sync_results['counts']['errors'] += 1
-                        sync_results['details']['errors']['count'] += 1
-                        sync_results['details']['errors']['items'].append({
-                            'ods_id': ods_id,
-                            'message': error_msg
-                        })
-                        total_failed += 1
-                        continue
-
-                    dataset_title = tmp_titles[0]
-
-                    logging.info(f"Retrieved dataset title: '{dataset_title}'")
-                    
-                    # Create TDM title in the format {ods-id}@data.bs.ch
-                    tdm_title = f"{ods_id}@data.bs.ch"
-                    
-                    # Get dataset columns
+                    # Get dataset columns first to determine what action to take
                     columns = ods_client.get_dataset_columns(dataset_id=ods_id)
+                    
                     if not columns:
                         # No columns - skip creation or delete existing composition
-                        logging.info(f"No columns found for dataset {ods_id}: {dataset_title}")
+                        existing_composition = tdm_client.get_compositions_with_cache(odsDataportalId=ods_id)
                         
-                        # Check if a composition already exists for this ods_id
-                        existing_compositions = [c for c in tdm_client.get_compositions_with_cache() if c.get('odsDataportalId') == ods_id]
-                        
-                        if existing_compositions:
+                        if existing_composition:
                             # Composition exists - delete it since dataset has no columns
-                            # TODO: This is a potential bug! Several compositions could exist (although very unlikely)!
-                            composition = existing_compositions[0]
-                            composition_uuid = composition.get('id')
-                            composition_title = composition.get('label', f"<Unnamed Composition {ods_id}>")
+                            composition_uuid = existing_composition.get('id')
+                            composition_title = existing_composition.get('label', f"<Unnamed Composition {ods_id}>")
                             dataspot_link = f"{config.base_url}/web/{config.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
                             
-                            logging.info(f"Deleting composition for dataset {ods_id} (no columns): {composition_title}")
+                            logging.info(f"No columns found for dataset {ods_id}, deleting existing composition: {composition_title}")
                             
                             try:
                                 composition_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}"
@@ -200,13 +155,18 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                             # No existing composition - just skip creation
                             logging.info(f"Skipping composition creation for dataset {ods_id} (no columns)")
                         
-                        # Add to processed IDs to prevent double-processing in deletion step
-                        all_processed_ods_ids.add(ods_id)
                         total_processed += 1
                         total_successful += 1
                         continue
                     
                     logging.info(f"Retrieved {len(columns)} columns for dataset {ods_id}")
+                    
+                    # Get dataset title from existing composition (if any)
+                    existing_composition = tdm_client.get_compositions_with_cache(odsDataportalId=ods_id)
+                    dataset_title = existing_composition['label'] if existing_composition else None
+                    
+                    # Create TDM title in the format {ods-id}@data.bs.ch
+                    tdm_title = f"{ods_id}@data.bs.ch"
                     
                     # Sync dataset compositions
                     logging.info(f"Synchronizing dataset compositions for {ods_id}: '{dataset_title}'")
@@ -322,9 +282,6 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                         sync_results['details']['deployments']['count'] += result['details']['deployments'].get('count', 0)
                         sync_results['details']['deployments']['items'].extend(result['details']['deployments'].get('items', []))
                     
-                    # Add to processed IDs for deletion tracking
-                    all_processed_ods_ids.add(ods_id)
-                    
                     # Log success
                     logging.info(f"Successfully processed compositions for dataset {ods_id}: {dataset_title}")
                     total_successful += 1
@@ -351,15 +308,11 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
             # Get all compositions from TDM with odsDataportalId
             all_tdm_compositions = tdm_client.get_compositions_with_cache()
 
-            # Extract ODS IDs from the compositions
-            tdm_ods_ids = set()
-            for composition in all_tdm_compositions:
-                ods_id = composition.get('odsDataportalId')
-                if ods_id:
-                    tdm_ods_ids.add(ods_id)
+            # Extract ODS IDs from the compositions (dict keys are already odsDataportalId)
+            tdm_ods_ids = set(all_tdm_compositions.keys())
 
             # Find compositions that are in TDM but not in the current ODS fetch
-            compositions_to_delete = tdm_ods_ids - all_processed_ods_ids
+            compositions_to_delete = tdm_ods_ids - set(ods_ids)
 
             # TODO: Also mark for deletion the attributes of the compositions
             if compositions_to_delete:
@@ -368,43 +321,54 @@ def sync_ods_dataset_compositions(max_datasets: int = None, batch_size: int = 50
                 # Process each composition for deletion
                 for ods_id in compositions_to_delete:
                     try:
-                        # Find the composition info
-                        composition_info = next((c for c in all_tdm_compositions if c.get('odsDataportalId') == ods_id), None)
+                        # Find the composition info (direct dict access)
+                        composition_info = all_tdm_compositions.get(ods_id)
 
-                        if composition_info:
-                            composition_title = composition_info.get('label', f"<Unnamed Composition {ods_id}>")
-                            composition_uuid = composition_info.get('id')
+                        if not composition_info:
+                            # This should never happen since ods_id comes from all_tdm_compositions.keys()
+                            error_msg = f"Unexpected: composition_info is None for ods_id {ods_id} despite being in tdm_ods_ids"
+                            logging.error(error_msg)
+                            sync_results['counts']['errors'] += 1
+                            sync_results['details']['errors']['count'] += 1
+                            sync_results['details']['errors']['items'].append({
+                                "ods_id": ods_id,
+                                "message": error_msg
+                            })
+                            continue
 
-                            # Create Dataspot link
-                            dataspot_link = f"{config.base_url}/web/{config.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
+                        composition_title = composition_info.get('label', f"<Unnamed Composition {ods_id}>")
+                        composition_uuid = composition_info.get('id')
 
-                            # Construct the endpoint for the composition
-                            composition_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}"
+                        # Create Dataspot link
+                        dataspot_link = f"{config.base_url}/web/{config.database_name}/classifiers/{composition_uuid}" if composition_uuid else ''
 
-                            # Mark the composition for deletion using the inherited method
-                            try:
-                                tdm_client._mark_asset_for_deletion(endpoint=composition_endpoint)
-                                deleted = True
-                            except Exception as delete_error:
-                                logging.error(f"Failed to mark composition for deletion: {str(delete_error)}")
-                                deleted = False
+                        # Construct the endpoint for the composition
+                        composition_endpoint = f"/rest/{config.database_name}/classifiers/{composition_uuid}"
 
-                            if deleted:
-                                # Track deletion
-                                sync_results['counts']['deleted'] += 1
-                                sync_results['counts']['total_changes'] += 1
-                                sync_results['details']['deletions']['count'] += 1
+                        # Mark the composition for deletion using the inherited method
+                        try:
+                            tdm_client._mark_asset_for_deletion(endpoint=composition_endpoint)
+                            deleted = True
+                        except Exception as delete_error:
+                            logging.error(f"Failed to mark composition for deletion: {str(delete_error)}")
+                            deleted = False
 
-                                # Add to deletion details
-                                deletion_entry = {
-                                    "ods_id": ods_id,
-                                    "title": composition_title,
-                                    "uuid": composition_uuid,
-                                    "link": dataspot_link
-                                }
+                        if deleted:
+                            # Track deletion
+                            sync_results['counts']['deleted'] += 1
+                            sync_results['counts']['total_changes'] += 1
+                            sync_results['details']['deletions']['count'] += 1
 
-                                sync_results['details']['deletions']['items'].append(deletion_entry)
-                                logging.info(f"Deleted composition with odsDataportalId {ods_id}: {composition_title}")
+                            # Add to deletion details
+                            deletion_entry = {
+                                "ods_id": ods_id,
+                                "title": composition_title,
+                                "uuid": composition_uuid,
+                                "link": dataspot_link
+                            }
+
+                            sync_results['details']['deletions']['items'].append(deletion_entry)
+                            logging.info(f"Deleted composition with odsDataportalId {ods_id}: {composition_title}")
 
                     except Exception as e:
                         error_msg = f"Error deleting composition with odsDataportalId {ods_id}: {str(e)}"

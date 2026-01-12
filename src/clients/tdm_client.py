@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Dict, Any, Optional, overload
 import logging
 
 import config
@@ -26,20 +26,36 @@ class TDMClient(BaseDataspotClient):
         self.org_handler = OrgStructureHandler(self)
         self.composition_handler = DatasetCompositionHandler(self)
 
-    def get_compositions_with_cache(self) -> List[Dict[str, Any]]:
+    @overload
+    def get_compositions_with_cache(self) -> Dict[str, Dict[str, Any]]: ...
+    
+    @overload
+    def get_compositions_with_cache(self, odsDataportalId: str) -> Optional[Dict[str, Any]]: ...
+    
+    def get_compositions_with_cache(self, odsDataportalId: Optional[str] = None) -> Dict[str, Dict[str, Any]] | Optional[Dict[str, Any]]:
         """
         Get Composition objects (UmlClass with stereotype='ogd_dataset') with caching support.
         
         Uses SQL Query API to fetch only the required assets with all filtering done in the query.
         No in-memory filtering is needed.
+        
+        Args:
+            odsDataportalId: Optional ODS ID to filter by. If provided, returns a single
+                composition dict or None if not found. If not provided, returns all compositions.
             
         Returns:
-            List[Dict[str, Any]]: List of Composition assets
+            If odsDataportalId is None: Dict[str, Dict[str, Any]] - Dictionary of all compositions keyed by odsDataportalId
+            If odsDataportalId is provided: Optional[Dict[str, Any]] - Single composition dict or None if not found
+            
+        Raises:
+            ValueError: If duplicate odsDataportalId values are found in the data
         """
         # Check if cache is populated
         if self._compositions_cache is not None:
             logging.info(f"Using cached Compositions from {self.scheme_name_short} scheme ({len(self._compositions_cache)} assets)")
-            return list(self._compositions_cache)
+            if odsDataportalId is not None:
+                return self._compositions_cache.get(odsDataportalId)
+            return dict(self._compositions_cache)
         
         # Cache is empty, fetch using SQL Query API
         logging.info(f"Fetching Composition assets from {self.scheme_name_short} scheme using SQL Query API")
@@ -68,9 +84,20 @@ class TDMClient(BaseDataspotClient):
         
         results = self.execute_query_api(sql_query=query)
         
-        # Convert SQL results to match Download API format (snake_case to camelCase)
-        self._compositions_cache = []
+        # Convert SQL results to dict keyed by odsDataportalId
+        self._compositions_cache = {}
         for row in results:
+            ods_id = strip_quotes(row.get('ods_dataportal_id'))
+            
+            # Check for duplicates
+            if ods_id in self._compositions_cache:
+                existing = self._compositions_cache[ods_id]
+                raise ValueError(
+                    f"Duplicate odsDataportalId '{ods_id}' found: "
+                    f"existing composition '{existing.get('label')}' (id: {existing.get('id')}), "
+                    f"new composition '{row.get('label')}' (id: {row.get('id')})"
+                )
+            
             asset = {
                 'id': row.get('id'),
                 '_type': row.get('_type'),
@@ -78,13 +105,15 @@ class TDMClient(BaseDataspotClient):
                 'label': row.get('label'),
                 'stereotype': row.get('stereotype'),
                 'status': row.get('status'),
-                'odsDataportalId': strip_quotes(row.get('ods_dataportal_id'))
+                'odsDataportalId': ods_id
             }
-            self._compositions_cache.append(asset)
+            self._compositions_cache[ods_id] = asset
         
         logging.info(f"Cached {len(self._compositions_cache)} Compositions from {self.scheme_name_short} scheme")
         
-        return list(self._compositions_cache)
+        if odsDataportalId is not None:
+            return self._compositions_cache.get(odsDataportalId)
+        return dict(self._compositions_cache)
 
     def clear_compositions_cache(self) -> None:
         """

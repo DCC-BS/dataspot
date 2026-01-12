@@ -137,14 +137,12 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         
         # Populate mapping from cached compositions
         compositions = client.get_compositions_with_cache()
-        for comp in compositions:
-            ods_id = comp.get('odsDataportalId')
-            if ods_id:
-                self.mapping[str(ods_id)] = (
-                    comp.get('_type', 'UmlClass'),
-                    comp.get('id'),
-                    comp.get('inCollection')
-                )
+        for ods_id, comp in compositions.items():
+            self.mapping[str(ods_id)] = (
+                comp.get('_type', 'UmlClass'),
+                comp.get('id'),
+                comp.get('inCollection')
+            )
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: (asset.get('_type') == 'UmlClass' and 
@@ -279,20 +277,15 @@ class DatasetCompositionHandler(BaseDataspotHandler):
         
         # If not found in mapping or not existing in Dataspot, check if asset exists with this odsDataportalId
         if not existing_entry or not asset_uuid:
-            # Use cached compositions and filter in-memory
-            all_compositions = self.client.get_compositions_with_cache()
-            existing_assets = [c for c in all_compositions if c.get('odsDataportalId') == ods_id]
+            # Use direct dict lookup
+            existing_asset = self.client.get_compositions_with_cache(odsDataportalId=ods_id)
     
-            if existing_assets:
-                if len(existing_assets) > 1:
-                    logging.error(f"Found {len(existing_assets)} assets with odsDataportalId {ods_id} in the {self.client.scheme_name_short} when only one should exist!")
-                    raise ValueError(f"Multiple assets found with odsDataportalId {ods_id}")
-                else:
-                    logging.info(f"Found existing dataobject for dataset {ods_id} (UUID: {existing_assets[0].get('id')})")
+            if existing_asset:
+                logging.info(f"Found existing dataobject for dataset {ods_id} (UUID: {existing_asset.get('id')})")
     
                 # Asset exists, update it
                 is_new = False
-                asset = existing_assets[0]
+                asset = existing_asset
                 asset_uuid = asset.get('id')
                 
                 if not asset_uuid:

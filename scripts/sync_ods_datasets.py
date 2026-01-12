@@ -269,6 +269,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                             sync_results['details']['deletions']['items'].append(deletion_entry)
                             logging.info(f"Marked dataset with odsDataportalId {ods_id} for deletion: {title} (Link: {dataspot_link})")
                         else:
+                            # This should never happen since ods_id came from dataspot_ods_ids which was built from all_dataspot_datasets
+                            logging.error(f"Unexpected: dataset_info not found for ods_id {ods_id} despite being in dataspot_ods_ids")
                             # Fallback if dataset info not found
                             sync_results['details']['deletions']['items'].append({
                                 "ods_id": ods_id,
@@ -473,14 +475,7 @@ def link_datasets_to_compositions(ods_ids):
     
     # Step 2: Get all TDM compositions with odsDataportalId
     logging.info("Getting all TDM compositions with odsDataportalId...")
-    tdm_compositions = tdm_client.get_compositions_with_cache()
-    
-    # Create lookup dictionary for TDM compositions by odsDataportalId
-    tdm_compositions_by_ods_id = {}
-    for composition in tdm_compositions:
-        ods_id = composition.get('odsDataportalId')
-        if ods_id:
-            tdm_compositions_by_ods_id[ods_id] = composition
+    tdm_compositions_by_ods_id = tdm_client.get_compositions_with_cache()
     
     # Sort ODS IDs alphabetically before processing
     sorted_ods_ids = sorted(ods_ids)
