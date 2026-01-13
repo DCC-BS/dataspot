@@ -221,12 +221,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # Get all datasets from Dataspot
         all_dataspot_datasets = dataspot_client.get_datasets_with_cache()
         
-        # Extract ODS IDs from the datasets
-        dataspot_ods_ids = set()
-        for dataset in all_dataspot_datasets:
-            ods_id = dataset.get('odsDataportalId')
-            if ods_id:
-                dataspot_ods_ids.add(ods_id)
+        # Extract ODS IDs from the datasets (dict keys are the ODS IDs)
+        dataspot_ods_ids = set(all_dataspot_datasets.keys())
         
         logging.info(f"Found {len(dataspot_ods_ids)} datasets with odsDataportalId in Dataspot")
         
@@ -249,7 +245,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                         sync_results['details']['deletions']['count'] += 1
                         
                         # Find the dataset info from all_dataspot_datasets
-                        dataset_info = next((d for d in all_dataspot_datasets if d.get('odsDataportalId') == ods_id), None)
+                        dataset_info = all_dataspot_datasets.get(ods_id)
                         
                         if dataset_info:
                             title = dataset_info.get('label', f"<Unnamed Dataset {ods_id}>")
@@ -464,14 +460,7 @@ def link_datasets_to_compositions(ods_ids):
     
     # Step 1: Get all DNK datasets with odsDataportalId
     logging.info("Getting all DNK datasets with odsDataportalId...")
-    dnk_datasets = dnk_client.get_datasets_with_cache()
-    
-    # Create lookup dictionary for DNK datasets by odsDataportalId
-    dnk_datasets_by_ods_id = {}
-    for dataset in dnk_datasets:
-        ods_id = dataset.get('odsDataportalId')
-        if ods_id:
-            dnk_datasets_by_ods_id[ods_id] = dataset
+    dnk_datasets_by_ods_id = dnk_client.get_datasets_with_cache()
     
     # Step 2: Get all TDM compositions with odsDataportalId
     logging.info("Getting all TDM compositions with odsDataportalId...")

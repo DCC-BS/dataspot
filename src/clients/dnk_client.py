@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Dict, Any, Optional, overload, List
 import logging
 
 import config
@@ -27,20 +27,36 @@ class DNKClient(BaseDataspotClient):
         self.org_handler = OrgStructureHandler(self)
         self.dataset_handler = DatasetHandler(self)
 
-    def get_datasets_with_cache(self) -> List[Dict[str, Any]]:
+    @overload
+    def get_datasets_with_cache(self) -> Dict[str, Dict[str, Any]]: ...
+    
+    @overload
+    def get_datasets_with_cache(self, odsDataportalId: str) -> Optional[Dict[str, Any]]: ...
+    
+    def get_datasets_with_cache(self, odsDataportalId: Optional[str] = None) -> Dict[str, Dict[str, Any]] | Optional[Dict[str, Any]]:
         """
-        Get Dataset objects with caching support.
+        Get Dataset objects (stereotype='OGD') with caching support.
         
         Uses SQL Query API to fetch only the required assets with all filtering done in the query.
         No in-memory filtering is needed.
+        
+        Args:
+            odsDataportalId: Optional ODS ID to filter by. If provided, returns a single
+                dataset dict or None if not found. If not provided, returns all datasets.
             
         Returns:
-            List[Dict[str, Any]]: List of Dataset assets
+            If odsDataportalId is None: Dict[str, Dict[str, Any]] - Dictionary of all datasets keyed by odsDataportalId
+            If odsDataportalId is provided: Optional[Dict[str, Any]] - Single dataset dict or None if not found
+            
+        Raises:
+            ValueError: If duplicate odsDataportalId values are found in the data
         """
         # Check if cache is populated
         if self._datasets_cache is not None:
             logging.info(f"Using cached Datasets from {self.scheme_name_short} scheme ({len(self._datasets_cache)} assets)")
-            return list(self._datasets_cache)
+            if odsDataportalId is not None:
+                return self._datasets_cache.get(odsDataportalId)
+            return dict(self._datasets_cache)
         
         # Cache is empty, fetch using SQL Query API
         logging.info(f"Fetching Dataset assets from {self.scheme_name_short} scheme using SQL Query API")
@@ -60,6 +76,7 @@ class DNKClient(BaseDataspotClient):
                 customproperties_view cp ON d.id = cp.resource_id AND cp.name = 'odsDataportalId'
             WHERE 
                 d._type = 'Dataset'
+                AND d.stereotype = 'OGD'
                 AND cp.value IS NOT NULL
                 AND d.status NOT IN ('INTERMINATION2', 'ARCHIVEMETA')
             ORDER BY
@@ -68,9 +85,20 @@ class DNKClient(BaseDataspotClient):
         
         results = self.execute_query_api(sql_query=query)
         
-        # Convert SQL results to match Download API format (snake_case to camelCase)
-        self._datasets_cache = []
+        # Convert SQL results to dict keyed by odsDataportalId
+        self._datasets_cache = {}
         for row in results:
+            ods_id = strip_quotes(row.get('ods_dataportal_id'))
+            
+            # Check for duplicates
+            if ods_id in self._datasets_cache:
+                existing = self._datasets_cache[ods_id]
+                raise ValueError(
+                    f"Duplicate odsDataportalId '{ods_id}' found: "
+                    f"existing dataset '{existing.get('label')}' (id: {existing.get('id')}), "
+                    f"new dataset '{row.get('label')}' (id: {row.get('id')})"
+                )
+            
             asset = {
                 'id': row.get('id'),
                 '_type': row.get('_type'),
@@ -78,13 +106,15 @@ class DNKClient(BaseDataspotClient):
                 'label': row.get('label'),
                 'stereotype': row.get('stereotype'),
                 'status': row.get('status'),
-                'odsDataportalId': strip_quotes(row.get('ods_dataportal_id'))
+                'odsDataportalId': ods_id
             }
-            self._datasets_cache.append(asset)
+            self._datasets_cache[ods_id] = asset
         
         logging.info(f"Cached {len(self._datasets_cache)} Datasets from {self.scheme_name_short} scheme")
         
-        return list(self._datasets_cache)
+        if odsDataportalId is not None:
+            return self._datasets_cache.get(odsDataportalId)
+        return dict(self._datasets_cache)
 
     def clear_datasets_cache(self) -> None:
         """

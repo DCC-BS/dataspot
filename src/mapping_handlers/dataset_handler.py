@@ -136,14 +136,12 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Populate mapping from cached datasets
         datasets = client.get_datasets_with_cache()
-        for dataset in datasets:
-            ods_id = dataset.get('odsDataportalId')
-            if ods_id:
-                self.mapping[str(ods_id)] = (
-                    dataset.get('_type', 'Dataset'),
-                    dataset.get('id'),
-                    dataset.get('inCollection')
-                )
+        for ods_id, dataset in datasets.items():
+            self.mapping[str(ods_id)] = (
+                dataset.get('_type', 'Dataset'),
+                dataset.get('id'),
+                dataset.get('inCollection')
+            )
 
         # Set the asset type filter based on asset_id_field
         self.asset_type_filter = lambda asset: asset.get(self.asset_id_field) is not None
