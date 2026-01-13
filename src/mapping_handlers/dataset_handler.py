@@ -583,7 +583,7 @@ class DatasetHandler(BaseDataspotHandler):
         # Check if dataset with this ODS ID already exists
         existing_entry = self.mapping.get(odsDataportalId)
         if existing_entry:
-            # Entry is now (_type, uuid, inCollection)
+            # Entry is (_type, uuid, inCollection)
             _type, uuid, _ = existing_entry
             logging.info(f"Dataset with ODS ID {odsDataportalId} already exists (Type: {_type}, UUID: {uuid}). Use update_dataset or create_or_update_dataset method to update.")
             raise ValueError(f"Dataset with ODS ID {odsDataportalId} already exists. Use update_dataset or create_or_update_dataset method.")
@@ -656,7 +656,7 @@ class DatasetHandler(BaseDataspotHandler):
         title = dataset.to_json()['label']
         logging.info(f"Updating dataset: '{title}' with ODS ID: {odsDataportalId}")
         
-        # Get the inCollection from mapping if available (this is now a business key)
+        # Get the inCollection from mapping if available
         entry = self.mapping.get(odsDataportalId)
         inCollection = entry[2] if entry else None
         
