@@ -152,6 +152,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             all_processed_ods_ids.add(ods_id)
             
             logging.info(f"Successfully transformed dataset {ods_id}: {dataset.name}")
+            logging.info("Waiting 1 second to not overload Huwise")
+            time.sleep(1)
             total_successful += 1
             total_processed += 1
             
