@@ -36,5 +36,5 @@ jobs:
           context: ./connectors/stata-test
           push: true
           tags: |
-            ghcr.io/dcc-bs/dataspot-connectors/stata-test:latest
-            ghcr.io/dcc-bs/dataspot-connectors/stata-test:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/connectors/stata-test:latest
+            ghcr.io/${{ github.repository }}/connectors/stata-test:${{ github.sha }}
