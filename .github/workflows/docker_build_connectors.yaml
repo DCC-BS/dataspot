@@ -1,5 +1,9 @@
 name: Build and Push Connector Docker Images
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches: [main]
