@@ -7,17 +7,58 @@ permissions:
 on:
   push:
     branches: [main]
-    paths:
-      - 'connectors/stata-test/**'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'connectors/stata-test/**'
   workflow_dispatch:
 
 jobs:
-  build-stata-test:
+  discover-connectors:
     runs-on: ubuntu-latest
+    outputs:
+      connectors: ${{ steps.detect-changes.outputs.connectors }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed connectors
+        id: detect-changes
+        run: |
+          # Get changed files for push events
+          if [ "${{ github.event_name }}" == "push" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+          fi
+          
+          # Find all connectors that have Dockerfiles
+          ALL_CONNECTORS=$(find connectors -maxdepth 2 -name "Dockerfile" -exec dirname {} \; | xargs -I {} basename {} | sort -u)
+          echo "All connectors: $ALL_CONNECTORS"
+          
+          # Determine which connectors to build
+          CHANGED_CONNECTORS="[]"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # For manual dispatch, build all connectors
+            CHANGED_CONNECTORS=$(echo "$ALL_CONNECTORS" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          else
+            # For push events, only build changed connectors
+            for connector in $ALL_CONNECTORS; do
+              if echo "$CHANGED_FILES" | grep -q "^connectors/${connector}/"; then
+                CHANGED_CONNECTORS=$(echo "$CHANGED_CONNECTORS" | jq -c ". + [\"${connector}\"]")
+              fi
+            done
+          fi
+          
+          echo "Changed connectors: $CHANGED_CONNECTORS"
+          echo "connectors=$CHANGED_CONNECTORS" >> "$GITHUB_OUTPUT"
+
+  build-connectors:
+    needs: discover-connectors
+    if: ${{ needs.discover-connectors.outputs.connectors != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        connector: ${{ fromJSON(needs.discover-connectors.outputs.connectors) }}
+      fail-fast: false
 
     permissions:
       contents: read
@@ -38,11 +79,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build and push stata-test connector
+      - name: Build and push ${{ matrix.connector }} connector
         uses: docker/build-push-action@v6
         with:
-          context: ./connectors/stata-test
-          push: true
+          context: ./connectors/${{ matrix.connector }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
           tags: |
-            ghcr.io/${{ env.REPO_LC }}/connectors/stata-test:latest
-            ghcr.io/${{ env.REPO_LC }}/connectors/stata-test:${{ github.sha }}
+            ghcr.io/${{ env.REPO_LC }}/connectors/${{ matrix.connector }}:latest
+            ghcr.io/${{ env.REPO_LC }}/connectors/${{ matrix.connector }}:${{ github.sha }}
