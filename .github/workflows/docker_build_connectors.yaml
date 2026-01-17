@@ -40,5 +40,5 @@ jobs:
           context: ./connectors/stata-test
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_LC }}/stata-test:latest
-            ghcr.io/${{ env.REPO_LC }}/stata-test:${{ github.sha }}
+            ghcr.io/${{ env.REPO_LC }}/connectors/stata-test:latest
+            ghcr.io/${{ env.REPO_LC }}/connectors/stata-test:${{ github.sha }}
