@@ -55,7 +55,6 @@ EOF
 
 echo "Generated krb5.conf for realm ${AD_REALM} with KDC ${AD_DOMAIN_CONTROLLER}"
 
-# Obtain Kerberos ticket using kinit
 echo "Obtaining Kerberos ticket for ${AD_USERNAME}@${AD_REALM}..."
 echo "${AD_PASSWORD}" | kinit "${AD_USERNAME}@${AD_REALM}" 2>&1
 
@@ -71,24 +70,16 @@ echo "Verifying Kerberos ticket..."
 klist 2>&1
 
 # Create JAAS configuration file for Java
-JAAS_CONFIG_FILE="/tmp/jaas.conf"
-cat > "${JAAS_CONFIG_FILE}" << EOF
+cat > /tmp/jaas.conf << EOF
 SQLJDBCDriver {
     com.sun.security.auth.module.Krb5LoginModule required
     useTicketCache=true
-    ticketCache="${KRB5CCNAME:-/tmp/krb5cc_$(id -u)}"
     doNotPrompt=true
     debug=false;
 };
 EOF
 
-echo "Created JAAS configuration at ${JAAS_CONFIG_FILE}"
-
-# Export Java system properties for Kerberos authentication
-export JAVA_TOOL_OPTIONS="-Djava.security.auth.login.config=${JAAS_CONFIG_FILE} -Djava.security.krb5.conf=/etc/krb5.conf -Djavax.security.auth.useSubjectCredsOnly=false"
-
-echo "Set Java system properties for Kerberos authentication"
-echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}"
+echo "Created JAAS configuration at /tmp/jaas.conf"
 
 # Change to workdir if needed
 cd /opt/workdir || true
