@@ -27,6 +27,11 @@ if [ -z "$AD_REALM" ]; then
     exit 1
 fi
 
+echo "=== Starting Kerberos Authentication Setup ==="
+echo "Realm: ${AD_REALM}"
+echo "Domain Controller: ${AD_DOMAIN_CONTROLLER}"
+echo "Username: ${AD_USERNAME}"
+
 # Generate krb5.conf dynamically from environment variables
 cat > /etc/krb5.conf << EOF
 [libdefaults]
@@ -61,8 +66,34 @@ fi
 
 echo "Kerberos ticket obtained successfully"
 
+# Verify ticket exists
+echo "Verifying Kerberos ticket..."
+klist 2>&1
+
+# Create JAAS configuration file for Java
+JAAS_CONFIG_FILE="/tmp/jaas.conf"
+cat > "${JAAS_CONFIG_FILE}" << EOF
+SQLJDBCDriver {
+    com.sun.security.auth.module.Krb5LoginModule required
+    useTicketCache=true
+    ticketCache="${KRB5CCNAME:-/tmp/krb5cc_$(id -u)}"
+    doNotPrompt=true
+    debug=false;
+};
+EOF
+
+echo "Created JAAS configuration at ${JAAS_CONFIG_FILE}"
+
+# Export Java system properties for Kerberos authentication
+export JAVA_TOOL_OPTIONS="-Djava.security.auth.login.config=${JAAS_CONFIG_FILE} -Djava.security.krb5.conf=/etc/krb5.conf -Djavax.security.auth.useSubjectCredsOnly=false"
+
+echo "Set Java system properties for Kerberos authentication"
+echo "JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}"
+
 # Change to workdir if needed
 cd /opt/workdir || true
 
-# Run your Java application (pass through all arguments)
+echo "=== Starting Java Application ==="
+
+# Run Java application (pass through all arguments)
 exec "$@"
