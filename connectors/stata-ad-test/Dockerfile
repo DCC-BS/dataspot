@@ -4,9 +4,6 @@ WORKDIR /opt/workdir
 # Install Kerberos client libraries
 RUN apk add --no-cache krb5 krb5-libs
 
-# Copy krb5.conf
-COPY krb5.conf /etc/krb5.conf
-
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
