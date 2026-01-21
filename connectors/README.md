@@ -22,8 +22,9 @@ Use this method when connecting with a SQL database user. This is based on the `
 ### 2. In the 'dataspot' Repository
 
 1. Copy the `stata-test` folder within the `connectors` folder and rename it for the new connector.
-2. Adapt the `Dockerfile` if necessary (usually not required for SQL User authentication).
-3. Push the changes to GitHub and wait for the Docker image to be built automatically.
+2. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
+3. Adapt the `Dockerfile` if necessary (usually not required for SQL User authentication).
+4. Push the changes to GitHub and wait for the Docker image to be built automatically.
 
 ### 3. In the 'dags-airflow2' Repository
 
@@ -46,11 +47,12 @@ Use this method when connecting with an Active Directory user via Kerberos. This
 ### 2. In the 'dataspot' Repository
 
 1. Copy the `stata-ad-test` folder within the `connectors` folder and rename it for the new connector.
-2. The `Dockerfile` and `entrypoint.sh` already contain the Kerberos/AD setup. They use 4 environment variables which are passed from the Airflow script, 2 of which need to be added in airflow:
+2. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
+3. The `Dockerfile` and `entrypoint.sh` already contain the Kerberos/AD setup. They use 4 environment variables which are passed from the Airflow script, 2 of which need to be added in airflow:
    - `XYZ_AD_USERNAME`
    - `XYZ_AD_PASSWORD`
 
-3. Push the changes to GitHub and wait for the Docker image to be built automatically.
+4. Push the changes to GitHub and wait for the Docker image to be built automatically.
 
 ### 3. In the 'dags-airflow2' Repository
 
@@ -61,6 +63,7 @@ Use this method when connecting with an Active Directory user via Kerberos. This
    - `XYZ_AD_PASSWORD` - The AD password
 4. Copy the `dataspot-connector/stata-ad-test/` folder and rename it accordingly.
 5. Adapt the `application.yaml` file in the new `dataspot-connector/{new-folder-name}/` folder if necessary (see [Driver Selection](#driver-selection)).
+6. Push the changes to GitHub and run `stata_pull_changes` in airflow.
 
 ---
 
