@@ -18,6 +18,7 @@ Use this method when connecting with a SQL database user. This is based on the `
 
 1. Copy the `StatA-Test-DB` folder from the DataExch location: `DCC\Dataspot\DatabaseConnector\Configurations`.
 2. Rename the folder and adapt the details in the `application.properties` file within the newly created folder, including username and password.
+3. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
 
 ### 2. In the 'dataspot' Repository
 
@@ -44,6 +45,7 @@ Use this method when connecting with an Active Directory user via Kerberos. This
 1. Copy the `StatA-Test-DB_AD-Access` folder from the DataExch location: `DCC\Dataspot\DatabaseConnector\Configurations`.
 2. Rename the folder and adapt the `application.properties` file within the newly created folder.
    - **Important**: Only update `server` and `database_name`. Do NOT set username and password here; these are managed via Airflow Variables.
+3. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
 
 ### 2. In the 'dataspot' Repository
 
