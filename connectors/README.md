@@ -31,6 +31,7 @@ Use this method when connecting with a SQL database user. This is based on the `
 1. Copy and adapt the `dcc_dataspot_connector_stata_test.py` script.
 2. Copy the `dataspot-connector/stata-test/` folder and rename it accordingly.
 3. Adapt the `application.yaml` file in the new `dataspot-connector/{new-folder-name}/` folder if necessary (see [Driver Selection](#driver-selection)).
+4. Push the changes to GitHub and run `stata_pull_changes` in airflow.
 
 ---
 
