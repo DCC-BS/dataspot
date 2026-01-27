@@ -24,12 +24,17 @@ class TestEscapeSpecialChars:
         assert escape_special_chars('Adresse') == 'Adresse'
         assert escape_special_chars('Person') == 'Person'
     
-    # Test names with delimiters (/ or .)
-    def test_names_with_delimiters(self):
-        assert escape_special_chars('dataspot.') == '"dataspot."'
+    # Test names with forward slashes (path delimiters) - these need quoting
+    def test_names_with_forward_slashes(self):
         assert escape_special_chars('INPUT/OUTPUT') == '"INPUT/OUTPUT"'
-        assert escape_special_chars('Mitarbeiter.csv') == '"Mitarbeiter.csv"'
-        assert escape_special_chars('Datei bzw. Schnittstelle') == '"Datei bzw. Schnittstelle"'
+    
+    # Test names with dots - these do NOT need quoting (matching Dataspot's actual behavior)
+    def test_names_with_dots(self):
+        assert escape_special_chars('dataspot.') == 'dataspot.'
+        assert escape_special_chars('Mitarbeiter.csv') == 'Mitarbeiter.csv'
+        assert escape_special_chars('Datei bzw. Schnittstelle') == 'Datei bzw. Schnittstelle'
+        # Real example from Dataspot: org units with dots in their names
+        assert escape_special_chars('IV-Stelle Basel-Stadt (Eidg. Invalidenversicherung)') == 'IV-Stelle Basel-Stadt (Eidg. Invalidenversicherung)'
     
     # Test names with quotes that need doubling
     def test_names_with_quotes(self):
