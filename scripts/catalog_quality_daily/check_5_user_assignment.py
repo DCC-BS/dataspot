@@ -11,23 +11,25 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
     """
     Check #5: Benutzerkontensynchronisation
     
-    This check verifies that all persons with sk_person_id and posts have correct user accounts.
+    This check verifies that all persons with sk_person_id have correct user accounts.
     
     Specifically:
-    - For all persons with sk_person_id and a post, it checks:
+    - For all persons with sk_person_id, it checks:
       - A user with the correct email address from Staatskalender exists
       - The user is correctly linked to the person via the isPerson field
-      - The user has at least EDITOR access rights
+      - If the person has posts, the user has at least EDITOR access rights
     
     Remediation steps:
     - If a person has no email address in Staatskalender, this is reported without making changes
     - If no user exists for the person, a user is automatically created with:
       - The correct email address from Staatskalender
-      - Proper link to the person via isPerson field in "lastname, firstname" format
-      - EDITOR access rights
+      - Proper link to the person via isPerson field
+      - EDITOR access rights if the person has posts, READ_ONLY otherwise
     - If a user exists but is not correctly linked to the person, the user is automatically linked
       to the correct person by updating the isPerson field
-    - If the user has READ_ONLY access rights, they are automatically upgraded to EDITOR access level
+    - If the user has READ_ONLY access rights and the person has posts, they are automatically 
+      upgraded to EDITOR access level
+    - ADMINISTRATOR users are never modified by this check
     
     Args:
         dataspot_client: Base client for database operations
@@ -40,7 +42,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
     
     result = {
         'status': 'success',
-        'message': 'All persons with sk_person_id and posts have correct user assignments.',
+        'message': 'All persons with sk_person_id have correct user assignments.',
         'issues': [],
         'error': None
     }
@@ -190,55 +192,52 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
             if not user:
                 user = users_by_person_uuid.get(person_uuid)
             
-            # Step 3: If still no user and person has posts, create one
+            # Step 3: If still no user, create one (EDITOR if has posts, READ_ONLY otherwise)
             if not user:
-                if has_posts:
-                    logging.info(f"Person {person_name} (UUID: {person_uuid}) has posts but no associated user account - creating one")
-                    
-                    create_result = create_user_for_person(
-                        dataspot_client=dataspot_client,
-                        email=email,
-                        given_name=given_name,
-                        family_name=family_name,
-                        person_uuid=person_uuid,
-                        has_posts=has_posts
-                    )
-                    
-                    if create_result['success']:
-                        issue_message = f"Successfully created user account for {person_name} with email {email}"
-                        result['issues'].append({
-                            'type': 'user_created',
-                            'person_uuid': person_uuid,
-                            'given_name': given_name,
-                            'family_name': family_name,
-                            'sk_person_id': sk_person_id,
-                            'posts_count': person['posts_count'],
-                            'user_uuid': create_result['user_uuid'],
-                            'user_email': email,
-                            'user_access_level': create_result['access_level'],
-                            'message': issue_message,
-                            'remediation_attempted': True,
-                            'remediation_success': True
-                        })
-                        logging.info(issue_message)
-                    else:
-                        issue_message = f"Failed to create user account for {person_name} with email {email}: {create_result['message']}"
-                        result['issues'].append({
-                            'type': 'user_creation_failed',
-                            'person_uuid': person_uuid,
-                            'given_name': given_name,
-                            'family_name': family_name,
-                            'sk_person_id': sk_person_id,
-                            'posts_count': person['posts_count'],
-                            'user_email': email,
-                            'message': issue_message,
-                            'remediation_attempted': True,
-                            'remediation_success': False
-                        })
-                        logging.info(issue_message)
+                access_type = "EDITOR" if has_posts else "READ_ONLY"
+                logging.info(f"Person {person_name} (UUID: {person_uuid}) has no associated user account - creating one with {access_type} access")
+                
+                create_result = create_user_for_person(
+                    dataspot_client=dataspot_client,
+                    email=email,
+                    given_name=given_name,
+                    family_name=family_name,
+                    person_uuid=person_uuid,
+                    has_posts=has_posts
+                )
+                
+                if create_result['success']:
+                    issue_message = f"Successfully created user account for {person_name} with email {email} ({access_type} access)"
+                    result['issues'].append({
+                        'type': 'user_created',
+                        'person_uuid': person_uuid,
+                        'given_name': given_name,
+                        'family_name': family_name,
+                        'sk_person_id': sk_person_id,
+                        'posts_count': person['posts_count'],
+                        'user_uuid': create_result['user_uuid'],
+                        'user_email': email,
+                        'user_access_level': create_result['access_level'],
+                        'message': issue_message,
+                        'remediation_attempted': True,
+                        'remediation_success': True
+                    })
+                    logging.info(issue_message)
                 else:
-                    # Person has no posts, no need to create a user
-                    logging.debug(f"Person {person_name} (UUID: {person_uuid}) has no posts - not creating user account")
+                    issue_message = f"Failed to create user account for {person_name} with email {email}: {create_result['message']}"
+                    result['issues'].append({
+                        'type': 'user_creation_failed',
+                        'person_uuid': person_uuid,
+                        'given_name': given_name,
+                        'family_name': family_name,
+                        'sk_person_id': sk_person_id,
+                        'posts_count': person['posts_count'],
+                        'user_email': email,
+                        'message': issue_message,
+                        'remediation_attempted': True,
+                        'remediation_success': False
+                    })
+                    logging.info(issue_message)
                 continue
             
             # Step 4: User exists but may not be correctly linked to the person
@@ -310,6 +309,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     logging.info(issue_message)
             
             # Step 5: Check if user has correct access level (if person has posts)
+            # Note: Only upgrade READ_ONLY to EDITOR. ADMINISTRATOR users are intentionally never modified.
             if has_posts and user['access_level'] == 'READ_ONLY':
                 logging.debug(f"User {user['email']} has READ_ONLY access but person {person_name} has posts - upgrading to EDITOR")
                 
@@ -388,7 +388,7 @@ def check_5_user_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                     "automatically remediated"
                 )
         else:
-            logging.info("Check finished: All persons with posts have correct user assignments")
+            logging.info("Check finished: All persons with sk_person_id have correct user assignments")
     
     except Exception as e:
         result['status'] = 'error'

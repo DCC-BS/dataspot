@@ -22,7 +22,7 @@ Abhängigkeiten und Zweck:
 
 5. Benutzerkontensynchronisation  
    - Abhängigkeiten: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung)  
-   - Zweck: Erstellt Benutzerkonten und weist Berechtigungen zu, nachdem alle Personen-/Postendaten finalisiert sind
+   - Zweck: Erstellt Benutzerkonten für alle Personen mit sk_person_id (EDITOR bei Posten, sonst READ_ONLY) und weist Berechtigungen zu
 
 6. Kontaktdetails bei Personen
    - Abhängigkeiten: Check #2 (Personensynchronisation aus dem Staatskalender)
@@ -90,18 +90,21 @@ Falls nicht:
 ---
 5 Benutzerkontensynchronisation
 
-Alle Personen mit sk_person_id und einem Posten haben korrekte Benutzerkonten.
+Alle Personen mit sk_person_id haben korrekte Benutzerkonten.
 
-Spezifisch wird für alle Personen mit gesetzter sk_person_id und einem Posten überprüft:
+Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:
 - Ein Benutzer mit der korrekten E-Mail-Adresse aus dem Staatskalender existiert
 - Der Benutzer ist über das isPerson-Feld korrekt mit der Person verknüpft
-- Zur Person existiert ein Benutzer, und hat der Benutzer mindestens EDITOR Zugriffsrechte
+- Wenn die Person einen Posten hat, hat der Benutzer mindestens EDITOR Zugriffsrechte
 
 Falls nicht:
 - Wenn keine E-Mail-Adresse im Staatskalender hinterlegt ist, wird dies gemeldet
-- Wenn kein Benutzer für die Person existiert, wird für die Person einen Benutzer mit der E-Mail-Adresse erstellt
+- Wenn kein Benutzer für die Person existiert, wird ein Benutzer erstellt:
+	- Mit der E-Mail-Adresse aus dem Staatskalender
+	- Mit EDITOR Zugriffsrechten falls die Person einen Posten hat, sonst READ_ONLY
 - Wenn der Benutzer nicht korrekt mit der Person verknüpft ist, wird der Benutzer mit der korrekten Person verknüpft
-- Wenn die Zugriffsrechte des Benutzers READ_ONLY sind, werden sie zu EDITOR geändert
+- Wenn die Zugriffsrechte des Benutzers READ_ONLY sind und die Person einen Posten hat, werden sie zu EDITOR geändert
+- Benutzer mit ADMINISTRATOR Zugriffsrechten werden nie verändert
 - Eine E-Mail mit allen Problemen und Änderungen wird an dcc@bs.ch gesendet
 
 ---
