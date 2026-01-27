@@ -28,11 +28,12 @@ def escape_special_chars(name: str) -> str:
     Escape special characters in asset names for Dataspot API according to the business key rules. Also remove leading
     and trailing spaces.
     
-    According to Dataspot documentation, special characters need to be properly escaped in business keys:
+    Special characters need to be properly escaped in business keys:
     
-    1. If a name contains / or ., it should be enclosed in double quotes
+    1. If a name contains /, it should be enclosed in double quotes (/ is the path delimiter)
        Example: INPUT/OUTPUT → "INPUT/OUTPUT"
-       Example: dataspot. → "dataspot."
+       Note: The documentation says '.' also needs escaping, but empirically the Download API
+       returns paths without quotes for names containing dots, so we don't escape them.
     
     2. If a name contains double quotes ("), each double quote should be doubled ("") and 
        the entire name should be enclosed in double quotes
@@ -60,8 +61,8 @@ def escape_special_chars(name: str) -> str:
     # Remove leading and trailing spaces
     name = name.strip()
     
-    # Names containing '/' or '.' need to be quoted
-    if '/' in name or '.' in name:
+    # Names containing '/' need to be quoted (it's the path delimiter)
+    if '/' in name:
         needs_quoting = True
     
 
