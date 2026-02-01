@@ -207,7 +207,25 @@ def run_all_checks():
             logging.warning("   Check #6 failed or has issues. Skipping remaining checks.")
             return check_results
 
-    
+    if run_check_7:
+        # Check #7: Annotation YAML vs repo (independent, does not block other checks)
+        logging.info("")
+        logging.info("   Starting Check #7: Annotation YAML vs repo...")
+        logging.info("   " + "-" * 50)
+        from scripts.catalog_quality_daily.check_7_yaml import check_7_yaml
+        check_7_result = check_7_yaml(dataspot_client=dataspot_base_client)
+        check_results.append({
+            'check_name': 'check_7_yaml',
+            'title': 'Check #7: Annotation YAML vs repo',
+            'description': 'Checks if annotation YAML files on the website match the repo versions.',
+            'results': check_7_result
+        })
+        logging.info("")
+        logging.info("   Check #7: Annotation YAML vs repo Completed.")
+        logging.info("")
+        # Note: Do NOT skip remaining checks on Check #7 warning/error
+        # YAML differences are minor inconveniences and should not interrupt the pipeline
+
     logging.info("")
     logging.info("-----[ All Checks Completed ]" + "-" * 45)
     logging.info("")
@@ -460,13 +478,22 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Person Assignment Add Failed ({len(issues)})")
                     elif issue_type == 'person_assignment_remove_failed':
                         logging.info(f"   * Person Assignment Remove Failed ({len(issues)})")
+                    elif issue_type == 'yaml_profile_diff':
+                        logging.info(f"   * YAML Profile Diff ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
                     # List the fixed issues
                     for issue in issues:
 
-                        if issue.get('person_uuid'):
+                        if issue_type == 'yaml_profile_diff':
+                            online_name = issue.get('online_name', 'Unknown')
+                            local_path = issue.get('local_path', 'Unknown')
+                            message = issue.get('message', 'No message')
+                            logging.info(f"     - Profile: {online_name}")
+                            logging.info(f"       Local path: {local_path}")
+                            logging.info(f"       Message: {message}")
+                        elif issue.get('person_uuid'):
                             person_uuid = issue.get('person_uuid')
                             message = issue.get('message', 'No message')
 
@@ -559,6 +586,8 @@ def log_combined_results(combined_report):
                         logging.info(f"   * Contact Details Update Failed ({len(issues)})")
                     elif issue_type == 'staatskalender_data_retrieval_failed':
                         logging.info(f"   * Staatskalender Data Retrieval Failed ({len(issues)})")
+                    elif issue_type == 'yaml_profile_diff':
+                        logging.info(f"   * YAML Profile Diff ({len(issues)})")
                     else:
                         logging.info(f"   * {issue_type.replace('_', ' ').title()} ({len(issues)})")
                     
@@ -567,7 +596,13 @@ def log_combined_results(combined_report):
                         message = issue.get('message', 'No message')
                         
                         # Format differently based on issue type
-                        if issue_type == 'duplicate_sk_person_id':
+                        if issue_type == 'yaml_profile_diff':
+                            online_name = issue.get('online_name', 'Unknown')
+                            local_path = issue.get('local_path', 'Unknown')
+                            logging.info(f"     - Profile: {online_name}")
+                            logging.info(f"       Local path: {local_path}")
+                            logging.info(f"       Message: {message}")
+                        elif issue_type == 'duplicate_sk_person_id':
                             sk_person_id = issue.get('sk_person_id', 'Unknown')
                             person_names = issue.get('person_names', [])
                             
@@ -757,7 +792,8 @@ def send_combined_email(combined_report):
                 'contact_details_updated', 'contact_details_update_failed',
                 'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed',
                 'duplicate_sk_person_id', 'unoccupied_post', 'invalid_membership', 
-                'person_data_retrieval_failed', 'person_data_incomplete', 'staatskalender_data_retrieval_failed', 'processing_error'
+                'person_data_retrieval_failed', 'person_data_incomplete', 'staatskalender_data_retrieval_failed', 'processing_error',
+                'yaml_profile_diff'
             ]
 
             # Add automatically fixed issues section
@@ -824,6 +860,8 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON ASSIGNMENT ADD FAILED ({len(issues)}):\n"
                     elif issue_type == 'person_assignment_remove_failed':
                         email_text += f"\nPERSON ASSIGNMENT REMOVE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'yaml_profile_diff':
+                        email_text += f"\nYAML PROFILE DIFF ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -833,7 +871,13 @@ def send_combined_email(combined_report):
                         message = issue.get('message', 'No message provided')
                         
                         # Handle person-related issues differently
-                        if issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_update', 'person_name_update_failed', 
+                        if issue_type == 'yaml_profile_diff':
+                            online_name = issue.get('online_name', 'Unknown')
+                            local_path = issue.get('local_path', 'Unknown')
+                            email_text += f"\n- Profile: {online_name}\n"
+                            email_text += f"  Local path: {local_path}\n"
+                            email_text += f"  Message: {message}\n"
+                        elif issue_type in ['person_mismatch_missing_email', 'person_without_user', 'person_name_update', 'person_name_update_failed', 
                                          'person_created', 'person_creation_failed', 'person_sk_id_updated', 'person_sk_id_update_failed',
                                          'contact_details_updated', 'contact_details_update_failed', 'staatskalender_data_retrieval_failed',
                                          'person_assignment_added', 'person_assignment_removed', 'person_assignment_add_failed', 'person_assignment_remove_failed']:
@@ -944,6 +988,8 @@ def send_combined_email(combined_report):
                         email_text += f"\nPERSON ASSIGNMENT ADD FAILED ({len(issues)}):\n"
                     elif issue_type == 'person_assignment_remove_failed':
                         email_text += f"\nPERSON ASSIGNMENT REMOVE FAILED ({len(issues)}):\n"
+                    elif issue_type == 'yaml_profile_diff':
+                        email_text += f"\nYAML PROFILE DIFF ({len(issues)}):\n"
                     else:
                         email_text += f"\n{issue_type.replace('_', ' ').upper()} ISSUES ({len(issues)}):\n"
                     
@@ -1009,6 +1055,11 @@ def send_combined_email(combined_report):
                             elif issue_type == 'staatskalender_data_retrieval_failed':
                                 sk_person_id = issue.get('sk_person_id', 'Unknown')
                                 email_text += f"  SK Person ID: {sk_person_id}\n"
+                        elif issue_type == 'yaml_profile_diff':
+                            online_name = issue.get('online_name', 'Unknown')
+                            local_path = issue.get('local_path', 'Unknown')
+                            email_text += f"\n- Profile: {online_name}\n"
+                            email_text += f"  Local path: {local_path}\n"
                         else:
                             post_label = issue.get('post_label', 'Unknown')
                             post_uuid = issue.get('post_uuid', 'Unknown')
@@ -1016,7 +1067,10 @@ def send_combined_email(combined_report):
                             email_text += f"  URL: https://datenkatalog.bs.ch/web/{config.database_name}/posts/{post_uuid}\n"
                         
                         # Add specific details based on issue type
-                        if issue_type == 'person_mismatch_missing_email':
+                        if issue_type == 'yaml_profile_diff':
+                            email_text += f"  ACTION REQUIRED: The YAML profile on the website differs from the repo version.\n"
+                            email_text += f"  Please review and sync the files.\n"
+                        elif issue_type == 'person_mismatch_missing_email':
                             person_name = f"{issue.get('given_name', '')} {issue.get('family_name', '')}"
                             posts_count = issue.get('posts_count', 0)
                             email_text += f"  Posts count: {posts_count}\n"

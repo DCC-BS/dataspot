@@ -28,6 +28,10 @@ Abhängigkeiten und Zweck:
    - Abhängigkeiten: Check #2 (Personensynchronisation aus dem Staatskalender)
    - Zweck: Erstellt/aktualisiert Kontaktdetails aus dem Staatskalender
 
+7. Annotation YAML vs Repo
+   - Abhängigkeiten: Keine (unabhängiger Check)
+   - Zweck: Stellt sicher, dass die Annotation-YAML-Dateien auf der Webseite mit den Repo-Versionen übereinstimmen
+
 ---
 
 1 Eindeutigkeitsprüfung
@@ -121,3 +125,18 @@ Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:
 Falls nicht:
 - Wenn die Details nicht übereinstimmen werden die Details in dataspot angepasst
 - Eine E-Mail mit allen Änderungen wird an dcc@bs.ch gesendet
+
+---
+7 Annotation YAML vs Repo
+
+Die auf dem Datenkatalog ausgelieferten Annotation-YAML-Dateien entsprechen den im Repo gepflegten Versionen. Es wird immer die Prod-Version verglichen.
+
+Spezifisch:
+- Für jede konfigurierte Datei wird geprüft:
+	- Die Online-Version wird immer aus Prod bezogen (Download-URL)
+	- Die Online-Version wird mit der lokalen Datei (Repo) per Rohtext-Vergleich verglichen
+	- Zeilenenden werden normalisiert, um falsche Unterschiede zu vermeiden
+
+Falls nicht:
+- Eine E-Mail mit den betroffenen Dateien (welche Datei abweicht) wird an dcc@bs.ch gesendet
+- Es werden keine automatischen Änderungen vorgenommen
