@@ -72,7 +72,7 @@ class KdmAuth:
         """Headers for KDM API requests: Authorization Bearer and Accept."""
         return {
             "Authorization": f"Bearer {self.get_bearer_access_token()}",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept": "*/*",
         }
 
 
@@ -86,6 +86,7 @@ class KdmClient:
     def __init__(self):
         self.auth = KdmAuth()
 
+    # We are ONLY allowed to use 'get' in this api!!
     def get(self, url: str, **kwargs) -> requests.Response:
         """GET url (full URL). Bypasses proxy for KDM. kwargs passed to requests_get (e.g. timeout, params)."""
         headers = kwargs.pop("headers", None) or self.auth.get_headers()
@@ -102,7 +103,7 @@ def get_kdm_client() -> KdmClient:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     client = get_kdm_client()
     response = client.get(os.getenv("KDM_TEST_URL_TMP"))
     response.raise_for_status()
