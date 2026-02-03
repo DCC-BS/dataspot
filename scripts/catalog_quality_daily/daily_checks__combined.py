@@ -48,6 +48,7 @@ def run_all_checks():
     run_check_4 = True
     run_check_5 = True
     run_check_6 = True
+    run_check_7 = True
 
     # Initialize client for SQL calls
     dataspot_base_client = BaseDataspotClient(scheme_name='NOT_IN_USE', scheme_name_short='NotFound404')
