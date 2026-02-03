@@ -347,7 +347,11 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     message = f"Invalid membership ID {sk_membership_id} - not found in Staatskalender"
                 else:
                     issue_type = 'person_data_retrieval_failed'
-                    message = f"Error processing membership ID {sk_membership_id}: {error_message}"
+                    message = (
+                        f"The system could not load person data for this membership. What to do:\n"
+                        f"• Check https://staatskalender.bs.ch/person/{sk_membership_id} — if it works, the membership ID was set to a person ID by mistake; correct the membership ID in this post.\n"
+                        f"• If that link does not work, check https://staatskalender.bs.ch/membership/{sk_membership_id} — if it also fails, the membership no longer exists in the Staatskalender; then either delete this post or update it with a valid membership ID."
+                    )
                 
                 result['issues'].append({
                     'type': issue_type,
