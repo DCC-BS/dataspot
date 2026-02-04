@@ -8,19 +8,19 @@ from src.clients.base_client import BaseDataspotClient
 
 
 # List of tuples: (online_name, local_path relative to project root)
-# TODO: Once the Umlaute-Bug is fixed, consider all profiles again!
-#  Or consider their ID instead of their Business Key
-#  (Or rename profiles with Umlaute in their names)
+# TODO: Once the Umlaute-Bug is fixed:
+#  - Remove profile "Buggy-ä-Umlaute" in dataspot
+#  - Potentially rename the 3 'ae' back to 'ä'
 YAML_PROFILES = [
     ("Mandant", "Annotation YAMLs/annotations__mandant.yaml"),
     ("Datenbankobjekte", "Annotation YAMLs/annotations_datenbankobjekte.yaml"),
     ("Datenprodukte", "Annotation YAMLs/annotations_datenprodukte.yaml"),
-    #("Datenqualität", "Annotation YAMLs/annotations_datenqualitaet.yaml"),
-    #("Datenräume", "Annotation YAMLs/annotations_datenraeume.yaml"),
+    ("Datenqualitaet", "Annotation YAMLs/annotations_datenqualitaet.yaml"),
+    ("Datenraeume", "Annotation YAMLs/annotations_datenraeume.yaml"),
     ("Datentypen (fachlich)", "Annotation YAMLs/annotations_datentypen_fachlich.yaml"),
     ("Datentypen (technisch)", "Annotation YAMLs/annotations_datentypen_technisch.yaml"),
     ("Fachdaten", "Annotation YAMLs/annotations_fachdaten.yaml"),
-    #("Katalogqualität", "Annotation YAMLs/annotations_katalogqualitaet.yaml"),
+    ("Katalogqualitaet", "Annotation YAMLs/annotations_katalogqualitaet.yaml"),
     ("Kennzahlen", "Annotation YAMLs/annotations_kennzahlen.yaml"),
     ("Prozesse", "Annotation YAMLs/annotations_prozesse.yaml"),
     #("Rechtsgrundlagen", "Annotation YAMLs/annotations_rechtsgrundlagen.yaml"), # TODO: Does not yet exist!
