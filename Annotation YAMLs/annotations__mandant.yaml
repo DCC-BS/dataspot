@@ -110,22 +110,22 @@ Derivation:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Wird verwendet in
           #labelEn: Calculation basis
-        SPEZ3:
+        #SPEZ3:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Rechtsgrundlage
+          #label: Rechtsgrundlage
           #labelEn: Calculation basis
-        SPEZ4:
+        #SPEZ4:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Zweck
+          #label: Zweck
           #labelEn: Calculation basis
         DERIVED:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: abgeleitet von
           labelEn: derived from
-        EXKL:
+        #EXKL:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: exkludiert
-          labelEn: excluded
+          #label: exkludiert
+          #labelEn: excluded
         SPEZ:
           # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Spezifikation für
@@ -402,16 +402,16 @@ Deployment:
           labelEn: Calculation basis
         SPEZ2:
           label: Wird verwendet in
-        SPEZ3:
-          label: Rechtsgrundlage
-        SPEZ4:
-          label: Zweck
+        #SPEZ3:
+          #label: Rechtsgrundlage
+        #SPEZ4:
+          #label: Zweck
         DERIVED:
           label: abgeleitet von
           labelEn: derived from
-        EXKL:
-          label: exkludiert
-          labelEn: excluded
+        #EXKL:
+          #label: exkludiert
+          #labelEn: excluded
         available_at:
           label: Verfügbar in
           labelEn: Available at
