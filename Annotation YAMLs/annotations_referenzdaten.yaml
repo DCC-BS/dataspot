@@ -4,28 +4,30 @@ ReferenceDataModel:
   label: Referenzdatenmodell
   icon: square-list
 
-  properties:
-    stereotype:
-      label: Modelltyp
-      literals:
-        Rechtsgrundlage:
-          label: Rechtsgrundlagen
-          ling: s2p3m
-          icon: section
-        Leistungsverzeichnis:
-          label: Leistungsverzeichnis
-          ling: s2p3m
-          icon: book
+  # TODO (Renato): ganz löschen, falls das auskommentieren zu keinen Problemen geführt hat
+  #properties:
+    #stereotype:
+      #label: Modelltyp
+      #literals:
+        #Rechtsgrundlage:
+          #label: Rechtsgrundlagen
+          #ling: s2p3m
+          #icon: section
+        #Leistungsverzeichnis:
+          #label: Leistungsverzeichnis
+          #ling: s2p3m
+          #icon: book
 
 ReferenceObject:
   label: Referenzliste
   plural: Referenzlisten
   title: Eine Referenzliste ist eine Aufzählung von gültigen Referenzwerten, die zur Klassifizierung bestimmter Eigenschaften dienen.
-  properties:
-    stereotype:
-      label: Typ
-      literals:
-        legalBasis:
-          label: Rechtsgrundlage
-          ling: s3p3f
-          icon: section
+  # TODO (Renato): ganz löschen, falls das auskommentieren zu keinen Problemen geführt hat
+  #properties:
+    #stereotype:
+      #label: Typ
+      #literals:
+        #legalBasis:
+          #label: Rechtsgrundlage
+          #ling: s3p3f
+          #icon: section
