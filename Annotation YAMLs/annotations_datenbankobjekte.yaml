@@ -30,6 +30,7 @@ UmlClass:
         file:
           label: Datei
           labelEn: file
+          order: 1
           customProperties:
             fileFormat:
               label: Dateiformat
@@ -44,9 +45,26 @@ UmlClass:
                 csv:
                   label: csv
 
-        ogd_dataset: # Bitte ändern zu "ogdTable"
-          label: OGD-Datensatz # TODO: Change to OGD-Tabelle
+        ogd_dataset_manual:
+          label: OGD-Datensatz
           labelEn: OGD dataset
+          order: 50
+          customProperties:
+            odsDataportalLink:
+              label: Datenportal-Link
+              baseType: STRING
+              order: 50
+              readOnly: true
+            odsDataportalId:
+              label: Datenportal-Identifikation
+              baseType: STRING
+              order: 60
+              readOnly: true
+
+        ogd_dataset:
+          label: OGD-Datensatz (automatisch generiert)
+          labelEn: OGD dataset (automatically generated)
+          order: 51
           customProperties:
             odsDataportalLink:
               label: Datenportal-Link
