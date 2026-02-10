@@ -282,8 +282,32 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     custom_properties['state_calendar_website'] = f"[Kontaktseite im Staatskalender öffnen](https://staatskalender.bs.ch/person/{sk_person_id})"
     
     # teams - only if email exists
+    valid_email_domains_for_teams = [
+        "ak-bs.ch",
+        "banian.ch",
+        "bettingen.ch",
+        "bl.ch",
+        "bs.ch",
+        #"dataspot.at",
+        "dsb.bs.ch",
+        "edubs.ch",
+        #"gmx.ch",
+        "gybs.ch",
+        "ibvs.ch",
+        "iwb.ch",
+        "jsd.bs.ch",
+        "ks-bs.ch",
+        "ombudsstelle.bs.ch",
+        "riehen.ch",
+        "statistik.jizh.ch"
+    ]
+
     if sk_email:
-        custom_properties['teams'] = f"[Teams-Chat mit {given_name} {family_name} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
+        if '@' in sk_email and sk_email.split('@')[1] not in valid_email_domains_for_teams:
+            logging.info(f"Ignoring E-Mail for Teams-Link: {sk_email}")
+            custom_properties['teams'] = None
+        else:
+            custom_properties['teams'] = f"[Teams-Chat mit {given_name} {family_name} öffnen](msteams://teams.microsoft.com/l/chat/0/0?users={sk_email})"
     else:
         custom_properties['teams'] = None
     
