@@ -283,22 +283,31 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     
     # teams - only if email exists
     valid_email_domains_for_teams = [
+        # These are the official domains
+        "bettingen.ch",
+        "bs.ch",
+        "bsabb.ch",
+        "dsb.bs.ch",
+        "gerichte.bs.ch",
+        "jsd.bs.ch",
+        "ombudsstelle.bs.ch",
+        "pkdb.bs.ch",
+        "prorheno.ch",
+        "riehen.ch",
+        "sozialdienste-rauracher.ch",
+        "stawa.bs.ch",
+        "uzb.ch",
+        # These are manually added, not sure if they are actually valid. In theory, they could all be removed.
         "ak-bs.ch",
         "banian.ch",
-        "bettingen.ch",
         "bl.ch",
-        "bs.ch",
         #"dataspot.at",
-        "dsb.bs.ch",
         "edubs.ch",
         #"gmx.ch",
         "gybs.ch",
         "ibvs.ch",
         "iwb.ch",
-        "jsd.bs.ch",
         "ks-bs.ch",
-        "ombudsstelle.bs.ch",
-        "riehen.ch",
         "statistik.jizh.ch"
     ]
 
