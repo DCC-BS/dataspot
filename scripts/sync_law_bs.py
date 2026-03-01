@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import traceback
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import config
 import ods_utils_py as ods_utils
@@ -68,19 +68,30 @@ def parse_paragraphs_from_gesetzestext_html(gesetzestext_html: str) -> List[Dict
     return paragraphs
 
 
-def fetch_active_laws_from_ods(batch_size: int = ODS_BATCH_SIZE) -> List[Dict[str, Any]]:
+def fetch_active_laws_from_ods(
+    batch_size: int = ODS_BATCH_SIZE, max_entries: Optional[int] = None
+) -> List[Dict[str, Any]]:
     """
     Read active+current law records from ODS dataset 100354 using pagination.
     """
     laws: List[Dict[str, Any]] = []
     offset = 0
     while True:
+        if max_entries is not None and len(laws) >= max_entries:
+            break
+
+        request_limit = batch_size
+        if max_entries is not None:
+            request_limit = min(batch_size, max_entries - len(laws))
+            if request_limit <= 0:
+                break
+
         response = ods_utils.requests_get(
             url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ODS_DATASET_ID}/records",
             params={
                 "where": "is_active='True' AND info_badge='current'",
                 "order_by": "systematic_number",
-                "limit": batch_size,
+                "limit": request_limit,
                 "offset": offset,
             },
         )
@@ -198,7 +209,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods()
+        ods_laws = fetch_active_laws_from_ods(max_entries=1)
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
