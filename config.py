@@ -25,6 +25,11 @@ tdm_scheme_name = 'Datenbankobjekte'
 tdm_scheme_name_short = 'TDM'
 sk_scheme_name = 'Systeme'
 sk_scheme_name_short = 'SK'
+law_scheme_name = 'Gesetzessammlungen'
+law_scheme_name_short = 'GS'
+law_scheme_uuid = '437e3c18-3911-4291-9ef7-92c6fc6c441d'
+
+law_bs_collection_label = 'Systematische Gesetzessammlung Basel-Stadt'
 
 # Special names
 tenant_name = "Mandant"
