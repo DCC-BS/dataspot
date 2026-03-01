@@ -78,7 +78,7 @@ def fetch_active_laws_from_ods(batch_size: int = ODS_BATCH_SIZE) -> List[Dict[st
         response = ods_utils.requests_get(
             url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ODS_DATASET_ID}/records",
             params={
-                "where": "is_active=true AND info_badge='current'",
+                "where": "is_active='True' AND info_badge='current'",
                 "order_by": "systematic_number",
                 "limit": batch_size,
                 "offset": offset,
