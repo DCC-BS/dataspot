@@ -169,14 +169,18 @@ def build_law_cache(
                 "does not match any LAW ReferenceObject in the target collection; breaking data integrity"
             )
 
-        code = str(asset.get("code", "")).strip()
-        if not code:
-            continue
+        time_series = asset["timeSeries"]
+        if len(time_series) > 1:
+            raise ValueError(
+                "The code currently does not support multiple entries in the time series."
+            )
+        ts0 = time_series[0]
+        code = str(ts0["code"]).strip()
 
         by_law_label[parent_label]["values_by_code"][code] = {
             "id": asset.get("id"),
             "code": code,
-            "shortText": asset.get("shortText", "") or "",
+            "shortText": ts0.get("shortText", "") or "",
         }
         mapped_literals += 1
 
@@ -318,6 +322,7 @@ def sync_law_bs() -> Dict[str, Any]:
                     law_client.create_reference_value(
                         law_id=current_law_id, data=desired_value, status=WRITE_STATUS
                     )
+
                     report["counts"]["values_created"] += 1
                     logging.info(
                         f"Created literal code={desired_value['code']} for law systematic_number={systematic_number}"
