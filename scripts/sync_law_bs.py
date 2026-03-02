@@ -135,11 +135,11 @@ def build_law_cache(
         if asset.get("inCollection") != law_collection_label:
             continue
 
-        systematic_number = normalize_systematic_number(
-            law_client.get_custom_property(asset, "systematic_number")
-        )
+        systematic_number = normalize_systematic_number(asset["systematic_number"])
         if not systematic_number:
-            continue
+            raise ValueError(
+                f"LAW asset {asset.get('id')} has empty systematic_number after normalization"
+            )
 
         law_entry = {
             "id": asset.get("id"),

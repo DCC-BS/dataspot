@@ -81,11 +81,3 @@ class LAWClient(BaseDataspotClient):
         if parent_id:
             return parent_id
         return asset.get("literal_of")
-
-    @staticmethod
-    def get_custom_property(asset: Dict[str, Any], key: str) -> Any:
-        custom_props = asset.get("customProperties")
-        if not isinstance(custom_props, dict):
-            return None
-        return custom_props.get(key)
-
