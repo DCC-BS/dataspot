@@ -71,13 +71,3 @@ class LAWClient(BaseDataspotClient):
     ) -> Dict[str, Any]:
         endpoint = f"/rest/{config.database_name}/literals/{value_id}"
         return self._update_asset(endpoint=endpoint, data=data, replace=False, status=status)
-
-    @staticmethod
-    def get_literal_parent_id(asset: Dict[str, Any]) -> str | None:
-        """
-        Extract literal parent id from known relationship keys.
-        """
-        parent_id = asset.get("literalOf")
-        if parent_id:
-            return parent_id
-        return asset.get("literal_of")

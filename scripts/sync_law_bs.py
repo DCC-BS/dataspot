@@ -119,12 +119,12 @@ def fetch_active_laws_from_ods(
 
 
 def build_law_cache(
-    assets: List[Dict[str, Any]], law_collection_label: str, law_client: LAWClient
+    assets: List[Dict[str, Any]], law_collection_label: str
 ) -> Dict[str, Dict[str, Any]]:
     """
     Build immutable run cache keyed by normalized systematic_number.
     """
-    by_law_id: Dict[str, Dict[str, Any]] = {}
+    by_law_label: Dict[str, Dict[str, Any]] = {}
     by_systematic_number: Dict[str, Dict[str, Any]] = {}
 
     for asset in assets:
@@ -149,28 +149,39 @@ def build_law_cache(
             "systematic_number": systematic_number,
             "values_by_code": {},
         }
-        by_law_id[asset.get("id")] = law_entry
+        label = asset["label"]
+        by_law_label[label] = law_entry
         by_systematic_number[systematic_number] = law_entry
 
+    mapped_literals = 0
     for asset in assets:
         if asset.get("_type") != "ReferenceValue":
             continue
-        parent_id = law_client.get_literal_parent_id(asset)
-        if parent_id not in by_law_id:
-            continue
+        parent_label = asset.get("literalOf")
+        if parent_label is None:
+            raise ValueError(
+                f"ReferenceValue id={asset.get('id')} code={asset.get('code')} has no literalOf; "
+                "every literal must reference a parent ReferenceObject"
+            )
+        if parent_label not in by_law_label:
+            raise ValueError(
+                f"ReferenceValue id={asset.get('id')} code={asset.get('code')} literalOf='{parent_label}' "
+                "does not match any LAW ReferenceObject in the target collection; breaking data integrity"
+            )
 
         code = str(asset.get("code", "")).strip()
         if not code:
             continue
 
-        by_law_id[parent_id]["values_by_code"][code] = {
+        by_law_label[parent_label]["values_by_code"][code] = {
             "id": asset.get("id"),
             "code": code,
             "shortText": asset.get("shortText", "") or "",
         }
+        mapped_literals += 1
 
     logging.info(
-        f"Built LAW cache with {len(by_systematic_number)} ReferenceObjects from Download API"
+        f"Built LAW cache with {len(by_systematic_number)} ReferenceObjects and {mapped_literals} literals from Download API"
     )
     return by_systematic_number
 
@@ -216,7 +227,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods()
+        ods_laws = fetch_active_laws_from_ods(max_entries=1)
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
@@ -224,7 +235,7 @@ def sync_law_bs() -> Dict[str, Any]:
         logging.info(f"Resolved LAW target collection UUID: {law_collection_uuid}")
 
         law_cache = build_law_cache(
-            assets=scheme_assets, law_collection_label=config.law_bs_collection_label, law_client=law_client
+            assets=scheme_assets, law_collection_label=config.law_bs_collection_label
         )
 
         for record in ods_laws:
