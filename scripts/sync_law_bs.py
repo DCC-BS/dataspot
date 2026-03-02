@@ -119,7 +119,7 @@ def fetch_active_laws_from_ods(
 
 
 def build_law_cache(
-    assets: List[Dict[str, Any]], law_collection_uuid: str, law_client: LAWClient
+    assets: List[Dict[str, Any]], law_collection_label: str, law_client: LAWClient
 ) -> Dict[str, Dict[str, Any]]:
     """
     Build immutable run cache keyed by normalized systematic_number.
@@ -132,7 +132,7 @@ def build_law_cache(
             continue
         if asset.get("stereotype") != "LAW":
             continue
-        if asset.get("inCollection") != law_collection_uuid:
+        if asset.get("inCollection") != law_collection_label:
             continue
 
         systematic_number = normalize_systematic_number(
@@ -224,7 +224,7 @@ def sync_law_bs() -> Dict[str, Any]:
         logging.info(f"Resolved LAW target collection UUID: {law_collection_uuid}")
 
         law_cache = build_law_cache(
-            assets=scheme_assets, law_collection_uuid=law_collection_uuid, law_client=law_client
+            assets=scheme_assets, law_collection_label=config.law_bs_collection_label, law_client=law_client
         )
 
         for record in ods_laws:
