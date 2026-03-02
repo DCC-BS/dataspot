@@ -72,7 +72,7 @@ def fetch_active_laws_from_ods(
     batch_size: int = ODS_BATCH_SIZE, max_entries: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
-    Read active+current law records from ODS dataset 100354 using pagination.
+    Read active law records from ODS dataset 100354 using pagination.
     """
     laws: List[Dict[str, Any]] = []
     offset = 0
@@ -89,7 +89,7 @@ def fetch_active_laws_from_ods(
         response = ods_utils.requests_get(
             url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ODS_DATASET_ID}/records",
             params={
-                "where": "is_active='True' AND info_badge='current'",
+                "where": "is_active='True'",
                 "order_by": "systematic_number",
                 "limit": request_limit,
                 "offset": offset,
@@ -107,7 +107,14 @@ def fetch_active_laws_from_ods(
         )
         offset += batch_size
 
-    logging.info(f"Retrieved {len(laws)} total active/current laws from ODS")
+    normalized_numbers = [normalize_systematic_number(r.get("systematic_number")) for r in laws]
+    if len(normalized_numbers) != len(set(normalized_numbers)):
+        raise ValueError(
+            "systematic_number is not unique for items with is_active='True' "
+            "in https://data.bs.ch/explore/dataset/100354"
+        )
+
+    logging.info(f"Retrieved {len(laws)} total active laws from ODS")
     return laws
 
 
@@ -209,7 +216,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods(max_entries=1)
+        ods_laws = fetch_active_laws_from_ods()
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
