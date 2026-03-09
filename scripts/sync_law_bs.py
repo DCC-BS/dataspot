@@ -27,6 +27,13 @@ def normalize_systematic_number(value: Any) -> str:
     return normalized
 
 
+def _normalize_literal_field(value: Any) -> str:
+    """Normalize literal code/shortText for cache key and comparison: strip and remove trailing spaces and '*'."""
+    if value is None:
+        return ""
+    return (str(value) or "").strip().strip(" *")
+
+
 def _strip_html(raw: str) -> str:
     raw = re.sub(r"<[^>]+>", "", raw or "")
     raw = html.unescape(raw)
@@ -175,12 +182,13 @@ def build_law_cache(
                 "The code currently does not support multiple entries in the time series."
             )
         ts0 = time_series[0]
-        code = str(ts0["code"]).strip()
+        code = _normalize_literal_field(ts0["code"])
+        short_text = _normalize_literal_field(ts0.get("shortText"))
 
         by_law_label[parent_label]["values_by_code"][code] = {
             "id": asset.get("id"),
             "code": code,
-            "shortText": ts0.get("shortText", "") or "",
+            "shortText": short_text,
         }
         mapped_literals += 1
 
@@ -319,8 +327,8 @@ def sync_law_bs() -> Dict[str, Any]:
                 continue
 
             for paragraph in paragraphs:
-                desired_value_code = paragraph["code"]
-                desired_value_short_text = paragraph["shortText"]
+                desired_value_code = _normalize_literal_field(paragraph["code"])
+                desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
 
                 desired_value = build_reference_value_payload(
                     code=desired_value_code,
