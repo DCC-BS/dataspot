@@ -205,10 +205,17 @@ def build_reference_object_payload(
 
 
 def build_reference_value_payload(code: str, short_text: str) -> Dict[str, Any]:
+    if not short_text:
+        short_text = ""
+
     return {
-        "_type": "ReferenceValue",
-        "code": code,
-        "shortText": short_text if short_text else "",
+        '_type': 'ReferenceValue',
+        'timeSeries': [{
+            'code': code,
+            'shortText': short_text,
+            'validFrom': -2208988800000,
+            'validTo': 32503593600000
+        }]
     }
 
 
@@ -312,11 +319,14 @@ def sync_law_bs() -> Dict[str, Any]:
                 continue
 
             for paragraph in paragraphs:
+                desired_value_code = paragraph["code"]
+                desired_value_short_text = paragraph["shortText"]
+
                 desired_value = build_reference_value_payload(
-                    code=paragraph["code"],
-                    short_text=paragraph["shortText"],
+                    code=desired_value_code,
+                    short_text=desired_value_short_text,
                 )
-                existing_value = current_values_by_code.get(desired_value["code"])
+                existing_value = current_values_by_code.get(desired_value_code)
 
                 if not existing_value:
                     law_client.create_reference_value(
@@ -325,13 +335,13 @@ def sync_law_bs() -> Dict[str, Any]:
 
                     report["counts"]["values_created"] += 1
                     logging.info(
-                        f"Created literal code={desired_value['code']} for law systematic_number={systematic_number}"
+                        f"Created literal code={desired_value_code} for law systematic_number={systematic_number}"
                     )
                     continue
 
                 value_changed = (
-                    (existing_value.get("code") or "") != desired_value["code"]
-                    or (existing_value.get("shortText") or "") != desired_value["shortText"]
+                    (existing_value.get("code") or "") != desired_value_code
+                    or (existing_value.get("shortText") or "") != desired_value_short_text
                 )
 
                 if value_changed:
@@ -342,7 +352,7 @@ def sync_law_bs() -> Dict[str, Any]:
                     )
                     report["counts"]["values_updated"] += 1
                     logging.info(
-                        f"Updated literal code={desired_value['code']} for law systematic_number={systematic_number}"
+                        f"Updated literal code={desired_value_code} for law systematic_number={systematic_number}"
                     )
                 else:
                     report["counts"]["values_unchanged"] += 1
