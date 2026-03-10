@@ -326,6 +326,10 @@ def sync_law_bs() -> Dict[str, Any]:
                 logging.error(error_msg)
                 continue
 
+            if not paragraphs:
+                paragraphs.append({"code": "§",
+                                   "shortText": "(keine Rechtsnormen)"})
+
             for paragraph in paragraphs:
                 desired_value_code = _normalize_literal_field(paragraph["code"])
                 desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
