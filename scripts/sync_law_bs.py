@@ -76,7 +76,7 @@ def parse_paragraphs_from_gesetzestext_html(gesetzestext_html: str) -> List[Dict
 
 
 def fetch_active_laws_from_ods(
-    batch_size: int = ODS_BATCH_SIZE, max_entries: Optional[int] = None
+    batch_size: int = ODS_BATCH_SIZE, max_records: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
     Read active law records from ODS dataset 100354 using pagination.
@@ -84,12 +84,12 @@ def fetch_active_laws_from_ods(
     laws: List[Dict[str, Any]] = []
     offset = 0
     while True:
-        if max_entries is not None and len(laws) >= max_entries:
+        if max_records is not None and len(laws) >= max_records:
             break
 
         request_limit = batch_size
-        if max_entries is not None:
-            request_limit = min(batch_size, max_entries - len(laws))
+        if max_records is not None:
+            request_limit = min(batch_size, max_records - len(laws))
             if request_limit <= 0:
                 break
 
@@ -246,7 +246,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods(max_entries=1)
+        ods_laws = fetch_active_laws_from_ods(max_records=1)
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
