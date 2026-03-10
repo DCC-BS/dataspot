@@ -160,8 +160,6 @@ def build_law_cache(
     for asset in assets:
         if asset.get("_type") != "ReferenceObject":
             continue
-        if asset.get("stereotype") != "LAW":
-            continue
         if asset.get("inCollection") != law_collection_label:
             continue
 
@@ -175,7 +173,6 @@ def build_law_cache(
             "id": asset.get("id"),
             "label": asset.get("label", ""),
             "description": asset.get("description", ""),
-            "stereotype": asset.get("stereotype", ""),
             "systematic_number": systematic_number,
             "values_by_code": {},
         }
@@ -227,7 +224,6 @@ def build_reference_object_payload(
     return {
         "_type": "ReferenceObject",
         "label": f"SG {systematic_number} - {title_de}",
-        "stereotype": "LAW",
         "description": original_url_de or "",
         "customProperties": {
             "systematic_number": systematic_number,
@@ -337,7 +333,6 @@ def sync_law_bs() -> Dict[str, Any]:
                 law_changed = (
                     existing_law.get("label") != desired_law["label"]
                     or (existing_law.get("description") or "") != desired_law["description"]
-                    or existing_law.get("stereotype") != desired_law["stereotype"]
                     or normalize_systematic_number(existing_law.get("systematic_number"))
                     != normalize_systematic_number(
                         desired_law.get("customProperties", {}).get("systematic_number")
