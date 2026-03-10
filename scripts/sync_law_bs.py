@@ -41,6 +41,29 @@ def _strip_html(raw: str) -> str:
     return " ".join(raw.split()).strip()
 
 
+def detect_norm_category(gesetzestext_html: str) -> Optional[str]:
+    """
+    Detect the norm category (article_symbol) for a law from its HTML.
+    Returns the symbol for prefixing (e.g. "§", "Art.", "Ziff.") or None for no norms.
+    """
+    if not gesetzestext_html:
+        return None
+    m = re.search(
+        r"<span class=['\"]article_symbol['\"]>(.*?)</span>",
+        str(gesetzestext_html),
+        re.DOTALL | re.IGNORECASE,
+    )
+    if not m:
+        return None
+    symbol = _strip_html(m.group(1))
+    if not symbol:
+        return None
+    # §: normalize &sect;, &#167;, &#xa7;, or literal § to "§"
+    if symbol == "§" or html.unescape(symbol).strip() == "§":
+        return "§"
+    return symbol
+
+
 def parse_paragraphs_from_gesetzestext_html(gesetzestext_html: str) -> List[Dict[str, str]]:
     """
     Parse paragraph entries from law html.
@@ -212,6 +235,19 @@ def build_reference_object_payload(
     }
 
 
+def _build_prefixed_code(raw_code: str, norm_symbol: Optional[str]) -> str:
+    """
+    Build ReferenceValue.code with norm prefix.
+    For §: "§ <code>"; for other symbols: "<symbol> <code>"; for no norms: "§".
+    """
+    cleaned = _normalize_literal_field(raw_code)
+    if norm_symbol is None:
+        return cleaned
+    if norm_symbol == "§":
+        return f"§ {cleaned}" if cleaned else "§"
+    return f"{norm_symbol} {cleaned}" if cleaned else norm_symbol
+
+
 def build_reference_value_payload(code: str, short_text: str) -> Dict[str, Any]:
     if not short_text:
         short_text = ""
@@ -261,7 +297,9 @@ def sync_law_bs() -> Dict[str, Any]:
             systematic_number = normalize_systematic_number(record.get("systematic_number"))
             title_de = (record.get("title_de") or "").strip()
             original_url_de = (record.get("original_url_de") or "").strip()
-            paragraphs = parse_paragraphs_from_gesetzestext_html(record.get("gesetzestext_html", ""))
+            gesetzestext_html = record.get("gesetzestext_html", "")
+            paragraphs = parse_paragraphs_from_gesetzestext_html(gesetzestext_html)
+            norm_symbol = detect_norm_category(gesetzestext_html)
 
             if not systematic_number or not title_de:
                 report["counts"]["errors"] += 1
@@ -327,11 +365,10 @@ def sync_law_bs() -> Dict[str, Any]:
                 continue
 
             if not paragraphs:
-                paragraphs.append({"code": "§",
-                                   "shortText": "(keine Rechtsnormen)"})
+                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)"})
 
             for paragraph in paragraphs:
-                desired_value_code = _normalize_literal_field(paragraph["code"])
+                desired_value_code = _build_prefixed_code(paragraph["code"], norm_symbol)
                 desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
 
                 desired_value = build_reference_value_payload(
