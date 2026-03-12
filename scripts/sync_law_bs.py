@@ -14,7 +14,7 @@ from src.clients.law_client import LAWClient
 
 ODS_DATASET_ID = "100354"
 ODS_BATCH_SIZE = 100
-WRITE_STATUS = "WORKING"
+WRITE_STATUS = "PUBLISHED"
 
 
 def normalize_systematic_number(value: Any) -> str:
