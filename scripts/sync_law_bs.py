@@ -173,6 +173,7 @@ def build_law_cache(
             "id": asset.get("id"),
             "label": asset.get("label", ""),
             "description": asset.get("description", ""),
+            "title": asset.get("title", ""),
             "systematic_number": systematic_number,
             "values_by_code": {},
         }
@@ -219,12 +220,13 @@ def build_law_cache(
 
 
 def build_reference_object_payload(
-    systematic_number: str, title_de: str, original_url_de: str
+    systematic_number: str, title_de: str, original_url_de: str, keywords_de: str = ""
 ) -> Dict[str, Any]:
     return {
         "_type": "ReferenceObject",
         "label": f"SG {systematic_number} - {title_de}",
         "description": original_url_de or "",
+        "title": keywords_de or "",
         "customProperties": {
             "systematic_number": systematic_number,
         },
@@ -293,6 +295,11 @@ def sync_law_bs() -> Dict[str, Any]:
             systematic_number = normalize_systematic_number(record.get("systematic_number"))
             title_de = (record.get("title_de") or "").strip()
             original_url_de = (record.get("original_url_de") or "").strip()
+            raw_keywords = record.get("keywords_de")
+            if isinstance(raw_keywords, list):
+                keywords_de = ", ".join(str(v) for v in raw_keywords if v is not None).strip()
+            else:
+                keywords_de = (raw_keywords or "").strip()
             gesetzestext_html = record.get("gesetzestext_html", "")
             paragraphs = parse_paragraphs_from_gesetzestext_html(gesetzestext_html)
             norm_symbol = detect_norm_category(gesetzestext_html)
@@ -311,6 +318,7 @@ def sync_law_bs() -> Dict[str, Any]:
                 systematic_number=systematic_number,
                 title_de=title_de,
                 original_url_de=original_url_de,
+                keywords_de=keywords_de,
             )
 
             existing_law = law_cache.get(systematic_number)
@@ -343,6 +351,7 @@ def sync_law_bs() -> Dict[str, Any]:
                 law_changed = (
                     existing_law.get("label") != desired_law["label"]
                     or (existing_law.get("description") or "") != desired_law["description"]
+                    or (existing_law.get("title") or "") != (desired_law.get("title") or "")
                     or normalize_systematic_number(existing_law.get("systematic_number"))
                     != normalize_systematic_number(
                         desired_law.get("customProperties", {}).get("systematic_number")
