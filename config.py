@@ -37,6 +37,7 @@ organizations_name = "Data%20Governance"
 
 # System UUIDs
 huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
+law_bs_system_uuid = 'f887e7cf-ef80-4bf9-93de-ca4eb3f6ba75'
 
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration

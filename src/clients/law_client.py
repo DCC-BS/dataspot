@@ -3,7 +3,7 @@ import logging
 
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.common import requests_get
+from src.common import requests_get, requests_post
 
 
 class LAWClient(BaseDataspotClient):
@@ -53,6 +53,44 @@ class LAWClient(BaseDataspotClient):
     ) -> Dict[str, Any]:
         endpoint = f"/rest/{config.database_name}/collections/{collection_uuid}/enumerations"
         return self._create_asset(endpoint=endpoint, data=data, status=status)
+
+    def create_reference_object_deployment(self, law_id: str, systematic_number: str) -> bool:
+        """
+        Create a Deployment linking a LAW ReferenceObject to the configured System.
+
+        Args:
+            law_id: UUID of the created ReferenceObject (enumeration).
+            systematic_number: Systematic number of the law (for logging).
+
+        Returns:
+            True if deployment was created, False on error.
+        """
+        deployment_url = f"{config.base_url}/rest/{config.database_name}/deployments"
+        payload = {
+            "_type": "Deployment",
+            "deploymentOf": law_id,
+            "deployedIn": config.law_bs_system_uuid,
+            "qualifier": "GOLD",
+            "order": 1,
+            "favorite": True,
+        }
+        try:
+            response = requests_post(
+                url=deployment_url,
+                json=payload,
+                headers=self.auth.get_headers(),
+            )
+            response.raise_for_status()
+            logging.info(
+                f"Created LAW system deployment for law systematic_number={systematic_number} ({law_id})"
+            )
+            return True
+        except Exception as e:
+            logging.error(
+                f"Error creating LAW system deployment for systematic_number={systematic_number} "
+                f"law_id={law_id}: {str(e)}"
+            )
+            return False
 
     def update_reference_object(
         self, law_id: str, data: Dict[str, Any], status: str = "WORKING"

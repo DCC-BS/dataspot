@@ -326,6 +326,16 @@ def sync_law_bs() -> Dict[str, Any]:
                 logging.info(
                     f"Created law '{desired_law['label']}' with systematic_number={systematic_number}"
                 )
+                if current_law_id:
+                    deployment_ok = law_client.create_reference_object_deployment(
+                        law_id=current_law_id,
+                        systematic_number=systematic_number,
+                    )
+                    if not deployment_ok:
+                        report["counts"]["errors"] += 1
+                        report["errors"].append(
+                            f"Failed to create system deployment for law systematic_number={systematic_number} law_id={current_law_id}"
+                        )
             else:
                 current_law_id = existing_law.get("id")
                 current_values_by_code = existing_law.get("values_by_code", {})
