@@ -331,7 +331,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods(max_records=5)
+        ods_laws = fetch_active_laws_from_ods()
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
