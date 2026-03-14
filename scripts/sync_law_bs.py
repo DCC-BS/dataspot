@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import config
 import ods_utils_py as ods_utils
 from src.clients.law_client import LAWClient
+from src.common import email_helpers
 
 
 ODS_DATASET_ID = "100354"
@@ -261,6 +262,51 @@ def build_reference_value_payload(code: str, short_text: str) -> Dict[str, Any]:
     }
 
 
+def _create_law_email_content(report: Dict[str, Any]) -> tuple:
+    """
+    Create email content for LAW sync. Send only if marks-for-deletion or errors.
+    Returns (email_subject, email_text, should_send).
+    """
+    counts = report.get("counts", {})
+    marked = counts.get("values_marked_for_deletion", 0) + counts.get("laws_marked_for_deletion", 0)
+    errors = counts.get("errors", 0)
+    if marked == 0 and errors == 0:
+        return None, None, False
+
+    is_error = report.get("status") == "error"
+    if is_error:
+        email_subject = f"[ERROR][{config.database_name}/GS] LAW Sync: failed"
+    else:
+        email_subject = (
+            f"[{config.database_name}/GS] LAW Sync: "
+            f"{marked} marked for deletion, {errors} errors"
+        )
+
+    email_text = "Hi there,\n\n"
+    if is_error:
+        email_text += "There was an error during the Basel-Stadt law sync in Dataspot.\n"
+        for err in report.get("errors", [])[:10]:
+            email_text += f"- {err}\n"
+        if len(report.get("errors", [])) > 10:
+            email_text += f"- ... and {len(report['errors']) - 10} more (see attachment)\n"
+        email_text += "\n"
+    else:
+        email_text += "The Basel-Stadt law sync completed. The following assets were marked for deletion (still in use):\n\n"
+        for item in report.get("marked_items", []):
+            link = item.get("link", "")
+            if item.get("type") == "ReferenceValue":
+                email_text += f"- ReferenceValue code={item.get('code', '')}: {link}\n"
+            else:
+                email_text += f"- ReferenceObject {item.get('label', '')}: {link}\n"
+        if errors > 0:
+            email_text += f"\nAdditionally, {errors} error(s) occurred (see report attachment).\n"
+        email_text += "\n"
+
+    email_text += "Best regards,\n"
+    email_text += "Your Dataspot LAW Sync Assistant\n"
+    return email_subject, email_text, True
+
+
 def sync_law_bs() -> Dict[str, Any]:
     logging.info("Starting Basel-Stadt law sync")
 
@@ -273,14 +319,19 @@ def sync_law_bs() -> Dict[str, Any]:
             "values_created": 0,
             "values_updated": 0,
             "values_unchanged": 0,
+            "values_deleted": 0,
+            "values_marked_for_deletion": 0,
+            "laws_deleted": 0,
+            "laws_marked_for_deletion": 0,
             "errors": 0,
         },
         "errors": [],
+        "marked_items": [],
     }
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods(max_records=1)
+        ods_laws = fetch_active_laws_from_ods(max_records=5)
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             scheme_assets, config.law_bs_collection_label
@@ -420,9 +471,154 @@ def sync_law_bs() -> Dict[str, Any]:
                 else:
                     report["counts"]["values_unchanged"] += 1
 
-            # TODO: Future reconciliation step - detect and remove/mark obsolete literals for each law.
+            # Case 2: obsolete literals within existing law
+            desired_value_codes = {
+                _build_prefixed_code(p["code"], norm_symbol) for p in paragraphs
+            }
+            obsolete_codes = set(current_values_by_code.keys()) - desired_value_codes
+            if obsolete_codes:
+                child_in_use = law_client.get_child_literal_ids_in_use(current_law_id)
+                for code in sorted(obsolete_codes):
+                    literal_info = current_values_by_code[code]
+                    literal_id = literal_info.get("id")
+                    if not literal_id:
+                        report["counts"]["errors"] += 1
+                        report["errors"].append(
+                            f"Obsolete literal code={code} has no id for systematic_number={systematic_number}"
+                        )
+                        logging.error(
+                            f"Obsolete literal code={code} has no id for systematic_number={systematic_number}"
+                        )
+                        continue
+                    try:
+                        if literal_id in child_in_use:
+                            law_client.mark_literal_for_deletion(literal_id)
+                            report["counts"]["values_marked_for_deletion"] += 1
+                            report["marked_items"].append(
+                                {
+                                    "type": "ReferenceValue",
+                                    "id": literal_id,
+                                    "code": code,
+                                    "link": f"{config.base_url}/web/{config.database_name}/literals/{literal_id}",
+                                }
+                            )
+                            logging.info(
+                                f"Marked literal code={code} for deletion (in use) for law systematic_number={systematic_number}"
+                            )
+                        else:
+                            law_client.delete_literal(literal_id)
+                            report["counts"]["values_deleted"] += 1
+                            logging.info(
+                                f"Deleted literal code={code} for law systematic_number={systematic_number}"
+                            )
+                    except Exception as e:
+                        report["counts"]["errors"] += 1
+                        report["errors"].append(
+                            f"Failed to process obsolete literal code={code} id={literal_id}: {str(e)}"
+                        )
+                        logging.error(
+                            f"Failed to process obsolete literal code={code} id={literal_id}: {str(e)}"
+                        )
 
-        # TODO: Future reconciliation step - detect and remove/mark obsolete laws absent from ODS.
+        # Case 1: obsolete laws (ReferenceObjects) absent from ODS
+        ods_systematic_numbers = {
+            normalize_systematic_number(r.get("systematic_number")) for r in ods_laws
+        }
+        obsolete_systematic_numbers = set(law_cache.keys()) - ods_systematic_numbers
+        for systematic_number in obsolete_systematic_numbers:
+            existing_law = law_cache.get(systematic_number)
+            if not existing_law:
+                continue
+            enum_id = existing_law.get("id")
+            if not enum_id:
+                report["counts"]["errors"] += 1
+                report["errors"].append(
+                    f"Obsolete law systematic_number={systematic_number} has no id"
+                )
+                logging.error(
+                    f"Obsolete law systematic_number={systematic_number} has no id"
+                )
+                continue
+            parent_in_use = law_client.is_parent_in_use(enum_id)
+            child_in_use = law_client.get_child_literal_ids_in_use(enum_id)
+            values_by_code = existing_law.get("values_by_code", {})
+            children_sorted = sorted(values_by_code.items(), key=lambda x: x[0])
+            any_child_marked = False
+            for code, literal_info in children_sorted:
+                literal_id = literal_info.get("id")
+                if not literal_id:
+                    report["counts"]["errors"] += 1
+                    report["errors"].append(
+                        f"Obsolete law literal code={code} has no id for systematic_number={systematic_number}"
+                    )
+                    logging.error(
+                        f"Obsolete law literal code={code} has no id for systematic_number={systematic_number}"
+                    )
+                    continue
+                try:
+                    if literal_id in child_in_use:
+                        law_client.mark_literal_for_deletion(literal_id)
+                        report["counts"]["values_marked_for_deletion"] += 1
+                        any_child_marked = True
+                        report["marked_items"].append(
+                            {
+                                "type": "ReferenceValue",
+                                "id": literal_id,
+                                "code": code,
+                                "link": f"{config.base_url}/web/{config.database_name}/literals/{literal_id}",
+                            }
+                        )
+                        logging.info(
+                            f"Marked literal code={code} for deletion (in use) for obsolete law systematic_number={systematic_number}"
+                        )
+                    else:
+                        law_client.delete_literal(literal_id)
+                        report["counts"]["values_deleted"] += 1
+                        logging.info(
+                            f"Deleted literal code={code} for obsolete law systematic_number={systematic_number}"
+                        )
+                except Exception as e:
+                    report["counts"]["errors"] += 1
+                    report["errors"].append(
+                        f"Failed to process obsolete law literal code={code} id={literal_id}: {str(e)}"
+                    )
+                    logging.error(
+                        f"Failed to process obsolete law literal code={code} id={literal_id}: {str(e)}"
+                    )
+            try:
+                if parent_in_use or any_child_marked:
+                    law_client.mark_reference_object_for_deletion(enum_id)
+                    report["counts"]["laws_marked_for_deletion"] += 1
+                    if parent_in_use:
+                        report["marked_items"].append(
+                            {
+                                "type": "ReferenceObject",
+                                "id": enum_id,
+                                "label": existing_law.get("label", ""),
+                                "link": f"{config.base_url}/web/{config.database_name}/enumerations/{enum_id}",
+                            }
+                        )
+                        logging.info(
+                            f"Marked law for deletion (in use) systematic_number={systematic_number}"
+                        )
+                    else:
+                        logging.info(
+                            f"Marked law for deletion (child in use) systematic_number={systematic_number}"
+                        )
+                else:
+                    law_client.delete_reference_object(enum_id)
+                    report["counts"]["laws_deleted"] += 1
+                    logging.info(
+                        f"Deleted obsolete law systematic_number={systematic_number}"
+                    )
+            except Exception as e:
+                report["counts"]["errors"] += 1
+                report["errors"].append(
+                    f"Failed to process obsolete law systematic_number={systematic_number} id={enum_id}: {str(e)}"
+                )
+                logging.error(
+                    f"Failed to process obsolete law systematic_number={systematic_number} id={enum_id}: {str(e)}"
+                )
 
         report["status"] = "success"
     except Exception as exc:
@@ -433,6 +629,7 @@ def sync_law_bs() -> Dict[str, Any]:
         logging.error(error_msg)
         logging.error(traceback.format_exc())
 
+    report_file = None
     try:
         current_file_path = os.path.abspath(__file__)
         project_root = os.path.dirname(os.path.dirname(current_file_path))
@@ -446,6 +643,22 @@ def sync_law_bs() -> Dict[str, Any]:
     except Exception as report_error:
         logging.error(f"Failed to write LAW sync report: {str(report_error)}")
 
+    email_subject, email_content, should_send = _create_law_email_content(report)
+    if should_send:
+        try:
+            attachment = report_file if report_file and os.path.exists(report_file) else None
+            msg = email_helpers.create_email_msg(
+                subject=email_subject,
+                text=email_content,
+                attachment=attachment,
+            )
+            email_helpers.send_email(msg, technical_only=True)
+            logging.info("LAW sync email notification sent successfully")
+        except Exception as email_error:
+            logging.error(f"Failed to send LAW sync email notification: {str(email_error)}")
+    else:
+        logging.info("No marks-for-deletion or errors - email notification not sent")
+
     logging.info(
         "LAW sync result: "
         f"{report['counts']['laws_created']} laws created, "
@@ -454,6 +667,10 @@ def sync_law_bs() -> Dict[str, Any]:
         f"{report['counts']['values_created']} literals created, "
         f"{report['counts']['values_updated']} literals updated, "
         f"{report['counts']['values_unchanged']} literals unchanged, "
+        f"{report['counts']['values_deleted']} literals deleted, "
+        f"{report['counts']['values_marked_for_deletion']} literals marked for deletion, "
+        f"{report['counts']['laws_deleted']} laws deleted, "
+        f"{report['counts']['laws_marked_for_deletion']} laws marked for deletion, "
         f"{report['counts']['errors']} errors"
     )
     return report
