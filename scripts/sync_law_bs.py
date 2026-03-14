@@ -342,7 +342,8 @@ def sync_law_bs() -> Dict[str, Any]:
             assets=scheme_assets, law_collection_label=config.law_bs_collection_label
         )
 
-        for record in ods_laws:
+        total = len(ods_laws)
+        for idx, record in enumerate(ods_laws, start=1):
             systematic_number = normalize_systematic_number(record.get("systematic_number"))
             title_de = (record.get("title_de") or "").strip()
             original_url_de = (record.get("original_url_de") or "").strip()
@@ -383,7 +384,7 @@ def sync_law_bs() -> Dict[str, Any]:
                 current_law_id = created_law.get("id")
                 report["counts"]["laws_created"] += 1
                 logging.info(
-                    f"Created law '{desired_law['label']}' with systematic_number={systematic_number}"
+                    f"[{idx}/{total}] Created law '{desired_law['label']}' with systematic_number={systematic_number}"
                 )
                 if current_law_id:
                     deployment_ok = law_client.create_reference_object_deployment(
