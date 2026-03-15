@@ -5,6 +5,7 @@ database_name = 'prod'
 
 # Logging config
 logging_for_prod = True
+MAX_RETRIES_FOR_PROD = True
 
 # Base URL
 base_url = 'https://datenkatalog.bs.ch'
