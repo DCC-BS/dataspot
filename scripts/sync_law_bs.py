@@ -186,15 +186,20 @@ def build_law_cache(
     for asset in assets:
         if asset.get("_type") != "ReferenceValue":
             continue
-        parent_label = asset.get("literalOf")
-        if parent_label is None:
+        parent_label_raw = asset.get("literalOf")
+        if parent_label_raw is None:
             raise ValueError(
                 f"ReferenceValue id={asset.get('id')} code={asset.get('code')} has no literalOf; "
                 "every literal must reference a parent ReferenceObject"
             )
-        if parent_label not in by_law_label:
+        parent_label_normalized = normalize_systematic_number(parent_label_raw)
+        parent_label_lookup = parent_label_raw
+        if parent_label_lookup not in by_law_label and parent_label_normalized in by_law_label:
+            parent_label_lookup = parent_label_normalized
+
+        if parent_label_lookup not in by_law_label:
             raise ValueError(
-                f"ReferenceValue id={asset.get('id')} code={asset.get('code')} literalOf='{parent_label}' "
+                f"ReferenceValue id={asset.get('id')} code={asset.get('code')} literalOf='{parent_label_raw}' "
                 "does not match any LAW ReferenceObject in the target collection; breaking data integrity"
             )
 
@@ -207,7 +212,7 @@ def build_law_cache(
         code = _normalize_literal_field(ts0["code"])
         short_text = _normalize_literal_field(ts0.get("shortText"))
 
-        by_law_label[parent_label]["values_by_code"][code] = {
+        by_law_label[parent_label_lookup]["values_by_code"][code] = {
             "id": asset.get("id"),
             "code": code,
             "shortText": short_text,
