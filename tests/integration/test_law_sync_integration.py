@@ -740,13 +740,8 @@ def test_case_f_rename_systematic_number_change_semantics(
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
     assert old_parent_after is None or old_parent_after.get("status") == "REVIEWDCC2"
 
-    sql = (
-        "SELECT id, systematic_number "
-        "FROM dataspot.enumeration_view "
-        f"WHERE systematic_number = '{_sql_quote(canonical_systematic_number)}'"
-    )
-    rows = law_client.execute_query_api(sql)
-    assert len(rows) >= 1
+    existing_numbers = _existing_systematic_numbers(law_client)
+    assert canonical_systematic_number in existing_numbers
     assert report["counts"]["errors"] == 0
 
 
