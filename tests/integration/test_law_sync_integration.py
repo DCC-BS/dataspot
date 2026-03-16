@@ -26,6 +26,7 @@ ASSET_TYPE_ENDPOINTS = {
     "enumerations": "enumerations",
     "literals": "literals",
     "derivations": "derivations",
+    "deployments": "deployments",
 }
 
 
@@ -323,18 +324,19 @@ def create_disposable_target_asset(
     return target
 
 
-def create_disposable_derivation(
+def create_disposable_usage_deployment(
     law_client: LAWClient,
-    derived_from_id: str,
-    target_asset_id: str,
-    qualifier: str = "SPEZ2",
+    deployment_of_id: str,
+    qualifier: str = "GOLD",
 ) -> Dict[str, Any]:
-    url = f"{config.base_url}/rest/{config.database_name}/derivations"
+    url = f"{config.base_url}/rest/{config.database_name}/deployments"
     payload = {
-        "_type": "Derivation",
-        "derivedFrom": derived_from_id,
-        "derivationOf": target_asset_id,
+        "_type": "Deployment",
+        "deploymentOf": deployment_of_id,
+        "deployedIn": config.law_bs_system_uuid,
         "qualifier": qualifier,
+        "order": 1,
+        "favorite": True,
     }
     response = requests_post(
         url=url,
@@ -343,22 +345,22 @@ def create_disposable_derivation(
     )
     derivation = response.json()
     logging.info(
-        "Created derivation id=%s derivedFrom=%s derivationOf=%s",
+        "Created deployment id=%s deploymentOf=%s deployedIn=%s",
         derivation.get("id"),
-        derived_from_id,
-        target_asset_id,
+        deployment_of_id,
+        config.law_bs_system_uuid,
     )
     return derivation
 
 
-def delete_derivation(law_client: LAWClient, derivation_id: str) -> None:
-    url = f"{config.base_url}/rest/{config.database_name}/derivations/{derivation_id}"
+def delete_deployment(law_client: LAWClient, deployment_id: str) -> None:
+    url = f"{config.base_url}/rest/{config.database_name}/deployments/{deployment_id}"
     requests_delete(
         url=url,
         headers=law_client.auth.get_headers(),
         silent_status_codes=[404, 410],
     )
-    logging.info("Deleted derivation id=%s", derivation_id)
+    logging.info("Deleted deployment id=%s", deployment_id)
 
 
 def get_asset_by_uuid(
@@ -532,12 +534,11 @@ def test_case_b_obsolete_literal_in_use_marked(
     )
     cleanup_manager.register("enumerations", target["id"])
 
-    derivation = create_disposable_derivation(
+    derivation = create_disposable_usage_deployment(
         law_client=law_client,
-        derived_from_id=obsolete["id"],
-        target_asset_id=target["id"],
+        deployment_of_id=obsolete["id"],
     )
-    cleanup_manager.register("derivations", derivation["id"])
+    cleanup_manager.register("deployments", derivation["id"])
 
     in_use_before = query_child_literals_in_use(law_client, parent["id"])
     assert obsolete["id"] in in_use_before
@@ -602,12 +603,11 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
     )
     cleanup_manager.register("enumerations", target["id"])
 
-    derivation = create_disposable_derivation(
+    derivation = create_disposable_usage_deployment(
         law_client=law_client,
-        derived_from_id=parent["id"],
-        target_asset_id=target["id"],
+        deployment_of_id=parent["id"],
     )
-    cleanup_manager.register("derivations", derivation["id"])
+    cleanup_manager.register("deployments", derivation["id"])
     assert query_parent_in_use(law_client, parent["id"]) is True
 
     report = sync_law_bs()
@@ -643,12 +643,11 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     )
     cleanup_manager.register("enumerations", target["id"])
 
-    derivation = create_disposable_derivation(
+    derivation = create_disposable_usage_deployment(
         law_client=law_client,
-        derived_from_id=used_literal["id"],
-        target_asset_id=target["id"],
+        deployment_of_id=used_literal["id"],
     )
-    cleanup_manager.register("derivations", derivation["id"])
+    cleanup_manager.register("deployments", derivation["id"])
 
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert used_literal["id"] in query_child_literals_in_use(law_client, parent["id"])
@@ -734,18 +733,17 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     )
     cleanup_manager.register("enumerations", target["id"])
 
-    derivation = create_disposable_derivation(
+    derivation = create_disposable_usage_deployment(
         law_client=law_client,
-        derived_from_id=used_literal["id"],
-        target_asset_id=target["id"],
+        deployment_of_id=used_literal["id"],
     )
-    cleanup_manager.register("derivations", derivation["id"])
+    cleanup_manager.register("deployments", derivation["id"])
 
     first_report = sync_law_bs()
     assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
     assert first_report["counts"]["errors"] == 0
 
-    delete_derivation(law_client, derivation["id"])
+    delete_deployment(law_client, derivation["id"])
 
     second_report = sync_law_bs()
     assert_deleted(law_client, "enumerations", parent["id"])
