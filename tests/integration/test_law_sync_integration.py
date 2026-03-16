@@ -15,9 +15,11 @@ from scripts.sync_law_bs import (
     parse_paragraphs_from_gesetzestext_html,
     sync_law_bs,
 )
+from src.clients.dnk_client import DNKClient
 from src.clients.law_client import LAWClient
 from src.clients.helpers import url_join
 from src.common import requests_delete, requests_get, requests_post
+from src.dataspot_dataset import OGDDataset
 
 
 pytestmark = [pytest.mark.integration]
@@ -25,8 +27,9 @@ pytestmark = [pytest.mark.integration]
 ASSET_TYPE_ENDPOINTS = {
     "enumerations": "enumerations",
     "literals": "literals",
+    "datasets": "datasets",
+    "collections": "collections",
     "derivations": "derivations",
-    "deployments": "deployments",
 }
 
 
@@ -140,6 +143,13 @@ def law_collection_uuid(law_client: LAWClient) -> str:
     )
     logging.info("Resolved LAW collection uuid=%s", collection_uuid)
     return collection_uuid
+
+
+@pytest.fixture(scope="session")
+def dnk_client() -> DNKClient:
+    client = DNKClient()
+    logging.info("Initialized DNKClient for DB=%s", config.database_name)
+    return client
 
 
 @pytest.fixture(scope="function")
@@ -310,57 +320,83 @@ def create_test_literal(
 
 
 def create_disposable_target_asset(
-    law_client: LAWClient, collection_uuid: str, namespace: str
+    dnk_client: DNKClient, namespace: str
 ) -> Dict[str, Any]:
-    systematic_number = _obsolete_systematic_number(f"{namespace}-TARGET")
-    target = create_test_parent(
-        law_client=law_client,
-        collection_uuid=collection_uuid,
-        systematic_number=systematic_number,
-        title="Derivation Target",
-        namespace=namespace,
+    collection_payload = {"_type": "Collection", "label": f"{namespace}-dataset-collection"}
+    collection_endpoint = f"/rest/{config.database_name}/schemes/{config.dnk_scheme_name}/collections"
+    target_collection = dnk_client._create_asset(
+        endpoint=collection_endpoint, data=collection_payload, status="PUBLISHED"
     )
-    logging.info("Created disposable target asset id=%s", target.get("id"))
-    return target
+    collection_id = target_collection.get("id")
+    if not collection_id:
+        raise ValueError("Dataset target collection create response missing id")
+
+    dataset_obj = OGDDataset(
+        name=f"{namespace} Test Dataset",
+        datenportal_identifikation=f"tmp-{namespace}",
+    )
+    dataset_payload = dataset_obj.to_json()
+    dataset_payload["inCollection"] = collection_id
+    dataset_endpoint = url_join(
+        "rest",
+        config.database_name,
+        "collections",
+        collection_id,
+        "datasets",
+        leading_slash=True,
+    )
+    target_dataset = dnk_client._create_asset(
+        endpoint=dataset_endpoint, data=dataset_payload, status="PUBLISHED"
+    )
+    dataset_id = target_dataset.get("id")
+    if not dataset_id:
+        raise ValueError("Dataset target create response missing id")
+
+    logging.info(
+        "Created disposable dataset target id=%s collection_id=%s",
+        dataset_id,
+        collection_id,
+    )
+    return {"id": dataset_id, "collection_id": collection_id}
 
 
-def create_disposable_usage_deployment(
+def create_disposable_derivation(
     law_client: LAWClient,
-    deployment_of_id: str,
-    qualifier: str = "GOLD",
+    dataset_id: str,
+    derived_from_id: str,
+    qualifier: str = "LAWFUL_BASIS",
 ) -> Dict[str, Any]:
-    url = f"{config.base_url}/rest/{config.database_name}/deployments"
+    url = f"{config.base_url}/rest/{config.database_name}/derivations"
     payload = {
-        "_type": "Deployment",
-        "deploymentOf": deployment_of_id,
-        "deployedIn": config.law_bs_system_uuid,
+        "_type": "Derivation",
+        "derivedTo": dataset_id,
+        "derivedFrom": derived_from_id,
         "qualifier": qualifier,
-        "order": 1,
-        "favorite": True,
     }
     response = requests_post(
         url=url,
         json=payload,
         headers=law_client.auth.get_headers(),
     )
-    derivation = response.json()
+    result = response.json()
     logging.info(
-        "Created deployment id=%s deploymentOf=%s deployedIn=%s",
-        derivation.get("id"),
-        deployment_of_id,
-        config.law_bs_system_uuid,
+        "Created derivation id=%s derivedTo=%s derivedFrom=%s qualifier=%s",
+        result.get("id"),
+        dataset_id,
+        derived_from_id,
+        qualifier,
     )
-    return derivation
+    return result
 
 
-def delete_deployment(law_client: LAWClient, deployment_id: str) -> None:
-    url = f"{config.base_url}/rest/{config.database_name}/deployments/{deployment_id}"
+def delete_derivation(law_client: LAWClient, derivation_id: str) -> None:
+    url = f"{config.base_url}/rest/{config.database_name}/derivations/{derivation_id}"
     requests_delete(
         url=url,
         headers=law_client.auth.get_headers(),
         silent_status_codes=[404, 410],
     )
-    logging.info("Deleted deployment id=%s", deployment_id)
+    logging.info("Deleted derivation id=%s", derivation_id)
 
 
 def get_asset_by_uuid(
@@ -512,6 +548,7 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
 
 def test_case_b_obsolete_literal_in_use_marked(
     law_client: LAWClient,
+    dnk_client: DNKClient,
     law_collection_uuid: str,
     cleanup_manager: CleanupManager,
     test_namespace: str,
@@ -528,17 +565,17 @@ def test_case_b_obsolete_literal_in_use_marked(
     cleanup_manager.register("literals", obsolete["id"])
 
     target = create_disposable_target_asset(
-        law_client=law_client,
-        collection_uuid=law_collection_uuid,
+        dnk_client=dnk_client,
         namespace=f"{test_namespace}-target",
     )
-    cleanup_manager.register("enumerations", target["id"])
+    cleanup_manager.register("collections", target["collection_id"])
 
-    derivation = create_disposable_usage_deployment(
+    derivation = create_disposable_derivation(
         law_client=law_client,
-        deployment_of_id=obsolete["id"],
+        dataset_id=target["id"],
+        derived_from_id=obsolete["id"],
     )
-    cleanup_manager.register("deployments", derivation["id"])
+    cleanup_manager.register("derivations", derivation["id"])
 
     in_use_before = query_child_literals_in_use(law_client, parent["id"])
     assert obsolete["id"] in in_use_before
@@ -583,6 +620,7 @@ def test_case_c_obsolete_parent_no_usage_deleted_with_children(
 
 def test_case_d_obsolete_parent_directly_in_use_marked(
     law_client: LAWClient,
+    dnk_client: DNKClient,
     law_collection_uuid: str,
     cleanup_manager: CleanupManager,
     test_namespace: str,
@@ -597,17 +635,17 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
     )
 
     target = create_disposable_target_asset(
-        law_client=law_client,
-        collection_uuid=law_collection_uuid,
+        dnk_client=dnk_client,
         namespace=f"{test_namespace}-target",
     )
-    cleanup_manager.register("enumerations", target["id"])
+    cleanup_manager.register("collections", target["collection_id"])
 
-    derivation = create_disposable_usage_deployment(
+    derivation = create_disposable_derivation(
         law_client=law_client,
-        deployment_of_id=parent["id"],
+        dataset_id=target["id"],
+        derived_from_id=parent["id"],
     )
-    cleanup_manager.register("deployments", derivation["id"])
+    cleanup_manager.register("derivations", derivation["id"])
     assert query_parent_in_use(law_client, parent["id"]) is True
 
     report = sync_law_bs()
@@ -623,6 +661,7 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
 
 def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     law_client: LAWClient,
+    dnk_client: DNKClient,
     law_collection_uuid: str,
     cleanup_manager: CleanupManager,
     test_namespace: str,
@@ -637,17 +676,17 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     )
 
     target = create_disposable_target_asset(
-        law_client=law_client,
-        collection_uuid=law_collection_uuid,
+        dnk_client=dnk_client,
         namespace=f"{test_namespace}-target",
     )
-    cleanup_manager.register("enumerations", target["id"])
+    cleanup_manager.register("collections", target["collection_id"])
 
-    derivation = create_disposable_usage_deployment(
+    derivation = create_disposable_derivation(
         law_client=law_client,
-        deployment_of_id=used_literal["id"],
+        dataset_id=target["id"],
+        derived_from_id=used_literal["id"],
     )
-    cleanup_manager.register("deployments", derivation["id"])
+    cleanup_manager.register("derivations", derivation["id"])
 
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert used_literal["id"] in query_child_literals_in_use(law_client, parent["id"])
@@ -713,6 +752,7 @@ def test_case_f_rename_systematic_number_change_semantics(
 
 def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     law_client: LAWClient,
+    dnk_client: DNKClient,
     law_collection_uuid: str,
     cleanup_manager: CleanupManager,
     test_namespace: str,
@@ -727,23 +767,23 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     )
 
     target = create_disposable_target_asset(
-        law_client=law_client,
-        collection_uuid=law_collection_uuid,
+        dnk_client=dnk_client,
         namespace=f"{test_namespace}-target",
     )
-    cleanup_manager.register("enumerations", target["id"])
+    cleanup_manager.register("collections", target["collection_id"])
 
-    derivation = create_disposable_usage_deployment(
+    derivation = create_disposable_derivation(
         law_client=law_client,
-        deployment_of_id=used_literal["id"],
+        dataset_id=target["id"],
+        derived_from_id=used_literal["id"],
     )
-    cleanup_manager.register("deployments", derivation["id"])
+    cleanup_manager.register("derivations", derivation["id"])
 
     first_report = sync_law_bs()
     assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
     assert first_report["counts"]["errors"] == 0
 
-    delete_deployment(law_client, derivation["id"])
+    delete_derivation(law_client, derivation["id"])
 
     second_report = sync_law_bs()
     assert_deleted(law_client, "enumerations", parent["id"])
