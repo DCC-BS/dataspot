@@ -582,7 +582,7 @@ def test_case_b_obsolete_literal_in_use_marked(
 
     report = sync_law_bs()
 
-    assert_status(law_client, "literals", obsolete["id"], "DELETENEW")
+    assert_status(law_client, "literals", obsolete["id"], "REVIEWDCC2")
     assert get_asset_by_uuid(law_client, "enumerations", parent["id"]) is not None
     assert report["counts"]["values_marked_for_deletion"] >= 1
     assert any(
@@ -650,7 +650,7 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
 
     report = sync_law_bs()
 
-    assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
+    assert_status(law_client, "enumerations", parent["id"], "REVIEWDCC2")
     assert report["counts"]["laws_marked_for_deletion"] >= 1
     assert any(
         item.get("type") == "ReferenceObject" and item.get("id") == parent["id"]
@@ -693,9 +693,9 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
 
     report = sync_law_bs()
 
-    assert_status(law_client, "literals", used_literal["id"], "DELETENEW")
+    assert_status(law_client, "literals", used_literal["id"], "REVIEWDCC2")
     assert_deleted(law_client, "literals", unused_literal["id"])
-    assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
+    assert_status(law_client, "enumerations", parent["id"], "REVIEWDCC2")
     assert any(
         item.get("type") == "ReferenceValue" and item.get("id") == used_literal["id"]
         for item in report.get("marked_items", [])
@@ -738,7 +738,7 @@ def test_case_f_rename_systematic_number_change_semantics(
 
     # Old object gets obsolete processing, while canonical ODS systematic number exists post-sync.
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
-    assert old_parent_after is None or old_parent_after.get("status") == "DELETENEW"
+    assert old_parent_after is None or old_parent_after.get("status") == "REVIEWDCC2"
 
     sql = (
         "SELECT id, systematic_number "
@@ -780,7 +780,7 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     cleanup_manager.register("derivations", derivation["id"])
 
     first_report = sync_law_bs()
-    assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
+    assert_status(law_client, "enumerations", parent["id"], "REVIEWDCC2")
     assert first_report["counts"]["errors"] == 0
 
     delete_derivation(law_client, derivation["id"])

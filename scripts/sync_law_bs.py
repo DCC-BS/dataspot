@@ -593,7 +593,9 @@ def sync_law_bs() -> Dict[str, Any]:
                     )
             try:
                 if parent_in_use or any_child_marked:
-                    law_client.mark_reference_object_for_deletion(enum_id)
+                    law_client.mark_reference_object_for_deletion(
+                        enum_id, status="REVIEWDCC2"
+                    )
                     report["counts"]["laws_marked_for_deletion"] += 1
                     if parent_in_use:
                         report["marked_items"].append(

@@ -150,11 +150,11 @@ class LAWClient(BaseDataspotClient):
         self._delete_asset(endpoint, force_delete=True)
 
     def mark_literal_for_deletion(self, literal_id: str) -> None:
-        """Mark a ReferenceValue (literal) for deletion review (DELETENEW)."""
+        """Mark a ReferenceValue (literal) for deletion review (REVIEWDCC2)."""
         endpoint = url_join(
             "rest", config.database_name, "literals", literal_id, leading_slash=True
         )
-        self._mark_asset_for_deletion(endpoint)
+        self.set_asset_status(endpoint=endpoint, status="REVIEWDCC2")
 
     def delete_reference_object(self, enum_id: str) -> None:
         """Permanently delete a ReferenceObject (enumeration)."""
@@ -163,9 +163,9 @@ class LAWClient(BaseDataspotClient):
         )
         self._delete_asset(endpoint, force_delete=True)
 
-    def mark_reference_object_for_deletion(self, enum_id: str) -> None:
-        """Mark a ReferenceObject (enumeration) for deletion review (DELETENEW)."""
+    def mark_reference_object_for_deletion(self, enum_id: str, status: str = "DELETENEW") -> None:
+        """Mark a ReferenceObject (enumeration) for deletion review."""
         endpoint = url_join(
             "rest", config.database_name, "enumerations", enum_id, leading_slash=True
         )
-        self._mark_asset_for_deletion(endpoint)
+        self._mark_asset_for_deletion(endpoint, status=status)
