@@ -94,7 +94,7 @@ class LAWClient(BaseDataspotClient):
             "_type": "Deployment",
             "deploymentOf": law_id,
             "deployedIn": system_uuid,
-            "qualifier": "GOLD",
+            "qualifier": "SPOT",
             "order": 1,
             "favorite": True,
         }
