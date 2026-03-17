@@ -9,6 +9,7 @@ from src.clients.helpers import url_join
 
 from requests import HTTPError
 
+
 class BaseDataspotClient:
     """Base class for Dataspot API clients implementing common functionality.
     
@@ -335,13 +336,14 @@ class BaseDataspotClient:
         logging.info(f"Permanently deleting asset at {endpoint}")
         requests_delete(full_url, headers=headers)
     
-    def _mark_asset_for_deletion(self, endpoint: str) -> None:
+    def _mark_asset_for_deletion(self, endpoint: str, status: str = "DELETENEW") -> None:
         """
-        Marks an asset for deletion review by changing its status to "DELETENEW" (Löschung Kantonaler Data Steward) via PATCH request.
+        Marks an asset for deletion review by changing its status via PATCH request.
         This allows for a review process before actual deletion.
         
         Args:
             endpoint (str): API endpoint path (will be joined with base_url)
+            status (str): Review status to set (defaults to "DELETENEW" (Löschung Kantonaler Data Steward))
             
         Raises:
             HTTPError: If the request fails
@@ -359,11 +361,11 @@ class BaseDataspotClient:
         # Prepare update data with only the status field to change
         update_data = {
             "_type": current_asset.get("_type", "Unknown"),  # Required for PATCH
-            "status": "DELETENEW"
+            "status": status
         }
         
         # Mark the asset for review by changing its status
-        logging.info(f"Marking asset at {endpoint} for review (DELETENEW)")
+        logging.info(f"Marking asset at {endpoint} for review ({status})")
         
         # Use PATCH to update only the status property
         response = requests_patch(full_url, headers=headers, json=update_data)

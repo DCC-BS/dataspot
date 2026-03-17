@@ -5,6 +5,7 @@ database_name = 'prod'
 
 # Logging config
 logging_for_prod = True
+MAX_RETRIES_FOR_PROD = True
 
 # Base URL
 base_url = 'https://datenkatalog.bs.ch'
@@ -25,6 +26,10 @@ tdm_scheme_name = 'Datenbankobjekte'
 tdm_scheme_name_short = 'TDM'
 sk_scheme_name = 'Systeme'
 sk_scheme_name_short = 'SK'
+law_scheme_name = 'Gesetzessammlungen'
+law_scheme_name_short = 'GS'
+
+law_bs_collection_label = 'Systematische Gesetzessammlung Basel-Stadt'
 
 # Special names
 tenant_name = "Mandant"
@@ -32,6 +37,7 @@ organizations_name = "Data%20Governance"
 
 # System UUIDs
 huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
+law_bs_system_uuid = 'f887e7cf-ef80-4bf9-93de-ca4eb3f6ba75'
 
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration

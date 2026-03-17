@@ -1,0 +1,37 @@
+# Gesetzessammlungen
+
+# https://datenkatalog.bs.ch/api/prod/manual/Basics#elementtypen
+
+# ReferenceDataModel	Referenzdatenmodell
+# ReferenceObject	Referenzobjekt
+# ReferenceValue	Referenzwert
+# Mapping	Überleitungstabelle
+# Translation	Überleitung
+
+ReferenceDataModel:
+  icon: section
+
+ReferenceObject:
+  label: Erlass
+  plural: Erlasse
+  gender: m
+  title: todo
+  properties:
+    label:
+      label: Erlasstitel
+    title:
+      label: Kurztitel, Abkürzung
+      title: todo
+  customProperties:
+    legal_form:
+      label: Rechtsform
+      labelEn: Legal form
+    systematic_number:
+      label: Kennung
+      mandatory: true
+
+ReferenceValue:
+  label: Rechtsnorm
+  plural: Rechtsnormen
+  gender: f
+  icon: list-ol

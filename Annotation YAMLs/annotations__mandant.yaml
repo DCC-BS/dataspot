@@ -92,6 +92,8 @@ Derivation:
     qualifier:
       # Definition der Ausprägungen von Kennzeichnung
       literals:
+        LAWFUL_BASIS:
+          label: Rechtsgrundlage
         SPOT:
           label: Single Point of Truth
           labelEn: Single Point of Truth
