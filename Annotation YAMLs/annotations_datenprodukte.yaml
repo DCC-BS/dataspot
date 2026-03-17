@@ -8,8 +8,9 @@ SubDataset:
   ling: s1p1um
 
 Dataset:
-  label: Datensatz
-  ling: s1p1um
+  label: Datenprodukt
+  plural: Datenprodukte
+  gender: n
 
   groups:
     DATA_PRIVACY:
