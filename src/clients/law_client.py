@@ -16,6 +16,7 @@ class LAWClient(BaseDataspotClient):
             scheme_name=config.law_scheme_name,
             scheme_name_short=config.law_scheme_name_short,
         )
+        self.collections_cache: Dict[str, str] = {}
 
     def download_scheme_assets(self) -> List[Dict[str, Any]]:
         """
@@ -39,6 +40,10 @@ class LAWClient(BaseDataspotClient):
         """
         Resolve collection UUID by exact label from the collection endpoint.
         """
+        cached_uuid = self.collections_cache.get(collection_label)
+        if cached_uuid:
+            return cached_uuid
+
         scheme_name_encoded = quote(config.law_scheme_name, safe="")
         collection_label_encoded = quote(collection_label, safe="")
         collection_url = (
@@ -60,6 +65,7 @@ class LAWClient(BaseDataspotClient):
                 f"Collection '{collection_label}' not found in scheme '{config.law_scheme_name}'"
             )
 
+        self.collections_cache[collection_label] = str(collection_id)
         logging.info("Resolved LAW collection UUID for label=%s", collection_label)
         return str(collection_id)
 
