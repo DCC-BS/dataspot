@@ -35,6 +35,14 @@ def _normalize_literal_field(value: Any) -> str:
     return (str(value) or "").strip().strip(" *")
 
 
+def _normalize_short_text(value: Any) -> str:
+    """Normalize shortText and drop bracket-only placeholders like '[5]'."""
+    normalized = _normalize_literal_field(value)
+    if normalized.startswith("[") and normalized.endswith("]"):
+        return ""
+    return normalized
+
+
 def _strip_html(raw: str) -> str:
     raw = re.sub(r"<[^>]+>", "", raw or "")
     raw = html.unescape(raw)
@@ -89,7 +97,7 @@ def parse_paragraphs_from_gesetzestext_html(gesetzestext_html: str) -> List[Dict
         if not code or code in seen_codes:
             continue
 
-        short_text = _strip_html(match.group("title"))
+        short_text = _normalize_short_text(_strip_html(match.group("title")))
         if short_text in {"§", "�"}:
             short_text = ""
 
@@ -451,7 +459,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
             for paragraph in paragraphs:
                 desired_value_code = _build_prefixed_code(paragraph["code"], norm_symbol)
-                desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
+                desired_value_short_text = _normalize_short_text(paragraph["shortText"])
 
                 desired_value = build_reference_value_payload(
                     code=desired_value_code,
