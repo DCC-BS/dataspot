@@ -23,6 +23,9 @@ ReferenceObject:
       label: Kurztitel, Abkürzung
       title: todo
   customProperties:
+    legal_form:
+      label: Rechtsform
+      labelEn: Legal form
     systematic_number:
       label: Kennung
       mandatory: true

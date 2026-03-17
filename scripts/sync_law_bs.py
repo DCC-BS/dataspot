@@ -175,6 +175,7 @@ def build_law_cache(
             "label": asset.get("label", ""),
             "description": asset.get("description", ""),
             "title": asset.get("title", ""),
+            "legal_form": asset.get("legal_form", ""),
             "systematic_number": systematic_number,
             "values_by_code": {},
         }
@@ -226,7 +227,11 @@ def build_law_cache(
 
 
 def build_reference_object_payload(
-    systematic_number: str, title_de: str, original_url_de: str, keywords_de: str = ""
+    systematic_number: str,
+    title_de: str,
+    original_url_de: str,
+    keywords_de: str = "",
+    legal_form: str = "",
 ) -> Dict[str, Any]:
     return {
         "_type": "ReferenceObject",
@@ -234,6 +239,7 @@ def build_reference_object_payload(
         "description": original_url_de or "",
         "title": keywords_de or "",
         "customProperties": {
+            "legal_form": legal_form or "",
             "systematic_number": systematic_number,
         },
     }
@@ -352,6 +358,7 @@ def sync_law_bs() -> Dict[str, Any]:
             systematic_number = normalize_systematic_number(record.get("systematic_number"))
             title_de = (record.get("title_de") or "").strip()
             original_url_de = (record.get("original_url_de") or "").strip()
+            legal_form = (record.get("category_name") or "").strip()
             raw_keywords = record.get("keywords_de")
             if isinstance(raw_keywords, list):
                 keywords_de = ", ".join(str(v) for v in raw_keywords if v is not None).strip()
@@ -376,6 +383,7 @@ def sync_law_bs() -> Dict[str, Any]:
                 title_de=title_de,
                 original_url_de=original_url_de,
                 keywords_de=keywords_de,
+                legal_form=legal_form,
             )
 
             existing_law = law_cache.get(systematic_number)
@@ -409,6 +417,8 @@ def sync_law_bs() -> Dict[str, Any]:
                     existing_law.get("label") != desired_law["label"]
                     or (existing_law.get("description") or "") != desired_law["description"]
                     or (existing_law.get("title") or "") != (desired_law.get("title") or "")
+                    or (existing_law.get("legal_form") or "")
+                    != (desired_law.get("customProperties", {}).get("legal_form") or "")
                     or normalize_systematic_number(existing_law.get("systematic_number"))
                     != normalize_systematic_number(
                         desired_law.get("customProperties", {}).get("systematic_number")
