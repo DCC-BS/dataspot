@@ -351,11 +351,11 @@ def sync_law_bs() -> Dict[str, Any]:
     law_client = LAWClient()
     try:
         ods_laws = fetch_active_laws_from_ods()
-        scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_bs_collection_label
         )
         logging.info(f"Resolved LAW target collection UUID: {law_collection_uuid}")
+        scheme_assets = law_client.download_law_assets_in_collection(collection_uuid=law_collection_uuid)
 
         law_cache = build_law_cache(
             assets=scheme_assets, law_collection_label=config.law_bs_collection_label

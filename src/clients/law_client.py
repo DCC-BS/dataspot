@@ -18,13 +18,13 @@ class LAWClient(BaseDataspotClient):
         )
         self.collections_cache: Dict[str, str] = {}
 
-    def download_scheme_assets(self) -> List[Dict[str, Any]]:
+    def download_law_assets_in_collection(self, collection_uuid: str) -> List[Dict[str, Any]]:
         """
-        Download all assets in the configured LAW scheme as JSON.
+        Download all assets in the configured collection as JSON.
         """
         download_url = (
-            f"{config.base_url}/api/{config.database_name}/schemes/"
-            f"{config.law_scheme_uuid}/download?format=JSON"
+            f"{config.base_url}/api/{config.database_name}/collections/"
+            f"{collection_uuid}/download?format=JSON"
         )
         response = requests_get(download_url, headers=self.auth.get_headers())
         response.raise_for_status()
@@ -33,7 +33,7 @@ class LAWClient(BaseDataspotClient):
             raise ValueError(
                 f"Unexpected Download API response type: {type(assets)}. Expected list."
             )
-        logging.info(f"Downloaded {len(assets)} assets from LAW scheme via Download API")
+        logging.info(f"Downloaded {len(assets)} assets in collection {collection_uuid} from LAW scheme via Download API")
         return assets
 
     def resolve_collection_uuid_by_label(self, collection_label: str) -> str:

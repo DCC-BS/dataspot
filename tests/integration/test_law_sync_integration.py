@@ -193,15 +193,17 @@ def select_live_ods_law(require_paragraphs: bool = True) -> Dict[str, Any]:
     raise AssertionError("No suitable active ODS law found")
 
 
-def _download_law_assets(law_client: LAWClient) -> List[Dict[str, Any]]:
-    assets = law_client.download_scheme_assets()
+def _download_law_assets(
+    law_client: LAWClient, collection_uuid: str
+) -> List[Dict[str, Any]]:
+    assets = law_client.download_law_assets_in_collection(collection_uuid)
     logging.info("Downloaded %s scheme assets for assertions", len(assets))
     return assets
 
 
-def _existing_systematic_numbers(law_client: LAWClient) -> Set[str]:
+def _existing_systematic_numbers(law_client: LAWClient, collection_uuid: str) -> Set[str]:
     result: Set[str] = set()
-    for asset in _download_law_assets(law_client):
+    for asset in _download_law_assets(law_client, collection_uuid):
         if asset.get("_type") != "ReferenceObject":
             continue
         if asset.get("inCollection") != config.law_bs_collection_label:
@@ -215,9 +217,10 @@ def _existing_systematic_numbers(law_client: LAWClient) -> Set[str]:
 
 def _existing_laws_by_systematic_number(
     law_client: LAWClient,
+    collection_uuid: str,
 ) -> Dict[str, Dict[str, Any]]:
     result: Dict[str, Dict[str, Any]] = {}
-    for asset in _download_law_assets(law_client):
+    for asset in _download_law_assets(law_client, collection_uuid):
         if asset.get("_type") != "ReferenceObject":
             continue
         if asset.get("inCollection") != config.law_bs_collection_label:
@@ -231,8 +234,9 @@ def _existing_laws_by_systematic_number(
 
 def select_live_ods_law_present_in_db(
     law_client: LAWClient,
+    collection_uuid: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    existing_by_number = _existing_laws_by_systematic_number(law_client)
+    existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
     laws = fetch_active_laws_from_ods()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
@@ -247,8 +251,10 @@ def select_live_ods_law_present_in_db(
     raise AssertionError("No ODS law present in DB with parsable paragraphs found")
 
 
-def select_live_ods_law_absent_in_db(law_client: LAWClient) -> Dict[str, Any]:
-    existing_numbers = _existing_systematic_numbers(law_client)
+def select_live_ods_law_absent_in_db(
+    law_client: LAWClient, collection_uuid: str
+) -> Dict[str, Any]:
+    existing_numbers = _existing_systematic_numbers(law_client, collection_uuid)
     laws = fetch_active_laws_from_ods()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
@@ -523,7 +529,7 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
     test_namespace: str,
 ) -> None:
     _ensure_not_tiny_ods_subset()
-    ods_law, parent = select_live_ods_law_present_in_db(law_client)
+    ods_law, parent = select_live_ods_law_present_in_db(law_client, law_collection_uuid)
     paragraphs = parse_paragraphs_from_gesetzestext_html(ods_law["gesetzestext_html"])
     assert paragraphs, "Expected ODS law with at least one paragraph"
 
@@ -553,7 +559,7 @@ def test_case_b_obsolete_literal_in_use_marked(
     test_namespace: str,
 ) -> None:
     _ensure_not_tiny_ods_subset()
-    ods_law, parent = select_live_ods_law_present_in_db(law_client)
+    ods_law, parent = select_live_ods_law_present_in_db(law_client, law_collection_uuid)
 
     obsolete = create_test_literal(
         law_client=law_client,
@@ -739,7 +745,7 @@ def test_case_f_rename_systematic_number_change_semantics(
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
     assert old_parent_after is None or old_parent_after.get("status") == "REVIEWDCC2"
 
-    existing_numbers = _existing_systematic_numbers(law_client)
+    existing_numbers = _existing_systematic_numbers(law_client, law_collection_uuid)
     assert canonical_systematic_number in existing_numbers
     assert report["counts"]["errors"] == 0
 
