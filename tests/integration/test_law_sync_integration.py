@@ -137,9 +137,8 @@ def law_client() -> LAWClient:
 
 @pytest.fixture(scope="session")
 def law_collection_uuid(law_client: LAWClient) -> str:
-    assets = law_client.download_scheme_assets()
     collection_uuid = law_client.resolve_collection_uuid_by_label(
-        assets, config.law_bs_collection_label
+        config.law_bs_collection_label
     )
     logging.info("Resolved LAW collection uuid=%s", collection_uuid)
     return collection_uuid

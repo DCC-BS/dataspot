@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Set
 import logging
+from urllib.parse import quote
 
 import config
 from src.clients.base_client import BaseDataspotClient
@@ -34,20 +35,33 @@ class LAWClient(BaseDataspotClient):
         logging.info(f"Downloaded {len(assets)} assets from LAW scheme via Download API")
         return assets
 
-    def resolve_collection_uuid_by_label(
-        self, assets: List[Dict[str, Any]], collection_label: str
-    ) -> str:
+    def resolve_collection_uuid_by_label(self, collection_label: str) -> str:
         """
-        Resolve collection UUID by exact label from Download API assets.
+        Resolve collection UUID by exact label from the collection endpoint.
         """
-        for asset in assets:
-            if asset.get("_type") == "Collection" and asset.get("label") == collection_label:
-                collection_id = asset.get("id")
-                if collection_id:
-                    return collection_id
-        raise ValueError(
-            f"Collection '{collection_label}' not found in scheme '{config.law_scheme_uuid}'"
+        scheme_name_encoded = quote(config.law_scheme_name, safe="")
+        collection_label_encoded = quote(collection_label, safe="")
+        collection_url = (
+            f"{config.base_url}/rest/{config.database_name}/schemes/"
+            f"{scheme_name_encoded}/collections/{collection_label_encoded}"
         )
+
+        response = requests_get(collection_url, headers=self.auth.get_headers())
+        response.raise_for_status()
+        collection = response.json()
+        if not isinstance(collection, dict):
+            raise ValueError(
+                f"Unexpected collection response type: {type(collection)}. Expected dict."
+            )
+
+        collection_id = collection.get("id")
+        if not collection_id:
+            raise ValueError(
+                f"Collection '{collection_label}' not found in scheme '{config.law_scheme_name}'"
+            )
+
+        logging.info("Resolved LAW collection UUID for label=%s", collection_label)
+        return str(collection_id)
 
     def create_reference_object(
         self, collection_uuid: str, data: Dict[str, Any], status: str = "WORKING"

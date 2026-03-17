@@ -345,7 +345,7 @@ def sync_law_bs() -> Dict[str, Any]:
         ods_laws = fetch_active_laws_from_ods()
         scheme_assets = law_client.download_scheme_assets()
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
-            scheme_assets, config.law_bs_collection_label
+            config.law_bs_collection_label
         )
         logging.info(f"Resolved LAW target collection UUID: {law_collection_uuid}")
 
