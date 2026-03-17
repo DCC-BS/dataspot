@@ -75,13 +75,16 @@ class LAWClient(BaseDataspotClient):
         endpoint = f"/rest/{config.database_name}/collections/{collection_uuid}/enumerations"
         return self._create_asset(endpoint=endpoint, data=data, status=status)
 
-    def create_reference_object_deployment(self, law_id: str, systematic_number: str) -> bool:
+    def create_reference_object_deployment(
+        self, law_id: str, systematic_number: str, system_uuid: str
+    ) -> bool:
         """
         Create a Deployment linking a LAW ReferenceObject to the configured System.
 
         Args:
             law_id: UUID of the created ReferenceObject (enumeration).
             systematic_number: Systematic number of the law (for logging).
+            system_uuid: UUID of the system where the ReferenceObject is deployed in.
 
         Returns:
             True if deployment was created, False on error.
@@ -90,7 +93,7 @@ class LAWClient(BaseDataspotClient):
         payload = {
             "_type": "Deployment",
             "deploymentOf": law_id,
-            "deployedIn": config.law_bs_system_uuid,
+            "deployedIn": system_uuid,
             "qualifier": "GOLD",
             "order": 1,
             "favorite": True,

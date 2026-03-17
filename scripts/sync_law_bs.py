@@ -403,6 +403,7 @@ def sync_law_bs() -> Dict[str, Any]:
                     deployment_ok = law_client.create_reference_object_deployment(
                         law_id=current_law_id,
                         systematic_number=systematic_number,
+                        system_uuid=config.law_bs_system_uuid,
                     )
                     if not deployment_ok:
                         report["counts"]["errors"] += 1
