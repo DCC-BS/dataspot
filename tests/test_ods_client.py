@@ -49,14 +49,14 @@ def sample_org_data_response():
                 "id": "1",
                 "title": "Organization A",
                 "parent_id": None,
-                "url_website": "https://example.com/org/1",
+                "html": "https://example.com/org/1",
                 "children_id": ["2", "3"]
             },
             {
                 "id": "2",
                 "title": "Organization B",
                 "parent_id": "1",
-                "url_website": "https://example.com/org/2",
+                "html": "https://example.com/org/2",
                 "children_id": []
             }
         ]

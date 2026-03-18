@@ -95,7 +95,7 @@ class OrgStructureTransformer:
                     continue
                 
                 # Get URL
-                url_website = org.get('url_website', '')
+                url_website = org.get('html', '')
                 
                 # Create unit data
                 unit_data = {
