@@ -42,6 +42,27 @@ def _element_text(element: Optional[ET.Element]) -> str:
     return _normalize_whitespace("".join(element.itertext()))
 
 
+def _element_text_without_authorial_notes(element: Optional[ET.Element]) -> str:
+    if element is None:
+        return ""
+
+    def _local_tag_name(tag: Any) -> str:
+        if not isinstance(tag, str):
+            return ""
+        return tag.split("}")[-1]
+
+    def _collect(node: ET.Element) -> str:
+        if _local_tag_name(node.tag) == "authorialNote":
+            return ""
+        parts: List[str] = [node.text or ""]
+        for child in list(node):
+            parts.append(_collect(child))
+            parts.append(child.tail or "")
+        return "".join(parts)
+
+    return _normalize_whitespace(_collect(element))
+
+
 def _extract_title_from_fedlex_xml(root: ET.Element) -> str:
     title_candidates = []
     for tag_name in ("heading", "longTitle", "docTitle"):
@@ -77,13 +98,12 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> tuple[List[Dict[str, str
         if not article_num:
             continue
 
-        pass
-
         code = f"Art. {article_num}"
         if code in seen_codes:
             continue
 
-        short_text = _normalize_whitespace(_element_text(article.find("./{*}heading")))
+        heading_element = article.find("./{*}heading")
+        short_text = _element_text_without_authorial_notes(heading_element)
         articles.append({"code": code, "shortText": short_text})
         seen_codes.add(code)
 
