@@ -177,6 +177,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         record = {
             "systematic_number": systematic_number,
             "title_de": _binding_value(row, "title"),
+            "abrev": _binding_value(row, "abrev"),
             "date_applicability": _binding_value(row, "dateApplicability"),
             "expression": _binding_value(row, "ccExpr"),
             "consolidation": _binding_value(row, "consolidation"),
@@ -276,12 +277,13 @@ def build_reference_object_payload(
     title_de: str,
     original_url_de: str,
     legal_form: str = "",
+    abrev: str = "",
 ) -> Dict[str, Any]:
     return {
         "_type": "ReferenceObject",
         "label": f"SR {systematic_number} - {title_de}",
         "description": original_url_de or "",
-        "title": "",
+        "title": (abrev or "").strip(),
         "customProperties": {
             "legal_form": legal_form or "",
             "systematic_number": systematic_number,
@@ -370,7 +372,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex(max_records=1)
+        fedlex_laws = fetch_active_laws_from_fedlex(max_records=2)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_ch_collection_label
         )
@@ -410,11 +412,14 @@ def sync_law_ch() -> Dict[str, Any]:
                 logging.error(error_msg)
                 continue
 
+            abrev = (record.get("abrev") or "").strip()
+
             desired_law = build_reference_object_payload(
                 systematic_number=systematic_number,
                 title_de=title_de,
                 original_url_de=original_url_de,
                 legal_form=legal_form,
+                abrev=abrev,
             )
 
             existing_law = law_cache.get(systematic_number)
