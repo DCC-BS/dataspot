@@ -91,6 +91,7 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> tuple[List[Dict[str, str
     articles: List[Dict[str, str]] = []
     seen_codes: set[str] = set()
     for article in root.findall(".//{*}article"):
+        article_eid = (article.attrib.get("eId") or "").strip()
         num_element = article.find("./{*}num")
         num_bold_element = num_element.find("./{*}b") if num_element is not None else None
         raw_article_num = _element_text(num_bold_element if num_bold_element is not None else num_element)
@@ -104,7 +105,13 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> tuple[List[Dict[str, str
 
         heading_element = article.find("./{*}heading")
         short_text = _element_text_without_authorial_notes(heading_element)
-        articles.append({"code": code, "shortText": short_text})
+        articles.append(
+            {
+                "code": code,
+                "shortText": short_text,
+                "articleEid": article_eid,
+            }
+        )
         seen_codes.add(code)
 
     return articles, extracted_title
@@ -313,6 +320,7 @@ def build_law_cache(
             "id": asset.get("id"),
             "code": code,
             "shortText": short_text,
+            "description": _normalize_literal_field(asset.get("description")),
         }
         mapped_literals += 1
 
@@ -341,12 +349,14 @@ def build_reference_object_payload(
     }
 
 
-def build_reference_value_payload(code: str, short_text: str) -> Dict[str, Any]:
+def build_reference_value_payload(code: str, short_text: str, description: str = "") -> Dict[str, Any]:
     if not short_text:
         short_text = ""
+    description = description or ""
 
     return {
         "_type": "ReferenceValue",
+        "description": description,
         "timeSeries": [
             {
                 "code": code,
@@ -533,15 +543,20 @@ def sync_law_ch() -> Dict[str, Any]:
                 continue
 
             if not paragraphs:
-                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)"})
+                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)", "articleEid": ""})
 
             for paragraph in paragraphs:
                 desired_value_code = _normalize_literal_field(paragraph["code"])
                 desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
+                article_eid = _normalize_literal_field(paragraph.get("articleEid"))
+                desired_value_description = (
+                    f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+                )
 
                 desired_value = build_reference_value_payload(
                     code=desired_value_code,
                     short_text=desired_value_short_text,
+                    description=desired_value_description,
                 )
                 existing_value = current_values_by_code.get(desired_value_code)
 
@@ -558,6 +573,7 @@ def sync_law_ch() -> Dict[str, Any]:
                 value_changed = (
                     (existing_value.get("code") or "") != desired_value_code
                     or (existing_value.get("shortText") or "") != desired_value_short_text
+                    or (existing_value.get("description") or "") != desired_value_description
                 )
 
                 if value_changed:
