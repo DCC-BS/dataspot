@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 import logging
 import json
+from urllib.parse import quote
 
 import config
 from src.dataspot_auth import DataspotAuth
@@ -24,6 +25,7 @@ class BaseDataspotClient:
     3. Bulk operations: Status handling follows the same principles, with the status
        parameter applied to all assets in the operation.
     """
+    _system_uuid_by_label_cache: Dict[str, str] = {}
 
     def __init__(self, scheme_name: str, scheme_name_short: str,
                  ods_imports_collection_name: str = None, ods_imports_collection_path: List[str] = None):
@@ -82,6 +84,35 @@ class BaseDataspotClient:
         )
 
         return response.json()
+
+    def resolve_system_uuid_by_label(self, label: str) -> str:
+        """Resolve a system UUID by label via the Systeme REST endpoint."""
+        cached_uuid = BaseDataspotClient._system_uuid_by_label_cache.get(label)
+        if cached_uuid:
+            logging.info(
+                "Resolved system UUID for label='%s': %s",
+                label,
+                cached_uuid,
+            )
+            return cached_uuid
+
+        system_url = (
+            f"{config.base_url}/rest/{config.database_name}/schemes/"
+            f"{quote(config.sk_scheme_name, safe='')}/systems/{quote(label, safe='')}"
+        )
+        response = requests_get(system_url, headers=self.auth.get_headers())
+        response.raise_for_status()
+
+        body = response.json()
+        system_uuid = str(body["id"])
+        BaseDataspotClient._system_uuid_by_label_cache[label] = system_uuid
+
+        logging.info(
+            "Resolved system UUID for label='%s': %s",
+            label,
+            system_uuid,
+        )
+        return system_uuid
 
     def get_collections_with_cache(self) -> List[Dict[str, Any]]:
         """

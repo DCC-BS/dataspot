@@ -2,6 +2,7 @@
 
 # Database name
 database_name = 'prod'
+test_database_name = 'int-gesetzessammlungen'
 
 # Logging config
 logging_for_prod = True
@@ -30,14 +31,16 @@ law_scheme_name = 'Gesetzessammlungen'
 law_scheme_name_short = 'GS'
 
 law_bs_collection_label = 'Systematische Gesetzessammlung Basel-Stadt'
+law_ch_collection_label = 'Systematische Rechtssammlung Schweiz'
 
 # Special names
 tenant_name = "Mandant"
 organizations_name = "Data%20Governance"
 
-# System UUIDs
+# System constants
 huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
-law_bs_system_uuid = 'f887e7cf-ef80-4bf9-93de-ca4eb3f6ba75'
+law_bs_system_label = 'Systematische Gesetzessammlung Basel-Stadt'
+law_ch_system_label = 'Systematische Rechtssammlung Schweiz'
 
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration

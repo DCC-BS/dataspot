@@ -437,6 +437,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
             config.law_ch_collection_label
         )
         logging.info(f"Resolved LAW CH target collection UUID: {law_collection_uuid}")
+        law_system_uuid = law_client.resolve_system_uuid_by_label(config.law_ch_system_label)
         scheme_assets = law_client.download_law_assets_in_collection(collection_uuid=law_collection_uuid)
 
         law_cache = build_law_cache(assets=scheme_assets, law_collection_label=config.law_ch_collection_label)
@@ -499,7 +500,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                     deployment_ok = law_client.create_reference_object_deployment(
                         law_id=current_law_id,
                         systematic_number=systematic_number,
-                        system_uuid=config.law_ch_system_uuid,
+                        system_uuid=law_system_uuid,
                     )
                     if not deployment_ok:
                         report["counts"]["errors"] += 1
