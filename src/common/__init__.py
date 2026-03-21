@@ -40,7 +40,7 @@ from config import MAX_RETRIES_FOR_PROD
 if MAX_RETRIES_FOR_PROD:
     MAX_RETRIES = 13
 else:
-    MAX_RETRIES = 3
+    MAX_RETRIES = 4
 
 class DetailedHTTPError(requests.exceptions.HTTPError):
     """Custom HTTPError that includes detailed error information from the response."""
