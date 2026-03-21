@@ -159,6 +159,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         ?abrev
         ?fileUrl
         ?ccExpr
+        ?typeDocDe
         WHERE {
         FILTER(?language = <http://publications.europa.eu/resource/authority/language/DEU>)
 
@@ -187,6 +188,11 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             ?ccExpr jolux:title ?title .
             OPTIONAL { ?ccExpr jolux:titleShort ?abrev }
         }
+        OPTIONAL {
+            ?cc jolux:typeDocument ?typeDoc .
+            ?typeDoc skos:prefLabel ?typeDocDe .
+            FILTER (LANG(?typeDocDe) = "de")
+        }
         }
         ORDER BY ?srNotation
         """
@@ -212,14 +218,25 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             "expression": _binding_value(row, "ccExpr"),
             "consolidation": _binding_value(row, "consolidation"),
             "xml_url": _binding_value(row, "fileUrl"),
+            "legal_form": _normalize_literal_field(_binding_value(row, "typeDocDe")),
         }
 
         # SPARQL can return several rows per SR number; keep a single row with the latest applicability date.
         existing = by_systematic_number.get(systematic_number)
-        if not existing or _date_applicability_is_later(
-            record["date_applicability"], existing["date_applicability"]
-        ):
+        if not existing:
             by_systematic_number[systematic_number] = record
+            continue
+
+        if _date_applicability_is_later(record["date_applicability"], existing["date_applicability"]):
+            # Keep latest applicability row, but preserve known legal_form if latest row has none.
+            if not record["legal_form"] and existing.get("legal_form"):
+                record["legal_form"] = existing["legal_form"]
+            by_systematic_number[systematic_number] = record
+            continue
+
+        # If we kept an older/newer row with empty legal_form, fill from any non-empty sibling row.
+        if not existing.get("legal_form") and record["legal_form"]:
+            existing["legal_form"] = record["legal_form"]
 
     records = sorted(by_systematic_number.values(), key=lambda r: r["systematic_number"])
     total_records = len(records)
@@ -405,7 +422,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex(max_records=2)
+        fedlex_laws = fetch_active_laws_from_fedlex(max_records=20)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_ch_collection_label
         )
@@ -420,7 +437,7 @@ def sync_law_ch() -> Dict[str, Any]:
             title_de = (record.get("title_de") or "").strip()
             xml_url = (record.get("xml_url") or "").strip()
             expression_url = (record.get("expression") or "").strip()
-            legal_form = ""
+            legal_form = _normalize_literal_field(record.get("legal_form"))
             original_url_de = expression_url.replace("https://fedlex.data.admin.ch", "https://www.fedlex.admin.ch")
 
             if not systematic_number or not xml_url:
