@@ -117,6 +117,35 @@ def _binding_value(row: Dict[str, Any], key: str) -> str:
     return (field.get("value") or "").strip()
 
 
+def _parse_iso_date_ymd(value: str) -> Optional[datetime.date]:
+    raw = (value or "").strip()
+    if len(raw) < 10:
+        return None
+    try:
+        return datetime.date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
+def _normalize_date_applicability_ymd(value: str) -> str:
+    raw = (value or "").strip()
+    parsed = _parse_iso_date_ymd(raw)
+    if parsed is not None:
+        return parsed.isoformat()
+    return raw
+
+
+def _date_applicability_is_later(a: str, b: str) -> bool:
+    da, db = _parse_iso_date_ymd(a), _parse_iso_date_ymd(b)
+    if da is not None and db is not None:
+        return da > db
+    if da is not None:
+        return True
+    if db is not None:
+        return False
+    return a > b
+
+
 def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dict[str, str]]:
     query = """
         PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
@@ -174,18 +203,22 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         if not systematic_number:
             continue
 
+        date_raw = _binding_value(row, "dateApplicability")
         record = {
             "systematic_number": systematic_number,
             "title_de": _binding_value(row, "title"),
             "abrev": _binding_value(row, "abrev"),
-            "date_applicability": _binding_value(row, "dateApplicability"),
+            "date_applicability": _normalize_date_applicability_ymd(date_raw),
             "expression": _binding_value(row, "ccExpr"),
             "consolidation": _binding_value(row, "consolidation"),
             "xml_url": _binding_value(row, "fileUrl"),
         }
 
+        # SPARQL can return several rows per SR number; keep a single row with the latest applicability date.
         existing = by_systematic_number.get(systematic_number)
-        if not existing or record["date_applicability"] > existing["date_applicability"]:
+        if not existing or _date_applicability_is_later(
+            record["date_applicability"], existing["date_applicability"]
+        ):
             by_systematic_number[systematic_number] = record
 
     records = sorted(by_systematic_number.values(), key=lambda r: r["systematic_number"])
