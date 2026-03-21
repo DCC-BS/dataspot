@@ -408,7 +408,7 @@ def _create_law_email_content(report: Dict[str, Any]) -> tuple:
     return email_subject, email_text, True
 
 
-def sync_law_ch() -> Dict[str, Any]:
+def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
     logging.info("Starting Swiss SR law sync")
 
     report = {
@@ -432,7 +432,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex(max_records=20)
+        fedlex_laws = fetch_active_laws_from_fedlex(max_records=max_records)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_ch_collection_label
         )
@@ -785,7 +785,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
 
 def main():
-    sync_law_ch()
+    sync_law_ch(max_records=20)
 
 
 if __name__ == "__main__":

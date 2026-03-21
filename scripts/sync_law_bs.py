@@ -326,7 +326,7 @@ def _create_law_email_content(report: Dict[str, Any]) -> tuple:
     return email_subject, email_text, True
 
 
-def sync_law_bs() -> Dict[str, Any]:
+def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
     logging.info("Starting Basel-Stadt law sync")
 
     report = {
@@ -350,7 +350,7 @@ def sync_law_bs() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        ods_laws = fetch_active_laws_from_ods()
+        ods_laws = fetch_active_laws_from_ods(max_records=max_records)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_bs_collection_label
         )
