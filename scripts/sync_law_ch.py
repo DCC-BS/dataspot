@@ -63,30 +63,17 @@ def _element_text_without_authorial_notes(element: Optional[ET.Element]) -> str:
     return _normalize_whitespace(_collect(element))
 
 
-def _extract_title_from_fedlex_xml(root: ET.Element) -> str:
-    title_candidates = []
-    for tag_name in ("heading", "longTitle", "docTitle"):
-        for node in root.findall(f".//{{*}}{tag_name}"):
-            text = _element_text(node)
-            if text:
-                title_candidates.append(text)
-    if title_candidates:
-        return title_candidates[0]
-    return ""
-
-
 def _normalize_article_number(raw_number: str) -> str:
     value = _normalize_whitespace(raw_number)
     value = re.sub(r"^Art\.?\s*", "", value, flags=re.IGNORECASE)
     return _normalize_whitespace(value)
 
 
-def parse_articles_from_fedlex_xml(xml_content: str) -> tuple[List[Dict[str, str]], str]:
+def parse_articles_from_fedlex_xml(xml_content: str) -> List[Dict[str, str]]:
     if not xml_content:
-        return [], ""
+        return []
 
     root = ET.fromstring(xml_content)
-    extracted_title = _extract_title_from_fedlex_xml(root)
 
     articles: List[Dict[str, str]] = []
     seen_codes: set[str] = set()
@@ -114,7 +101,7 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> tuple[List[Dict[str, str
         )
         seen_codes.add(code)
 
-    return articles, extracted_title
+    return articles
 
 
 def _binding_value(row: Dict[str, Any], key: str) -> str:
@@ -337,9 +324,14 @@ def build_reference_object_payload(
     legal_form: str = "",
     abrev: str = "",
 ) -> Dict[str, Any]:
+    title_part = (title_de or "").strip()
+    label = f"SR {systematic_number}"
+    if title_part:
+        label = f"{label} - {title_part}"
+
     return {
         "_type": "ReferenceObject",
-        "label": f"SR {systematic_number} - {title_de}",
+        "label": label,
         "description": original_url_de or "",
         "title": (abrev or "").strip(),
         "customProperties": {
@@ -503,16 +495,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 continue
 
             xml_response = requests_get(url=xml_url)
-            paragraphs, parsed_title = parse_articles_from_fedlex_xml(xml_response.text)
-            if not title_de and parsed_title:
-                title_de = parsed_title
-
-            if not title_de:
-                report["counts"]["errors"] += 1
-                error_msg = f"Skipping record systematic_number={systematic_number} due to missing title"
-                report["errors"].append(error_msg)
-                logging.error(error_msg)
-                continue
+            paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
 
             abrev = (record.get("abrev") or "").strip()
 

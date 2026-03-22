@@ -178,13 +178,13 @@ def fedlex_live_sample() -> Dict[str, Any]:
     return sample
 
 def select_live_fedlex_law(require_paragraphs: bool = True) -> Dict[str, Any]:
+    # CH sync uses SPARQL title_de for labels when present; otherwise label is "SR {systematic_number}".
     laws = fetch_active_laws_from_fedlex()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
-        title_de = (law.get("title_de") or "").strip()
         xml_response = requests_get(url=law.get("xml_url") or "")
-        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
-        if not systematic_number or not title_de:
+        paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
+        if not systematic_number:
             continue
         if require_paragraphs and not paragraphs:
             continue
@@ -241,7 +241,7 @@ def select_live_fedlex_law_present_in_db(
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         xml_response = requests_get(url=law.get("xml_url") or "")
-        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+        paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
         if not systematic_number:
             continue
         if not paragraphs:
@@ -261,7 +261,7 @@ def select_live_fedlex_law_absent_in_db(
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         xml_response = requests_get(url=law.get("xml_url") or "")
-        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+        paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
         if not systematic_number or systematic_number in existing_numbers:
             continue
         if not paragraphs:
@@ -337,7 +337,7 @@ def _has_deployment_for_law_in_system(
 
 def _normalized_paragraph_codes_for_law(law: Dict[str, Any]) -> Set[str]:
     xml_response = requests_get(url=law.get("xml_url") or "")
-    paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+    paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
     if not paragraphs:
         return {"§"}
     return {str(p.get("code") or "").strip().strip(" *") for p in paragraphs}
@@ -377,7 +377,7 @@ def _select_present_law_with_existing_literal(
         if not existing:
             continue
         xml_response = requests_get(url=law.get("xml_url") or "")
-        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+        paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
         if not paragraphs:
             continue
         first = paragraphs[0]
@@ -682,7 +682,7 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
     #_ensure_not_tiny_ods_subset()
     fedlex_law, parent = select_live_fedlex_law_present_in_db(law_client, law_collection_uuid)
     xml_response = requests_get(url=fedlex_law.get("xml_url") or "")
-    paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+    paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
     assert paragraphs, "Expected Fedlex law with at least one paragraph"
 
     obsolete = create_test_literal(
