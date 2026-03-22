@@ -368,6 +368,44 @@ def build_reference_value_payload(code: str, short_text: str, description: str =
     }
 
 
+def _extract_upload_api_errors(response_json: Any) -> List[str]:
+    errors: List[str] = []
+
+    if isinstance(response_json, list):
+        for item in response_json:
+            if not isinstance(item, dict):
+                continue
+            level = (item.get("level") or "").upper()
+            if level != "ERROR":
+                continue
+            message = (item.get("message") or "").strip()
+            if message:
+                errors.append(message)
+        return errors
+
+    if not isinstance(response_json, dict):
+        return errors
+
+    top_message = (response_json.get("message") or "").strip()
+    nested_errors = response_json.get("errors")
+    if isinstance(nested_errors, list):
+        for item in nested_errors:
+            if isinstance(item, dict):
+                error_text = (item.get("error") or item.get("message") or "").strip()
+                if error_text:
+                    errors.append(error_text)
+            elif isinstance(item, str):
+                item_text = item.strip()
+                if item_text:
+                    errors.append(item_text)
+
+    if top_message and errors:
+        return [top_message] + errors
+    if top_message and not errors:
+        return [top_message]
+    return errors
+
+
 def _create_law_email_content(report: Dict[str, Any]) -> tuple:
     counts = report.get("counts", {})
     marked = counts.get("values_marked_for_deletion", 0) + counts.get("laws_marked_for_deletion", 0)
@@ -441,6 +479,9 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
         scheme_assets = law_client.download_law_assets_in_collection(collection_uuid=law_collection_uuid)
 
         law_cache = build_law_cache(assets=scheme_assets, law_collection_label=config.law_ch_collection_label)
+        queued_new_reference_objects: List[Dict[str, Any]] = []
+        queued_new_reference_values: List[Dict[str, Any]] = []
+        queued_new_law_systematic_numbers: List[str] = []
 
         total = len(fedlex_laws)
         for idx, record in enumerate(fedlex_laws, start=1):
@@ -483,57 +524,44 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 abrev=abrev,
             )
 
+            if not paragraphs:
+                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)", "articleEid": ""})
+
+            desired_values: List[tuple[str, Dict[str, Any]]] = []
+            for paragraph in paragraphs:
+                desired_value_code = _normalize_literal_field(paragraph["code"])
+                desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
+                article_eid = _normalize_literal_field(paragraph.get("articleEid"))
+                desired_value_description = (
+                    f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+                )
+                desired_value = build_reference_value_payload(
+                    code=desired_value_code,
+                    short_text=desired_value_short_text,
+                    description=desired_value_description,
+                )
+                desired_values.append((desired_value_code, desired_value))
+
             existing_law = law_cache.get(systematic_number)
-            current_law_id = None
-            current_values_by_code: Dict[str, Dict[str, Any]] = {}
-
             if not existing_law:
-                created_law = law_client.create_reference_object(
-                    collection_uuid=law_collection_uuid, data=desired_law, status=WRITE_STATUS
-                )
-                current_law_id = created_law.get("id")
-                report["counts"]["laws_created"] += 1
+                law_payload = dict(desired_law)
+                law_payload["inCollection"] = config.law_ch_collection_label
+                queued_new_reference_objects.append(law_payload)
+
+                for _, desired_value in desired_values:
+                    value_payload = dict(desired_value)
+                    value_payload["literalOf"] = desired_law["label"]
+                    queued_new_reference_values.append(value_payload)
+
+                queued_new_law_systematic_numbers.append(systematic_number)
                 logging.info(
-                    f"[{idx}/{total}] Created CH law '{desired_law['label']}' with systematic_number={systematic_number}"
+                    f"[{idx}/{total}] Queued CH law '{desired_law['label']}' with systematic_number={systematic_number} "
+                    f"and {len(desired_values)} literals for Upload API"
                 )
-                if current_law_id:
-                    deployment_ok = law_client.create_reference_object_deployment(
-                        law_id=current_law_id,
-                        systematic_number=systematic_number,
-                        system_uuid=law_system_uuid,
-                    )
-                    if not deployment_ok:
-                        report["counts"]["errors"] += 1
-                        report["errors"].append(
-                            f"Failed to create CH system deployment for law systematic_number={systematic_number} law_id={current_law_id}"
-                        )
-            else:
-                current_law_id = existing_law.get("id")
-                current_values_by_code = existing_law.get("values_by_code", {})
+                continue
 
-                law_changed = (
-                    existing_law.get("label") != desired_law["label"]
-                    or (existing_law.get("description") or "") != desired_law["description"]
-                    or (existing_law.get("title") or "") != (desired_law.get("title") or "")
-                    or (existing_law.get("legal_form") or "")
-                    != (desired_law.get("customProperties", {}).get("legal_form") or "")
-                    or normalize_systematic_number(existing_law.get("systematic_number"))
-                    != normalize_systematic_number(
-                        desired_law.get("customProperties", {}).get("systematic_number")
-                    )
-                )
-
-                if law_changed:
-                    law_client.update_reference_object(
-                        law_id=current_law_id, data=desired_law, status=WRITE_STATUS
-                    )
-                    report["counts"]["laws_updated"] += 1
-                    logging.info(
-                        f"Updated CH law '{desired_law['label']}' with systematic_number={systematic_number}"
-                    )
-                else:
-                    report["counts"]["laws_unchanged"] += 1
-
+            current_law_id = existing_law.get("id")
+            current_values_by_code: Dict[str, Dict[str, Any]] = existing_law.get("values_by_code", {})
             if not current_law_id:
                 report["counts"]["errors"] += 1
                 error_msg = (
@@ -543,23 +571,35 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 logging.error(error_msg)
                 continue
 
-            if not paragraphs:
-                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)", "articleEid": ""})
-
-            for paragraph in paragraphs:
-                desired_value_code = _normalize_literal_field(paragraph["code"])
-                desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
-                article_eid = _normalize_literal_field(paragraph.get("articleEid"))
-                desired_value_description = (
-                    f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+            law_changed = (
+                existing_law.get("label") != desired_law["label"]
+                or (existing_law.get("description") or "") != desired_law["description"]
+                or (existing_law.get("title") or "") != (desired_law.get("title") or "")
+                or (existing_law.get("legal_form") or "")
+                != (desired_law.get("customProperties", {}).get("legal_form") or "")
+                or normalize_systematic_number(existing_law.get("systematic_number"))
+                != normalize_systematic_number(
+                    desired_law.get("customProperties", {}).get("systematic_number")
                 )
+            )
 
-                desired_value = build_reference_value_payload(
-                    code=desired_value_code,
-                    short_text=desired_value_short_text,
-                    description=desired_value_description,
+            if law_changed:
+                law_client.update_reference_object(
+                    law_id=current_law_id, data=desired_law, status=WRITE_STATUS
                 )
+                report["counts"]["laws_updated"] += 1
+                logging.info(
+                    f"Updated CH law '{desired_law['label']}' with systematic_number={systematic_number}"
+                )
+            else:
+                report["counts"]["laws_unchanged"] += 1
+
+            for desired_value_code, desired_value in desired_values:
                 existing_value = current_values_by_code.get(desired_value_code)
+                desired_value_short_text = _normalize_literal_field(
+                    desired_value["timeSeries"][0].get("shortText")
+                )
+                desired_value_description = _normalize_literal_field(desired_value.get("description"))
 
                 if not existing_value:
                     law_client.create_reference_value(
@@ -590,7 +630,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 else:
                     report["counts"]["values_unchanged"] += 1
 
-            desired_value_codes = {_normalize_literal_field(p["code"]) for p in paragraphs}
+            desired_value_codes = {code for code, _ in desired_values}
             obsolete_codes = set(current_values_by_code.keys()) - desired_value_codes
             if obsolete_codes:
                 child_in_use = law_client.get_child_literal_ids_in_use(current_law_id)
@@ -635,6 +675,107 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                         logging.error(
                             f"Failed to process obsolete literal code={code} id={literal_id}: {str(exc)}"
                         )
+
+        created_laws_uploaded = False
+        if queued_new_reference_objects:
+            try:
+                upload_objects_response = law_client.bulk_create_or_update_assets(
+                    scheme_name=config.law_scheme_name,
+                    data=queued_new_reference_objects,
+                    operation="ADD",
+                    status=WRITE_STATUS,
+                )
+                report["counts"]["laws_created"] += len(queued_new_reference_objects)
+                created_laws_uploaded = True
+                object_upload_errors = _extract_upload_api_errors(upload_objects_response)
+                if object_upload_errors:
+                    report["counts"]["errors"] += len(object_upload_errors)
+                    report["errors"].extend(
+                        [f"Upload API Call A (ReferenceObjects): {msg}" for msg in object_upload_errors]
+                    )
+                logging.info(
+                    f"Upload API Call A completed for {len(queued_new_reference_objects)} ReferenceObjects"
+                )
+            except Exception as exc:
+                report["counts"]["errors"] += 1
+                report["errors"].append(f"Upload API Call A failed for ReferenceObjects: {str(exc)}")
+                logging.error(f"Upload API Call A failed for ReferenceObjects: {str(exc)}")
+        else:
+            logging.info("Upload API Call A skipped: no new ReferenceObjects queued")
+
+        if queued_new_reference_values:
+            if created_laws_uploaded:
+                try:
+                    upload_values_response = law_client.bulk_create_or_update_assets(
+                        scheme_name=config.law_scheme_name,
+                        data=queued_new_reference_values,
+                        operation="ADD",
+                        status=WRITE_STATUS,
+                    )
+                    report["counts"]["values_created"] += len(queued_new_reference_values)
+                    value_upload_errors = _extract_upload_api_errors(upload_values_response)
+                    if value_upload_errors:
+                        report["counts"]["errors"] += len(value_upload_errors)
+                        report["errors"].extend(
+                            [f"Upload API Call B (ReferenceValues): {msg}" for msg in value_upload_errors]
+                        )
+                    logging.info(
+                        f"Upload API Call B completed for {len(queued_new_reference_values)} ReferenceValues"
+                    )
+                except Exception as exc:
+                    report["counts"]["errors"] += 1
+                    report["errors"].append(f"Upload API Call B failed for ReferenceValues: {str(exc)}")
+                    logging.error(f"Upload API Call B failed for ReferenceValues: {str(exc)}")
+                    logging.info(
+                        "Continuing sync after Upload API Call B failure; new ReferenceValues will be retried on a later run"
+                    )
+            else:
+                logging.info("Upload API Call B skipped because Call A did not complete successfully")
+        else:
+            logging.info("Upload API Call B skipped: no new ReferenceValues queued")
+
+        if created_laws_uploaded and queued_new_law_systematic_numbers:
+            try:
+                refreshed_assets = law_client.download_law_assets_in_collection(
+                    collection_uuid=law_collection_uuid
+                )
+                refreshed_law_cache = build_law_cache(
+                    assets=refreshed_assets,
+                    law_collection_label=config.law_ch_collection_label,
+                )
+                deployment_failures = 0
+                for systematic_number in sorted(set(queued_new_law_systematic_numbers)):
+                    created_law = refreshed_law_cache.get(systematic_number)
+                    created_law_id = created_law.get("id") if created_law else None
+                    if not created_law_id:
+                        deployment_failures += 1
+                        report["counts"]["errors"] += 1
+                        report["errors"].append(
+                            f"Cannot create CH system deployment because uploaded law id is missing for systematic_number={systematic_number}"
+                        )
+                        logging.error(
+                            f"Cannot create CH system deployment because uploaded law id is missing for systematic_number={systematic_number}"
+                        )
+                        continue
+                    deployment_ok = law_client.create_reference_object_deployment(
+                        law_id=created_law_id,
+                        systematic_number=systematic_number,
+                        system_uuid=law_system_uuid,
+                    )
+                    if not deployment_ok:
+                        deployment_failures += 1
+                        report["counts"]["errors"] += 1
+                        report["errors"].append(
+                            f"Failed to create CH system deployment for law systematic_number={systematic_number} law_id={created_law_id}"
+                        )
+                logging.info(
+                    f"Deployment pass completed for {len(set(queued_new_law_systematic_numbers))} uploaded laws "
+                    f"with {deployment_failures} failures"
+                )
+            except Exception as exc:
+                report["counts"]["errors"] += 1
+                report["errors"].append(f"Deployment pass failed for uploaded laws: {str(exc)}")
+                logging.error(f"Deployment pass failed for uploaded laws: {str(exc)}")
 
         fedlex_systematic_numbers = {
             normalize_systematic_number(r.get("systematic_number")) for r in fedlex_laws
