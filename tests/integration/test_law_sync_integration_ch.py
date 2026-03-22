@@ -253,30 +253,6 @@ def select_live_fedlex_law_present_in_db(
     raise AssertionError("No Fedlex law present in DB with parsable paragraphs found")
 
 
-def select_live_fedlex_law_present_in_db_within_limit(
-    law_client: LAWClient,
-    collection_uuid: str,
-    max_records: int,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
-    laws = fetch_active_laws_from_fedlex(max_records=max_records)
-    for law in laws:
-        systematic_number = normalize_systematic_number(law.get("systematic_number"))
-        xml_response = requests_get(url=law.get("xml_url") or "")
-        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
-        if not systematic_number:
-            continue
-        if not paragraphs:
-            continue
-        existing = existing_by_number.get(systematic_number)
-        if not existing:
-            continue
-        return law, existing
-    raise AssertionError(
-        f"No Fedlex law present in DB with parsable paragraphs found within max_records={max_records}"
-    )
-
-
 def select_live_fedlex_law_absent_in_db(
     law_client: LAWClient, collection_uuid: str
 ) -> Dict[str, Any]:
@@ -385,15 +361,14 @@ def _literal_codes_for_parent_label(
     return result
 
 
-def _select_present_law_with_existing_literal_within_limit(
+def _select_present_law_with_existing_literal(
     law_client: LAWClient,
     collection_uuid: str,
-    max_records: int,
     excluded_systematic_numbers: Optional[Set[str]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, str]]:
     excluded = excluded_systematic_numbers or set()
     existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
-    laws = fetch_active_laws_from_fedlex(max_records=max_records)
+    laws = fetch_active_laws_from_fedlex()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         if not systematic_number or systematic_number in excluded:
@@ -443,7 +418,7 @@ def _select_present_law_with_existing_literal_within_limit(
             "description": target_description,
         }
     raise AssertionError(
-        f"No present Fedlex law with matching existing literal found within max_records={max_records}"
+        "No present Fedlex law with matching existing literal found"
     )
 
 
@@ -650,7 +625,7 @@ def assert_status(
 
 
 #def _ensure_not_tiny_ods_subset() -> None:
-#    count = len(fetch_active_laws_from_fedlex(max_records=15))
+#    count = len(fetch_active_laws_from_fedlex())
 #    assert count >= 10, (
 #        "Precondition failed: active ODS fetch appears tiny. "
 #        "Integration tests require uncapped realistic ODS set."
@@ -692,7 +667,7 @@ def _create_parent_with_two_literals(
 def test_sync_runs_once_noop(
     law_client: LAWClient,
 ) -> None:
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
     assert isinstance(report, dict)
     assert "status" in report
     assert "counts" in report
@@ -720,7 +695,7 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
 
     assert get_asset_by_uuid(law_client, "literals", obsolete["id"]) is not None
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     assert_deleted(law_client, "literals", obsolete["id"])
     assert get_asset_by_uuid(law_client, "enumerations", parent["id"]) is not None
@@ -762,7 +737,7 @@ def test_case_b_obsolete_literal_in_use_marked(
     in_use_before = query_child_literals_in_use(law_client, parent["id"])
     assert obsolete["id"] in in_use_before
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     assert_status(law_client, "literals", obsolete["id"], "REVIEWDCC2")
     assert get_asset_by_uuid(law_client, "enumerations", parent["id"]) is not None
@@ -791,7 +766,7 @@ def test_case_c_obsolete_parent_no_usage_deleted_with_children(
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert query_child_literals_in_use(law_client, parent["id"]) == set()
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     assert_deleted(law_client, "literals", literal_a["id"])
     assert_deleted(law_client, "literals", literal_b["id"])
@@ -830,7 +805,7 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
     cleanup_manager.register("derivations", derivation["id"])
     assert query_parent_in_use(law_client, parent["id"]) is True
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     assert_status(law_client, "enumerations", parent["id"], "REVIEWDCC2")
     assert report["counts"]["laws_marked_for_deletion"] >= 1
@@ -873,7 +848,7 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert used_literal["id"] in query_child_literals_in_use(law_client, parent["id"])
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     assert_status(law_client, "literals", used_literal["id"], "REVIEWDCC2")
     assert_deleted(law_client, "literals", unused_literal["id"])
@@ -916,7 +891,7 @@ def test_case_f_rename_systematic_number_change_semantics(
     )
     cleanup_manager.register("literals", old_literal["id"])
 
-    report = sync_law_ch(max_records=20)
+    report = sync_law_ch()
 
     # Old object gets obsolete processing, while canonical Fedlex systematic number exists post-sync.
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
@@ -956,13 +931,13 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     )
     cleanup_manager.register("derivations", derivation["id"])
 
-    first_report = sync_law_ch(max_records=20)
+    first_report = sync_law_ch()
     assert_status(law_client, "enumerations", parent["id"], "REVIEWDCC2")
     assert first_report["counts"]["errors"] == 0
 
     delete_derivation(law_client, derivation["id"])
 
-    second_report = sync_law_ch(max_records=20)
+    second_report = sync_law_ch()
     assert_deleted(law_client, "enumerations", parent["id"])
     assert second_report["counts"]["errors"] == 0
 
@@ -971,11 +946,9 @@ def test_case_upload_happy_path_recreate_parent_literals_and_deployment(
     law_client: LAWClient,
     law_collection_uuid: str,
 ) -> None:
-    max_records=20
-    fedlex_law, existing_parent = select_live_fedlex_law_present_in_db_within_limit(
+    fedlex_law, existing_parent = select_live_fedlex_law_present_in_db(
         law_client=law_client,
         collection_uuid=law_collection_uuid,
-        max_records=max_records,
     )
     systematic_number = normalize_systematic_number(fedlex_law.get("systematic_number"))
     assert systematic_number
@@ -993,7 +966,7 @@ def test_case_upload_happy_path_recreate_parent_literals_and_deployment(
         systematic_number=systematic_number,
     ) is None
 
-    report = sync_law_ch(max_records=max_records)
+    report = sync_law_ch()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
@@ -1028,11 +1001,9 @@ def test_case_upload_mixed_create_and_update_in_single_run(
     law_client: LAWClient,
     law_collection_uuid: str,
 ) -> None:
-    max_records=20
-    create_law, _ = select_live_fedlex_law_present_in_db_within_limit(
+    create_law, _ = select_live_fedlex_law_present_in_db(
         law_client=law_client,
         collection_uuid=law_collection_uuid,
-        max_records=max_records,
     )
     create_systematic_number = normalize_systematic_number(create_law.get("systematic_number"))
     assert create_systematic_number
@@ -1042,10 +1013,9 @@ def test_case_upload_mixed_create_and_update_in_single_run(
         systematic_number=create_systematic_number,
     )
 
-    _, update_parent, update_target = _select_present_law_with_existing_literal_within_limit(
+    _, update_parent, update_target = _select_present_law_with_existing_literal(
         law_client=law_client,
         collection_uuid=law_collection_uuid,
-        max_records=max_records,
         excluded_systematic_numbers={create_systematic_number},
     )
     drift_payload = {
@@ -1066,7 +1036,7 @@ def test_case_upload_mixed_create_and_update_in_single_run(
         status=WRITE_STATUS,
     )
 
-    report = sync_law_ch(max_records=max_records)
+    report = sync_law_ch()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
@@ -1075,7 +1045,6 @@ def test_case_upload_mixed_create_and_update_in_single_run(
     )
     assert recreated_parent is not None
 
-    update_parent_id = str(update_parent.get("id") or "").strip()
     updated_literal = get_asset_by_uuid(law_client, "literals", update_target["literal_id"])
     assert updated_literal is not None, "Expected updated literal to exist after sync"
     updated_time_series = updated_literal.get("timeSeries") or []
@@ -1092,11 +1061,9 @@ def test_case_upload_business_key_mapping_for_recreated_assets(
     law_client: LAWClient,
     law_collection_uuid: str,
 ) -> None:
-    max_records=20
-    fedlex_law, _ = select_live_fedlex_law_present_in_db_within_limit(
+    fedlex_law, _ = select_live_fedlex_law_present_in_db(
         law_client=law_client,
         collection_uuid=law_collection_uuid,
-        max_records=max_records,
     )
     systematic_number = normalize_systematic_number(fedlex_law.get("systematic_number"))
     assert systematic_number
@@ -1107,7 +1074,7 @@ def test_case_upload_business_key_mapping_for_recreated_assets(
         systematic_number=systematic_number,
     )
 
-    report = sync_law_ch(max_records=max_records)
+    report = sync_law_ch()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
