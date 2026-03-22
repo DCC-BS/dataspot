@@ -153,7 +153,7 @@ def _date_applicability_is_later(a: str, b: str) -> bool:
     return a > b
 
 
-def fetch_active_laws_from_fedlex() -> List[Dict[str, str]]:
+def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dict[str, str]]:
     query = """
         PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -247,7 +247,13 @@ def fetch_active_laws_from_fedlex() -> List[Dict[str, str]]:
 
     records = sorted(by_systematic_number.values(), key=lambda r: r["systematic_number"])
     total_records = len(records)
-    logging.info(f"Retrieved {total_records} active SR laws from Fedlex SPARQL")
+    if max_records is not None:
+        records = records[:max_records]
+        logging.info(
+            f"Retrieved {total_records} active SR laws from Fedlex SPARQL and kept {len(records)} due to max_records={max_records}"
+        )
+    else:
+        logging.info(f"Retrieved {total_records} active SR laws from Fedlex SPARQL")
     return records
 
 
@@ -440,7 +446,7 @@ def _create_law_email_content(report: Dict[str, Any]) -> tuple:
     return email_subject, email_text, True
 
 
-def sync_law_ch() -> Dict[str, Any]:
+def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
     logging.info("Starting Swiss SR law sync")
 
     report = {
@@ -464,7 +470,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex()
+        fedlex_laws = fetch_active_laws_from_fedlex(max_records=max_records)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(
             config.law_ch_collection_label
         )
@@ -921,7 +927,7 @@ def sync_law_ch() -> Dict[str, Any]:
 
 
 def main():
-    sync_law_ch()
+    sync_law_ch(max_records=None)
 
 
 if __name__ == "__main__":
