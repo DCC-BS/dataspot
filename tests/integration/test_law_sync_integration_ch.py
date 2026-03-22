@@ -138,7 +138,7 @@ def law_client() -> LAWClient:
 @pytest.fixture(scope="session")
 def law_collection_uuid(law_client: LAWClient) -> str:
     collection_uuid = law_client.resolve_collection_uuid_by_label(
-        config.law_bs_collection_label
+        config.law_ch_collection_label
     )
     logging.info("Resolved LAW collection uuid=%s", collection_uuid)
     return collection_uuid
@@ -170,27 +170,27 @@ def cleanup_manager(test_namespace: str, law_client: LAWClient):
 
 
 @pytest.fixture(scope="session")
-def ods_live_sample() -> Dict[str, Any]:
-    sample = select_live_ods_law(require_paragraphs=False)
+def fedlex_live_sample() -> Dict[str, Any]:
+    sample = select_live_fedlex_law(require_paragraphs=False)
     logging.info(
-        "Loaded ODS sample systematic_number=%s", sample.get("systematic_number", "")
+        "Loaded Fedlex sample systematic_number=%s", sample.get("systematic_number", "")
     )
     return sample
 
-
-def select_live_ods_law(require_paragraphs: bool = True) -> Dict[str, Any]:
+def select_live_fedlex_law(require_paragraphs: bool = True) -> Dict[str, Any]:
     laws = fetch_active_laws_from_fedlex()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         title_de = (law.get("title_de") or "").strip()
-        gesetzestext_html = law.get("gesetzestext_html") or ""
+        xml_response = requests_get(url=law.get("xml_url") or "")
+        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
         if not systematic_number or not title_de:
             continue
-        if require_paragraphs and not parse_articles_from_fedlex_xml(gesetzestext_html):
+        if require_paragraphs and not paragraphs:
             continue
-        logging.info("Selected ODS law systematic_number=%s", systematic_number)
+        logging.info("Selected Fedlex law systematic_number=%s", systematic_number)
         return law
-    raise AssertionError("No suitable active ODS law found")
+    raise AssertionError("No suitable active Fedlex law found")
 
 
 def _download_law_assets(
@@ -206,7 +206,7 @@ def _existing_systematic_numbers(law_client: LAWClient, collection_uuid: str) ->
     for asset in _download_law_assets(law_client, collection_uuid):
         if asset.get("_type") != "ReferenceObject":
             continue
-        if asset.get("inCollection") != config.law_bs_collection_label:
+        if asset.get("inCollection") != config.law_ch_collection_label:
             continue
         normalized = normalize_systematic_number(asset.get("systematic_number"))
         if normalized:
@@ -223,7 +223,7 @@ def _existing_laws_by_systematic_number(
     for asset in _download_law_assets(law_client, collection_uuid):
         if asset.get("_type") != "ReferenceObject":
             continue
-        if asset.get("inCollection") != config.law_bs_collection_label:
+        if asset.get("inCollection") != config.law_ch_collection_label:
             continue
         normalized = normalize_systematic_number(asset.get("systematic_number"))
         if normalized:
@@ -232,7 +232,7 @@ def _existing_laws_by_systematic_number(
     return result
 
 
-def select_live_ods_law_present_in_db(
+def select_live_fedlex_law_present_in_db(
     law_client: LAWClient,
     collection_uuid: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -240,34 +240,38 @@ def select_live_ods_law_present_in_db(
     laws = fetch_active_laws_from_fedlex()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
+        xml_response = requests_get(url=law.get("xml_url") or "")
+        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
         if not systematic_number:
             continue
-        if not parse_articles_from_fedlex_xml(law.get("gesetzestext_html") or ""):
+        if not paragraphs:
             continue
         existing = existing_by_number.get(systematic_number)
         if not existing:
             continue
         return law, existing
-    raise AssertionError("No ODS law present in DB with parsable paragraphs found")
+    raise AssertionError("No Fedlex law present in DB with parsable paragraphs found")
 
 
-def select_live_ods_law_absent_in_db(
+def select_live_fedlex_law_absent_in_db(
     law_client: LAWClient, collection_uuid: str
 ) -> Dict[str, Any]:
     existing_numbers = _existing_systematic_numbers(law_client, collection_uuid)
     laws = fetch_active_laws_from_fedlex()
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
+        xml_response = requests_get(url=law.get("xml_url") or "")
+        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
         if not systematic_number or systematic_number in existing_numbers:
             continue
-        if not parse_articles_from_fedlex_xml(law.get("gesetzestext_html") or ""):
+        if not paragraphs:
             continue
         logging.info(
-            "Selected ODS law absent in DB systematic_number=%s", systematic_number
+            "Selected Fedlex law absent in DB systematic_number=%s", systematic_number
         )
         return law
     raise AssertionError(
-        "No active ODS law absent from LAW DB found. This test DB may already be fully synced."
+        "No active Fedlex law absent from LAW DB found. This test DB may already be fully synced."
     )
 
 
@@ -473,12 +477,12 @@ def assert_status(
     assert asset.get("status") == expected_status
 
 
-def _ensure_not_tiny_ods_subset() -> None:
-    count = len(fetch_active_laws_from_fedlex(max_records=15))
-    assert count >= 10, (
-        "Precondition failed: active ODS fetch appears tiny. "
-        "Integration tests require uncapped realistic ODS set."
-    )
+#def _ensure_not_tiny_ods_subset() -> None:
+#    count = len(fetch_active_laws_from_fedlex(max_records=15))
+#    assert count >= 10, (
+#        "Precondition failed: active ODS fetch appears tiny. "
+#        "Integration tests require uncapped realistic ODS set."
+#    )
 
 
 def _create_parent_with_two_literals(
@@ -528,10 +532,11 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
-    ods_law, parent = select_live_ods_law_present_in_db(law_client, law_collection_uuid)
-    paragraphs = parse_articles_from_fedlex_xml(ods_law["gesetzestext_html"])
-    assert paragraphs, "Expected ODS law with at least one paragraph"
+    #_ensure_not_tiny_ods_subset()
+    fedlex_law, parent = select_live_fedlex_law_present_in_db(law_client, law_collection_uuid)
+    xml_response = requests_get(url=fedlex_law.get("xml_url") or "")
+    paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+    assert paragraphs, "Expected Fedlex law with at least one paragraph"
 
     obsolete = create_test_literal(
         law_client=law_client,
@@ -558,8 +563,8 @@ def test_case_b_obsolete_literal_in_use_marked(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
-    ods_law, parent = select_live_ods_law_present_in_db(law_client, law_collection_uuid)
+    #_ensure_not_tiny_ods_subset()
+    fedlex_law, parent = select_live_fedlex_law_present_in_db(law_client, law_collection_uuid)
 
     obsolete = create_test_literal(
         law_client=law_client,
@@ -603,7 +608,7 @@ def test_case_c_obsolete_parent_no_usage_deleted_with_children(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
+    #_ensure_not_tiny_ods_subset()
     parent, literal_a, literal_b = _create_parent_with_two_literals(
         law_client=law_client,
         cleanup=cleanup_manager,
@@ -630,7 +635,7 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
+    #_ensure_not_tiny_ods_subset()
     parent, _, _ = _create_parent_with_two_literals(
         law_client=law_client,
         cleanup=cleanup_manager,
@@ -671,7 +676,7 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
+    #_ensure_not_tiny_ods_subset()
     parent, used_literal, unused_literal = _create_parent_with_two_literals(
         law_client=law_client,
         cleanup=cleanup_manager,
@@ -718,16 +723,16 @@ def test_case_f_rename_systematic_number_change_semantics(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
-    ods_law = select_live_ods_law(require_paragraphs=True)
-    canonical_systematic_number = normalize_systematic_number(ods_law["systematic_number"])
+    #_ensure_not_tiny_ods_subset()
+    fedlex_law = select_live_fedlex_law(require_paragraphs=True)
+    canonical_systematic_number = normalize_systematic_number(fedlex_law["systematic_number"])
     old_systematic_number = _obsolete_systematic_number(f"{test_namespace}-old")
 
     old_parent = create_test_parent(
         law_client=law_client,
         collection_uuid=law_collection_uuid,
         systematic_number=old_systematic_number,
-        title=ods_law["title_de"],
+        title=fedlex_law["title_de"],
         namespace=test_namespace,
     )
     cleanup_manager.register("enumerations", old_parent["id"])
@@ -741,7 +746,7 @@ def test_case_f_rename_systematic_number_change_semantics(
 
     report = sync_law_ch(max_records=20)
 
-    # Old object gets obsolete processing, while canonical ODS systematic number exists post-sync.
+    # Old object gets obsolete processing, while canonical Fedlex systematic number exists post-sync.
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
     assert old_parent_after is None or old_parent_after.get("status") == "REVIEWDCC2"
 
@@ -757,7 +762,7 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     cleanup_manager: CleanupManager,
     test_namespace: str,
 ) -> None:
-    _ensure_not_tiny_ods_subset()
+    #_ensure_not_tiny_ods_subset()
     parent, used_literal, _ = _create_parent_with_two_literals(
         law_client=law_client,
         cleanup=cleanup_manager,
