@@ -253,6 +253,30 @@ def select_live_fedlex_law_present_in_db(
     raise AssertionError("No Fedlex law present in DB with parsable paragraphs found")
 
 
+def select_live_fedlex_law_present_in_db_within_limit(
+    law_client: LAWClient,
+    collection_uuid: str,
+    max_records: int,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
+    laws = fetch_active_laws_from_fedlex(max_records=max_records)
+    for law in laws:
+        systematic_number = normalize_systematic_number(law.get("systematic_number"))
+        xml_response = requests_get(url=law.get("xml_url") or "")
+        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+        if not systematic_number:
+            continue
+        if not paragraphs:
+            continue
+        existing = existing_by_number.get(systematic_number)
+        if not existing:
+            continue
+        return law, existing
+    raise AssertionError(
+        f"No Fedlex law present in DB with parsable paragraphs found within max_records={max_records}"
+    )
+
+
 def select_live_fedlex_law_absent_in_db(
     law_client: LAWClient, collection_uuid: str
 ) -> Dict[str, Any]:
@@ -272,6 +296,154 @@ def select_live_fedlex_law_absent_in_db(
         return law
     raise AssertionError(
         "No active Fedlex law absent from LAW DB found. This test DB may already be fully synced."
+    )
+
+
+def _find_law_asset_by_systematic_number(
+    law_client: LAWClient, collection_uuid: str, systematic_number: str
+) -> Optional[Dict[str, Any]]:
+    target = normalize_systematic_number(systematic_number)
+    for asset in _download_law_assets(law_client, collection_uuid):
+        if asset.get("_type") != "ReferenceObject":
+            continue
+        if asset.get("inCollection") != config.law_ch_collection_label:
+            continue
+        if normalize_systematic_number(asset.get("systematic_number")) == target:
+            return asset
+    return None
+
+
+def _delete_law_and_children_from_db(
+    law_client: LAWClient, collection_uuid: str, systematic_number: str
+) -> None:
+    law = _find_law_asset_by_systematic_number(law_client, collection_uuid, systematic_number)
+    if not law:
+        raise AssertionError(
+            f"Cannot delete law for setup; systematic_number={systematic_number} not found in DB"
+        )
+    law_id = law.get("id")
+    if not law_id:
+        raise AssertionError(
+            f"Cannot delete law for setup; law has no id for systematic_number={systematic_number}"
+        )
+    child_literals = query_child_literals(law_client, law_id)
+    for literal in child_literals:
+        literal_id = str(literal.get("id") or "").strip()
+        if not literal_id:
+            continue
+        law_client.delete_literal(literal_id)
+    law_client.delete_reference_object(law_id)
+    logging.info(
+        "Deleted setup law systematic_number=%s with %s child literals",
+        systematic_number,
+        len(child_literals),
+    )
+
+
+def _has_deployment_for_law_in_system(
+    law_client: LAWClient, law_id: str, system_uuid: str
+) -> bool:
+    sql = (
+        "SELECT COUNT(*) AS cnt "
+        "FROM deployedin_view d "
+        f"WHERE d.resource_id = '{_sql_quote(law_id)}'::uuid "
+        f"AND d.deployed_in = '{_sql_quote(system_uuid)}'::uuid"
+    )
+    rows = law_client.execute_query_api(sql)
+    if not rows:
+        return False
+    count_raw = rows[0].get("cnt", 0)
+    try:
+        return int(count_raw) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _normalized_paragraph_codes_for_law(law: Dict[str, Any]) -> Set[str]:
+    xml_response = requests_get(url=law.get("xml_url") or "")
+    paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+    if not paragraphs:
+        return {"§"}
+    return {str(p.get("code") or "").strip().strip(" *") for p in paragraphs}
+
+
+def _literal_codes_for_parent_label(
+    law_client: LAWClient, collection_uuid: str, parent_label: str
+) -> Set[str]:
+    result: Set[str] = set()
+    for asset in _download_law_assets(law_client, collection_uuid):
+        if asset.get("_type") != "ReferenceValue":
+            continue
+        if asset.get("literalOf") != parent_label:
+            continue
+        time_series = asset.get("timeSeries") or []
+        if not time_series:
+            continue
+        code = str(time_series[0].get("code") or "").strip().strip(" *")
+        if code:
+            result.add(code)
+    return result
+
+
+def _select_present_law_with_existing_literal_within_limit(
+    law_client: LAWClient,
+    collection_uuid: str,
+    max_records: int,
+    excluded_systematic_numbers: Optional[Set[str]] = None,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, str]]:
+    excluded = excluded_systematic_numbers or set()
+    existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
+    laws = fetch_active_laws_from_fedlex(max_records=max_records)
+    for law in laws:
+        systematic_number = normalize_systematic_number(law.get("systematic_number"))
+        if not systematic_number or systematic_number in excluded:
+            continue
+        existing = existing_by_number.get(systematic_number)
+        if not existing:
+            continue
+        xml_response = requests_get(url=law.get("xml_url") or "")
+        paragraphs, _ = parse_articles_from_fedlex_xml(xml_response.text)
+        if not paragraphs:
+            continue
+        first = paragraphs[0]
+        target_code = str(first.get("code") or "").strip().strip(" *")
+        target_short_text = str(first.get("shortText") or "").strip().strip(" *")
+        article_eid = str(first.get("articleEid") or "").strip().strip(" *")
+        expression_url = str(law.get("expression") or "").strip()
+        original_url_de = expression_url.replace(
+            "https://fedlex.data.admin.ch", "https://www.fedlex.admin.ch"
+        )
+        target_description = f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+
+        law_id = str(existing.get("id") or "").strip()
+        if not law_id:
+            continue
+        parent_label = str(existing.get("label") or "").strip()
+        literal_id = None
+        for asset in _download_law_assets(law_client, collection_uuid):
+            if asset.get("_type") != "ReferenceValue":
+                continue
+            if str(asset.get("literalOf") or "").strip() != parent_label:
+                continue
+            time_series = asset.get("timeSeries") or []
+            if not time_series:
+                continue
+            code = str(time_series[0].get("code") or "").strip().strip(" *")
+            if code != target_code:
+                continue
+            literal_id = str(asset.get("id") or "").strip()
+            if literal_id:
+                break
+        if not literal_id:
+            continue
+        return law, existing, {
+            "literal_id": literal_id,
+            "code": target_code,
+            "shortText": target_short_text,
+            "description": target_description,
+        }
+    raise AssertionError(
+        f"No present Fedlex law with matching existing literal found within max_records={max_records}"
     )
 
 
@@ -430,7 +602,7 @@ def get_asset_by_uuid(
 
 def query_child_literals(law_client: LAWClient, parent_id: str) -> List[Dict[str, Any]]:
     sql = (
-        "SELECT l.id, l.code, l.short_text, l.status "
+        "SELECT l.id, l.status "
         "FROM dataspot.literal_view l "
         f"WHERE l.literal_of = '{_sql_quote(parent_id)}'::uuid"
     )
@@ -793,3 +965,166 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     second_report = sync_law_ch(max_records=20)
     assert_deleted(law_client, "enumerations", parent["id"])
     assert second_report["counts"]["errors"] == 0
+
+
+def test_case_upload_happy_path_recreate_parent_literals_and_deployment(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    max_records=20
+    fedlex_law, existing_parent = select_live_fedlex_law_present_in_db_within_limit(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        max_records=max_records,
+    )
+    systematic_number = normalize_systematic_number(fedlex_law.get("systematic_number"))
+    assert systematic_number
+    old_parent_id = str(existing_parent.get("id") or "").strip()
+    assert old_parent_id
+
+    _delete_law_and_children_from_db(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=systematic_number,
+    )
+    assert _find_law_asset_by_systematic_number(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=systematic_number,
+    ) is None
+
+    report = sync_law_ch(max_records=max_records)
+
+    recreated_parent = _find_law_asset_by_systematic_number(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=systematic_number,
+    )
+    assert recreated_parent is not None
+    recreated_parent_id = str(recreated_parent.get("id") or "").strip()
+    assert recreated_parent_id and recreated_parent_id != old_parent_id
+
+    expected_codes = _normalized_paragraph_codes_for_law(fedlex_law)
+    recreated_codes = _literal_codes_for_parent_label(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        parent_label=str(recreated_parent.get("label") or ""),
+    )
+    assert expected_codes.issubset(recreated_codes)
+
+    law_system_uuid = law_client.resolve_system_uuid_by_label(config.law_ch_system_label)
+    assert _has_deployment_for_law_in_system(
+        law_client=law_client,
+        law_id=recreated_parent_id,
+        system_uuid=law_system_uuid,
+    )
+
+    assert report["counts"]["laws_created"] >= 1
+    assert report["counts"]["values_created"] >= 1
+    assert report["counts"]["errors"] == 0
+
+
+def test_case_upload_mixed_create_and_update_in_single_run(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    max_records=20
+    create_law, _ = select_live_fedlex_law_present_in_db_within_limit(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        max_records=max_records,
+    )
+    create_systematic_number = normalize_systematic_number(create_law.get("systematic_number"))
+    assert create_systematic_number
+    _delete_law_and_children_from_db(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=create_systematic_number,
+    )
+
+    _, update_parent, update_target = _select_present_law_with_existing_literal_within_limit(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        max_records=max_records,
+        excluded_systematic_numbers={create_systematic_number},
+    )
+    drift_payload = {
+        "_type": "ReferenceValue",
+        "description": "DRIFTED_FOR_UPLOAD_TEST",
+        "timeSeries": [
+            {
+                "code": update_target["code"],
+                "shortText": "DRIFTED_SHORT_TEXT_FOR_UPLOAD_TEST",
+                "validFrom": -2208988800000,
+                "validTo": 32503593600000,
+            }
+        ],
+    }
+    law_client.update_reference_value(
+        value_id=update_target["literal_id"],
+        data=drift_payload,
+        status=WRITE_STATUS,
+    )
+
+    report = sync_law_ch(max_records=max_records)
+
+    recreated_parent = _find_law_asset_by_systematic_number(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=create_systematic_number,
+    )
+    assert recreated_parent is not None
+
+    update_parent_id = str(update_parent.get("id") or "").strip()
+    updated_literal = get_asset_by_uuid(law_client, "literals", update_target["literal_id"])
+    assert updated_literal is not None, "Expected updated literal to exist after sync"
+    updated_time_series = updated_literal.get("timeSeries") or []
+    assert updated_time_series, "Expected updated literal to include timeSeries after sync"
+    updated_short_text = str(updated_time_series[0].get("shortText") or "").strip()
+    assert updated_short_text == update_target["shortText"]
+
+    assert report["counts"]["laws_created"] >= 1
+    assert report["counts"]["values_updated"] >= 1
+    assert report["counts"]["errors"] == 0
+
+
+def test_case_upload_business_key_mapping_for_recreated_assets(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    max_records=20
+    fedlex_law, _ = select_live_fedlex_law_present_in_db_within_limit(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        max_records=max_records,
+    )
+    systematic_number = normalize_systematic_number(fedlex_law.get("systematic_number"))
+    assert systematic_number
+
+    _delete_law_and_children_from_db(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=systematic_number,
+    )
+
+    report = sync_law_ch(max_records=max_records)
+
+    recreated_parent = _find_law_asset_by_systematic_number(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        systematic_number=systematic_number,
+    )
+    assert recreated_parent is not None
+    assert recreated_parent.get("inCollection") == config.law_ch_collection_label
+
+    expected_codes = _normalized_paragraph_codes_for_law(fedlex_law)
+    linked_codes = _literal_codes_for_parent_label(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+        parent_label=str(recreated_parent.get("label") or ""),
+    )
+    assert expected_codes.issubset(linked_codes)
+
+    assert report["counts"]["laws_created"] >= 1
+    assert report["counts"]["values_created"] >= 1
+    assert report["counts"]["errors"] == 0
