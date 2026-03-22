@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
 import config
+from src.clients.helpers import escape_special_chars
 from src.clients.law_client import LAWClient
 from src.common import requests_get
 from src.common import email_helpers
@@ -15,6 +16,13 @@ from src.common import email_helpers
 
 FEDLEX_SPARQL_ENDPOINT = "https://fedlex.data.admin.ch/sparqlendpoint"
 WRITE_STATUS = "PUBLISHED"
+
+# FEDLEX_XML_URL_ASSUMPTION:
+# We intentionally treat an unchanged Fedlex XML manifest URL ("xml_url"/fileUrl)
+# as evidence that consolidated XML content is unchanged. When this assumption
+# holds, we skip XML download and parsing for existing laws.
+# If Fedlex ever reuses the same URL for changed content, this optimization can
+# miss literal updates until the URL changes.
 
 
 def normalize_systematic_number(value: Any) -> str:
@@ -261,6 +269,11 @@ def build_law_cache(
             raise ValueError(
                 f"LAW asset {asset.get('id')} has empty systematic_number after normalization"
             )
+        xml_url = (asset.get("xml_url") or "").strip()
+        if not xml_url:
+            raise ValueError(
+                f"LAW asset {asset.get('id')} systematic_number={systematic_number} has empty xml_url"
+            )
 
         law_entry = {
             "id": asset.get("id"),
@@ -269,6 +282,7 @@ def build_law_cache(
             "title": asset.get("title", ""),
             "legal_form": asset.get("legal_form", ""),
             "systematic_number": systematic_number,
+            "xml_url": xml_url,
             "values_by_code": {},
         }
         label = asset["label"]
@@ -320,6 +334,7 @@ def build_law_cache(
 def build_reference_object_payload(
     systematic_number: str,
     title_de: str,
+    xml_url: str,
     original_url_de: str,
     legal_form: str = "",
     abrev: str = "",
@@ -337,6 +352,7 @@ def build_reference_object_payload(
         "customProperties": {
             "legal_form": legal_form or "",
             "systematic_number": systematic_number,
+            "xml_url": xml_url,
         },
     }
 
@@ -494,46 +510,60 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 logging.error(error_msg)
                 continue
 
-            xml_response = requests_get(url=xml_url)
-            paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
-
+            existing_law = law_cache.get(systematic_number)
             abrev = (record.get("abrev") or "").strip()
 
             desired_law = build_reference_object_payload(
                 systematic_number=systematic_number,
                 title_de=title_de,
+                xml_url=xml_url,
                 original_url_de=original_url_de,
                 legal_form=legal_form,
                 abrev=abrev,
             )
 
-            if not paragraphs:
-                paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)", "articleEid": ""})
-
             desired_values: List[tuple[str, Dict[str, Any]]] = []
-            for paragraph in paragraphs:
-                desired_value_code = _normalize_literal_field(paragraph["code"])
-                desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
-                article_eid = _normalize_literal_field(paragraph.get("articleEid"))
-                desired_value_description = (
-                    f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+            existing_xml_url = ((existing_law or {}).get("xml_url") or "").strip()
+            # FEDLEX_XML_URL_ASSUMPTION: unchanged xml_url means unchanged consolidated XML.
+            skip_xml_fetch = bool(existing_law and existing_xml_url == xml_url)
+            if skip_xml_fetch:
+                logging.info(
+                    f"[{idx}/{total}] Skipped XML fetch/parse for "
+                    f"systematic_number={systematic_number} because xml_url is unchanged"
                 )
-                desired_value = build_reference_value_payload(
-                    code=desired_value_code,
-                    short_text=desired_value_short_text,
-                    description=desired_value_description,
-                )
-                desired_values.append((desired_value_code, desired_value))
+            else:
+                xml_response = requests_get(url=xml_url)
+                paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
 
-            existing_law = law_cache.get(systematic_number)
+                if not paragraphs:
+                    paragraphs.append({"code": "§", "shortText": "(keine Rechtsnormen)", "articleEid": ""})
+
+                for paragraph in paragraphs:
+                    desired_value_code = _normalize_literal_field(paragraph["code"])
+                    desired_value_short_text = _normalize_literal_field(paragraph["shortText"])
+                    article_eid = _normalize_literal_field(paragraph.get("articleEid"))
+                    desired_value_description = (
+                        f"{original_url_de}#{article_eid}" if original_url_de and article_eid else ""
+                    )
+                    desired_value = build_reference_value_payload(
+                        code=desired_value_code,
+                        short_text=desired_value_short_text,
+                        description=desired_value_description,
+                    )
+                    desired_values.append((desired_value_code, desired_value))
+
             if not existing_law:
+                if skip_xml_fetch:
+                    raise RuntimeError(
+                        f"Internal error: skip_xml_fetch=True for new law systematic_number={systematic_number}"
+                    )
                 law_payload = dict(desired_law)
                 law_payload["inCollection"] = config.law_ch_collection_label
                 queued_new_reference_objects.append(law_payload)
 
                 for _, desired_value in desired_values:
                     value_payload = dict(desired_value)
-                    value_payload["literalOf"] = desired_law["label"]
+                    value_payload["literalOf"] = escape_special_chars(desired_law["label"])
                     queued_new_reference_values.append(value_payload)
 
                 queued_new_law_systematic_numbers.append(systematic_number)
@@ -564,6 +594,8 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 != normalize_systematic_number(
                     desired_law.get("customProperties", {}).get("systematic_number")
                 )
+                or (existing_law.get("xml_url") or "")
+                != (desired_law.get("customProperties", {}).get("xml_url") or "")
             )
 
             if law_changed:
@@ -576,6 +608,10 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 )
             else:
                 report["counts"]["laws_unchanged"] += 1
+
+            if skip_xml_fetch:
+                report["counts"]["values_unchanged"] += len(current_values_by_code)
+                continue
 
             for desired_value_code, desired_value in desired_values:
                 existing_value = current_values_by_code.get(desired_value_code)

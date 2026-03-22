@@ -29,6 +29,9 @@ ReferenceObject:
     systematic_number:
       label: Kennung
       mandatory: true
+    xml_url:
+      label: XML URL
+      labelEn: XML URL
 
 ReferenceValue:
   label: Rechtsnorm
