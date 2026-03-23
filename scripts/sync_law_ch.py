@@ -214,7 +214,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         date_raw = _binding_value(row, "dateApplicability")
         record = {
             "systematic_number": systematic_number,
-            "title_de": _binding_value(row, "title"),
+            "title_de": _normalize_whitespace(_binding_value(row, "title")),
             "abrev": _binding_value(row, "abrev"),
             "date_applicability": _normalize_date_applicability_ymd(date_raw),
             "expression": _binding_value(row, "ccExpr"),
