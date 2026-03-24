@@ -194,6 +194,8 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         FILTER(!BOUND(?ccNoLonger) || xsd:date(?ccNoLonger) > xsd:date(now()))
         FILTER(!BOUND(?ccEnd) || xsd:date(?ccEnd) >= xsd:date(now()))
         FILTER(datatype(?srNotation) = <https://fedlex.data.admin.ch/vocabulary/notation-type/id-systematique>)
+        # Exclude international laws (0.*); remove this filter if needed later.
+        FILTER(!STRSTARTS(STR(?srNotation), "0."))
         OPTIONAL {
             ?cc jolux:isRealizedBy ?ccExpr .
             ?ccExpr jolux:language ?language .
