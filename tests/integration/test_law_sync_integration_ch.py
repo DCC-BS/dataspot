@@ -422,6 +422,46 @@ def _select_present_law_with_existing_literal(
     )
 
 
+def _force_parent_xml_url_mismatch(
+    law_client: LAWClient, parent_asset: Dict[str, Any]
+) -> str:
+    law_id = str(parent_asset.get("id") or "").strip()
+    systematic_number = normalize_systematic_number(parent_asset.get("systematic_number"))
+    current_xml_url = str(parent_asset.get("xml_url") or "").strip()
+    if not law_id or not systematic_number or not current_xml_url:
+        raise AssertionError(
+            "Cannot force xml_url mismatch: parent must have id, systematic_number, and xml_url"
+        )
+
+    drifted_xml_url = f"{current_xml_url}#it-drift-{_uuid8()}"
+    payload = {
+        "_type": "ReferenceObject",
+        "label": str(parent_asset.get("label") or "").strip(),
+        "description": str(parent_asset.get("description") or "").strip(),
+        "title": str(parent_asset.get("title") or "").strip(),
+        "customProperties": {
+            "legal_form": str(parent_asset.get("legal_form") or "").strip(),
+            "systematic_number": systematic_number,
+            "xml_url": drifted_xml_url,
+        },
+    }
+    law_client.update_reference_object(law_id=law_id, data=payload, status=WRITE_STATUS)
+    logging.info(
+        "Forced xml_url mismatch for law_id=%s systematic_number=%s",
+        law_id,
+        systematic_number,
+    )
+    return drifted_xml_url
+
+
+def _literal_short_text(law_client: LAWClient, literal_id: str) -> str:
+    literal = get_asset_by_uuid(law_client, "literals", literal_id)
+    assert literal is not None, f"Expected literal {literal_id} to exist"
+    time_series = literal.get("timeSeries") or []
+    assert time_series, f"Expected literal {literal_id} to have timeSeries"
+    return str(time_series[0].get("shortText") or "").strip()
+
+
 def create_test_parent(
     law_client: LAWClient,
     collection_uuid: str,
@@ -429,12 +469,16 @@ def create_test_parent(
     title: str,
     namespace: str,
 ) -> Dict[str, Any]:
+    xml_url = f"https://fedlex.data.admin.ch/eli/cc/{systematic_number}/xml"
     payload = {
         "_type": "ReferenceObject",
         "label": f"{namespace} SG {systematic_number} - {title}",
         "description": "",
         "title": namespace,
-        "customProperties": {"systematic_number": systematic_number},
+        "customProperties": {
+            "systematic_number": systematic_number,
+            "xml_url": xml_url,
+        },
     }
     parent = law_client.create_reference_object(
         collection_uuid=collection_uuid,
@@ -692,6 +736,8 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
         short_text="obsolete literal",
     )
     cleanup_manager.register("literals", obsolete["id"])
+    # Reconciliation of existing-law literals is gated by xml_url change.
+    _force_parent_xml_url_mismatch(law_client=law_client, parent_asset=parent)
 
     assert get_asset_by_uuid(law_client, "literals", obsolete["id"]) is not None
 
@@ -720,6 +766,8 @@ def test_case_b_obsolete_literal_in_use_marked(
         short_text="obsolete literal in use",
     )
     cleanup_manager.register("literals", obsolete["id"])
+    # Reconciliation of existing-law literals is gated by xml_url change.
+    _force_parent_xml_url_mismatch(law_client=law_client, parent_asset=parent)
 
     target = create_disposable_target_asset(
         dnk_client=dnk_client,
@@ -1035,6 +1083,8 @@ def test_case_upload_mixed_create_and_update_in_single_run(
         data=drift_payload,
         status=WRITE_STATUS,
     )
+    # Reconciliation of existing-law literals is gated by xml_url change.
+    _force_parent_xml_url_mismatch(law_client=law_client, parent_asset=update_parent)
 
     report = sync_law_ch()
 
@@ -1054,6 +1104,46 @@ def test_case_upload_mixed_create_and_update_in_single_run(
 
     assert report["counts"]["laws_created"] >= 1
     assert report["counts"]["values_updated"] >= 1
+    assert report["counts"]["errors"] == 0
+
+
+def test_case_upload_existing_law_skip_when_xml_url_unchanged(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    # Reconciliation is gated by xml_url change for existing laws.
+    _, _, update_target = _select_present_law_with_existing_literal(
+        law_client=law_client,
+        collection_uuid=law_collection_uuid,
+    )
+
+    drifted_short_text = "DRIFTED_UNCHANGED_XML_URL_SKIP_TEST"
+    drift_payload = {
+        "_type": "ReferenceValue",
+        "description": "DRIFTED_UNCHANGED_XML_URL_SKIP_TEST",
+        "timeSeries": [
+            {
+                "code": update_target["code"],
+                "shortText": drifted_short_text,
+                "validFrom": -2208988800000,
+                "validTo": 32503593600000,
+            }
+        ],
+    }
+    law_client.update_reference_value(
+        value_id=update_target["literal_id"],
+        data=drift_payload,
+        status=WRITE_STATUS,
+    )
+
+    before = _literal_short_text(law_client, update_target["literal_id"])
+    assert before == drifted_short_text
+
+    report = sync_law_ch()
+
+    after = _literal_short_text(law_client, update_target["literal_id"])
+    assert after == drifted_short_text
+    assert report["counts"]["values_unchanged"] >= 1
     assert report["counts"]["errors"] == 0
 
 
