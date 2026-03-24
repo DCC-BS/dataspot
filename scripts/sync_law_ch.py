@@ -148,6 +148,16 @@ def _date_applicability_is_later(a: str, b: str) -> bool:
     return a > b
 
 
+def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str]:
+    # Deterministic tie-break for rows with identical applicability date.
+    return (
+        (record.get("xml_url") or "").strip(),
+        (record.get("expression") or "").strip(),
+        (record.get("title_de") or "").strip(),
+        (record.get("abrev") or "").strip(),
+    )
+
+
 def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dict[str, str]]:
     query = """
         PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
@@ -196,7 +206,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             FILTER (LANG(?typeDocDe) = "de")
         }
         }
-        ORDER BY ?srNotation
+        ORDER BY ?srNotation DESC(?dateApplicabilityNode) DESC(STR(?fileUrl)) DESC(STR(?ccExpr))
         """
     response = requests_get(
         url=FEDLEX_SPARQL_ENDPOINT,
@@ -229,7 +239,13 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             by_systematic_number[systematic_number] = record
             continue
 
+        replace_existing = False
         if _date_applicability_is_later(record["date_applicability"], existing["date_applicability"]):
+            replace_existing = True
+        elif record["date_applicability"] == existing["date_applicability"]:
+            replace_existing = _record_tiebreak_key(record) > _record_tiebreak_key(existing)
+
+        if replace_existing:
             # Keep latest applicability row, but preserve known legal_form if latest row has none.
             if not record["legal_form"] and existing.get("legal_form"):
                 record["legal_form"] = existing["legal_form"]
