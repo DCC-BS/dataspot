@@ -441,6 +441,8 @@ def _force_parent_xml_url_mismatch(
         "title": str(parent_asset.get("title") or "").strip(),
         "customProperties": {
             "legal_form": str(parent_asset.get("legal_form") or "").strip(),
+            "short_title": str(parent_asset.get("short_title") or "").strip(),
+            "abbreviation": str(parent_asset.get("abbreviation") or "").strip(),
             "systematic_number": systematic_number,
             "xml_url": drifted_xml_url,
         },
