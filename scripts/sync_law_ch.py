@@ -148,13 +148,14 @@ def _date_applicability_is_later(a: str, b: str) -> bool:
     return a > b
 
 
-def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str]:
+def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str, str]:
     # Deterministic tie-break for rows with identical applicability date.
     return (
         (record.get("xml_url") or "").strip(),
         (record.get("expression") or "").strip(),
         (record.get("title_de") or "").strip(),
         (record.get("abrev") or "").strip(),
+        (record.get("short_title") or "").strip(),
     )
 
 
@@ -169,6 +170,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         (STR(?dateApplicabilityNode) AS ?dateApplicability)
         ?title
         ?abrev
+        ?shortTitle
         ?fileUrl
         ?ccExpr
         ?typeDocDe
@@ -201,6 +203,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             ?ccExpr jolux:language ?language .
             ?ccExpr jolux:title ?title .
             OPTIONAL { ?ccExpr jolux:titleShort ?abrev }
+            OPTIONAL { ?ccExpr jolux:titleAlternative ?shortTitle }
         }
         OPTIONAL {
             ?cc jolux:typeDocument ?typeDoc .
@@ -228,6 +231,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
             "systematic_number": systematic_number,
             "title_de": _normalize_whitespace(_binding_value(row, "title")),
             "abrev": _binding_value(row, "abrev"),
+            "short_title": _normalize_whitespace(_binding_value(row, "shortTitle")),
             "date_applicability": _normalize_date_applicability_ymd(date_raw),
             "expression": _binding_value(row, "ccExpr"),
             "consolidation": _binding_value(row, "consolidation"),
@@ -299,6 +303,8 @@ def build_law_cache(
             "description": asset.get("description", ""),
             "title": asset.get("title", ""),
             "legal_form": asset.get("legal_form", ""),
+            "short_title": asset.get("short_title", ""),
+            "abbreviation": asset.get("abbreviation", ""),
             "systematic_number": systematic_number,
             "xml_url": xml_url,
             "values_by_code": {},
@@ -356,8 +362,13 @@ def build_reference_object_payload(
     original_url_de: str,
     legal_form: str = "",
     abrev: str = "",
+    short_title: str = "",
 ) -> Dict[str, Any]:
     title_part = (title_de or "").strip()
+    abbreviation = (abrev or "").strip()
+    short_title_part = (short_title or "").strip()
+    title_segments = [segment for segment in (short_title_part, abbreviation) if segment]
+    display_title = ", ".join(title_segments)
     label = f"SR {systematic_number}"
     if title_part:
         label = f"{label} - {title_part}"
@@ -366,9 +377,11 @@ def build_reference_object_payload(
         "_type": "ReferenceObject",
         "label": label,
         "description": original_url_de or "",
-        "title": (abrev or "").strip(),
+        "title": display_title,
         "customProperties": {
             "legal_form": legal_form or "",
+            "short_title": short_title_part,
+            "abbreviation": abbreviation,
             "systematic_number": systematic_number,
             "xml_url": xml_url,
         },
@@ -530,6 +543,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
 
             existing_law = law_cache.get(systematic_number)
             abrev = (record.get("abrev") or "").strip()
+            short_title = (record.get("short_title") or "").strip()
 
             desired_law = build_reference_object_payload(
                 systematic_number=systematic_number,
@@ -538,6 +552,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 original_url_de=original_url_de,
                 legal_form=legal_form,
                 abrev=abrev,
+                short_title=short_title,
             )
 
             desired_values: List[tuple[str, Dict[str, Any]]] = []
@@ -608,6 +623,10 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 or (existing_law.get("title") or "") != (desired_law.get("title") or "")
                 or (existing_law.get("legal_form") or "")
                 != (desired_law.get("customProperties", {}).get("legal_form") or "")
+                or (existing_law.get("short_title") or "")
+                != (desired_law.get("customProperties", {}).get("short_title") or "")
+                or (existing_law.get("abbreviation") or "")
+                != (desired_law.get("customProperties", {}).get("abbreviation") or "")
                 or normalize_systematic_number(existing_law.get("systematic_number"))
                 != normalize_systematic_number(
                     desired_law.get("customProperties", {}).get("systematic_number")

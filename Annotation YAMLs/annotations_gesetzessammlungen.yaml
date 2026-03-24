@@ -32,6 +32,12 @@ ReferenceObject:
     xml_url:
       label: XML URL
       labelEn: XML URL
+    short_title:
+      label: Kurztitel
+      labelEn: Short title
+    abbreviation:
+      label: Abkürzung
+      labelEn: Abbreviation
 
 ReferenceValue:
   label: Rechtsnorm
