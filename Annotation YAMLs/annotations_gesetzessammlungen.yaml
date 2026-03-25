@@ -7,7 +7,7 @@ ReferenceObject:
   label: Erlass
   plural: Erlasse
   gender: m
-  title: Ein Erlass ist ein rechtlich verbindlicher Rechtstext. Er ist ein Oberbegriff für Gesetze, Verordnungen und ähnliche rechtsetzende Akte
+  title: Ein Erlass ist ein rechtlich verbindlicher Rechtstext. Er ist ein Oberbegriff für Gesetze, Verordnungen und ähnliche rechtsetzende Akte.
   properties:
     label:
       label: Erlasstitel
