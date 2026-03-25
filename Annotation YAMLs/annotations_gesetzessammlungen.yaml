@@ -1,13 +1,5 @@
 # Gesetzessammlungen
 
-# https://datenkatalog.bs.ch/api/prod/manual/Basics#elementtypen
-
-# ReferenceDataModel	Referenzdatenmodell
-# ReferenceObject	Referenzobjekt
-# ReferenceValue	Referenzwert
-# Mapping	Überleitungstabelle
-# Translation	Überleitung
-
 ReferenceDataModel:
   icon: section
 
@@ -15,13 +7,12 @@ ReferenceObject:
   label: Erlass
   plural: Erlasse
   gender: m
-  title: todo
+  title: Ein Erlass ist ein rechtlich verbindlicher Rechtstext. Es ist ein Oberbegriff für Gesetze, Verordnungen, usw.
   properties:
     label:
       label: Erlasstitel
     title:
       label: Kurztitel, Abkürzung
-      title: todo
   customProperties:
     legal_form:
       label: Rechtsform
