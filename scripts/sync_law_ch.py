@@ -983,7 +983,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
 
 
 def main():
-    # Limit this to max 1000 (or max 1200) per run for initial upload
+    # Limit this to 500 per run for initial upload
     sync_law_ch(max_records=None)
 
 

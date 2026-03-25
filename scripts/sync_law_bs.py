@@ -705,7 +705,8 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
 
 
 def main():
-    sync_law_bs()
+    # Limit this to 500 per run for initial upload
+    sync_law_bs(max_records=None)
 
 
 if __name__ == "__main__":
