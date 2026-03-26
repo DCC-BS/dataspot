@@ -90,53 +90,47 @@ Derivation:
   ling: s3p3f
   properties:
     qualifier:
-      # Definition der Ausprägungen von Kennzeichnung
       literals:
         LEGAL_BASIS:
           label: Rechtsgrundlage
           labelEn: Legal basis
+          order: 180
         SPOT:
           label: Single Point of Truth
           labelEn: Single Point of Truth
+          order: 190
         GOLD:
           label: Golden Source
-          labelEn: golden record
+          labelEn: Golden record
+          order: 70
         FILTER:
-          # Kennzeichnung eines Filters einer Kennzahl/Referenzwertes
           label: Filter
           labelEn: Filter
+          order: 60
         BER:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Berechnungsbasis
           labelEn: Calculation basis
+          order: 20
         SPEZ2:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: Wird verwendet in
-          #labelEn: Calculation basis
-        #SPEZ3:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          #label: Rechtsgrundlage
-          #labelEn: Calculation basis
-        #SPEZ4:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          #label: Zweck
-          #labelEn: Calculation basis
+          label: Verwendet in
+          labelEn: Used in
+          order: 220
         DERIVED:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          label: abgeleitet von
-          labelEn: derived from
-        #EXKL:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
-          #label: exkludiert
-          #labelEn: excluded
+          label: Abgeleitet von
+          labelEn: Derived from
+          order: 10
         SPEZ:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Spezifikation für
+          labelEn: Specification for
+          order: 191
         SUB:
-          # Kennzeichnung der Berechnungsbasis einer Kennzahl
           label: Subdatensatz von
+          labelEn: Subdataset of
+          order: 192
         HARVESTER:
           label: Harvester
+          labelEn: Harvester
+          order: 80
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
