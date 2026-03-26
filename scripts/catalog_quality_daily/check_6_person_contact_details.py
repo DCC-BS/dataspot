@@ -304,7 +304,7 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
         #"dataspot.at",
         "edubs.ch",
         #"gmx.ch",
-        "gybs.ch",
+        "gvbs.ch",
         "ibvs.ch",
         "iwb.ch",
         "ks-bs.ch",
