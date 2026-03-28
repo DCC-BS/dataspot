@@ -88,8 +88,7 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> List[Dict[str, str]]:
     for article in root.findall(".//{*}article"):
         article_eid = (article.attrib.get("eId") or "").strip()
         num_element = article.find("./{*}num")
-        num_bold_element = num_element.find("./{*}b") if num_element is not None else None
-        raw_article_num = _element_text(num_bold_element if num_bold_element is not None else num_element)
+        raw_article_num = _element_text(num_element)
         article_num = _normalize_article_number(raw_article_num)
         if not article_num:
             continue
