@@ -35,9 +35,16 @@ def _normalize_literal_field(value: Any) -> str:
     return (str(value) or "").strip().strip(" *")
 
 
+def _strip_numeric_footnotes(value: str) -> str:
+    """Remove all numeric footnotes like '[3]' and normalize whitespace."""
+    cleaned = re.sub(r"\s*\[\d+\]\s*", " ", value)
+    return " ".join(cleaned.split()).strip()
+
+
 def _normalize_short_text(value: Any) -> str:
-    """Normalize shortText and drop bracket-only placeholders like '[5]'."""
+    """Normalize shortText, remove numeric footnotes, and drop bracket-only placeholders."""
     normalized = _normalize_literal_field(value)
+    normalized = _strip_numeric_footnotes(normalized)
     if normalized.startswith("[") and normalized.endswith("]"):
         return ""
     return normalized
