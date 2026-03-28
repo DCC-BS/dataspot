@@ -24,6 +24,10 @@ WRITE_STATUS = "PUBLISHED"
 # If Fedlex ever reuses the same URL for changed content, this optimization can
 # miss literal updates until the URL changes.
 
+# Set this to True for one-off reconciliations after parser fixes.
+# When True, unchanged xml_url will no longer skip XML fetch/parse.
+DEBUG_FORCE_XML_REPARSE_WHEN_URL_UNCHANGED = True
+
 
 def normalize_systematic_number(value: Any) -> str:
     if value is None:
@@ -557,13 +561,21 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
             desired_values: List[tuple[str, Dict[str, Any]]] = []
             existing_xml_url = ((existing_law or {}).get("xml_url") or "").strip()
             # FEDLEX_XML_URL_ASSUMPTION: unchanged xml_url means unchanged consolidated XML.
-            skip_xml_fetch = bool(existing_law and existing_xml_url == xml_url)
-            if skip_xml_fetch:
-                logging.info(
-                    f"[{idx}/{total}] Skipped XML fetch/parse for "
-                    f"systematic_number={systematic_number} because xml_url is unchanged"
-                )
-            else:
+            skip_xml_fetch = False
+            if existing_law and existing_xml_url == xml_url:
+                if not DEBUG_FORCE_XML_REPARSE_WHEN_URL_UNCHANGED:
+                    skip_xml_fetch = True
+                    logging.info(
+                        f"[{idx}/{total}] Skipped XML fetch/parse for "
+                        f"systematic_number={systematic_number} because xml_url is unchanged"
+                    )
+                else:
+                    logging.info(
+                        f"[{idx}/{total}] Forced XML fetch/parse for "
+                        f"systematic_number={systematic_number} even though xml_url is unchanged"
+                    )
+
+            if not skip_xml_fetch:
                 xml_response = requests_get(url=xml_url)
                 paragraphs = parse_articles_from_fedlex_xml(xml_response.text)
 
