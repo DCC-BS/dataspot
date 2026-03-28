@@ -114,6 +114,7 @@ Derivation:
         LEGAL_BASIS:
           label: Rechtsgrundlage
           labelEn: Legal basis
+          title: Konkrete Rechtsnormen, die die Veröffentlichung dieses Datenprodukts erlauben oder vorschreiben
           order: 180
         SPOT:
           label: Single Point of Truth
