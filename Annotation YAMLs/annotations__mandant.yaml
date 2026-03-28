@@ -91,6 +91,26 @@ Derivation:
   properties:
     qualifier:
       literals:
+        DERIVED:
+          label: Abgeleitet von
+          labelEn: Derived from
+          order: 10
+        BER:
+          label: Berechnungsbasis
+          labelEn: Calculation basis
+          order: 20
+        FILTER:
+          label: Filter
+          labelEn: Filter
+          order: 60
+        GOLD:
+          label: Golden Source
+          labelEn: Golden record
+          order: 70
+        HARVESTER:
+          label: Harvester
+          labelEn: Harvester
+          order: 80
         LEGAL_BASIS:
           label: Rechtsgrundlage
           labelEn: Legal basis
@@ -99,26 +119,6 @@ Derivation:
           label: Single Point of Truth
           labelEn: Single Point of Truth
           order: 190
-        GOLD:
-          label: Golden Source
-          labelEn: Golden record
-          order: 70
-        FILTER:
-          label: Filter
-          labelEn: Filter
-          order: 60
-        BER:
-          label: Berechnungsbasis
-          labelEn: Calculation basis
-          order: 20
-        SPEZ2:
-          label: Verwendet in
-          labelEn: Used in
-          order: 220
-        DERIVED:
-          label: Abgeleitet von
-          labelEn: Derived from
-          order: 10
         SPEZ:
           label: Spezifikation für
           labelEn: Specification for
@@ -127,10 +127,10 @@ Derivation:
           label: Subdatensatz von
           labelEn: Subdataset of
           order: 192
-        HARVESTER:
-          label: Harvester
-          labelEn: Harvester
-          order: 80
+        SPEZ2:
+          label: Verwendet in
+          labelEn: Used in
+          order: 220
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
