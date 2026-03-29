@@ -54,7 +54,7 @@ def _element_text(element: Optional[ET.Element]) -> str:
     return _normalize_whitespace("".join(element.itertext()))
 
 
-def _element_text_without_authorial_notes(element: Optional[ET.Element]) -> str:
+def _element_text_for_article_fields(element: Optional[ET.Element]) -> str:
     if element is None:
         return ""
 
@@ -64,7 +64,11 @@ def _element_text_without_authorial_notes(element: Optional[ET.Element]) -> str:
         return tag.split("}")[-1]
 
     def _collect(node: ET.Element) -> str:
-        if _local_tag_name(node.tag) == "authorialNote":
+        tag = _local_tag_name(node.tag)
+        if tag == "authorialNote":
+            return ""
+        if tag == "paragraph":
+            # Placeholder for future paragraph-specific handling.
             return ""
         parts: List[str] = [node.text or ""]
         for child in list(node):
@@ -92,7 +96,7 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> List[Dict[str, str]]:
     for article in root.findall(".//{*}article"):
         article_eid = (article.attrib.get("eId") or "").strip()
         num_element = article.find("./{*}num")
-        raw_article_num = _element_text_without_authorial_notes(num_element)
+        raw_article_num = _element_text_for_article_fields(num_element)
         article_num = _normalize_article_number(raw_article_num)
         if not article_num:
             continue
@@ -102,7 +106,7 @@ def parse_articles_from_fedlex_xml(xml_content: str) -> List[Dict[str, str]]:
             continue
 
         heading_element = article.find("./{*}heading")
-        short_text = _element_text_without_authorial_notes(heading_element)
+        short_text = _element_text_for_article_fields(heading_element)
         articles.append(
             {
                 "code": code,
