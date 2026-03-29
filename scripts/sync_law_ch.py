@@ -26,7 +26,7 @@ WRITE_STATUS = "PUBLISHED"
 
 # Set this to True for one-off reconciliations after parser fixes.
 # When True, unchanged xml_url will no longer skip XML fetch/parse.
-DEBUG_FORCE_XML_REPARSE_WHEN_URL_UNCHANGED = True
+DEBUG_FORCE_XML_REPARSE_WHEN_URL_UNCHANGED = False
 
 
 def normalize_systematic_number(value: Any) -> str:
