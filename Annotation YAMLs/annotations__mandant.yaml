@@ -84,7 +84,7 @@ Collection:
               readOnly: true
               hidden: true
 
-#020 - HERKUNFT
+#020 - HERKUNFT VON
 Derivation:
   label: Zusatzinformation
   ling: s3p3f
@@ -114,7 +114,7 @@ Derivation:
         LEGAL_BASIS:
           label: Rechtsgrundlage
           labelEn: Legal basis
-          title: Konkrete Rechtsnormen, die die Veröffentlichung dieses Datenprodukts erlauben oder vorschreiben
+          title: Konkrete Rechtsnormen, die die Veröffentlichung dieses Datenprodukts erlauben oder vorschreiben.
           order: 180
         SPOT:
           label: Single Point of Truth
@@ -381,7 +381,7 @@ Rule:
           icon: merge
 
 
-#060 - KENNZEICHNUNG VON HERKUNFT
+#060 - SYSTEME
 Deployment:
   properties:
     qualifier:
@@ -399,17 +399,10 @@ Deployment:
           label: Berechnungsbasis
           labelEn: Calculation basis
         SPEZ2:
-          label: Wird verwendet in
-        #SPEZ3:
-          #label: Rechtsgrundlage
-        #SPEZ4:
-          #label: Zweck
+          label: Verwendet in
         DERIVED:
           label: abgeleitet von
           labelEn: derived from
-        #EXKL:
-          #label: exkludiert
-          #labelEn: excluded
         available_at:
           label: Verfügbar in
           labelEn: Available at
