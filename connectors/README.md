@@ -17,15 +17,15 @@ Use this method when connecting with a SQL database user. This is based on the `
 ### 1. Local Setup
 
 1. Copy the `StatA-Test-DB` folder from the DataExch location: `DCC\Dataspot\DatabaseConnector\Configurations`.
-2. Rename the folder and adapt the details in the `application.properties` file within the newly created folder, including username and password.
-3. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
+2. Rename the folder and adapt the `databaseUrl` in the `application.properties` file within the newly created folder.
+3. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
+4. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
 
 ### 2. In the 'dataspot' Repository
 
 1. Copy the `stata-test` folder within the `connectors` folder and rename it for the new connector.
-2. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
-3. Adapt the `Dockerfile` if necessary (usually not required for SQL User authentication).
-4. Push the changes to GitHub and wait for the Docker image to be built automatically.
+2. Adapt the `Dockerfile` if necessary (usually not required for SQL User authentication).
+3. Push the changes to GitHub and wait for the Docker image to be built automatically.
 
 ### 3. In the 'dags-airflow2' Repository
 
@@ -43,19 +43,19 @@ Use this method when connecting with an Active Directory user via Kerberos. This
 ### 1. Local Setup
 
 1. Copy the `StatA-Test-DB_AD-Access` folder from the DataExch location: `DCC\Dataspot\DatabaseConnector\Configurations`.
-2. Rename the folder and adapt the `application.properties` file within the newly created folder.
+2. Rename the folder and adapt the `databaseUrl` in the `application.properties` file within the newly created folder.
    - **Important**: Only update `server` and `database_name`. Do NOT set username and password here; these are managed via Airflow Variables.
-3. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
+3. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
+4. In `myservice.yaml`, update the "ingestion" part, i.e. the filter of what should be included.
 
 ### 2. In the 'dataspot' Repository
 
 1. Copy the `stata-ad-test` folder within the `connectors` folder and rename it for the new connector.
-2. Update the `dataspot.collection` in the `application.properties` and ensure that the collection exists in dataspot.
-3. The `Dockerfile` and `entrypoint.sh` already contain the Kerberos/AD setup. They use 4 environment variables which are passed from the Airflow script, 2 of which need to be added in airflow:
+2. The `Dockerfile` and `entrypoint.sh` already contain the Kerberos/AD setup. They use 4 environment variables which are passed from the Airflow script, 2 of which need to be added in airflow:
    - `XYZ_AD_USERNAME`
    - `XYZ_AD_PASSWORD`
 
-4. Push the changes to GitHub and wait for the Docker image to be built automatically.
+3. Push the changes to GitHub and wait for the Docker image to be built automatically.
 
 ### 3. In the 'dags-airflow2' Repository
 
