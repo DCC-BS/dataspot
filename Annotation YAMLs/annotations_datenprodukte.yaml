@@ -1133,6 +1133,11 @@ Dataset:
       group: ARCHIVING
       baseType: TEXT
       order: 140
+    legalFoundation:
+      label: Rechtliche Grundlagen
+      title: Rechtlicher Rahmen, der die Veröffentlichung dieses Datenprodukts begründet. Die konkreten Rechtsnormen können via *Herkunft von* referenziert werden.
+      order: 150
+      baseType: TEXT
 
 ## BESTANDTEILE ##
 Composition:
