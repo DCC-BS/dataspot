@@ -21,7 +21,7 @@ Abhängigkeiten und Zweck:
    - Zweck: Überprüft, dass alle Posten besetzt sind, nachdem Zuweisungen vorgenommen wurden
 
 5. Benutzerkontensynchronisation  
-   - Abhängigkeiten: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung)  
+   - Abhängigkeiten: Normalfall: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung); Ausnahme: Bei Warnung in Check #2 wird Check #5 trotzdem ausgeführt (auch wenn #3/#4 übersprungen werden)  
    - Zweck: Erstellt Benutzerkonten für alle Personen mit sk_person_id (EDITOR bei Posten, sonst READ_ONLY) und weist Berechtigungen zu
 
 6. Kontaktdetails bei Personen
