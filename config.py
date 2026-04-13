@@ -29,6 +29,8 @@ sk_scheme_name = 'Systeme'
 sk_scheme_name_short = 'SK'
 law_scheme_name = 'Gesetzessammlungen'
 law_scheme_name_short = 'GS'
+vvp_scheme_name = 'Verzeichnis der Verfahren mit Personendaten'
+vvp_scheme_name_short = 'VVP'
 
 law_bs_collection_label = 'Systematische Gesetzessammlung Basel-Stadt'
 law_ch_collection_label = 'Systematische Rechtssammlung Schweiz'
