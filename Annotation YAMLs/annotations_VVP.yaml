@@ -1,0 +1,43 @@
+# VVP
+
+ProcessingRecords:
+  icon: user-gear
+
+Processing:
+  extends: Activity
+  label: Verfahren mit Personendaten
+  icon: gears
+  customProperties:
+    legalFoundation:
+      label: Rechtliche Grundlage(n)
+      width: 2
+      order: 1
+      baseType: TEXT
+    legalFoundationSource:
+      label: Quelle(n)
+      width: 2
+      order: 2
+      baseType: TEXT
+    responsibleAuthority:
+      label: Verantwortliche Stelle
+      width: 2
+      order: 3
+      baseType: STRING
+      cardinality: ONE
+    website:
+      label: Internetauftritt
+      width: 2
+      order: 4
+      baseType: STRING
+      cardinality: ONE
+    dataProcessingPurpose:
+      label: Zweck der Datenbearbeitung
+      width: 2
+      order: 5
+      baseType: TEXT
+
+Usage:
+  label: Rechtsgrundlage
+  plural: Rechtsgrundlagen
+  gender: f
+  icon: section
