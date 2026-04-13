@@ -20,10 +20,10 @@ YAML_PROFILES = [
     ("Datentypen (fachlich)", "Annotation YAMLs/annotations_datentypen_fachlich.yaml"),
     ("Datentypen (technisch)", "Annotation YAMLs/annotations_datentypen_technisch.yaml"),
     ("Fachdaten", "Annotation YAMLs/annotations_fachdaten.yaml"),
+    ("Gesetzessammlungen", "Annotation YAMLs/annotations_gesetzessammlungen.yaml"),
     ("Katalogqualitaet", "Annotation YAMLs/annotations_katalogqualitaet.yaml"),
     ("Kennzahlen", "Annotation YAMLs/annotations_kennzahlen.yaml"),
     ("Prozesse", "Annotation YAMLs/annotations_prozesse.yaml"),
-    #("Rechtsgrundlagen", "Annotation YAMLs/annotations_rechtsgrundlagen.yaml"), # TODO: Does not yet exist!
     ("Referenzdaten", "Annotation YAMLs/annotations_referenzdaten.yaml"),
     ("Systeme", "Annotation YAMLs/annotations_systeme.yaml"),
 ]
