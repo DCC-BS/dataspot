@@ -13,6 +13,8 @@ from src.clients.dnk_client import DNKClient
 from src.clients.rdm_client import RDMClient
 from src.clients.kv_client import KVClient
 from src.clients.tdm_client import TDMClient
+from src.clients.vvp_client import VVPClient
+
 from src.common import email_helpers as email_helpers
 
 
@@ -34,6 +36,9 @@ def main():
 
     tdm_client = TDMClient()
     sync_org_structures(dataspot_client=tdm_client)
+
+    vvp_client = VVPClient()
+    sync_org_structures(dataspot_client=vvp_client)
 
 def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUBLISHED"):
     """
