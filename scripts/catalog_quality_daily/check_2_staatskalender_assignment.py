@@ -39,6 +39,8 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient, staat
               that shows how posts SHOULD be assigned to persons according to Staatskalender data.
               This mapping (staatskalender_post_person_mapping) is provided for reuse in check_3 to avoid
               redundant Staatskalender API calls.
+              Additionally returns validation_status_by_post, indicating for each post whether
+              membership validation was fully successful ("validated") or unresolved ("failed").
     """
     logging.debug("Starting Check #2: Personensynchronisation aus dem Staatskalender...")
     
@@ -47,7 +49,8 @@ def check_2_staatskalender_assignment(dataspot_client: BaseDataspotClient, staat
         'message': 'All persons from Staatskalender are correctly present in Dataspot.',
         'issues': [],
         'error': None,
-        'staatskalender_post_person_mapping': []
+        'staatskalender_post_person_mapping': [],
+        'validation_status_by_post': {}
     }
 
     try:
@@ -161,6 +164,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
     total_posts = len(posts)
     
     for current_post, (post_uuid, (post_label, memberships)) in enumerate(posts.items(), 1):
+        post_validation_failed = False
+
         # Log post header with progress indicator
         logging.info(f"[{current_post}/{total_posts}] {post_label}:")
         
@@ -181,6 +186,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
 
                 if not sk_first_name or not sk_last_name:
                     # Missing essential person data
+                    post_validation_failed = True
                     result['issues'].append({
                         'type': 'person_data_incomplete',
                         'post_uuid': post_uuid,
@@ -226,6 +232,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                             })
                             logging.info(f' - Updated person name from "{existing_first_name} {existing_last_name}" to "{sk_first_name} {sk_last_name}" (Link: {config.base_url}/web/{config.database_name}/persons/{person_uuid})')
                         except Exception as e:
+                            post_validation_failed = True
                             result['issues'].append({
                                 'type': 'person_name_update_failed',
                                 'post_uuid': post_uuid,
@@ -285,6 +292,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                                 # Person was found but not newly created
                                 logging.info(f' - Person {sk_first_name} {sk_last_name} already exists')
                         except Exception as e:
+                            post_validation_failed = True
                             result['issues'].append({
                                 'type': 'person_creation_failed',
                                 'post_uuid': post_uuid,
@@ -320,6 +328,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                         else:
                             logging.info(f' - Person {sk_first_name} {sk_last_name} already has correct sk_person_id')
                     except Exception as e:
+                        post_validation_failed = True
                         result['issues'].append({
                             'type': 'person_sk_id_update_failed',
                             'post_uuid': post_uuid,
@@ -340,6 +349,7 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                     logging.debug(f'   - Added mapping: Post {post_label} -> Person {sk_first_name} {sk_last_name}')
 
             except Exception as e:
+                post_validation_failed = True
                 # Handle API errors - could be invalid membership or network errors after retries
                 error_message = str(e)
                 if "Could not find person link" in error_message or "not found" in error_message.lower():
@@ -364,6 +374,8 @@ def process_person_sync(posts: Dict[str, Tuple[str, List[str]]], dataspot_client
                 })
                 logging.error(f"Error processing membership ID {sk_membership_id}: {error_message}")
                 logging.error(f"Membership URL: https://staatskalender.bs.ch/membership/{sk_membership_id}")
+
+        result['validation_status_by_post'][post_uuid] = 'failed' if post_validation_failed else 'validated'
 
 
 # DONE

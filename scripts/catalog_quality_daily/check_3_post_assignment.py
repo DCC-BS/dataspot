@@ -1,12 +1,16 @@
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import config
 from src.common import requests_get, requests_patch
 from src.clients.base_client import BaseDataspotClient
 
 
-def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_post_person_mapping: List[Tuple[str, str]]) -> Dict[str, any]:
+def check_3_post_assignment(
+    dataspot_client: BaseDataspotClient,
+    staatskalender_post_person_mapping: List[Tuple[str, str]],
+    validation_status_by_post: Optional[Dict[str, str]] = None
+) -> Dict[str, any]:
     """
     Check #3: Mitgliedschaftsbasierte Posten-Zuordnungen
     
@@ -35,6 +39,9 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
                                    This mapping represents how posts SHOULD be
                                    assigned to persons according to Staatskalender data. The list may
                                    be empty if no mappings should exist for posts with membership IDs.
+        validation_status_by_post: Optional mapping from post_uuid to validation status from check_2.
+                                   Expected values are "validated" or "failed". Posts marked as
+                                   "failed" are reported but not mutated.
         
     Returns:
         dict: Check results including status, issues, and any errors
@@ -86,6 +93,27 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
         should_assignments[person_uuid].append(post_uuid)
 
     posts_to_consider = get_posts_with_sk_membership_ids(dataspot_client)
+    validation_status_by_post = validation_status_by_post or {}
+    validated_post_uuids = {
+        post_uuid for post_uuid in posts_to_consider
+        if validation_status_by_post.get(post_uuid, 'validated') == 'validated'
+    }
+    failed_post_uuids = {
+        post_uuid for post_uuid in posts_to_consider
+        if validation_status_by_post.get(post_uuid) == 'failed'
+    }
+
+    for post_uuid in failed_post_uuids:
+        post_label, _ = posts_to_consider.get(post_uuid, ("Unknown post", None))
+        result['issues'].append({
+            'type': 'post_assignment_skipped_unresolved_validation',
+            'post_uuid': post_uuid,
+            'post_label': post_label,
+            'message': f"Skipped assignment updates for post {post_label} due to unresolved validation in Check #2",
+            'remediation_attempted': False,
+            'remediation_success': False
+        })
+        logging.info(f"Skipping mutations for post {post_label} due to unresolved Check #2 validation")
 
     # Create a mapping of person_uuid to their name to use for logging
     person_names_mapping = {}
@@ -107,19 +135,19 @@ def check_3_post_assignment(dataspot_client: BaseDataspotClient, staatskalender_
         given_name, family_name = person_names_mapping[person_uuid]
 
         # Get current posts with membership_ids
-        current_posts = [p for p in is_assignments.get(person_uuid, []) if p in posts_to_consider]
+        current_posts = [p for p in is_assignments.get(person_uuid, []) if p in validated_post_uuids]
 
         # Get posts that should be assigned (filtered to only those with membership_ids)
-        should_have_posts = [p for p in should_assignments.get(person_uuid, []) if p in posts_to_consider]
+        should_have_posts = [p for p in should_assignments.get(person_uuid, []) if p in validated_post_uuids]
 
         # Only process if person has or should have posts with membership_ids
         if current_posts or should_have_posts:
             # Get all current posts, including those not in posts_to_consider
             all_current_posts = is_assignments.get(person_uuid, [])
 
-            # Calculate desired posts - only consider posts in posts_to_consider for changes
-            # Start with all current posts EXCEPT those in posts_to_consider that should be removed
-            desired_posts = [p for p in all_current_posts if p not in posts_to_consider or p in should_have_posts]
+            # Calculate desired posts - only consider validated membership posts for changes
+            # Start with all current posts EXCEPT those in validated membership posts that should be removed
+            desired_posts = [p for p in all_current_posts if p not in validated_post_uuids or p in should_have_posts]
 
             # Now add any should_have posts that aren't already in the list
             for post in should_have_posts:

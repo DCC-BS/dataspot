@@ -13,7 +13,7 @@ Abhängigkeiten und Zweck:
    - Zweck: Erstellt/aktualisiert Personen aus Staatskalender nach Sicherstellung, dass keine Duplikate existieren
 
 3. Mitgliedschaftsbasierte Posten-Zuordnungen  
-   - Abhängigkeiten: Check #2 (Personensynchronisation), Check #1 (Eindeutigkeitsprüfung)
+   - Abhängigkeiten: Check #2 (Personensynchronisation), Check #1 (Eindeutigkeitsprüfung). Bei Warnungen in Check #2 werden nur die in Check #2 erfolgreich validierten Posten automatisch angepasst; fehlgeschlagene Posten werden nur gemeldet.
    - Zweck: Weist Personen Posten basierend auf Staatskalender-Mitgliedschaftsdaten zu, nachdem Personen existieren
 
 4. Postenbesetzungsprüfung  
@@ -21,7 +21,7 @@ Abhängigkeiten und Zweck:
    - Zweck: Überprüft, dass alle Posten besetzt sind, nachdem Zuweisungen vorgenommen wurden
 
 5. Benutzerkontensynchronisation  
-   - Abhängigkeiten: Normalfall: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung); Ausnahme: Bei Warnung in Check #2 wird Check #5 trotzdem ausgeführt (auch wenn #3/#4 übersprungen werden)  
+   - Abhängigkeiten: Check #3 (Mitgliedschaftsbasierte Posten-Zuordnungen), Check #4 (Postenbesetzungsprüfung)  
    - Zweck: Erstellt Benutzerkonten für alle Personen mit sk_person_id (EDITOR bei Posten, sonst READ_ONLY) und weist Berechtigungen zu
 
 6. Kontaktdetails bei Personen
@@ -31,6 +31,10 @@ Abhängigkeiten und Zweck:
 7. Annotation YAML vs Repo
    - Abhängigkeiten: Keine (unabhängiger Check)
    - Zweck: Stellt sicher, dass die Annotation-YAML-Dateien auf der Webseite mit den Repo-Versionen übereinstimmen
+
+Hinweis zur Ablaufsteuerung:
+- Warnungen blockieren den Ablauf nicht; nachfolgende Checks werden weiter ausgeführt.
+- Nur Fehler (`error`) beenden den Lauf vorzeitig.
 
 ---
 
@@ -73,6 +77,7 @@ Spezifisch:
 	- Die Person aus dem Staatskalender ist korrekt dem Posten zugeordnet
 	- Nur Personen mit gültigen Mitgliedschaft-IDs sind dem Posten zugeordnet
 - Es werden sowohl primäre als auch sekundäre Mitgliedschaft-ID berücksichtigt
+- Posten, deren Mitgliedschaften in Check #2 nicht eindeutig validiert werden konnten, werden in diesem Check nur gemeldet und nicht automatisch verändert
 
 Falls nicht:
 - Wenn die Person nicht dem Posten zugeordnet ist, wird die Zuordnung automatisch hergestellt

@@ -57,7 +57,7 @@ def run_all_checks():
     staatskalender_cache = StaatskalenderCache()
 
     staatskalender_post_person_mapping = []
-    skip_checks_3_and_4_due_to_check_2_warning = False
+    validation_status_by_post = {}
 
     if run_check_1:
         # Check #1: Unique sk_person_id verification
@@ -76,9 +76,9 @@ def run_all_checks():
         logging.info("   Check #1: Unique sk_person_id Verification Completed.")
         logging.info("")
 
-        # Check if Check #1 failed or has issues - if so, skip remaining checks
-        if result.get('status') in ['error', 'warning']:
-            logging.warning("   Check #1 failed or has issues. Skipping remaining checks.")
+        # Check #1 errors remain blocking
+        if result.get('status') == 'error':
+            logging.warning("   Check #1 failed with error. Skipping remaining checks.")
             return check_results
 
     if run_check_2:
@@ -98,74 +98,67 @@ def run_all_checks():
             'results': check_2_result
         })
         staatskalender_post_person_mapping = check_2_result['staatskalender_post_person_mapping']
+        validation_status_by_post = check_2_result.get('validation_status_by_post', {})
 
         logging.info("")
         logging.info("   Check #2: Person Assignment (Staatskalender) Completed.")
         logging.info("")
 
-        # Check #2 error remains blocking; warning skips only checks #3 and #4.
+        # Check #2 errors remain blocking.
         if check_2_result.get('status') == 'error':
             logging.warning("   Check #2 failed with error. Skipping remaining checks.")
             return check_results
-        if check_2_result.get('status') == 'warning':
-            skip_checks_3_and_4_due_to_check_2_warning = True
-            logging.warning("   Check #2 has warnings. Skipping checks #3 and #4, then continuing with checks #5, #6 and #7.")
 
     if run_check_3:
-        if skip_checks_3_and_4_due_to_check_2_warning:
-            logging.warning("   Skipping Check #3 due to Check #2 warning.")
-        else:
-            # Check #3: Membership-based Post Assignments
-            logging.info("")
-            logging.info("   Starting Check #3: Membership-based Post Assignments...")
-            logging.info("   " + "-" * 50)
-            from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
+        # Check #3: Membership-based Post Assignments
+        logging.info("")
+        logging.info("   Starting Check #3: Membership-based Post Assignments...")
+        logging.info("   " + "-" * 50)
+        from scripts.catalog_quality_daily.check_3_post_assignment import check_3_post_assignment
 
-            logging.debug(f"   Using staatskalender_post_person_mapping from check_2 with {len(staatskalender_post_person_mapping)} mappings")
+        logging.debug(f"   Using staatskalender_post_person_mapping from check_2 with {len(staatskalender_post_person_mapping)} mappings")
 
-            result = check_3_post_assignment(
-                dataspot_client=dataspot_base_client,
-                staatskalender_post_person_mapping=staatskalender_post_person_mapping
-            )
-            check_results.append({
-                'check_name': 'check_3_post_assignment',
-                'title': 'Check #3: Membership-based Post Assignments',
-                'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
-                'results': result
-            })
-            logging.info("")
-            logging.info("   Check #3: Membership-based Post Assignments Completed.")
-            logging.info("")
+        result = check_3_post_assignment(
+            dataspot_client=dataspot_base_client,
+            staatskalender_post_person_mapping=staatskalender_post_person_mapping,
+            validation_status_by_post=validation_status_by_post
+        )
+        check_results.append({
+            'check_name': 'check_3_post_assignment',
+            'title': 'Check #3: Membership-based Post Assignments',
+            'description': 'Checks if all posts with membership IDs have correct person assignments from Staatskalender.',
+            'results': result
+        })
+        logging.info("")
+        logging.info("   Check #3: Membership-based Post Assignments Completed.")
+        logging.info("")
 
-            # Check if Check #3 failed or has issues - if so, skip remaining checks
-            if result.get('status') in ['error', 'warning']:
-                logging.warning("   Check #3 failed or has issues. Skipping remaining checks.")
-                return check_results
+        # Check #3 errors remain blocking.
+        if result.get('status') == 'error':
+            logging.warning("   Check #3 failed with error. Skipping remaining checks.")
+            return check_results
 
     if run_check_4:
-        if skip_checks_3_and_4_due_to_check_2_warning:
-            logging.warning("   Skipping Check #4 due to Check #2 warning.")
-        else:
-            # Check #4: Post occupation check
-            logging.info("")
-            logging.info("   Starting Check #4: Post Occupation...")
-            logging.info("   " + "-" * 50)
-            from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
-            result = check_4_post_occupation(dataspot_client=dataspot_base_client)
-            check_results.append({
-                'check_name': 'check_4_post_occupation',
-                'title': 'Check #4: Post Occupation',
-                'description': 'Checks if all posts are assigned to at least one person.',
-                'results': result
-            })
-            logging.info("")
-            logging.info("   Check #4: Post Occupation Completed.")
-            logging.info("")
+        # Check #4: Post occupation check
+        logging.info("")
+        logging.info("   Starting Check #4: Post Occupation...")
+        logging.info("   " + "-" * 50)
+        from scripts.catalog_quality_daily.check_4_post_occupation import check_4_post_occupation
+        result = check_4_post_occupation(dataspot_client=dataspot_base_client)
+        check_results.append({
+            'check_name': 'check_4_post_occupation',
+            'title': 'Check #4: Post Occupation',
+            'description': 'Checks if all posts are assigned to at least one person.',
+            'results': result
+        })
+        logging.info("")
+        logging.info("   Check #4: Post Occupation Completed.")
+        logging.info("")
 
-            # Check if Check #4 failed or has issues - if so, skip remaining checks
-            if result.get('status') in ['error', 'warning']:
-                logging.warning("   Check #4 failed or has issues. Skipping remaining checks.")
-                return check_results
+        # Check #4 errors remain blocking.
+        if result.get('status') == 'error':
+            logging.warning("   Check #4 failed with error. Skipping remaining checks.")
+            return check_results
 
     if run_check_5:
         # Check #5: User assignment for persons with sk_person_id
@@ -188,9 +181,9 @@ def run_all_checks():
         logging.info("   Check #5: User Assignment Completed.")
         logging.info("")
 
-        # Check if Check #5 failed or has issues - if so, skip remaining checks
-        if result.get('status') in ['error', 'warning']:
-            logging.warning("   Check #5 failed or has issues. Skipping remaining checks.")
+        # Check #5 errors remain blocking.
+        if result.get('status') == 'error':
+            logging.warning("   Check #5 failed with error. Skipping remaining checks.")
             return check_results
 
     if run_check_6:
@@ -213,9 +206,9 @@ def run_all_checks():
         logging.info("   Check #6: Person Contact Details Completed.")
         logging.info("")
 
-        # Check if Check #6 failed or has issues - if so, skip remaining checks
-        if check_6_result.get('status') in ['error', 'warning']:
-            logging.warning("   Check #6 failed or has issues. Skipping remaining checks.")
+        # Check #6 errors remain blocking.
+        if check_6_result.get('status') == 'error':
+            logging.warning("   Check #6 failed with error. Skipping remaining checks.")
             return check_results
 
     if run_check_7:
