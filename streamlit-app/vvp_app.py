@@ -324,7 +324,12 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         in_collection_uuid=selected_collection["id"],
         status="PUBLISHED",
     )
+    if "vvp_collection_context" in st.session_state:
+        del st.session_state["vvp_collection_context"]
+    if "vvp_context_for_abteilung_id" in st.session_state:
+        del st.session_state["vvp_context_for_abteilung_id"]
     st.success("Neues Verfahren wurde erstellt.")
+    st.rerun()
 
 
 def main() -> None:
