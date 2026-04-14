@@ -1,10 +1,8 @@
 from typing import Any, Dict, List
 import logging
-from urllib.parse import quote
 
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.common import requests_get
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -35,41 +33,52 @@ class VVPClient(BaseDataspotClient):
             return stripped if stripped else None
         return value
 
-    @staticmethod
-    def _extract_collections(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-        embedded = payload.get("_embedded")
-        if isinstance(embedded, dict):
-            collections = embedded.get("collections")
-            if isinstance(collections, list):
-                return collections
-        if isinstance(payload, list):
-            return payload
-        return []
-
-    @staticmethod
-    def _build_collection_business_key(collection: Dict[str, Any]) -> str:
-        label = VVPClient._normalize_string(collection.get("label")).strip()
-        parent_path = VVPClient._normalize_string(collection.get("inCollection")).strip()
-        if not label:
-            return ""
-        if not parent_path:
-            return label
-        return f"{parent_path}/{label}"
+    def get_vvp_scheme_id(self) -> str:
+        query = """
+            SELECT s.id
+            FROM dataspot.scheme_view s
+            WHERE s.label = 'VVP'
+              AND s.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        if not rows:
+            raise ValueError("VVP-Schema wurde per Query-API nicht gefunden.")
+        scheme_id = self._normalize_string(rows[0].get("id")).strip()
+        if not scheme_id:
+            raise ValueError("VVP-Schema-ID ist leer.")
+        logging.info("VVP-Schema-ID per Query-API aufgeloest.")
+        return scheme_id
 
     def get_root_collection(self) -> Dict[str, Any]:
-        url = f"{config.base_url}/rest/{config.database_name}/schemes/{quote(self.scheme_name, safe='')}/collections/{quote(self.ROOT_DEPARTMENTS_COLLECTION_LABEL, safe='')}"
-        response = requests_get(url, headers=self.auth.get_headers())
-        response.raise_for_status()
-        root_collection = response.json()
+        query = """
+            WITH vvp_scheme AS (
+                SELECT s.id
+                FROM dataspot.scheme_view s
+                WHERE s.label = 'VVP'
+                  AND s.status = 'PUBLISHED'
+            )
+            SELECT c.id, c.label, c.in_scheme
+            FROM dataspot.collection_view c
+            JOIN vvp_scheme s ON c.in_scheme = s.id
+            WHERE c.label = 'Regierung und Verwaltung'
+              AND c.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        if not rows:
+            raise ValueError("Root-Collection 'Regierung und Verwaltung' wurde nicht gefunden.")
+        root_collection = rows[0]
         logging.info("Root-Collection im VVP-Schema aufgeloest: %s", root_collection.get("label", ""))
         return root_collection
 
     def get_child_collections(self, parent_collection_uuid: str) -> List[Dict[str, Any]]:
-        url = f"{config.base_url}/rest/{config.database_name}/collections/{parent_collection_uuid}/collections"
-        response = requests_get(url, headers=self.auth.get_headers())
-        response.raise_for_status()
-        payload = response.json()
-        collections = self._extract_collections(payload)
+        query = f"""
+            SELECT c.id, c.label, c.parent_id
+            FROM dataspot.collection_view c
+            WHERE c.parent_id = '{parent_collection_uuid}'
+              AND c.status = 'PUBLISHED'
+            ORDER BY c.label
+        """
+        collections = self.execute_query_api(sql_query=query)
         logging.info("Kind-Collections geladen fuer parent=%s: %s", parent_collection_uuid, len(collections))
         return collections
 
@@ -89,20 +98,28 @@ class VVPClient(BaseDataspotClient):
         logging.info("Abteilungen geladen fuer departement=%s: %s", departement_uuid, len(sorted_collections))
         return sorted_collections
 
-    def download_assets_for_collection(self, collection_uuid: str) -> List[Dict[str, Any]]:
-        url = f"{config.base_url}/api/{config.database_name}/collections/{collection_uuid}/download?format=JSON"
-        response = requests_get(url, headers=self.auth.get_headers())
-        response.raise_for_status()
-        assets = response.json()
-        if not isinstance(assets, list):
-            raise ValueError(f"Unerwarteter Download-API-Response: {type(assets)}")
-        logging.info("Assets ueber Download-API geladen fuer collection=%s: %s", collection_uuid, len(assets))
-        return assets
+    def get_recursive_collections_from_query(self, abteilung_uuid: str) -> List[Dict[str, Any]]:
+        query = f"""
+            WITH RECURSIVE collection_tree AS (
+                SELECT c.id, c.label, c.parent_id
+                FROM dataspot.collection_view c
+                WHERE c.id = '{abteilung_uuid}'
+                  AND c.status = 'PUBLISHED'
 
-    def get_recursive_collections_from_download(self, downloaded_assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        collections = [asset for asset in downloaded_assets if asset.get("_type") == "Collection"]
+                UNION ALL
+
+                SELECT child.id, child.label, child.parent_id
+                FROM dataspot.collection_view child
+                JOIN collection_tree parent ON child.parent_id = parent.id
+                WHERE child.status = 'PUBLISHED'
+            )
+            SELECT id, label, parent_id
+            FROM collection_tree
+            ORDER BY label
+        """
+        collections = self.execute_query_api(sql_query=query)
         sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())
-        logging.info("Rekursive Collections aus Download bestimmt: %s", len(sorted_collections))
+        logging.info("Rekursive Collections per Query-API bestimmt: %s", len(sorted_collections))
         return sorted_collections
 
     def build_collection_lookup(self, collections: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
@@ -111,42 +128,60 @@ class VVPClient(BaseDataspotClient):
             collection_id = self._normalize_string(collection.get("id")).strip()
             if not collection_id:
                 continue
-            enriched_collection = dict(collection)
-            enriched_collection["businessKey"] = self._build_collection_business_key(collection)
-            by_id[collection_id] = enriched_collection
+            by_id[collection_id] = dict(collection)
         logging.info("Collection-Lookup aufgebaut: %s", len(by_id))
         return by_id
 
-    def get_processings_for_collection_tree(
-        self,
-        downloaded_assets: List[Dict[str, Any]],
-        recursive_collections: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        allowed_collection_ids = {
-            self._normalize_string(collection.get("id")).strip()
-            for collection in recursive_collections
-            if self._normalize_string(collection.get("id")).strip()
-        }
-        allowed_collection_business_keys = {
-            self._build_collection_business_key(collection)
-            for collection in recursive_collections
-            if self._build_collection_business_key(collection)
-        }
-        processings = []
-        for asset in downloaded_assets:
-            if asset.get("_type") != "Processing":
-                continue
-            in_collection_value = self._normalize_string(asset.get("inCollection")).strip()
-            if in_collection_value in allowed_collection_ids or in_collection_value in allowed_collection_business_keys:
-                processings.append(asset)
+    def get_processings_for_collection_tree(self, abteilung_uuid: str) -> List[Dict[str, Any]]:
+        query = f"""
+            WITH RECURSIVE collection_tree AS (
+                SELECT c.id, c.label, c.parent_id
+                FROM dataspot.collection_view c
+                WHERE c.id = '{abteilung_uuid}'
+                  AND c.status = 'PUBLISHED'
+
+                UNION ALL
+
+                SELECT child.id, child.label, child.parent_id
+                FROM dataspot.collection_view child
+                JOIN collection_tree parent ON child.parent_id = parent.id
+                WHERE child.status = 'PUBLISHED'
+            ),
+            processing_custom_props AS (
+                SELECT
+                    cp.resource_id,
+                    MAX(CASE WHEN cp.name = 'legalFoundation' THEN cp.value END) AS legal_foundation,
+                    MAX(CASE WHEN cp.name = 'legalFoundationSource' THEN cp.value END) AS legal_foundation_source,
+                    MAX(CASE WHEN cp.name = 'website' THEN cp.value END) AS website,
+                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose
+                FROM dataspot.customproperties_view cp
+                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose')
+                GROUP BY cp.resource_id
+            )
+            SELECT
+                p.id,
+                p.label,
+                p.in_collection,
+                ic.label AS in_collection_label,
+                props.legal_foundation,
+                props.legal_foundation_source,
+                props.website,
+                props.data_processing_purpose
+            FROM dataspot.processing_view p
+            JOIN collection_tree ct ON p.in_collection = ct.id
+            LEFT JOIN dataspot.collection_view ic ON ic.id = p.in_collection
+            LEFT JOIN processing_custom_props props ON props.resource_id = p.id
+            WHERE p.status = 'PUBLISHED'
+            ORDER BY p.label
+        """
+        processings = self.execute_query_api(sql_query=query)
         sorted_processings = sorted(processings, key=lambda item: self._normalize_string(item.get("label")).casefold())
         logging.info("Processings im rekursiven Collection-Teilbaum gefiltert: %s", len(sorted_processings))
         return sorted_processings
 
     def get_collection_tree_context(self, abteilung_uuid: str) -> Dict[str, Any]:
-        downloaded_assets = self.download_assets_for_collection(abteilung_uuid)
-        recursive_collections = self.get_recursive_collections_from_download(downloaded_assets)
-        processings = self.get_processings_for_collection_tree(downloaded_assets, recursive_collections)
+        recursive_collections = self.get_recursive_collections_from_query(abteilung_uuid)
+        processings = self.get_processings_for_collection_tree(abteilung_uuid)
         collection_lookup = self.build_collection_lookup(recursive_collections)
         logging.info(
             "Collection-Context aufgebaut fuer abteilung=%s: %s Collections, %s Processings",
@@ -155,7 +190,6 @@ class VVPClient(BaseDataspotClient):
             len(processings),
         )
         return {
-            "downloaded_assets": downloaded_assets,
             "recursive_collections": recursive_collections,
             "collection_lookup": collection_lookup,
             "processings": processings,
@@ -177,39 +211,63 @@ class VVPClient(BaseDataspotClient):
         processing: Dict[str, Any],
         collection_lookup: Dict[str, Dict[str, Any]],
     ) -> Dict[str, Any]:
+        in_collection_value = processing.get("in_collection", processing.get("inCollection"))
+        in_collection_label = self._normalize_string(processing.get("in_collection_label")).strip()
+        verantwortliche_stelle = in_collection_label
+        if not verantwortliche_stelle:
+            verantwortliche_stelle = self.resolve_collection_label_for_display(in_collection_value, collection_lookup)
         return {
             "id": self._normalize_string(processing.get("id")),
             "bezeichnung": self._normalize_string(processing.get("label")),
-            "rechtliche_grundlage": self._normalize_string(processing.get("legalFoundation")),
-            "quellen": self._normalize_string(processing.get("legalFoundationSource")),
+            "rechtliche_grundlage": self._normalize_string(processing.get("legal_foundation", processing.get("legalFoundation"))),
+            "quellen": self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource"))),
             "internetauftritt": self._normalize_string(processing.get("website")),
-            "zweck_datenbearbeitung": self._normalize_string(processing.get("dataProcessingPurpose")),
-            "verantwortliche_stelle": self.resolve_collection_label_for_display(
-                processing.get("inCollection"),
-                collection_lookup,
-            ),
+            "zweck_datenbearbeitung": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
+            "verantwortliche_stelle": verantwortliche_stelle,
         }
 
     def get_processing_by_uuid(self, processing_uuid: str) -> Dict[str, Any]:
-        endpoint = f"/rest/{config.database_name}/processings/{processing_uuid}"
-        processing = self._get_asset(endpoint)
-        if processing is None:
+        query = f"""
+            WITH processing_custom_props AS (
+                SELECT
+                    cp.resource_id,
+                    MAX(CASE WHEN cp.name = 'legalFoundation' THEN cp.value END) AS legal_foundation,
+                    MAX(CASE WHEN cp.name = 'legalFoundationSource' THEN cp.value END) AS legal_foundation_source,
+                    MAX(CASE WHEN cp.name = 'website' THEN cp.value END) AS website,
+                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose
+                FROM dataspot.customproperties_view cp
+                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose')
+                GROUP BY cp.resource_id
+            )
+            SELECT
+                p.id,
+                p.label,
+                p.in_collection,
+                props.legal_foundation,
+                props.legal_foundation_source,
+                props.website,
+                props.data_processing_purpose
+            FROM dataspot.processing_view p
+            LEFT JOIN processing_custom_props props ON props.resource_id = p.id
+            WHERE p.id = '{processing_uuid}'
+              AND p.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        if not rows:
             raise ValueError(f"Processing nicht gefunden: {processing_uuid}")
-        logging.info("Processing per REST geladen: %s", processing_uuid)
+        processing = rows[0]
+        logging.info("Processing per Query-API geladen: %s", processing_uuid)
         return processing
 
     def map_rest_processing_to_form(self, processing: Dict[str, Any]) -> Dict[str, Any]:
-        custom_properties = processing.get("customProperties")
-        if not isinstance(custom_properties, dict):
-            custom_properties = {}
         return {
             "id": self._normalize_string(processing.get("id")),
             "label": self._normalize_string(processing.get("label")),
-            "inCollection": self._normalize_string(processing.get("inCollection")),
-            "legalFoundation": self._normalize_string(custom_properties.get("legalFoundation")),
-            "legalFoundationSource": self._normalize_string(custom_properties.get("legalFoundationSource")),
-            "website": self._normalize_string(custom_properties.get("website")),
-            "dataProcessingPurpose": self._normalize_string(custom_properties.get("dataProcessingPurpose")),
+            "inCollection": self._normalize_string(processing.get("in_collection", processing.get("inCollection"))),
+            "legalFoundation": self._normalize_string(processing.get("legal_foundation", processing.get("legalFoundation"))),
+            "legalFoundationSource": self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource"))),
+            "website": self._normalize_string(processing.get("website")),
+            "dataProcessingPurpose": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
         }
 
     def build_processing_payload(
