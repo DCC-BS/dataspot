@@ -2,6 +2,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Dict, List
 import sys
+import time
 
 import streamlit as st
 
@@ -11,6 +12,30 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from src.clients.vvp_client import VVPClient
+
+
+SUCCESS_POPUP_MESSAGE_KEY = "vvp_success_popup_message"
+SUCCESS_POPUP_SHOWN_KEY = "vvp_success_popup_shown"
+CREATE_ERROR_MESSAGE_KEY = "vvp_create_error_message"
+EDIT_ERROR_MESSAGE_KEY = "vvp_edit_error_message"
+
+
+def set_success_popup(message: str) -> None:
+    st.session_state[SUCCESS_POPUP_MESSAGE_KEY] = message
+    st.session_state[SUCCESS_POPUP_SHOWN_KEY] = False
+
+
+def render_success_popup_once() -> None:
+    message = st.session_state.get(SUCCESS_POPUP_MESSAGE_KEY, "")
+    if not message:
+        return
+
+    if not st.session_state.get(SUCCESS_POPUP_SHOWN_KEY, False):
+        st.toast(message, icon="✅")
+        st.session_state[SUCCESS_POPUP_SHOWN_KEY] = True
+        time.sleep(1.0)
+        st.session_state.pop(SUCCESS_POPUP_MESSAGE_KEY, None)
+        st.session_state.pop(SUCCESS_POPUP_SHOWN_KEY, None)
 
 
 def normalize_text(value: Any) -> str:
@@ -225,6 +250,10 @@ def render_edit_form(
     collection_options: List[Dict[str, Any]],
 ) -> None:
     with st.expander("Bestehendes Verfahren bearbeiten", expanded=False):
+        edit_error = str(st.session_state.get(EDIT_ERROR_MESSAGE_KEY, "")).strip()
+        if edit_error:
+            st.error(edit_error)
+
         if not processings:
             st.info("Es gibt aktuell kein Verfahren zum Bearbeiten.")
             return
@@ -262,10 +291,10 @@ def render_edit_form(
         if not submitted:
             return
         if not label.strip():
-            st.error("Die Bezeichnung darf nicht leer sein.")
+            st.session_state[EDIT_ERROR_MESSAGE_KEY] = "Die Bezeichnung darf nicht leer sein."
             return
         if not selected_collection:
-            st.error("Bitte eine verantwortliche Stelle auswählen.")
+            st.session_state[EDIT_ERROR_MESSAGE_KEY] = "Bitte eine verantwortliche Stelle auswählen."
             return
 
         payload = client.build_processing_payload(
@@ -276,24 +305,34 @@ def render_edit_form(
             website=website,
             data_processing_purpose=data_processing_purpose,
         )
-        client.update_processing(
-            processing_uuid=selected_processing_id,
-            payload=payload,
-            status="PUBLISHED",
-        )
+        try:
+            client.update_processing(
+                processing_uuid=selected_processing_id,
+                payload=payload,
+                status="PUBLISHED",
+            )
+        except Exception as exc:
+            st.session_state[EDIT_ERROR_MESSAGE_KEY] = f"Fehler beim Speichern: {exc}"
+            return
+
+        st.session_state.pop(EDIT_ERROR_MESSAGE_KEY, None)
         if "vvp_collection_context" in st.session_state:
             del st.session_state["vvp_collection_context"]
         if "vvp_context_for_abteilung_id" in st.session_state:
             del st.session_state["vvp_context_for_abteilung_id"]
         if str(form_values["inCollection"]) != str(selected_collection["id"]):
-            st.success("Verfahren gespeichert und innerhalb der gewählten Abteilung verschoben.")
+            set_success_popup("Verfahren gespeichert.")
         else:
-            st.success("Verfahren gespeichert.")
+            set_success_popup("Verfahren gespeichert.")
         st.rerun()
 
 
 def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any]]) -> None:
     st.subheader("Neues Verfahren erstellen")
+    create_error = str(st.session_state.get(CREATE_ERROR_MESSAGE_KEY, "")).strip()
+    if create_error:
+        st.error(create_error)
+
     with st.form("create_processing_form"):
         selected_collection = searchable_combobox_no_default(
             title="Verantwortliche Stelle",
@@ -310,10 +349,10 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
     if not submitted:
         return
     if not label.strip():
-        st.error("Die Bezeichnung darf nicht leer sein.")
+        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Die Bezeichnung darf nicht leer sein."
         return
     if not selected_collection:
-        st.error("Bitte eine verantwortliche Stelle auswählen.")
+        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Bitte eine verantwortliche Stelle auswählen."
         return
 
     payload = client.build_processing_payload(
@@ -324,16 +363,22 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         website=website,
         data_processing_purpose=data_processing_purpose,
     )
-    client.create_processing(
-        payload=payload,
-        in_collection_uuid=selected_collection["id"],
-        status="PUBLISHED",
-    )
+    try:
+        client.create_processing(
+            payload=payload,
+            in_collection_uuid=selected_collection["id"],
+            status="PUBLISHED",
+        )
+    except Exception as exc:
+        st.session_state[CREATE_ERROR_MESSAGE_KEY] = f"Fehler beim Erstellen: {exc}"
+        return
+
+    st.session_state.pop(CREATE_ERROR_MESSAGE_KEY, None)
     if "vvp_collection_context" in st.session_state:
         del st.session_state["vvp_collection_context"]
     if "vvp_context_for_abteilung_id" in st.session_state:
         del st.session_state["vvp_context_for_abteilung_id"]
-    st.success("Neues Verfahren wurde erstellt.")
+    set_success_popup("Neues Verfahren wurde erstellt.")
     st.rerun()
 
 
@@ -341,6 +386,7 @@ def main() -> None:
     st.set_page_config(page_title="VVP - Verfahren mit Personendaten", layout="wide")
     st.title("VVP - Verfahren mit Personendaten")
     st.caption("Erstellen und Bearbeiten von Verfahren innerhalb der gewählten Abteilung.")
+    render_success_popup_once()
 
     client = get_vvp_client()
 
