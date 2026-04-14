@@ -3,7 +3,7 @@ import logging
 
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.common import requests_post_no_retry
+from src.common import requests_patch_no_retry, requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -306,7 +306,13 @@ class VVPClient(BaseDataspotClient):
         return created_processing
 
     def update_processing(self, processing_uuid: str, payload: Dict[str, Any], status: str = "PUBLISHED") -> Dict[str, Any]:
-        endpoint = f"/rest/{config.database_name}/processings/{processing_uuid}"
-        updated_processing = self._update_asset(endpoint=endpoint, data=payload, replace=False, status=status)
+        url = f"{config.base_url}/rest/{config.database_name}/processings/{processing_uuid}"
+        data_to_send = dict(payload)
+        data_to_send["status"] = status
+        updated_processing = requests_patch_no_retry(
+            url=url,
+            json=data_to_send,
+            headers=self.auth.get_headers(),
+        ).json()
         logging.info("Processing aktualisiert: %s", processing_uuid)
         return updated_processing
