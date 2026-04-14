@@ -116,6 +116,42 @@ def get_vvp_client() -> VVPClient:
     return VVPClient()
 
 
+def get_departements_cached(client: VVPClient) -> List[Dict[str, Any]]:
+    if "vvp_departements" not in st.session_state:
+        with st.spinner("Lade Departemente..."):
+            st.session_state["vvp_departements"] = client.get_departements()
+    return st.session_state["vvp_departements"]
+
+
+def get_abteilungen_cached(client: VVPClient, departement_id: str) -> List[Dict[str, Any]]:
+    cached_dep_id = st.session_state.get("vvp_abteilungen_for_departement_id")
+    if cached_dep_id != departement_id:
+        with st.spinner("Lade Abteilungen..."):
+            st.session_state["vvp_abteilungen"] = client.get_abteilungen(departement_id)
+            st.session_state["vvp_abteilungen_for_departement_id"] = departement_id
+    return st.session_state.get("vvp_abteilungen", [])
+
+
+def get_collection_context_cached(client: VVPClient, abteilung_id: str) -> Dict[str, Any]:
+    cached_abt_id = st.session_state.get("vvp_context_for_abteilung_id")
+    if cached_abt_id != abteilung_id:
+        with st.spinner("Lade Verfahren und Collections..."):
+            st.session_state["vvp_collection_context"] = client.get_collection_tree_context(abteilung_id)
+            st.session_state["vvp_context_for_abteilung_id"] = abteilung_id
+    return st.session_state.get("vvp_collection_context", {})
+
+
+def clear_dependent_caches() -> None:
+    for key in [
+        "vvp_abteilungen",
+        "vvp_abteilungen_for_departement_id",
+        "vvp_collection_context",
+        "vvp_context_for_abteilung_id",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+
 def build_collection_options(collections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     options: List[Dict[str, Any]] = []
     for collection in collections:
@@ -261,7 +297,7 @@ def main() -> None:
 
     client = get_vvp_client()
 
-    departements = client.get_departements()
+    departements = get_departements_cached(client)
     departement_options = build_collection_options(departements)
     selected_departement = searchable_combobox_no_default(
         title="Departement",
@@ -269,9 +305,10 @@ def main() -> None:
         widget_prefix="departement",
     )
     if not selected_departement:
+        clear_dependent_caches()
         return
 
-    abteilungen = client.get_abteilungen(selected_departement["id"])
+    abteilungen = get_abteilungen_cached(client, selected_departement["id"])
     abteilung_options = build_collection_options(abteilungen)
     selected_abteilung = searchable_combobox_no_default(
         title="Abteilung",
@@ -279,9 +316,13 @@ def main() -> None:
         widget_prefix="abteilung",
     )
     if not selected_abteilung:
+        if "vvp_collection_context" in st.session_state:
+            del st.session_state["vvp_collection_context"]
+        if "vvp_context_for_abteilung_id" in st.session_state:
+            del st.session_state["vvp_context_for_abteilung_id"]
         return
 
-    context = client.get_collection_tree_context(selected_abteilung["id"])
+    context = get_collection_context_cached(client, selected_abteilung["id"])
     recursive_collections = context["recursive_collections"]
     processings = context["processings"]
     collection_lookup = context["collection_lookup"]
