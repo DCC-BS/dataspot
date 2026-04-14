@@ -301,6 +301,7 @@ class VVPClient(BaseDataspotClient):
             url=url,
             json=data_to_send,
             headers=self.auth.get_headers(),
+            skip_sleep=True,
         ).json()
         logging.info("Processing erstellt in Collection %s", in_collection_uuid)
         return created_processing
@@ -313,6 +314,7 @@ class VVPClient(BaseDataspotClient):
             url=url,
             json=data_to_send,
             headers=self.auth.get_headers(),
+            skip_sleep=True,
         ).json()
         logging.info("Processing aktualisiert: %s", processing_uuid)
         return updated_processing

@@ -144,6 +144,7 @@ def requests_get(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
     
     r = requests.get(*args, **kwargs)
 
@@ -155,7 +156,8 @@ def requests_get(*args, **kwargs):
         raise DetailedHTTPError(r, detailed_error_info)
     
     # Add delay after request to avoid overloading the server
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -164,6 +166,7 @@ def requests_post(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
     
     r = requests.post(*args, **kwargs)
     
@@ -175,7 +178,8 @@ def requests_post(*args, **kwargs):
         raise DetailedHTTPError(r, detailed_error_info)
     
     # Add delay after request to avoid overloading the server
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -183,6 +187,7 @@ def requests_post_no_retry(*args, **kwargs):
     """POST request without retry decorator, but with same error handling."""
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
 
     r = requests.post(*args, **kwargs)
     detailed_error_info = _get_detailed_error_info(r, silent_status_codes)
@@ -190,7 +195,8 @@ def requests_post_no_retry(*args, **kwargs):
     if r.status_code not in [200, 201, 204] and r.status_code not in (silent_status_codes or []):
         raise DetailedHTTPError(r, detailed_error_info)
 
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -199,6 +205,7 @@ def requests_patch(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
     
     r = requests.patch(*args, **kwargs)
     
@@ -210,7 +217,8 @@ def requests_patch(*args, **kwargs):
         raise DetailedHTTPError(r, detailed_error_info)
     
     # Add delay after request to avoid overloading the server
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -218,6 +226,7 @@ def requests_patch_no_retry(*args, **kwargs):
     """PATCH request without retry decorator, but with same error handling."""
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
 
     r = requests.patch(*args, **kwargs)
     detailed_error_info = _get_detailed_error_info(r, silent_status_codes)
@@ -225,7 +234,8 @@ def requests_patch_no_retry(*args, **kwargs):
     if r.status_code not in [200, 201, 204] and r.status_code not in (silent_status_codes or []):
         raise DetailedHTTPError(r, detailed_error_info)
 
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -234,6 +244,7 @@ def requests_put(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
     
     r = requests.put(*args, **kwargs)
     
@@ -245,7 +256,24 @@ def requests_put(*args, **kwargs):
         raise DetailedHTTPError(r, detailed_error_info)
     
     # Add delay after request to avoid overloading the server
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
+    return r
+
+
+def requests_put_no_retry(*args, **kwargs):
+    delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
+    silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
+
+    r = requests.put(*args, **kwargs)
+    detailed_error_info = _get_detailed_error_info(r, silent_status_codes)
+
+    if r.status_code not in [200, 201, 204] and r.status_code not in (silent_status_codes or []):
+        raise DetailedHTTPError(r, detailed_error_info)
+
+    if not skip_sleep:
+        time.sleep(delay)
     return r
 
 
@@ -254,6 +282,7 @@ def requests_delete(*args, **kwargs):
     # Extract parameters
     delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
     silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
     
     r = requests.delete(*args, **kwargs)
     
@@ -265,5 +294,6 @@ def requests_delete(*args, **kwargs):
         raise DetailedHTTPError(r, detailed_error_info)
     
     # Add delay after request to avoid overloading the server
-    time.sleep(delay)
+    if not skip_sleep:
+        time.sleep(delay)
     return r
