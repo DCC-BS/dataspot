@@ -216,7 +216,7 @@ def render_processing_list(client: VVPClient, processings: List[Dict[str, Any]],
         }
         for row in sorted_rows
     ]
-    st.dataframe(table_rows, use_container_width=True)
+    st.dataframe(table_rows, width="stretch")
 
 
 def render_edit_form(
