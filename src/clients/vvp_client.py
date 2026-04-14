@@ -3,6 +3,7 @@ import logging
 
 import config
 from src.clients.base_client import BaseDataspotClient
+from src.common import requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -293,8 +294,14 @@ class VVPClient(BaseDataspotClient):
         return payload
 
     def create_processing(self, payload: Dict[str, Any], in_collection_uuid: str, status: str = "PUBLISHED") -> Dict[str, Any]:
-        endpoint = f"/rest/{config.database_name}/collections/{in_collection_uuid}/processings"
-        created_processing = self._create_asset(endpoint=endpoint, data=payload, status=status)
+        url = f"{config.base_url}/rest/{config.database_name}/collections/{in_collection_uuid}/processings"
+        data_to_send = dict(payload)
+        data_to_send["status"] = status
+        created_processing = requests_post_no_retry(
+            url=url,
+            json=data_to_send,
+            headers=self.auth.get_headers(),
+        ).json()
         logging.info("Processing erstellt in Collection %s", in_collection_uuid)
         return created_processing
 

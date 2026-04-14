@@ -179,6 +179,21 @@ def requests_post(*args, **kwargs):
     return r
 
 
+def requests_post_no_retry(*args, **kwargs):
+    """POST request without retry decorator, but with same error handling."""
+    delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
+    silent_status_codes = kwargs.pop('silent_status_codes', None)
+
+    r = requests.post(*args, **kwargs)
+    detailed_error_info = _get_detailed_error_info(r, silent_status_codes)
+
+    if r.status_code not in [200, 201, 204] and r.status_code not in (silent_status_codes or []):
+        raise DetailedHTTPError(r, detailed_error_info)
+
+    time.sleep(delay)
+    return r
+
+
 @retry(http_errors_to_handle, tries=MAX_RETRIES, delay=1, backoff=2)
 def requests_patch(*args, **kwargs):
     # Extract parameters
