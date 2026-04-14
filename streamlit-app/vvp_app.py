@@ -179,7 +179,44 @@ def render_processing_list(client: VVPClient, processings: List[Dict[str, Any]],
         client.map_download_processing_to_display(processing, collection_lookup)
         for processing in processings
     ]
-    st.dataframe(display_rows, use_container_width=True)
+    responsible_options = sorted(
+        {
+            str(row.get("verantwortliche_stelle", "")).strip()
+            for row in display_rows
+            if str(row.get("verantwortliche_stelle", "")).strip()
+        }
+    )
+    selected_responsible = st.selectbox(
+        "Verantwortliche Stelle (optional)",
+        options=responsible_options,
+        index=None,
+        placeholder="Keine Filterung",
+        key="processing_responsible_filter",
+    )
+
+    filtered_rows = display_rows
+    if selected_responsible:
+        filtered_rows = [
+            row for row in display_rows
+            if str(row.get("verantwortliche_stelle", "")).strip() == selected_responsible
+        ]
+
+    sorted_rows = sorted(
+        filtered_rows,
+        key=lambda row: (
+            str(row.get("verantwortliche_stelle", "")).casefold(),
+            str(row.get("bezeichnung", "")).casefold(),
+        ),
+    )
+
+    table_rows = [
+        {
+            "Verantwortliche Stelle": row.get("verantwortliche_stelle", ""),
+            "Bezeichnung": row.get("bezeichnung", ""),
+        }
+        for row in sorted_rows
+    ]
+    st.dataframe(table_rows, use_container_width=True)
 
 
 def render_edit_form(
