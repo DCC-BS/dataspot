@@ -224,67 +224,67 @@ def render_edit_form(
     processings: List[Dict[str, Any]],
     collection_options: List[Dict[str, Any]],
 ) -> None:
-    st.subheader("Bestehendes Verfahren bearbeiten")
-    if not processings:
-        st.info("Es gibt aktuell kein Verfahren zum Bearbeiten.")
-        return
+    with st.expander("Bestehendes Verfahren bearbeiten", expanded=False):
+        if not processings:
+            st.info("Es gibt aktuell kein Verfahren zum Bearbeiten.")
+            return
 
-    processing_options = sorted(
-        [{"id": str(item.get("id", "")), "label": str(item.get("label", "")).strip()} for item in processings if item.get("id") and item.get("label")],
-        key=lambda item: item["label"].casefold(),
-    )
-    selected_processing = searchable_combobox_no_default(
-        title="Verfahren auswählen",
-        options=processing_options,
-        widget_prefix="edit_processing",
-    )
-    if not selected_processing:
-        return
-    selected_processing_id = selected_processing["id"]
-
-    rest_processing = client.get_processing_by_uuid(selected_processing_id)
-    form_values = client.map_rest_processing_to_form(rest_processing)
-
-    with st.form("edit_processing_form"):
-        selected_collection = searchable_combobox_no_default(
-            title="Verantwortliche Stelle",
-            options=collection_options,
-            widget_prefix="edit_collection",
-            selected_id=form_values["inCollection"],
+        processing_options = sorted(
+            [{"id": str(item.get("id", "")), "label": str(item.get("label", "")).strip()} for item in processings if item.get("id") and item.get("label")],
+            key=lambda item: item["label"].casefold(),
         )
-        label = st.text_input("Bezeichnung", value=form_values["label"])
-        legal_foundation = st.text_area("Rechtliche Grundlage(n)", value=form_values["legalFoundation"])
-        legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
-        website = st.text_input("Internetauftritt", value=form_values["website"])
-        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
-        submitted = st.form_submit_button("Änderungen speichern")
+        selected_processing = searchable_combobox_no_default(
+            title="Verfahren auswählen",
+            options=processing_options,
+            widget_prefix="edit_processing",
+        )
+        if not selected_processing:
+            return
+        selected_processing_id = selected_processing["id"]
 
-    if not submitted:
-        return
-    if not label.strip():
-        st.error("Die Bezeichnung darf nicht leer sein.")
-        return
-    if not selected_collection:
-        st.error("Bitte eine verantwortliche Stelle auswählen.")
-        return
+        rest_processing = client.get_processing_by_uuid(selected_processing_id)
+        form_values = client.map_rest_processing_to_form(rest_processing)
 
-    payload = client.build_processing_payload(
-        label=label,
-        in_collection_uuid=selected_collection["id"],
-        legal_foundation=legal_foundation,
-        legal_foundation_source=legal_foundation_source,
-        website=website,
-        data_processing_purpose=data_processing_purpose,
-    )
-    client.update_processing(
-        processing_uuid=selected_processing_id,
-        payload=payload,
-        status="PUBLISHED",
-    )
-    if str(form_values["inCollection"]) != str(selected_collection["id"]):
-        st.success("Verfahren gespeichert und innerhalb der gewählten Abteilung verschoben.")
-    else:
-        st.success("Verfahren gespeichert.")
+        with st.form("edit_processing_form"):
+            selected_collection = searchable_combobox_no_default(
+                title="Verantwortliche Stelle",
+                options=collection_options,
+                widget_prefix="edit_collection",
+                selected_id=form_values["inCollection"],
+            )
+            label = st.text_input("Bezeichnung", value=form_values["label"])
+            legal_foundation = st.text_area("Rechtliche Grundlage(n)", value=form_values["legalFoundation"])
+            legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
+            website = st.text_input("Internetauftritt", value=form_values["website"])
+            data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
+            submitted = st.form_submit_button("Änderungen speichern")
+
+        if not submitted:
+            return
+        if not label.strip():
+            st.error("Die Bezeichnung darf nicht leer sein.")
+            return
+        if not selected_collection:
+            st.error("Bitte eine verantwortliche Stelle auswählen.")
+            return
+
+        payload = client.build_processing_payload(
+            label=label,
+            in_collection_uuid=selected_collection["id"],
+            legal_foundation=legal_foundation,
+            legal_foundation_source=legal_foundation_source,
+            website=website,
+            data_processing_purpose=data_processing_purpose,
+        )
+        client.update_processing(
+            processing_uuid=selected_processing_id,
+            payload=payload,
+            status="PUBLISHED",
+        )
+        if str(form_values["inCollection"]) != str(selected_collection["id"]):
+            st.success("Verfahren gespeichert und innerhalb der gewählten Abteilung verschoben.")
+        else:
+            st.success("Verfahren gespeichert.")
 
 
 def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any]]) -> None:
