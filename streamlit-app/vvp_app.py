@@ -281,10 +281,15 @@ def render_edit_form(
             payload=payload,
             status="PUBLISHED",
         )
+        if "vvp_collection_context" in st.session_state:
+            del st.session_state["vvp_collection_context"]
+        if "vvp_context_for_abteilung_id" in st.session_state:
+            del st.session_state["vvp_context_for_abteilung_id"]
         if str(form_values["inCollection"]) != str(selected_collection["id"]):
             st.success("Verfahren gespeichert und innerhalb der gewählten Abteilung verschoben.")
         else:
             st.success("Verfahren gespeichert.")
+        st.rerun()
 
 
 def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any]]) -> None:
