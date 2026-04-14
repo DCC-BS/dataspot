@@ -18,22 +18,16 @@ Processing:
       width: 2
       order: 2
       baseType: TEXT
-    responsibleAuthority:
-      label: Verantwortliche Stelle
-      width: 2
-      order: 3
-      baseType: STRING
-      cardinality: ONE
     website:
       label: Internetauftritt
       width: 2
-      order: 4
+      order: 3
       baseType: STRING
       cardinality: ONE
     dataProcessingPurpose:
       label: Zweck der Datenbearbeitung
       width: 2
-      order: 5
+      order: 4
       baseType: TEXT
 
 Usage:
