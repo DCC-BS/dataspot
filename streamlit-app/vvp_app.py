@@ -297,6 +297,14 @@ def render_edit_form(
             st.session_state[EDIT_ERROR_MESSAGE_KEY] = "Bitte eine verantwortliche Stelle auswählen."
             return
 
+        current_payload = client.build_processing_payload(
+            label=form_values["label"],
+            in_collection_uuid=form_values["inCollection"],
+            legal_foundation=form_values["legalFoundation"],
+            legal_foundation_source=form_values["legalFoundationSource"],
+            website=form_values["website"],
+            data_processing_purpose=form_values["dataProcessingPurpose"],
+        )
         payload = client.build_processing_payload(
             label=label,
             in_collection_uuid=selected_collection["id"],
@@ -305,6 +313,11 @@ def render_edit_form(
             website=website,
             data_processing_purpose=data_processing_purpose,
         )
+        if payload == current_payload:
+            st.session_state.pop(EDIT_ERROR_MESSAGE_KEY, None)
+            st.warning("Keine Änderungen erkannt. Es wurde nichts gespeichert.")
+            return
+
         try:
             client.update_processing(
                 processing_uuid=selected_processing_id,

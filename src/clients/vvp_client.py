@@ -3,6 +3,7 @@ import logging
 
 import config
 from src.clients.base_client import BaseDataspotClient
+from src.clients.helpers import normalize_multiline_markdown, prepare_custom_property_for_form
 from src.common import requests_patch_no_retry, requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
@@ -30,8 +31,7 @@ class VVPClient(BaseDataspotClient):
         if value is None:
             return None
         if isinstance(value, str):
-            stripped = value.strip()
-            return stripped if stripped else None
+            return normalize_multiline_markdown(value)
         return value
 
     def get_vvp_scheme_id(self) -> str:
@@ -261,15 +261,22 @@ class VVPClient(BaseDataspotClient):
         return processing
 
     def map_rest_processing_to_form(self, processing: Dict[str, Any]) -> Dict[str, Any]:
-        return {
+        legal_foundation_raw = self._normalize_string(processing.get("legal_foundation", processing.get("legalFoundation")))
+        legal_foundation_source_raw = self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource")))
+        website_raw = self._normalize_string(processing.get("website"))
+        data_processing_purpose_raw = self._normalize_string(
+            processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))
+        )
+        mapped = {
             "id": self._normalize_string(processing.get("id")),
             "label": self._normalize_string(processing.get("label")),
             "inCollection": self._normalize_string(processing.get("in_collection", processing.get("inCollection"))),
-            "legalFoundation": self._normalize_string(processing.get("legal_foundation", processing.get("legalFoundation"))),
-            "legalFoundationSource": self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource"))),
-            "website": self._normalize_string(processing.get("website")),
-            "dataProcessingPurpose": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
+            "legalFoundation": prepare_custom_property_for_form(legal_foundation_raw),
+            "legalFoundationSource": prepare_custom_property_for_form(legal_foundation_source_raw),
+            "website": prepare_custom_property_for_form(website_raw),
+            "dataProcessingPurpose": prepare_custom_property_for_form(data_processing_purpose_raw),
         }
+        return mapped
 
     def build_processing_payload(
         self,

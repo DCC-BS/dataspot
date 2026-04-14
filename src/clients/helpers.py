@@ -5,6 +5,7 @@ This module provides utility functions and helpers for Dataspot API clients.
 """
 
 import logging
+from typing import Any
 
 
 def url_join(*parts: str, leading_slash: bool = False) -> str:
@@ -106,3 +107,88 @@ def strip_quotes(value: str | None) -> str | None:
         return value[1:-1]
     
     return value
+
+
+def decode_query_api_custom_property(value: str | None) -> str | None:
+    """
+    Decode custom-property values returned via Query API.
+
+    Query results may return escaped JSON strings such as
+    '"Zeile 1\\nZeile 2"' which should become multiline text.
+    """
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        return value
+
+    raw = value.strip()
+    if not raw:
+        return ""
+
+    decoded: str = raw
+    # Keep this intentionally simple: repeatedly unquote + unescape.
+    for _ in range(4):
+        previous = decoded
+        decoded = decoded.strip()
+        unquoted = strip_quotes(decoded)
+        if isinstance(unquoted, str):
+            decoded = unquoted
+        decoded = (
+            decoded
+            .replace("\\r\\n", "\n")
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace('\\"', '"')
+            .replace("\\'", "'")
+        )
+        if decoded == previous:
+            break
+
+    return decoded
+
+
+def normalize_multiline_markdown(value: str | None) -> str | None:
+    """
+    Keep markdown line breaks for direct consecutive lines.
+
+    Rules:
+    - Add two trailing spaces only when the next line is non-empty.
+    - No trailing spaces on the last line.
+    - Empty separator lines need no trailing spaces.
+    """
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        return value
+
+    normalized_newlines = value.replace("\r\n", "\n").replace("\r", "\n")
+    lines = normalized_newlines.split("\n")
+    if not lines:
+        return ""
+
+    stripped_lines = [line.strip() for line in lines]
+    output: list[str] = []
+    for index, line in enumerate(stripped_lines):
+        if index < len(stripped_lines) - 1:
+            output.append(f"{line}  ")
+        else:
+            output.append(line)
+
+    normalized = "\n".join(output).strip()
+    return normalized if normalized else None
+
+
+def prepare_custom_property_for_form(value: str | None) -> str:
+    """
+    Parse query-api value and render it user-friendly in form fields.
+
+    - Decode escaped quotes/newlines.
+    - Remove trailing spaces per line for editing view.
+    """
+    decoded = decode_query_api_custom_property(value)
+    if decoded is None:
+        return ""
+    lines = decoded.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    return "\n".join(line.rstrip() for line in lines)
