@@ -77,6 +77,40 @@ def searchable_dropdown(
     return None
 
 
+def searchable_combobox_no_default(
+    title: str,
+    options: List[Dict[str, Any]],
+    widget_prefix: str,
+    selected_id: str = "",
+) -> Dict[str, Any] | None:
+    if not options:
+        st.warning(f"Keine Optionen fuer {title} verfuegbar.")
+        return None
+
+    labels = [str(option["label"]) for option in options]
+    default_index = None
+    if selected_id:
+        for index, option in enumerate(options):
+            if str(option.get("id")) == str(selected_id):
+                default_index = index
+                break
+
+    selected_label = st.selectbox(
+        title,
+        options=labels,
+        index=default_index,
+        key=f"{widget_prefix}_combo",
+        placeholder=f"Tippen zum Suchen ({title})",
+    )
+    if selected_label is None:
+        return None
+
+    for option in options:
+        if str(option["label"]) == selected_label:
+            return option
+    return None
+
+
 @st.cache_resource
 def get_vvp_client() -> VVPClient:
     return VVPClient()
@@ -126,34 +160,30 @@ def render_edit_form(
         [{"id": str(item.get("id", "")), "label": str(item.get("label", "")).strip()} for item in processings if item.get("id") and item.get("label")],
         key=lambda item: item["label"].casefold(),
     )
-    selected_processing_label = st.selectbox(
-        "Verfahren auswählen",
-        options=[item["label"] for item in processing_options],
-        key="edit_processing_select",
+    selected_processing = searchable_combobox_no_default(
+        title="Verfahren auswählen",
+        options=processing_options,
+        widget_prefix="edit_processing",
     )
-    selected_processing_id = ""
-    for item in processing_options:
-        if item["label"] == selected_processing_label:
-            selected_processing_id = item["id"]
-            break
-    if not selected_processing_id:
+    if not selected_processing:
         return
+    selected_processing_id = selected_processing["id"]
 
     rest_processing = client.get_processing_by_uuid(selected_processing_id)
     form_values = client.map_rest_processing_to_form(rest_processing)
 
     with st.form("edit_processing_form"):
-        label = st.text_input("Bezeichnung", value=form_values["label"])
-        legal_foundation = st.text_area("Rechtliche Grundlage(n)", value=form_values["legalFoundation"])
-        legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
-        website = st.text_input("Internetauftritt", value=form_values["website"])
-        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
-        selected_collection = searchable_dropdown(
+        selected_collection = searchable_combobox_no_default(
             title="Verantwortliche Stelle",
             options=collection_options,
             widget_prefix="edit_collection",
             selected_id=form_values["inCollection"],
         )
+        label = st.text_input("Bezeichnung", value=form_values["label"])
+        legal_foundation = st.text_area("Rechtliche Grundlage(n)", value=form_values["legalFoundation"])
+        legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
+        website = st.text_input("Internetauftritt", value=form_values["website"])
+        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
         submitted = st.form_submit_button("Änderungen speichern")
 
     if not submitted:
@@ -187,16 +217,16 @@ def render_edit_form(
 def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any]]) -> None:
     st.subheader("Neues Verfahren erstellen")
     with st.form("create_processing_form"):
+        selected_collection = searchable_combobox_no_default(
+            title="Verantwortliche Stelle",
+            options=collection_options,
+            widget_prefix="create_collection",
+        )
         label = st.text_input("Bezeichnung")
         legal_foundation = st.text_area("Rechtliche Grundlage(n)")
         legal_foundation_source = st.text_area("Quelle(n)")
         website = st.text_input("Internetauftritt")
         data_processing_purpose = st.text_area("Zweck der Datenbearbeitung")
-        selected_collection = searchable_dropdown(
-            title="Verantwortliche Stelle",
-            options=collection_options,
-            widget_prefix="create_collection",
-        )
         submitted = st.form_submit_button("Verfahren erstellen")
 
     if not submitted:
@@ -233,7 +263,7 @@ def main() -> None:
 
     departements = client.get_departements()
     departement_options = build_collection_options(departements)
-    selected_departement = searchable_dropdown(
+    selected_departement = searchable_combobox_no_default(
         title="Departement",
         options=departement_options,
         widget_prefix="departement",
@@ -243,7 +273,7 @@ def main() -> None:
 
     abteilungen = client.get_abteilungen(selected_departement["id"])
     abteilung_options = build_collection_options(abteilungen)
-    selected_abteilung = searchable_dropdown(
+    selected_abteilung = searchable_combobox_no_default(
         title="Abteilung",
         options=abteilung_options,
         widget_prefix="abteilung",
