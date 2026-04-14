@@ -135,7 +135,7 @@ def get_abteilungen_cached(client: VVPClient, departement_id: str) -> List[Dict[
 def get_collection_context_cached(client: VVPClient, abteilung_id: str) -> Dict[str, Any]:
     cached_abt_id = st.session_state.get("vvp_context_for_abteilung_id")
     if cached_abt_id != abteilung_id:
-        with st.spinner("Lade Verfahren und Collections..."):
+        with st.spinner("Lade Verfahren mit Personendaten..."):
             st.session_state["vvp_collection_context"] = client.get_collection_tree_context(abteilung_id)
             st.session_state["vvp_context_for_abteilung_id"] = abteilung_id
     return st.session_state.get("vvp_collection_context", {})
