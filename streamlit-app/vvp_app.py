@@ -18,6 +18,12 @@ SUCCESS_POPUP_MESSAGE_KEY = "vvp_success_popup_message"
 SUCCESS_POPUP_SHOWN_KEY = "vvp_success_popup_shown"
 CREATE_ERROR_MESSAGE_KEY = "vvp_create_error_message"
 EDIT_ERROR_MESSAGE_KEY = "vvp_edit_error_message"
+CREATE_LABEL_KEY = "vvp_create_label"
+CREATE_LEGAL_FOUNDATION_KEY = "vvp_create_legal_foundation"
+CREATE_LEGAL_FOUNDATION_SOURCE_KEY = "vvp_create_legal_foundation_source"
+CREATE_WEBSITE_KEY = "vvp_create_website"
+CREATE_PURPOSE_KEY = "vvp_create_data_processing_purpose"
+CREATE_FORM_VERSION_KEY = "vvp_create_form_version"
 
 
 def set_success_popup(message: str) -> None:
@@ -333,10 +339,8 @@ def render_edit_form(
             del st.session_state["vvp_collection_context"]
         if "vvp_context_for_abteilung_id" in st.session_state:
             del st.session_state["vvp_context_for_abteilung_id"]
-        if str(form_values["inCollection"]) != str(selected_collection["id"]):
-            set_success_popup("Verfahren gespeichert.")
-        else:
-            set_success_popup("Verfahren gespeichert.")
+        st.session_state.pop("edit_processing_combo", None)
+        set_success_popup("Verfahren gespeichert.")
         st.rerun()
 
 
@@ -346,17 +350,25 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
     if create_error:
         st.error(create_error)
 
+    create_form_version = int(st.session_state.get(CREATE_FORM_VERSION_KEY, 0))
+    label_key = f"{CREATE_LABEL_KEY}_{create_form_version}"
+    legal_foundation_key = f"{CREATE_LEGAL_FOUNDATION_KEY}_{create_form_version}"
+    legal_foundation_source_key = f"{CREATE_LEGAL_FOUNDATION_SOURCE_KEY}_{create_form_version}"
+    website_key = f"{CREATE_WEBSITE_KEY}_{create_form_version}"
+    purpose_key = f"{CREATE_PURPOSE_KEY}_{create_form_version}"
+
+    selected_collection = searchable_combobox_no_default(
+        title="Verantwortliche Stelle",
+        options=collection_options,
+        widget_prefix="create_collection",
+    )
+
     with st.form("create_processing_form"):
-        selected_collection = searchable_combobox_no_default(
-            title="Verantwortliche Stelle",
-            options=collection_options,
-            widget_prefix="create_collection",
-        )
-        label = st.text_input("Bezeichnung")
-        legal_foundation = st.text_area("Rechtliche Grundlage(n)")
-        legal_foundation_source = st.text_area("Quelle(n)")
-        website = st.text_input("Internetauftritt")
-        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung")
+        label = st.text_input("Bezeichnung", key=label_key)
+        legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=legal_foundation_key)
+        legal_foundation_source = st.text_area("Quelle(n)", key=legal_foundation_source_key)
+        website = st.text_input("Internetauftritt", key=website_key)
+        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=purpose_key)
         submitted = st.form_submit_button("Verfahren erstellen")
 
     if not submitted:
@@ -387,6 +399,12 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         return
 
     st.session_state.pop(CREATE_ERROR_MESSAGE_KEY, None)
+    st.session_state.pop(label_key, None)
+    st.session_state.pop(legal_foundation_key, None)
+    st.session_state.pop(legal_foundation_source_key, None)
+    st.session_state.pop(website_key, None)
+    st.session_state.pop(purpose_key, None)
+    st.session_state[CREATE_FORM_VERSION_KEY] = create_form_version + 1
     if "vvp_collection_context" in st.session_state:
         del st.session_state["vvp_collection_context"]
     if "vvp_context_for_abteilung_id" in st.session_state:
