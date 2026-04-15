@@ -24,6 +24,7 @@ CREATE_LEGAL_FOUNDATION_SOURCE_KEY = "vvp_create_legal_foundation_source"
 CREATE_WEBSITE_KEY = "vvp_create_website"
 CREATE_PURPOSE_KEY = "vvp_create_data_processing_purpose"
 CREATE_FORM_VERSION_KEY = "vvp_create_form_version"
+EDIT_PROCESSING_VERSION_KEY = "vvp_edit_processing_version"
 
 
 def set_success_popup(message: str) -> None:
@@ -268,10 +269,12 @@ def render_edit_form(
             [{"id": str(item.get("id", "")), "label": str(item.get("label", "")).strip()} for item in processings if item.get("id") and item.get("label")],
             key=lambda item: item["label"].casefold(),
         )
+        edit_processing_version = int(st.session_state.get(EDIT_PROCESSING_VERSION_KEY, 0))
+        edit_processing_prefix = f"edit_processing_{edit_processing_version}"
         selected_processing = searchable_combobox_no_default(
             title="Verfahren auswählen",
             options=processing_options,
-            widget_prefix="edit_processing",
+            widget_prefix=edit_processing_prefix,
         )
         if not selected_processing:
             return
@@ -339,7 +342,8 @@ def render_edit_form(
             del st.session_state["vvp_collection_context"]
         if "vvp_context_for_abteilung_id" in st.session_state:
             del st.session_state["vvp_context_for_abteilung_id"]
-        st.session_state.pop("edit_processing_combo", None)
+        st.session_state.pop(f"{edit_processing_prefix}_combo", None)
+        st.session_state[EDIT_PROCESSING_VERSION_KEY] = edit_processing_version + 1
         set_success_popup("Verfahren gespeichert.")
         st.rerun()
 
