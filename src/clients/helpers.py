@@ -150,12 +150,11 @@ def decode_query_api_custom_property(value: str | None) -> str | None:
 
 def normalize_multiline_markdown(value: str | None) -> str | None:
     """
-    Keep markdown line breaks for direct consecutive lines.
+    Normalize multiline text for Dataspot markdown viewer.
 
     Rules:
-    - Add two trailing spaces only when the next line is non-empty.
+    - Add two trailing spaces after each line.
     - No trailing spaces on the last line.
-    - Empty separator lines need no trailing spaces.
     """
     if value is None:
         return None
