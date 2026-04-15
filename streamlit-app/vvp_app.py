@@ -257,6 +257,22 @@ def render_edit_form(
     collection_options: List[Dict[str, Any]],
 ) -> None:
     with st.expander("Bestehendes Verfahren bearbeiten", expanded=False):
+        st.markdown(
+            """
+            <style>
+            button[kind="primaryFormSubmit"] {
+                background-color: #b42318 !important;
+                border-color: #b42318 !important;
+                color: #ffffff !important;
+            }
+            button[kind="primaryFormSubmit"]:hover {
+                background-color: #912018 !important;
+                border-color: #912018 !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         edit_error = str(st.session_state.get(EDIT_ERROR_MESSAGE_KEY, "")).strip()
         if edit_error:
             st.error(edit_error)
@@ -295,9 +311,9 @@ def render_edit_form(
             legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
             website = st.text_input("Internetauftritt", value=form_values["website"])
             data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
-            col_delete, col_save = st.columns(2)
+            col_delete, _, col_save = st.columns([1, 6, 1])
             with col_delete:
-                delete_submitted = st.form_submit_button("Verfahren löschen")
+                delete_submitted = st.form_submit_button("Verfahren löschen", type="primary")
             with col_save:
                 submitted = st.form_submit_button("Änderungen speichern")
 
