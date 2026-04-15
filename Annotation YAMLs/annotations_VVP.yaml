@@ -13,22 +13,26 @@ Processing:
       width: 2
       order: 1
       baseType: TEXT
+      mandatory: true
     legalFoundationSource:
       label: Quelle(n)
       width: 2
       order: 2
       baseType: TEXT
+      mandatory: true
     website:
       label: Internetauftritt
       width: 2
       order: 3
       baseType: STRING
       cardinality: ONE
+      mandatory: true
     dataProcessingPurpose:
       label: Zweck der Datenbearbeitung
       width: 2
       order: 4
       baseType: TEXT
+      mandatory: true
 
 Usage:
   label: Rechtsgrundlage
