@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 import config
 from src.dataspot_auth import DataspotAuth
-from src.common import requests_get, requests_delete, requests_post, requests_put, requests_patch
+from src.common import requests_get, requests_delete, requests_delete_no_retry, requests_post, requests_put, requests_patch
 from src.clients.helpers import url_join
 
 from requests import HTTPError
@@ -340,7 +340,7 @@ class BaseDataspotClient:
         
         return response.json()
 
-    def _delete_asset(self, endpoint: str, force_delete: bool = True) -> None:
+    def _delete_asset(self, endpoint: str, force_delete: bool = True, disable_retries: bool = False) -> None:
         """
         Permanently deletes an asset via DELETE request.
         
@@ -365,7 +365,10 @@ class BaseDataspotClient:
 
         # Completely delete the asset using DELETE request
         logging.info(f"Permanently deleting asset at {endpoint}")
-        requests_delete(full_url, headers=headers)
+        if disable_retries:
+            requests_delete_no_retry(full_url, headers=headers, skip_sleep=True)
+        else:
+            requests_delete(full_url, headers=headers)
     
     def _mark_asset_for_deletion(self, endpoint: str, status: str = "DELETENEW") -> None:
         """

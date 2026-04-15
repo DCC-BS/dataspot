@@ -6,11 +6,11 @@ import time
 
 import streamlit as st
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+import config
 from src.clients.vvp_client import VVPClient
 
 
@@ -295,10 +295,36 @@ def render_edit_form(
             legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
             website = st.text_input("Internetauftritt", value=form_values["website"])
             data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
-            submitted = st.form_submit_button("Änderungen speichern")
+            col_delete, col_save = st.columns(2)
+            with col_delete:
+                delete_submitted = st.form_submit_button("Verfahren löschen")
+            with col_save:
+                submitted = st.form_submit_button("Änderungen speichern")
 
-        if not submitted:
+        if not submitted and not delete_submitted:
             return
+        if delete_submitted:
+            try:
+                client._delete_asset(
+                    endpoint=f"/rest/{config.database_name}/processings/{selected_processing_id}",
+                    force_delete=True,
+                    disable_retries=True,
+                )
+            except Exception as exc:
+                st.session_state[EDIT_ERROR_MESSAGE_KEY] = f"Fehler beim Löschen: {exc}"
+                return
+
+            st.session_state.pop(EDIT_ERROR_MESSAGE_KEY, None)
+            if "vvp_collection_context" in st.session_state:
+                del st.session_state["vvp_collection_context"]
+            if "vvp_context_for_abteilung_id" in st.session_state:
+                del st.session_state["vvp_context_for_abteilung_id"]
+            st.session_state.pop(f"{edit_processing_prefix}_combo", None)
+            st.session_state[EDIT_PROCESSING_VERSION_KEY] = edit_processing_version + 1
+            set_success_popup("Verfahren gelöscht.")
+            st.rerun()
+            return
+
         if not label.strip():
             st.session_state[EDIT_ERROR_MESSAGE_KEY] = "Die Bezeichnung darf nicht leer sein."
             return

@@ -297,3 +297,19 @@ def requests_delete(*args, **kwargs):
     if not skip_sleep:
         time.sleep(delay)
     return r
+
+
+def requests_delete_no_retry(*args, **kwargs):
+    delay = kwargs.pop('rate_limit_delay', RATE_LIMIT_DELAY_SEC)
+    silent_status_codes = kwargs.pop('silent_status_codes', None)
+    skip_sleep = kwargs.pop('skip_sleep', False)
+
+    r = requests.delete(*args, **kwargs)
+    detailed_error_info = _get_detailed_error_info(r, silent_status_codes)
+
+    if r.status_code not in [200, 201, 204] and r.status_code not in (silent_status_codes or []):
+        raise DetailedHTTPError(r, detailed_error_info)
+
+    if not skip_sleep:
+        time.sleep(delay)
+    return r
