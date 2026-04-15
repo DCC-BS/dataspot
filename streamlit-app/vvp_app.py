@@ -236,8 +236,8 @@ def render_processing_list(client: VVPClient, processings: List[Dict[str, Any]],
 
     table_rows = [
         {
-            "Verantwortliche Stelle": row.get("verantwortliche_stelle", ""),
             "Bezeichnung": row.get("bezeichnung", ""),
+            "Verantwortliche Stelle": row.get("verantwortliche_stelle", ""),
         }
         for row in sorted_rows
     ]
