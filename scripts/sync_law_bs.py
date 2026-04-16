@@ -227,11 +227,13 @@ def build_law_cache(
         ts0 = time_series[0]
         code = _normalize_literal_field(ts0["code"])
         short_text = _normalize_literal_field(ts0.get("shortText"))
+        description = asset.get("description") or ""
 
         by_law_label[parent_label_lookup]["values_by_code"][code] = {
             "id": asset.get("id"),
             "code": code,
             "shortText": short_text,
+            "description": description,
         }
         mapped_literals += 1
 
@@ -273,12 +275,14 @@ def _build_prefixed_code(raw_code: str, norm_symbol: Optional[str]) -> str:
     return f"{norm_symbol} {cleaned}" if cleaned else norm_symbol
 
 
-def build_reference_value_payload(code: str, short_text: str) -> Dict[str, Any]:
+def build_reference_value_payload(code: str, short_text: str, description: str = "") -> Dict[str, Any]:
     if not short_text:
         short_text = ""
+    description = (description or "").strip()
 
     return {
         '_type': 'ReferenceValue',
+        'description': description,
         'timeSeries': [{
             'code': code,
             'shortText': short_text,
@@ -468,10 +472,12 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
             for paragraph in paragraphs:
                 desired_value_code = _build_prefixed_code(paragraph["code"], norm_symbol)
                 desired_value_short_text = _normalize_short_text(paragraph["shortText"])
+                desired_value_description = (original_url_de or "").strip()
 
                 desired_value = build_reference_value_payload(
                     code=desired_value_code,
                     short_text=desired_value_short_text,
+                    description=desired_value_description,
                 )
                 existing_value = current_values_by_code.get(desired_value_code)
 
@@ -489,6 +495,7 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
                 value_changed = (
                     (existing_value.get("code") or "") != desired_value_code
                     or (existing_value.get("shortText") or "") != desired_value_short_text
+                    or (existing_value.get("description") or "") != desired_value_description
                 )
 
                 if value_changed:
