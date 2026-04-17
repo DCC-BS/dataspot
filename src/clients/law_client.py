@@ -17,6 +17,27 @@ class LAWClient(BaseDataspotClient):
             scheme_name_short=config.law_scheme_name_short,
         )
         self.collections_cache: Dict[str, str] = {}
+        self._scheme_id_cache: str = ""
+
+    def get_scheme_id(self) -> str:
+        if self._scheme_id_cache:
+            return self._scheme_id_cache
+
+        query = f"""
+            SELECT s.id
+            FROM dataspot.scheme_view s
+            WHERE s.label = '{config.law_scheme_name}'
+              AND s.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        if not rows:
+            raise ValueError("LAW-Schema wurde per Query-API nicht gefunden.")
+        scheme_id = str(rows[0].get("id", "")).strip()
+        if not scheme_id:
+            raise ValueError("LAW-Schema-ID ist leer.")
+        self._scheme_id_cache = scheme_id
+        logging.info("Resolved LAW scheme ID via Query API.")
+        return scheme_id
 
     def download_law_assets_in_collection(self, collection_uuid: str) -> List[Dict[str, Any]]:
         """

@@ -1,10 +1,13 @@
 from typing import Any, Dict, List
 import logging
+import re
+from urllib.parse import urlparse
 
 import config
 from src.clients.base_client import BaseDataspotClient
+from src.clients.law_client import LAWClient
 from src.clients.helpers import normalize_multiline_markdown, prepare_custom_property_for_form
-from src.common import requests_patch_no_retry, requests_post_no_retry
+from src.common import requests_delete_no_retry, requests_patch_no_retry, requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -19,6 +22,7 @@ class VVPClient(BaseDataspotClient):
             scheme_name_short=config.vvp_scheme_name_short,
         )
         self.org_handler = OrgStructureHandler(self)
+        self.law_client = LAWClient()
 
     @staticmethod
     def _normalize_string(value: Any) -> str:
@@ -34,6 +38,246 @@ class VVPClient(BaseDataspotClient):
             return normalize_multiline_markdown(value)
         return value
 
+    @staticmethod
+    def _normalize_url_key(value: str) -> str:
+        return str(value or "").strip().casefold()
+
+    @staticmethod
+    def _extract_url_from_description(value: Any) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        parsed = urlparse(raw)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            logging.info("Ignored invalid or missing URL in LAW description.")
+            return ""
+        return raw
+
+    @staticmethod
+    def _natural_sort_key(value: Any) -> List[Any]:
+        text = str(value or "").strip().casefold()
+        parts = re.split(r"(\d+)", text)
+        key: List[Any] = []
+        for part in parts:
+            if part.isdigit():
+                key.append(int(part))
+            else:
+                key.append(part)
+        return key
+
+    def get_law_reference_objects(self) -> List[Dict[str, Any]]:
+        law_scheme_id = self.law_client.get_scheme_id()
+        query = f"""
+            SELECT e.id, e.label, e.description, e.in_collection
+            FROM dataspot.enumeration_view e
+            JOIN dataspot.collection_view c ON c.id = e.in_collection
+            WHERE c.in_scheme = '{law_scheme_id}'::uuid
+              AND e.status = 'PUBLISHED'
+            ORDER BY e.label
+        """
+        rows = self.execute_query_api(sql_query=query)
+        objects: List[Dict[str, Any]] = []
+        for row in rows:
+            object_id = self._normalize_string(row.get("id")).strip()
+            label = self._normalize_string(row.get("label")).strip()
+            if not object_id or not label:
+                continue
+            objects.append(
+                {
+                    "id": object_id,
+                    "label": label,
+                    "description": self._normalize_string(row.get("description")),
+                    "source_url": self._extract_url_from_description(row.get("description")),
+                }
+            )
+        logging.info("Loaded LAW reference objects: %s", len(objects))
+        return objects
+
+    def get_law_reference_values_by_object(self, object_id: str) -> List[Dict[str, Any]]:
+        normalized_object_id = self._normalize_string(object_id).strip()
+        if not normalized_object_id:
+            return []
+
+        query = f"""
+            SELECT l.id, l.literal_of, l.label, l.description
+            FROM dataspot.literal_view l
+            WHERE l.literal_of = '{normalized_object_id}'::uuid
+              AND l.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        values: List[Dict[str, Any]] = []
+        for row in rows:
+            value_id = self._normalize_string(row.get("id")).strip()
+            label = self._normalize_string(row.get("label")).strip()
+            if not value_id or not label:
+                continue
+            values.append(
+                {
+                    "id": value_id,
+                    "literal_of": self._normalize_string(row.get("literal_of")).strip(),
+                    "label": label,
+                    "description": self._normalize_string(row.get("description")),
+                    "source_url": self._extract_url_from_description(row.get("description")),
+                }
+            )
+        sorted_values = sorted(values, key=lambda item: self._natural_sort_key(item.get("label")))
+        logging.info("Loaded LAW reference values for object=%s: %s", normalized_object_id, len(sorted_values))
+        return sorted_values
+
+    def get_law_reference_values_by_ids(self, value_ids: List[str]) -> List[Dict[str, Any]]:
+        normalized_value_ids = [
+            self._normalize_string(value_id).strip()
+            for value_id in value_ids
+            if self._normalize_string(value_id).strip()
+        ]
+        if not normalized_value_ids:
+            return []
+        value_uuid_list = ", ".join(f"'{value_id}'::uuid" for value_id in normalized_value_ids)
+        query = f"""
+            SELECT l.id, l.literal_of, l.label, l.description
+            FROM dataspot.literal_view l
+            WHERE l.id IN ({value_uuid_list})
+              AND l.status = 'PUBLISHED'
+        """
+        rows = self.execute_query_api(sql_query=query)
+        values: List[Dict[str, Any]] = []
+        for row in rows:
+            value_id = self._normalize_string(row.get("id")).strip()
+            parent_object_id = self._normalize_string(row.get("literal_of")).strip()
+            label = self._normalize_string(row.get("label")).strip()
+            if not value_id or not parent_object_id or not label:
+                continue
+            values.append(
+                {
+                    "id": value_id,
+                    "literal_of": parent_object_id,
+                    "label": label,
+                    "description": self._normalize_string(row.get("description")),
+                    "source_url": self._extract_url_from_description(row.get("description")),
+                }
+            )
+        logging.info("Loaded LAW reference values by IDs: %s", len(values))
+        return values
+
+    def get_processing_usages(self, processing_uuid: str, law_scheme_id: str) -> List[Dict[str, Any]]:
+        normalized_processing_uuid = self._normalize_string(processing_uuid).strip()
+        normalized_law_scheme_id = self._normalize_string(law_scheme_id).strip()
+        if not normalized_processing_uuid or not normalized_law_scheme_id:
+            return []
+
+        query = f"""
+            SELECT u.id, u.resource_id, u.usage_of, u.qualifier
+            FROM dataspot.usageof_view u
+            WHERE u.resource_id = '{normalized_processing_uuid}'::uuid
+              AND u.model_id = '{normalized_law_scheme_id}'::uuid
+        """
+        rows = self.execute_query_api(sql_query=query)
+        logging.info("Loaded processing usages for processing=%s: %s", normalized_processing_uuid, len(rows))
+        return rows
+
+    def create_usage(self, used_by_processing_uuid: str, usage_of_uuid: str) -> Dict[str, Any]:
+        url = f"{config.base_url}/rest/{config.database_name}/usages"
+        payload = {
+            "_type": "Usage",
+            "usedBy": self._normalize_string(used_by_processing_uuid).strip(),
+            "usageOf": self._normalize_string(usage_of_uuid).strip(),
+        }
+        created_usage = requests_post_no_retry(
+            url=url,
+            json=payload,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        ).json()
+        logging.info(
+            "Created usage for processing=%s usageOf=%s",
+            payload["usedBy"],
+            payload["usageOf"],
+        )
+        return created_usage
+
+    def update_usage(self, usage_uuid: str, usage_of_uuid: str) -> Dict[str, Any]:
+        url = f"{config.base_url}/rest/{config.database_name}/usages/{usage_uuid}"
+        payload = {
+            "_type": "Usage",
+            "usageOf": self._normalize_string(usage_of_uuid).strip(),
+        }
+        updated_usage = requests_patch_no_retry(
+            url=url,
+            json=payload,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        ).json()
+        logging.info("Updated usage id=%s usageOf=%s", usage_uuid, payload["usageOf"])
+        return updated_usage
+
+    def delete_usage(self, usage_uuid: str) -> None:
+        url = f"{config.base_url}/rest/{config.database_name}/usages/{usage_uuid}"
+        requests_delete_no_retry(
+            url=url,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        )
+        logging.info("Deleted usage id=%s", usage_uuid)
+
+    def sync_processing_law_usages(
+        self,
+        processing_uuid: str,
+        desired_source_ids: List[str],
+        law_scheme_id: str,
+    ) -> Dict[str, Any]:
+        normalized_processing_uuid = self._normalize_string(processing_uuid).strip()
+        normalized_law_scheme_id = self._normalize_string(law_scheme_id).strip()
+        if not normalized_processing_uuid:
+            raise ValueError("processing_uuid darf nicht leer sein.")
+        if not normalized_law_scheme_id:
+            raise ValueError("law_scheme_id darf nicht leer sein.")
+
+        current_rows = self.get_processing_usages(
+            processing_uuid=normalized_processing_uuid,
+            law_scheme_id=normalized_law_scheme_id,
+        )
+        usage_id_to_source_id: Dict[str, str] = {}
+        for row in current_rows:
+            usage_id = self._normalize_string(row.get("id")).strip()
+            source_id = self._normalize_string(row.get("usage_of")).strip()
+            if usage_id and source_id:
+                usage_id_to_source_id[usage_id] = source_id
+
+        desired_set = {
+            self._normalize_string(source_id).strip()
+            for source_id in desired_source_ids
+            if self._normalize_string(source_id).strip()
+        }
+        current_set = set(usage_id_to_source_id.values())
+        usage_ids_to_delete = [
+            usage_id
+            for usage_id, source_id in usage_id_to_source_id.items()
+            if source_id not in desired_set
+        ]
+        source_ids_to_create = sorted(desired_set - current_set)
+
+        for usage_id in usage_ids_to_delete:
+            self.delete_usage(usage_uuid=usage_id)
+        for source_id in source_ids_to_create:
+            self.create_usage(
+                used_by_processing_uuid=normalized_processing_uuid,
+                usage_of_uuid=source_id,
+            )
+
+        summary = {
+            "deleted": len(usage_ids_to_delete),
+            "created": len(source_ids_to_create),
+            "desired": len(desired_set),
+            "existing": len(current_set),
+        }
+        logging.info(
+            "Completed usage sync for processing=%s (created=%s, deleted=%s).",
+            normalized_processing_uuid,
+            summary["created"],
+            summary["deleted"],
+        )
+        return summary
+
     def get_vvp_scheme_id(self) -> str:
         query = """
             SELECT s.id
@@ -47,7 +291,7 @@ class VVPClient(BaseDataspotClient):
         scheme_id = self._normalize_string(rows[0].get("id")).strip()
         if not scheme_id:
             raise ValueError("VVP-Schema-ID ist leer.")
-        logging.info("VVP-Schema-ID per Query-API aufgeloest.")
+        logging.info("Resolved VVP scheme ID via Query API.")
         return scheme_id
 
     def get_root_collection(self) -> Dict[str, Any]:
@@ -68,7 +312,7 @@ class VVPClient(BaseDataspotClient):
         if not rows:
             raise ValueError("Root-Collection 'Regierung und Verwaltung' wurde nicht gefunden.")
         root_collection = rows[0]
-        logging.info("Root-Collection im VVP-Schema aufgeloest: %s", root_collection.get("label", ""))
+        logging.info("Resolved root collection in VVP scheme: %s", root_collection.get("label", ""))
         return root_collection
 
     def get_child_collections(self, parent_collection_uuid: str) -> List[Dict[str, Any]]:
@@ -80,7 +324,7 @@ class VVPClient(BaseDataspotClient):
             ORDER BY c.label
         """
         collections = self.execute_query_api(sql_query=query)
-        logging.info("Kind-Collections geladen fuer parent=%s: %s", parent_collection_uuid, len(collections))
+        logging.info("Loaded child collections for parent=%s: %s", parent_collection_uuid, len(collections))
         return collections
 
     def get_departements(self) -> List[Dict[str, Any]]:
@@ -90,13 +334,13 @@ class VVPClient(BaseDataspotClient):
             raise ValueError("Root-Collection hat keine UUID.")
         collections = self.get_child_collections(root_uuid)
         sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())
-        logging.info("Departements geladen: %s", len(sorted_collections))
+        logging.info("Loaded departments: %s", len(sorted_collections))
         return sorted_collections
 
     def get_abteilungen(self, departement_uuid: str) -> List[Dict[str, Any]]:
         collections = self.get_child_collections(departement_uuid)
         sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())
-        logging.info("Abteilungen geladen fuer departement=%s: %s", departement_uuid, len(sorted_collections))
+        logging.info("Loaded divisions for department=%s: %s", departement_uuid, len(sorted_collections))
         return sorted_collections
 
     def get_recursive_collections_from_query(self, abteilung_uuid: str) -> List[Dict[str, Any]]:
@@ -120,7 +364,7 @@ class VVPClient(BaseDataspotClient):
         """
         collections = self.execute_query_api(sql_query=query)
         sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())
-        logging.info("Rekursive Collections per Query-API bestimmt: %s", len(sorted_collections))
+        logging.info("Resolved recursive collections via Query API: %s", len(sorted_collections))
         return sorted_collections
 
     def build_collection_lookup(self, collections: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
@@ -130,7 +374,7 @@ class VVPClient(BaseDataspotClient):
             if not collection_id:
                 continue
             by_id[collection_id] = dict(collection)
-        logging.info("Collection-Lookup aufgebaut: %s", len(by_id))
+        logging.info("Built collection lookup: %s", len(by_id))
         return by_id
 
     def get_processings_for_collection_tree(self, abteilung_uuid: str) -> List[Dict[str, Any]]:
@@ -177,7 +421,7 @@ class VVPClient(BaseDataspotClient):
         """
         processings = self.execute_query_api(sql_query=query)
         sorted_processings = sorted(processings, key=lambda item: self._normalize_string(item.get("label")).casefold())
-        logging.info("Processings im rekursiven Collection-Teilbaum gefiltert: %s", len(sorted_processings))
+        logging.info("Filtered processings in recursive collection subtree: %s", len(sorted_processings))
         return sorted_processings
 
     def get_collection_tree_context(self, abteilung_uuid: str) -> Dict[str, Any]:
@@ -185,7 +429,7 @@ class VVPClient(BaseDataspotClient):
         processings = self.get_processings_for_collection_tree(abteilung_uuid)
         collection_lookup = self.build_collection_lookup(recursive_collections)
         logging.info(
-            "Collection-Context aufgebaut fuer abteilung=%s: %s Collections, %s Processings",
+            "Built collection context for division=%s: %s collections, %s processings",
             abteilung_uuid,
             len(recursive_collections),
             len(processings),
@@ -257,7 +501,7 @@ class VVPClient(BaseDataspotClient):
         if not rows:
             raise ValueError(f"Processing nicht gefunden: {processing_uuid}")
         processing = rows[0]
-        logging.info("Processing per Query-API geladen: %s", processing_uuid)
+        logging.info("Loaded processing via Query API: %s", processing_uuid)
         return processing
 
     def map_rest_processing_to_form(self, processing: Dict[str, Any]) -> Dict[str, Any]:
@@ -310,7 +554,7 @@ class VVPClient(BaseDataspotClient):
             headers=self.auth.get_headers(),
             skip_sleep=True,
         ).json()
-        logging.info("Processing erstellt in Collection %s", in_collection_uuid)
+        logging.info("Created processing in collection %s", in_collection_uuid)
         return created_processing
 
     def update_processing(self, processing_uuid: str, payload: Dict[str, Any], status: str = "PUBLISHED") -> Dict[str, Any]:
@@ -323,5 +567,5 @@ class VVPClient(BaseDataspotClient):
             headers=self.auth.get_headers(),
             skip_sleep=True,
         ).json()
-        logging.info("Processing aktualisiert: %s", processing_uuid)
+        logging.info("Updated processing: %s", processing_uuid)
         return updated_processing

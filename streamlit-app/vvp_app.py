@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 import sys
 import time
+from uuid import uuid4
 
 import streamlit as st
 
@@ -25,6 +26,15 @@ CREATE_WEBSITE_KEY = "vvp_create_website"
 CREATE_PURPOSE_KEY = "vvp_create_data_processing_purpose"
 CREATE_FORM_VERSION_KEY = "vvp_create_form_version"
 EDIT_PROCESSING_VERSION_KEY = "vvp_edit_processing_version"
+LAW_SCHEME_ID_KEY = "vvp_law_scheme_id"
+LAW_REFERENCE_OBJECTS_KEY = "vvp_law_reference_objects"
+LAW_REFERENCE_VALUES_CACHE_KEY = "vvp_law_reference_values_cache"
+CREATE_LAW_ROWS_KEY = "vvp_create_law_rows"
+CREATE_PREV_AUTO_URLS_KEY = "vvp_create_prev_auto_urls"
+EDIT_LAW_ROWS_KEY = "vvp_edit_law_rows"
+EDIT_PREV_AUTO_URLS_KEY = "vvp_edit_prev_auto_urls"
+EDIT_LAW_ROWS_FOR_PROCESSING_KEY = "vvp_edit_law_rows_for_processing"
+EDIT_INITIAL_USAGE_TARGETS_KEY = "vvp_edit_initial_usage_targets"
 
 
 def set_success_popup(message: str) -> None:
@@ -56,6 +66,98 @@ def extract_leaf_label(value: Any) -> str:
     if "/" in raw:
         return raw.split("/")[-1].strip()
     return raw
+
+
+def normalize_url_key(value: Any) -> str:
+    return str(value or "").strip().casefold()
+
+
+def split_source_lines(source_text: str) -> List[str]:
+    lines: List[str] = []
+    for line in str(source_text or "").splitlines():
+        stripped = line.strip()
+        if stripped:
+            lines.append(stripped)
+    return lines
+
+
+def dedupe_urls(urls: List[str]) -> List[str]:
+    deduped: List[str] = []
+    seen: set[str] = set()
+    for url in urls:
+        stripped = str(url or "").strip()
+        if not stripped:
+            continue
+        key = normalize_url_key(stripped)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(stripped)
+    return deduped
+
+
+def make_empty_law_row() -> Dict[str, Any]:
+    return {
+        "row_id": str(uuid4()),
+        "object_id": "",
+        "value_ids": [],
+    }
+
+
+def ensure_trailing_empty_row(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    normalized_rows = []
+    for row in rows:
+        row_id = str(row.get("row_id") or uuid4())
+        object_id = str(row.get("object_id") or "").strip()
+        value_ids = [str(item).strip() for item in row.get("value_ids", []) if str(item).strip()]
+        normalized_rows.append({"row_id": row_id, "object_id": object_id, "value_ids": value_ids})
+    if not normalized_rows:
+        normalized_rows.append(make_empty_law_row())
+        return normalized_rows
+    last_row = normalized_rows[-1]
+    if last_row["object_id"] or last_row["value_ids"]:
+        normalized_rows.append(make_empty_law_row())
+    return normalized_rows
+
+
+def build_row_urls(
+    row: Dict[str, Any],
+    object_lookup: Dict[str, Dict[str, Any]],
+    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]],
+) -> List[str]:
+    urls: List[str] = []
+    object_id = str(row.get("object_id") or "").strip()
+    if object_id:
+        object_url = str(object_lookup.get(object_id, {}).get("source_url") or "").strip()
+        if object_url:
+            urls.append(object_url)
+
+    object_values = value_lookup_by_object.get(object_id, {})
+    for value_id in row.get("value_ids", []):
+        value_url = str(object_values.get(str(value_id).strip(), {}).get("source_url") or "").strip()
+        if value_url:
+            urls.append(value_url)
+    return urls
+
+
+def collect_selected_law_target_ids(rows: List[Dict[str, Any]]) -> List[str]:
+    selected_ids: List[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        value_ids = [str(item).strip() for item in row.get("value_ids", []) if str(item).strip()]
+        if value_ids:
+            for value_id in value_ids:
+                if value_id in seen:
+                    continue
+                seen.add(value_id)
+                selected_ids.append(value_id)
+            continue
+        object_id = str(row.get("object_id") or "").strip()
+        if not object_id or object_id in seen:
+            continue
+        seen.add(object_id)
+        selected_ids.append(object_id)
+    return selected_ids
 
 
 def rank_options_by_search(options: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
@@ -173,6 +275,32 @@ def get_collection_context_cached(client: VVPClient, abteilung_id: str) -> Dict[
     return st.session_state.get("vvp_collection_context", {})
 
 
+def get_law_context_cached(client: VVPClient) -> Dict[str, Any]:
+    if LAW_SCHEME_ID_KEY not in st.session_state:
+        with st.spinner("Lade Rechtsgrundlagen (Schema)..."):
+            st.session_state[LAW_SCHEME_ID_KEY] = client.law_client.get_scheme_id()
+    if LAW_REFERENCE_OBJECTS_KEY not in st.session_state:
+        with st.spinner("Lade Rechtsgrundlagen (Erlasse)..."):
+            st.session_state[LAW_REFERENCE_OBJECTS_KEY] = client.get_law_reference_objects()
+    if LAW_REFERENCE_VALUES_CACHE_KEY not in st.session_state:
+        st.session_state[LAW_REFERENCE_VALUES_CACHE_KEY] = {}
+    return {
+        "law_scheme_id": st.session_state[LAW_SCHEME_ID_KEY],
+        "objects": st.session_state[LAW_REFERENCE_OBJECTS_KEY],
+        "values_cache": st.session_state[LAW_REFERENCE_VALUES_CACHE_KEY],
+    }
+
+
+def get_law_values_for_object_cached(client: VVPClient, object_id: str) -> List[Dict[str, Any]]:
+    normalized_object_id = str(object_id or "").strip()
+    if not normalized_object_id:
+        return []
+    values_cache = st.session_state.setdefault(LAW_REFERENCE_VALUES_CACHE_KEY, {})
+    if normalized_object_id not in values_cache:
+        values_cache[normalized_object_id] = client.get_law_reference_values_by_object(normalized_object_id)
+    return values_cache[normalized_object_id]
+
+
 def clear_dependent_caches() -> None:
     for key in [
         "vvp_abteilungen",
@@ -182,6 +310,172 @@ def clear_dependent_caches() -> None:
     ]:
         if key in st.session_state:
             del st.session_state[key]
+
+
+def build_law_rows_from_usages(
+    usages: List[Dict[str, Any]],
+    object_lookup: Dict[str, Dict[str, Any]],
+    value_to_object_lookup: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for usage in usages:
+        usage_of = str(usage.get("usage_of") or "").strip()
+        if not usage_of:
+            continue
+        if usage_of in object_lookup:
+            rows.append({"row_id": str(uuid4()), "object_id": usage_of, "value_ids": []})
+            continue
+        parent_object_id = value_to_object_lookup.get(usage_of, "")
+        if parent_object_id:
+            rows.append({"row_id": str(uuid4()), "object_id": parent_object_id, "value_ids": [usage_of]})
+    return ensure_trailing_empty_row(rows)
+
+
+def sync_source_field_with_selected_urls(
+    *,
+    source_state_key: str,
+    previous_auto_urls_state_key: str,
+    selected_rows: List[Dict[str, Any]],
+    object_lookup: Dict[str, Dict[str, Any]],
+    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]],
+) -> None:
+    selected_url_lists = [
+        build_row_urls(
+            row=row,
+            object_lookup=object_lookup,
+            value_lookup_by_object=value_lookup_by_object,
+        )
+        for row in selected_rows
+    ]
+    current_auto_urls = dedupe_urls([url for urls in selected_url_lists for url in urls])
+    current_auto_keys = {normalize_url_key(url) for url in current_auto_urls}
+
+    previous_auto_urls = st.session_state.get(previous_auto_urls_state_key, [])
+    previous_auto_keys = {normalize_url_key(url) for url in previous_auto_urls}
+    if current_auto_keys == previous_auto_keys:
+        return
+
+    existing_lines = split_source_lines(str(st.session_state.get(source_state_key, "")))
+    existing_map: Dict[str, str] = {}
+    existing_order: List[str] = []
+    for line in existing_lines:
+        key = normalize_url_key(line)
+        if key in existing_map:
+            continue
+        existing_map[key] = line
+        existing_order.append(key)
+
+    keys_to_remove = previous_auto_keys - current_auto_keys
+    if keys_to_remove:
+        existing_order = [key for key in existing_order if key not in keys_to_remove]
+        for key in keys_to_remove:
+            existing_map.pop(key, None)
+
+    for auto_url in current_auto_urls:
+        key = normalize_url_key(auto_url)
+        if key in existing_map:
+            continue
+        existing_map[key] = auto_url
+        existing_order.append(key)
+
+    merged_lines = [existing_map[key] for key in existing_order]
+    st.session_state[source_state_key] = "\n".join(merged_lines)
+    st.session_state[previous_auto_urls_state_key] = current_auto_urls
+
+
+def render_legal_basis_rows(
+    *,
+    client: VVPClient,
+    rows_state_key: str,
+    widget_prefix: str,
+    object_options: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    rows = ensure_trailing_empty_row(st.session_state.get(rows_state_key, [make_empty_law_row()]))
+    st.session_state[rows_state_key] = rows
+
+    object_lookup = {str(option.get("id")): option for option in object_options}
+    all_selected_object_ids = [str(row.get("object_id") or "").strip() for row in rows if str(row.get("object_id") or "").strip()]
+    selected_value_ids_by_row: Dict[str, List[str]] = {
+        str(row.get("row_id")): [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()]
+        for row in rows
+    }
+    remove_row_ids: set[str] = set()
+
+    for index, row in enumerate(rows):
+        row_id = str(row.get("row_id"))
+        current_object_id = str(row.get("object_id") or "").strip()
+        other_selected_object_ids = {
+            object_id
+            for object_id in all_selected_object_ids
+            if object_id and object_id != current_object_id
+        }
+        object_options_for_row = [
+            option
+            for option in object_options
+            if str(option.get("id")) == current_object_id or str(option.get("id")) not in other_selected_object_ids
+        ]
+
+        col_object, col_values, col_remove = st.columns([4, 4, 1])
+        with col_object:
+            selected_object = searchable_combobox_no_default(
+                title=f"Rechtsgrundlage {index + 1}",
+                options=object_options_for_row,
+                widget_prefix=f"{widget_prefix}_{row_id}_object",
+                selected_id=current_object_id,
+            )
+            new_object_id = str(selected_object.get("id") if selected_object else "").strip()
+            if new_object_id != current_object_id:
+                row["object_id"] = new_object_id
+                row["value_ids"] = []
+            elif not new_object_id:
+                row["object_id"] = ""
+                row["value_ids"] = []
+
+        value_options = get_law_values_for_object_cached(client=client, object_id=row.get("object_id", ""))
+        value_lookup = {str(value.get("id")): value for value in value_options}
+        other_selected_value_ids: set[str] = set()
+        for other_row_id, selected_ids in selected_value_ids_by_row.items():
+            if other_row_id == row_id:
+                continue
+            other_selected_value_ids.update(selected_ids)
+        value_options_for_row = [
+            value
+            for value in value_options
+            if str(value.get("id")) in row.get("value_ids", []) or str(value.get("id")) not in other_selected_value_ids
+        ]
+        value_labels = [str(value.get("label", "")).strip() for value in value_options_for_row if str(value.get("label", "")).strip()]
+        value_label_to_id = {
+            str(value.get("label", "")).strip(): str(value.get("id"))
+            for value in value_options_for_row
+            if str(value.get("label", "")).strip()
+        }
+        selected_value_labels = [
+            str(value_lookup.get(str(value_id), {}).get("label", "")).strip()
+            for value_id in row.get("value_ids", [])
+            if str(value_lookup.get(str(value_id), {}).get("label", "")).strip()
+        ]
+
+        with col_values:
+            selected_value_labels = st.multiselect(
+                "Rechtsnormen (optional)",
+                options=value_labels,
+                default=selected_value_labels,
+                key=f"{widget_prefix}_{row_id}_values",
+                placeholder="Rechtsnorm wählen",
+            )
+            row["value_ids"] = [value_label_to_id[label] for label in selected_value_labels if label in value_label_to_id]
+
+        with col_remove:
+            st.write("")
+            st.write("")
+            if st.button("X", key=f"{widget_prefix}_{row_id}_remove", help="Zeile entfernen"):
+                remove_row_ids.add(row_id)
+
+    if remove_row_ids:
+        rows = [row for row in rows if str(row.get("row_id")) not in remove_row_ids]
+        rows = ensure_trailing_empty_row(rows)
+    st.session_state[rows_state_key] = rows
+    return rows
 
 
 def build_collection_options(collections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -196,6 +490,25 @@ def build_collection_options(collections: List[Dict[str, Any]]) -> List[Dict[str
                 "id": collection_id,
                 "label": label,
                 "search_label": extract_leaf_label(label),
+            }
+        )
+    return sorted(options, key=lambda item: item["label"].casefold())
+
+
+def build_law_object_options(objects: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    options: List[Dict[str, Any]] = []
+    for obj in objects:
+        object_id = str(obj.get("id", "")).strip()
+        label = str(obj.get("label", "")).strip()
+        if not object_id or not label:
+            continue
+        options.append(
+            {
+                "id": object_id,
+                "label": label,
+                "search_label": extract_leaf_label(label),
+                "source_url": str(obj.get("source_url", "")).strip(),
+                "description": str(obj.get("description", "")).strip(),
             }
         )
     return sorted(options, key=lambda item: item["label"].casefold())
@@ -298,27 +611,95 @@ def render_edit_form(
 
         rest_processing = client.get_processing_by_uuid(selected_processing_id)
         form_values = client.map_rest_processing_to_form(rest_processing)
+        law_context = get_law_context_cached(client)
+        law_scheme_id = str(law_context["law_scheme_id"]).strip()
+        law_object_options = build_law_object_options(law_context["objects"])
+        law_object_lookup = {str(item.get("id")): item for item in law_object_options}
 
-        with st.form("edit_processing_form"):
-            selected_collection = searchable_combobox_no_default(
-                title="Verantwortliche Stelle",
-                options=collection_options,
-                widget_prefix="edit_collection",
-                selected_id=form_values["inCollection"],
+        edit_rows_for_processing = str(st.session_state.get(EDIT_LAW_ROWS_FOR_PROCESSING_KEY, "")).strip()
+        if edit_rows_for_processing != selected_processing_id:
+            usage_rows = client.get_processing_usages(
+                processing_uuid=selected_processing_id,
+                law_scheme_id=law_scheme_id,
             )
-            label = st.text_input("Bezeichnung", value=form_values["label"])
-            legal_foundation = st.text_area("Rechtliche Grundlage(n)", value=form_values["legalFoundation"])
-            legal_foundation_source = st.text_area("Quelle(n)", value=form_values["legalFoundationSource"])
-            website = st.text_input("Internetauftritt", value=form_values["website"])
-            data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", value=form_values["dataProcessingPurpose"])
-            col_delete, _, col_save = st.columns([1, 6, 1])
-            with col_delete:
-                delete_submitted = st.form_submit_button("Verfahren löschen", type="primary")
-            with col_save:
-                submitted = st.form_submit_button("Änderungen speichern")
+            value_usage_ids = []
+            for usage_row in usage_rows:
+                usage_of = str(usage_row.get("usage_of") or "").strip()
+                if usage_of and usage_of not in law_object_lookup:
+                    value_usage_ids.append(usage_of)
+            value_to_object_lookup: Dict[str, str] = {}
+            if value_usage_ids:
+                fetched_values = client.get_law_reference_values_by_ids(value_usage_ids)
+                for fetched_value in fetched_values:
+                    value_id = str(fetched_value.get("id") or "").strip()
+                    parent_object_id = str(fetched_value.get("literal_of") or "").strip()
+                    if value_id and parent_object_id:
+                        value_to_object_lookup[value_id] = parent_object_id
+            st.session_state[EDIT_LAW_ROWS_KEY] = build_law_rows_from_usages(
+                usages=usage_rows,
+                object_lookup=law_object_lookup,
+                value_to_object_lookup=value_to_object_lookup,
+            )
+            st.session_state[EDIT_LAW_ROWS_FOR_PROCESSING_KEY] = selected_processing_id
+            initial_targets: List[str] = []
+            for usage_row in usage_rows:
+                usage_of = str(usage_row.get("usage_of") or "").strip()
+                if usage_of:
+                    initial_targets.append(usage_of)
+            st.session_state[EDIT_INITIAL_USAGE_TARGETS_KEY] = initial_targets
+            st.session_state[EDIT_PREV_AUTO_URLS_KEY] = []
 
-        if not submitted and not delete_submitted:
-            return
+        source_state_key = f"vvp_edit_source_text_{selected_processing_id}"
+        if source_state_key not in st.session_state:
+            st.session_state[source_state_key] = form_values["legalFoundationSource"]
+        if f"vvp_edit_legal_foundation_{selected_processing_id}" not in st.session_state:
+            st.session_state[f"vvp_edit_legal_foundation_{selected_processing_id}"] = form_values["legalFoundation"]
+        if f"vvp_edit_label_{selected_processing_id}" not in st.session_state:
+            st.session_state[f"vvp_edit_label_{selected_processing_id}"] = form_values["label"]
+        if f"vvp_edit_website_{selected_processing_id}" not in st.session_state:
+            st.session_state[f"vvp_edit_website_{selected_processing_id}"] = form_values["website"]
+        if f"vvp_edit_purpose_{selected_processing_id}" not in st.session_state:
+            st.session_state[f"vvp_edit_purpose_{selected_processing_id}"] = form_values["dataProcessingPurpose"]
+
+        selected_collection = searchable_combobox_no_default(
+            title="Verantwortliche Stelle",
+            options=collection_options,
+            widget_prefix="edit_collection",
+            selected_id=form_values["inCollection"],
+        )
+        label = st.text_input("Bezeichnung", key=f"vvp_edit_label_{selected_processing_id}")
+        legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=f"vvp_edit_legal_foundation_{selected_processing_id}")
+
+        rows = render_legal_basis_rows(
+            client=client,
+            rows_state_key=EDIT_LAW_ROWS_KEY,
+            widget_prefix=f"edit_law_{selected_processing_id}",
+            object_options=law_object_options,
+        )
+        value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for row in rows:
+            object_id = str(row.get("object_id") or "").strip()
+            if not object_id or object_id in value_lookup_by_object:
+                continue
+            object_values = get_law_values_for_object_cached(client=client, object_id=object_id)
+            value_lookup_by_object[object_id] = {str(item.get("id")): item for item in object_values}
+        sync_source_field_with_selected_urls(
+            source_state_key=source_state_key,
+            previous_auto_urls_state_key=EDIT_PREV_AUTO_URLS_KEY,
+            selected_rows=rows,
+            object_lookup=law_object_lookup,
+            value_lookup_by_object=value_lookup_by_object,
+        )
+
+        legal_foundation_source = st.text_area("Quelle(n)", key=source_state_key)
+        website = st.text_input("Internetauftritt", key=f"vvp_edit_website_{selected_processing_id}")
+        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=f"vvp_edit_purpose_{selected_processing_id}")
+        col_delete, _, col_save = st.columns([1, 6, 1])
+        with col_delete:
+            delete_submitted = st.button("Verfahren löschen", type="primary", key=f"vvp_edit_delete_{selected_processing_id}")
+        with col_save:
+            submitted = st.button("Änderungen speichern", key=f"vvp_edit_save_{selected_processing_id}")
+
         if delete_submitted:
             try:
                 client._delete_asset(
@@ -339,6 +720,9 @@ def render_edit_form(
             st.session_state[EDIT_PROCESSING_VERSION_KEY] = edit_processing_version + 1
             set_success_popup("Verfahren gelöscht.")
             st.rerun()
+            return
+
+        if not submitted:
             return
 
         if not label.strip():
@@ -364,19 +748,39 @@ def render_edit_form(
             website=website,
             data_processing_purpose=data_processing_purpose,
         )
-        if payload == current_payload:
+        desired_usage_targets = collect_selected_law_target_ids(rows)
+        initial_usage_targets = [
+            str(item).strip()
+            for item in st.session_state.get(EDIT_INITIAL_USAGE_TARGETS_KEY, [])
+            if str(item).strip()
+        ]
+        usage_changed = set(desired_usage_targets) != set(initial_usage_targets)
+
+        if payload == current_payload and not usage_changed:
             st.session_state.pop(EDIT_ERROR_MESSAGE_KEY, None)
             st.warning("Keine Änderungen erkannt. Es wurde nichts gespeichert.")
             return
 
+        if payload != current_payload:
+            try:
+                client.update_processing(
+                    processing_uuid=selected_processing_id,
+                    payload=payload,
+                    status="PUBLISHED",
+                )
+            except Exception as exc:
+                st.session_state[EDIT_ERROR_MESSAGE_KEY] = f"Fehler beim Speichern: {exc}"
+                return
         try:
-            client.update_processing(
+            client.sync_processing_law_usages(
                 processing_uuid=selected_processing_id,
-                payload=payload,
-                status="PUBLISHED",
+                desired_source_ids=desired_usage_targets,
+                law_scheme_id=law_scheme_id,
             )
         except Exception as exc:
-            st.session_state[EDIT_ERROR_MESSAGE_KEY] = f"Fehler beim Speichern: {exc}"
+            st.session_state[EDIT_ERROR_MESSAGE_KEY] = (
+                f"Processing wurde gespeichert, aber Usage-Sync ist fehlgeschlagen: {exc}"
+            )
             return
 
         st.session_state.pop(EDIT_ERROR_MESSAGE_KEY, None)
@@ -385,6 +789,10 @@ def render_edit_form(
         if "vvp_context_for_abteilung_id" in st.session_state:
             del st.session_state["vvp_context_for_abteilung_id"]
         st.session_state.pop(f"{edit_processing_prefix}_combo", None)
+        st.session_state.pop(EDIT_LAW_ROWS_KEY, None)
+        st.session_state.pop(EDIT_PREV_AUTO_URLS_KEY, None)
+        st.session_state.pop(EDIT_INITIAL_USAGE_TARGETS_KEY, None)
+        st.session_state.pop(EDIT_LAW_ROWS_FOR_PROCESSING_KEY, None)
         st.session_state[EDIT_PROCESSING_VERSION_KEY] = edit_processing_version + 1
         set_success_popup("Verfahren gespeichert.")
         st.rerun()
@@ -409,13 +817,38 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         widget_prefix="create_collection",
     )
 
-    with st.form("create_processing_form"):
-        label = st.text_input("Bezeichnung", key=label_key)
-        legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=legal_foundation_key)
-        legal_foundation_source = st.text_area("Quelle(n)", key=legal_foundation_source_key)
-        website = st.text_input("Internetauftritt", key=website_key)
-        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=purpose_key)
-        submitted = st.form_submit_button("Verfahren erstellen")
+    label = st.text_input("Bezeichnung", key=label_key)
+    legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=legal_foundation_key)
+    law_context = get_law_context_cached(client)
+    law_scheme_id = str(law_context["law_scheme_id"]).strip()
+    law_object_options = build_law_object_options(law_context["objects"])
+    law_object_lookup = {str(item.get("id")): item for item in law_object_options}
+
+    rows = render_legal_basis_rows(
+        client=client,
+        rows_state_key=CREATE_LAW_ROWS_KEY,
+        widget_prefix=f"create_law_{create_form_version}",
+        object_options=law_object_options,
+    )
+    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    for row in rows:
+        object_id = str(row.get("object_id") or "").strip()
+        if not object_id or object_id in value_lookup_by_object:
+            continue
+        object_values = get_law_values_for_object_cached(client=client, object_id=object_id)
+        value_lookup_by_object[object_id] = {str(item.get("id")): item for item in object_values}
+
+    sync_source_field_with_selected_urls(
+        source_state_key=legal_foundation_source_key,
+        previous_auto_urls_state_key=CREATE_PREV_AUTO_URLS_KEY,
+        selected_rows=rows,
+        object_lookup=law_object_lookup,
+        value_lookup_by_object=value_lookup_by_object,
+    )
+    legal_foundation_source = st.text_area("Quelle(n)", key=legal_foundation_source_key)
+    website = st.text_input("Internetauftritt", key=website_key)
+    data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=purpose_key)
+    submitted = st.button("Verfahren erstellen", key=f"vvp_create_submit_{create_form_version}")
 
     if not submitted:
         return
@@ -434,14 +867,31 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         website=website,
         data_processing_purpose=data_processing_purpose,
     )
+    created_processing = {}
     try:
-        client.create_processing(
+        created_processing = client.create_processing(
             payload=payload,
             in_collection_uuid=selected_collection["id"],
             status="PUBLISHED",
         )
     except Exception as exc:
         st.session_state[CREATE_ERROR_MESSAGE_KEY] = f"Fehler beim Erstellen: {exc}"
+        return
+    processing_id = str(created_processing.get("id") or "").strip()
+    if not processing_id:
+        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Processing wurde erstellt, aber keine ID zurückgegeben."
+        return
+    desired_usage_targets = collect_selected_law_target_ids(rows)
+    try:
+        client.sync_processing_law_usages(
+            processing_uuid=processing_id,
+            desired_source_ids=desired_usage_targets,
+            law_scheme_id=law_scheme_id,
+        )
+    except Exception as exc:
+        st.session_state[CREATE_ERROR_MESSAGE_KEY] = (
+            f"Processing wurde erstellt, aber Usage-Sync ist fehlgeschlagen: {exc}"
+        )
         return
 
     st.session_state.pop(CREATE_ERROR_MESSAGE_KEY, None)
@@ -455,6 +905,8 @@ def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any
         del st.session_state["vvp_collection_context"]
     if "vvp_context_for_abteilung_id" in st.session_state:
         del st.session_state["vvp_context_for_abteilung_id"]
+    st.session_state.pop(CREATE_LAW_ROWS_KEY, None)
+    st.session_state.pop(CREATE_PREV_AUTO_URLS_KEY, None)
     set_success_popup("Neues Verfahren wurde erstellt.")
     st.rerun()
 
