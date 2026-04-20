@@ -903,116 +903,116 @@ def render_edit_form(
 
 
 def render_create_form(client: VVPClient, collection_options: List[Dict[str, Any]]) -> None:
-    st.subheader("Neues Verfahren erstellen")
-    create_error = str(st.session_state.get(CREATE_ERROR_MESSAGE_KEY, "")).strip()
-    if create_error:
-        st.error(create_error)
+    with st.expander("Neues Verfahren erfassen", expanded=False):
+        create_error = str(st.session_state.get(CREATE_ERROR_MESSAGE_KEY, "")).strip()
+        if create_error:
+            st.error(create_error)
 
-    create_form_version = int(st.session_state.get(CREATE_FORM_VERSION_KEY, 0))
-    label_key = f"{CREATE_LABEL_KEY}_{create_form_version}"
-    legal_foundation_key = f"{CREATE_LEGAL_FOUNDATION_KEY}_{create_form_version}"
-    legal_foundation_source_key = f"{CREATE_LEGAL_FOUNDATION_SOURCE_KEY}_{create_form_version}"
-    website_key = f"{CREATE_WEBSITE_KEY}_{create_form_version}"
-    purpose_key = f"{CREATE_PURPOSE_KEY}_{create_form_version}"
+        create_form_version = int(st.session_state.get(CREATE_FORM_VERSION_KEY, 0))
+        label_key = f"{CREATE_LABEL_KEY}_{create_form_version}"
+        legal_foundation_key = f"{CREATE_LEGAL_FOUNDATION_KEY}_{create_form_version}"
+        legal_foundation_source_key = f"{CREATE_LEGAL_FOUNDATION_SOURCE_KEY}_{create_form_version}"
+        website_key = f"{CREATE_WEBSITE_KEY}_{create_form_version}"
+        purpose_key = f"{CREATE_PURPOSE_KEY}_{create_form_version}"
 
-    selected_collection = searchable_combobox_no_default(
-        title="Verantwortliche Stelle",
-        options=collection_options,
-        widget_prefix="create_collection",
-    )
+        selected_collection = searchable_combobox_no_default(
+            title="Verantwortliche Stelle",
+            options=collection_options,
+            widget_prefix="create_collection",
+        )
 
-    label = st.text_input("Bezeichnung", key=label_key)
-    legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=legal_foundation_key)
-    law_context = get_law_context_cached(client)
-    law_scheme_id = str(law_context["law_scheme_id"]).strip()
-    law_object_options = build_law_object_options(law_context["objects"])
-    law_object_lookup = {str(item.get("id")): item for item in law_object_options}
+        label = st.text_input("Bezeichnung", key=label_key)
+        legal_foundation = st.text_area("Rechtliche Grundlage(n)", key=legal_foundation_key)
+        law_context = get_law_context_cached(client)
+        law_scheme_id = str(law_context["law_scheme_id"]).strip()
+        law_object_options = build_law_object_options(law_context["objects"])
+        law_object_lookup = {str(item.get("id")): item for item in law_object_options}
 
-    rows = render_legal_basis_rows(
-        client=client,
-        rows_state_key=CREATE_LAW_ROWS_KEY,
-        widget_prefix=f"create_law_{create_form_version}",
-        object_options=law_object_options,
-    )
-    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]] = {}
-    for row in rows:
-        object_id = str(row.get("object_id") or "").strip()
-        if not object_id or object_id in value_lookup_by_object:
-            continue
-        object_values = get_law_values_for_object_cached(client=client, object_id=object_id)
-        value_lookup_by_object[object_id] = {str(item.get("id")): item for item in object_values}
+        rows = render_legal_basis_rows(
+            client=client,
+            rows_state_key=CREATE_LAW_ROWS_KEY,
+            widget_prefix=f"create_law_{create_form_version}",
+            object_options=law_object_options,
+        )
+        value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for row in rows:
+            object_id = str(row.get("object_id") or "").strip()
+            if not object_id or object_id in value_lookup_by_object:
+                continue
+            object_values = get_law_values_for_object_cached(client=client, object_id=object_id)
+            value_lookup_by_object[object_id] = {str(item.get("id")): item for item in object_values}
 
-    sync_source_field_with_selected_urls(
-        source_state_key=legal_foundation_source_key,
-        previous_auto_urls_state_key=CREATE_PREV_AUTO_URLS_KEY,
-        selected_rows=rows,
-        object_lookup=law_object_lookup,
-        value_lookup_by_object=value_lookup_by_object,
-    )
-    legal_foundation_source = st.text_area("Quelle(n)", key=legal_foundation_source_key)
-    website = st.text_input("Internetauftritt", key=website_key)
-    data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=purpose_key)
-    submitted = st.button("Verfahren erstellen", key=f"vvp_create_submit_{create_form_version}")
+        sync_source_field_with_selected_urls(
+            source_state_key=legal_foundation_source_key,
+            previous_auto_urls_state_key=CREATE_PREV_AUTO_URLS_KEY,
+            selected_rows=rows,
+            object_lookup=law_object_lookup,
+            value_lookup_by_object=value_lookup_by_object,
+        )
+        legal_foundation_source = st.text_area("Quelle(n)", key=legal_foundation_source_key)
+        website = st.text_input("Internetauftritt", key=website_key)
+        data_processing_purpose = st.text_area("Zweck der Datenbearbeitung", key=purpose_key)
+        submitted = st.button("Verfahren erstellen", key=f"vvp_create_submit_{create_form_version}")
 
-    if not submitted:
-        return
-    if not label.strip():
-        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Die Bezeichnung darf nicht leer sein."
-        return
-    if not selected_collection:
-        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Bitte eine verantwortliche Stelle auswählen."
-        return
+        if not submitted:
+            return
+        if not label.strip():
+            st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Die Bezeichnung darf nicht leer sein."
+            return
+        if not selected_collection:
+            st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Bitte eine verantwortliche Stelle auswählen."
+            return
 
-    payload = client.build_processing_payload(
-        label=label,
-        in_collection_uuid=selected_collection["id"],
-        legal_foundation=legal_foundation,
-        legal_foundation_source=legal_foundation_source,
-        website=website,
-        data_processing_purpose=data_processing_purpose,
-    )
-    created_processing = {}
-    try:
-        created_processing = client.create_processing(
-            payload=payload,
+        payload = client.build_processing_payload(
+            label=label,
             in_collection_uuid=selected_collection["id"],
-            status="PUBLISHED",
+            legal_foundation=legal_foundation,
+            legal_foundation_source=legal_foundation_source,
+            website=website,
+            data_processing_purpose=data_processing_purpose,
         )
-    except Exception as exc:
-        st.session_state[CREATE_ERROR_MESSAGE_KEY] = f"Fehler beim Erstellen: {exc}"
-        return
-    processing_id = str(created_processing.get("id") or "").strip()
-    if not processing_id:
-        st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Processing wurde erstellt, aber keine ID zurückgegeben."
-        return
-    desired_usage_targets = collect_selected_law_target_ids(rows)
-    try:
-        client.sync_processing_law_usages(
-            processing_uuid=processing_id,
-            desired_source_ids=desired_usage_targets,
-            law_scheme_id=law_scheme_id,
-        )
-    except Exception as exc:
-        st.session_state[CREATE_ERROR_MESSAGE_KEY] = (
-            f"Processing wurde erstellt, aber Usage-Sync ist fehlgeschlagen: {exc}"
-        )
-        return
+        created_processing = {}
+        try:
+            created_processing = client.create_processing(
+                payload=payload,
+                in_collection_uuid=selected_collection["id"],
+                status="PUBLISHED",
+            )
+        except Exception as exc:
+            st.session_state[CREATE_ERROR_MESSAGE_KEY] = f"Fehler beim Erstellen: {exc}"
+            return
+        processing_id = str(created_processing.get("id") or "").strip()
+        if not processing_id:
+            st.session_state[CREATE_ERROR_MESSAGE_KEY] = "Processing wurde erstellt, aber keine ID zurückgegeben."
+            return
+        desired_usage_targets = collect_selected_law_target_ids(rows)
+        try:
+            client.sync_processing_law_usages(
+                processing_uuid=processing_id,
+                desired_source_ids=desired_usage_targets,
+                law_scheme_id=law_scheme_id,
+            )
+        except Exception as exc:
+            st.session_state[CREATE_ERROR_MESSAGE_KEY] = (
+                f"Processing wurde erstellt, aber Usage-Sync ist fehlgeschlagen: {exc}"
+            )
+            return
 
-    st.session_state.pop(CREATE_ERROR_MESSAGE_KEY, None)
-    st.session_state.pop(label_key, None)
-    st.session_state.pop(legal_foundation_key, None)
-    st.session_state.pop(legal_foundation_source_key, None)
-    st.session_state.pop(website_key, None)
-    st.session_state.pop(purpose_key, None)
-    st.session_state[CREATE_FORM_VERSION_KEY] = create_form_version + 1
-    if "vvp_collection_context" in st.session_state:
-        del st.session_state["vvp_collection_context"]
-    if "vvp_context_for_abteilung_id" in st.session_state:
-        del st.session_state["vvp_context_for_abteilung_id"]
-    st.session_state.pop(CREATE_LAW_ROWS_KEY, None)
-    st.session_state.pop(CREATE_PREV_AUTO_URLS_KEY, None)
-    set_success_popup("Neues Verfahren wurde erstellt.")
-    st.rerun()
+        st.session_state.pop(CREATE_ERROR_MESSAGE_KEY, None)
+        st.session_state.pop(label_key, None)
+        st.session_state.pop(legal_foundation_key, None)
+        st.session_state.pop(legal_foundation_source_key, None)
+        st.session_state.pop(website_key, None)
+        st.session_state.pop(purpose_key, None)
+        st.session_state[CREATE_FORM_VERSION_KEY] = create_form_version + 1
+        if "vvp_collection_context" in st.session_state:
+            del st.session_state["vvp_collection_context"]
+        if "vvp_context_for_abteilung_id" in st.session_state:
+            del st.session_state["vvp_context_for_abteilung_id"]
+        st.session_state.pop(CREATE_LAW_ROWS_KEY, None)
+        st.session_state.pop(CREATE_PREV_AUTO_URLS_KEY, None)
+        set_success_popup("Neues Verfahren wurde erstellt.")
+        st.rerun()
 
 
 def main() -> None:
