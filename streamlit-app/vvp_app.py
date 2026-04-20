@@ -160,6 +160,23 @@ def collect_selected_law_target_ids(rows: List[Dict[str, Any]]) -> List[str]:
     return selected_ids
 
 
+def sort_value_ids_by_option_order(value_ids: List[str], value_options: List[Dict[str, Any]]) -> List[str]:
+    option_order = {
+        str(option.get("id")): index
+        for index, option in enumerate(value_options)
+        if str(option.get("id", "")).strip()
+    }
+    deduped_ids: List[str] = []
+    seen_ids: set[str] = set()
+    for value_id in value_ids:
+        normalized_value_id = str(value_id or "").strip()
+        if not normalized_value_id or normalized_value_id in seen_ids:
+            continue
+        seen_ids.add(normalized_value_id)
+        deduped_ids.append(normalized_value_id)
+    return sorted(deduped_ids, key=lambda value_id: (option_order.get(value_id, len(option_order)), value_id.casefold()))
+
+
 def rank_options_by_search(options: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
     sorted_options = sorted(options, key=lambda item: str(item["label"]).casefold())
     normalized_query = normalize_text(query)
@@ -467,6 +484,10 @@ def render_legal_basis_rows(
             for value in value_options
             if str(value.get("id")) in row.get("value_ids", []) or str(value.get("id")) not in other_selected_value_ids
         ]
+        row["value_ids"] = sort_value_ids_by_option_order(
+            [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()],
+            value_options_for_row,
+        )
         value_labels = [str(value.get("label", "")).strip() for value in value_options_for_row if str(value.get("label", "")).strip()]
         value_label_to_id = {
             str(value.get("label", "")).strip(): str(value.get("id"))
@@ -487,7 +508,10 @@ def render_legal_basis_rows(
                 key=f"{widget_prefix}_{row_id}_values",
                 placeholder="Rechtsnorm wählen",
             )
-            row["value_ids"] = [value_label_to_id[label] for label in selected_value_labels if label in value_label_to_id]
+            row["value_ids"] = sort_value_ids_by_option_order(
+                [value_label_to_id[label] for label in selected_value_labels if label in value_label_to_id],
+                value_options_for_row,
+            )
 
         with col_remove:
             st.write("")
