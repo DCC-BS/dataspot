@@ -190,6 +190,82 @@ class VVPClient(BaseDataspotClient):
         logging.info("Loaded processing usages for processing=%s: %s", normalized_processing_uuid, len(rows))
         return rows
 
+    def get_processing_usage_targets(self, processing_uuid: str) -> List[Dict[str, Any]]:
+        normalized_processing_uuid = self._normalize_string(processing_uuid).strip()
+        if not normalized_processing_uuid:
+            return []
+
+        url = f"{config.base_url}/rest/{config.database_name}/processings/{normalized_processing_uuid}/usageOf"
+        response = requests_get(
+            url=url,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        )
+        payload = response.json()
+        usage_rows: List[Dict[str, Any]] = []
+        if isinstance(payload, dict):
+            embedded = payload.get("_embedded", {})
+            if isinstance(embedded, dict):
+                raw_rows = embedded.get("usageOf", [])
+                if isinstance(raw_rows, list):
+                    usage_rows = [row for row in raw_rows if isinstance(row, dict)]
+
+        targets: List[Dict[str, Any]] = []
+        for row in usage_rows:
+            usage_id = self._normalize_string(row.get("id")).strip()
+            usage_of = self._normalize_string(row.get("usageOf", row.get("usage_of"))).strip()
+            if not usage_id or not usage_of:
+                continue
+            targets.append(
+                {
+                    "id": usage_id,
+                    "usage_of": usage_of,
+                    "used_by": self._normalize_string(row.get("usedBy", row.get("used_by"))).strip(),
+                    "model_id": self._normalize_string(row.get("modelId", row.get("model_id"))).strip(),
+                }
+            )
+        logging.info(
+            "Loaded processing usage targets via REST for processing=%s: %s",
+            normalized_processing_uuid,
+            len(targets),
+        )
+        return targets
+
+    def get_asset_by_uuid(self, asset_uuid: str) -> Dict[str, Any]:
+        normalized_asset_uuid = self._normalize_string(asset_uuid).strip()
+        if not normalized_asset_uuid:
+            return {}
+
+        url = f"{config.base_url}/rest/{config.database_name}/assets/{normalized_asset_uuid}"
+        response = requests_get(
+            url=url,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        )
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Unexpected asset response type for {normalized_asset_uuid}: {type(payload)}"
+            )
+
+        asset = {
+            "id": self._normalize_string(payload.get("id")).strip(),
+            "_type": self._normalize_string(payload.get("_type")).strip(),
+            "label": self._normalize_string(payload.get("label")).strip(),
+            "literal_of": self._normalize_string(payload.get("literalOf", payload.get("literal_of"))).strip(),
+            "model_id": self._normalize_string(payload.get("modelId", payload.get("model_id"))).strip(),
+            "status": self._normalize_string(payload.get("status")).strip(),
+            "description": self._normalize_string(payload.get("description")),
+            "source_url": self._extract_url_from_description(payload.get("description")),
+        }
+        logging.info(
+            "Loaded asset via REST id=%s type=%s status=%s",
+            normalized_asset_uuid,
+            asset["_type"],
+            asset["status"],
+        )
+        return asset
+
     def create_usage(self, used_by_processing_uuid: str, usage_of_uuid: str) -> Dict[str, Any]:
         url = f"{config.base_url}/rest/{config.database_name}/usages"
         payload = {
