@@ -7,7 +7,7 @@ import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.law_client import LAWClient
 from src.clients.helpers import normalize_multiline_markdown, prepare_custom_property_for_form
-from src.common import requests_delete_no_retry, requests_patch_no_retry, requests_post_no_retry
+from src.common import requests_delete_no_retry, requests_get, requests_patch_no_retry, requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -98,15 +98,28 @@ class VVPClient(BaseDataspotClient):
         if not normalized_object_id:
             return []
 
-        query = f"""
-            SELECT l.id, l.literal_of, l.label, l.description
-            FROM dataspot.literal_view l
-            WHERE l.literal_of = '{normalized_object_id}'::uuid
-              AND l.status = 'PUBLISHED'
-        """
-        rows = self.execute_query_api(sql_query=query)
+        literals_url = (
+            f"{config.base_url}/rest/{config.database_name}/enumerations/{normalized_object_id}/literals"
+        )
+        response = requests_get(
+            url=literals_url,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+        )
+        payload = response.json()
+        raw_literals: List[Dict[str, Any]] = []
+        if isinstance(payload, dict):
+            embedded = payload.get("_embedded", {})
+            if isinstance(embedded, dict):
+                raw_literals = embedded.get("literals", []) or []
+        if not isinstance(raw_literals, list):
+            raw_literals = []
+        rows = [row for row in raw_literals if isinstance(row, dict)]
         values: List[Dict[str, Any]] = []
         for row in rows:
+            status = self._normalize_string(row.get("status")).strip()
+            if status and status != "PUBLISHED":
+                continue
             value_id = self._normalize_string(row.get("id")).strip()
             label = self._normalize_string(row.get("label")).strip()
             if not value_id or not label:
@@ -114,7 +127,9 @@ class VVPClient(BaseDataspotClient):
             values.append(
                 {
                     "id": value_id,
-                    "literal_of": self._normalize_string(row.get("literal_of")).strip(),
+                    "literal_of": self._normalize_string(
+                        row.get("literal_of", row.get("literalOf"))
+                    ).strip(),
                     "label": label,
                     "description": self._normalize_string(row.get("description")),
                     "source_url": self._extract_url_from_description(row.get("description")),
