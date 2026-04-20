@@ -497,8 +497,11 @@ def render_legal_basis_rows(
 
     if remove_row_ids:
         rows = [row for row in rows if str(row.get("row_id")) not in remove_row_ids]
-        rows = ensure_trailing_empty_row(rows)
+    row_count_before_finalize = len(rows)
+    rows = ensure_trailing_empty_row(rows)
     st.session_state[rows_state_key] = rows
+    if len(rows) != row_count_before_finalize:
+        st.rerun()
     return rows
 
 
