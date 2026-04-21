@@ -219,6 +219,8 @@ def build_row_source_lines_for_sync(
         return []
 
     if sorted_value_ids and len({normalize_url_key(url) for url in row_urls}) == 1:
+        if "#" in row_urls[0]:
+            return [row_urls[0]]
         codes = [
             str(object_values.get(value_id, {}).get("code") or "").strip()
             for value_id in sorted_value_ids
