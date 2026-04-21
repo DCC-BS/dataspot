@@ -808,103 +808,72 @@ def render_edit_form(
 
         edit_rows_for_processing = str(st.session_state.get(EDIT_LAW_ROWS_FOR_PROCESSING_KEY, "")).strip()
         if edit_rows_for_processing != selected_processing_id:
-            # TODO(dataspot-4129): The Query API currently returns NULL literal labels (`literal_view.label`),
-            # which breaks single-query prefill for ReferenceValues. Once https://issues.dataspot.io/issues/4129
-            # is fixed, replace this multi-call REST resolution with the query below:
-            #
-            # WITH selected_processing AS (
-            #   SELECT p.id, p.model_id
-            #   FROM dataspot.processing_view p
-            #   WHERE p.id = '<processing_uuid>'::uuid
-            #     AND p.status = 'PUBLISHED'
-            # )
-            # SELECT
-            #   u.id AS usage_id,
-            #   u.usage_of,
-            #   u.model_id AS usage_model_id,
-            #   obj.id AS object_id,
-            #   obj.label AS object_label,
-            #   val.id AS value_id,
-            #   val.label AS value_label,
-            #   val.literal_of AS value_object_id,
-            #   parent_obj.label AS value_object_label
-            # FROM dataspot.usageof_view u
-            # JOIN selected_processing p
-            #   ON p.id = u.resource_id
-            #  AND p.model_id = u.model_id
-            # LEFT JOIN dataspot.enumeration_view obj
-            #   ON obj.id = u.usage_of
-            #  AND obj.status = 'PUBLISHED'
-            # LEFT JOIN dataspot.literal_view val
-            #   ON val.id = u.usage_of
-            #  AND val.status = 'PUBLISHED'
-            # LEFT JOIN dataspot.enumeration_view parent_obj
-            #   ON parent_obj.id = val.literal_of
-            #  AND parent_obj.status = 'PUBLISHED'
-            # ORDER BY u.id;
-            usage_rows = client.get_processing_usage_targets(processing_uuid=selected_processing_id)
-            raw_usage_target_ids = [
-                str(usage_row.get("usage_of") or "").strip()
-                for usage_row in usage_rows
-                if str(usage_row.get("usage_of") or "").strip()
-            ]
-            unique_usage_target_ids: List[str] = []
-            seen_usage_target_ids: set[str] = set()
-            for usage_target_id in raw_usage_target_ids:
-                if usage_target_id in seen_usage_target_ids:
-                    continue
-                seen_usage_target_ids.add(usage_target_id)
-                unique_usage_target_ids.append(usage_target_id)
-
+            usage_rows = client.get_processing_usage_targets_with_labels(processing_uuid=selected_processing_id)
             resolved_asset_lookup: Dict[str, Dict[str, Any]] = {}
-            for usage_target_id in unique_usage_target_ids:
-                resolved_asset_lookup[usage_target_id] = client.get_asset_by_uuid(usage_target_id)
-
             filtered_usage_target_ids: List[str] = []
-            required_object_ids: set[str] = set()
-            for usage_target_id in unique_usage_target_ids:
-                resolved_asset = resolved_asset_lookup.get(usage_target_id, {})
-                asset_type = str(resolved_asset.get("_type") or "").strip()
-                asset_status = str(resolved_asset.get("status") or "").strip()
-                asset_model_id = str(resolved_asset.get("model_id") or "").strip()
-                if asset_model_id != law_scheme_id or asset_status != "PUBLISHED":
-                    continue
-                if asset_type == "ReferenceObject":
-                    filtered_usage_target_ids.append(usage_target_id)
-                    required_object_ids.add(usage_target_id)
-                    continue
-                if asset_type != "ReferenceValue":
-                    continue
-                parent_object_id = str(resolved_asset.get("literal_of") or "").strip()
-                if not parent_object_id:
-                    continue
-                filtered_usage_target_ids.append(usage_target_id)
-                required_object_ids.add(parent_object_id)
+            seen_usage_target_ids: set[str] = set()
 
-            # Minimal fallback: only resolve missing preselected object IDs that are required for rendering.
-            missing_object_ids = [object_id for object_id in required_object_ids if object_id not in law_object_lookup]
-            for missing_object_id in missing_object_ids:
-                fallback_object_asset = client.get_asset_by_uuid(missing_object_id)
-                fallback_type = str(fallback_object_asset.get("_type") or "").strip()
-                fallback_status = str(fallback_object_asset.get("status") or "").strip()
-                fallback_model_id = str(fallback_object_asset.get("model_id") or "").strip()
-                fallback_label = str(fallback_object_asset.get("label") or "").strip()
-                if (
-                    fallback_type != "ReferenceObject"
-                    or fallback_status != "PUBLISHED"
-                    or fallback_model_id != law_scheme_id
-                    or not fallback_label
-                ):
+            for usage_row in usage_rows:
+                usage_target_id = str(usage_row.get("usage_of") or "").strip()
+                if not usage_target_id or usage_target_id in seen_usage_target_ids:
                     continue
-                fallback_option = {
-                    "id": missing_object_id,
-                    "label": fallback_label,
-                    "search_label": extract_leaf_label(fallback_label),
-                    "source_url": str(fallback_object_asset.get("source_url") or "").strip(),
-                    "description": str(fallback_object_asset.get("description") or "").strip(),
-                }
-                law_object_options.append(fallback_option)
-                law_object_lookup[missing_object_id] = fallback_option
+                usage_model_id = str(usage_row.get("usage_model_id") or "").strip()
+                if usage_model_id != law_scheme_id:
+                    continue
+
+                object_id = str(usage_row.get("object_id") or "").strip()
+                object_label = str(usage_row.get("object_label") or "").strip()
+                value_id = str(usage_row.get("value_id") or "").strip()
+                value_label = str(usage_row.get("value_label") or "").strip()
+                value_object_id = str(usage_row.get("value_object_id") or "").strip()
+                value_object_label = str(usage_row.get("value_object_label") or "").strip()
+
+                if value_id:
+                    if not value_object_id:
+                        continue
+                    resolved_asset_lookup[usage_target_id] = {
+                        "id": usage_target_id,
+                        "_type": "ReferenceValue",
+                        "label": value_label,
+                        "literal_of": value_object_id,
+                        "model_id": usage_model_id,
+                        "status": "PUBLISHED",
+                    }
+                    if value_object_id not in law_object_lookup and value_object_label:
+                        new_option = {
+                            "id": value_object_id,
+                            "label": value_object_label,
+                            "search_label": extract_leaf_label(value_object_label),
+                            "source_url": "",
+                            "description": "",
+                        }
+                        law_object_options.append(new_option)
+                        law_object_lookup[value_object_id] = new_option
+                elif object_id:
+                    resolved_asset_lookup[usage_target_id] = {
+                        "id": usage_target_id,
+                        "_type": "ReferenceObject",
+                        "label": object_label,
+                        "literal_of": "",
+                        "model_id": usage_model_id,
+                        "status": "PUBLISHED",
+                    }
+                    if object_id not in law_object_lookup and object_label:
+                        new_option = {
+                            "id": object_id,
+                            "label": object_label,
+                            "search_label": extract_leaf_label(object_label),
+                            "source_url": "",
+                            "description": "",
+                        }
+                        law_object_options.append(new_option)
+                        law_object_lookup[object_id] = new_option
+                else:
+                    continue
+
+                seen_usage_target_ids.add(usage_target_id)
+                filtered_usage_target_ids.append(usage_target_id)
+
             law_object_options = sorted(law_object_options, key=lambda item: str(item.get("label", "")).casefold())
 
             st.session_state[EDIT_LAW_ROWS_KEY] = build_law_rows_from_resolved_assets(
