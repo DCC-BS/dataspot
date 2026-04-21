@@ -430,6 +430,20 @@ class VVPClient(BaseDataspotClient):
         logging.info("Loaded departments: %s", len(sorted_collections))
         return sorted_collections
 
+    def get_all_collections(self) -> List[Dict[str, Any]]:
+        vvp_scheme_id = self.get_vvp_scheme_id()
+        query = f"""
+            SELECT c.id, c.label, c.parent_id
+            FROM dataspot.collection_view c
+            WHERE c.model_id = '{vvp_scheme_id}'::uuid
+              AND c.status = 'PUBLISHED'
+            ORDER BY c.label
+        """
+        collections = self.execute_query_api(sql_query=query)
+        sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())
+        logging.info("Loaded all collections in VVP scheme: %s", len(sorted_collections))
+        return sorted_collections
+
     def get_abteilungen(self, departement_uuid: str) -> List[Dict[str, Any]]:
         collections = self.get_child_collections(departement_uuid)
         sorted_collections = sorted(collections, key=lambda item: self._normalize_string(item.get("label")).casefold())

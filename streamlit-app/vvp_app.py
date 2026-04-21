@@ -35,6 +35,9 @@ EDIT_LAW_ROWS_KEY = "vvp_edit_law_rows"
 EDIT_PREV_AUTO_URLS_KEY = "vvp_edit_prev_auto_urls"
 EDIT_LAW_ROWS_FOR_PROCESSING_KEY = "vvp_edit_law_rows_for_processing"
 EDIT_INITIAL_USAGE_TARGETS_KEY = "vvp_edit_initial_usage_targets"
+SHOW_ALL_COLLECTIONS_KEY = "vvp_show_all_collections"
+PREV_SHOW_ALL_COLLECTIONS_KEY = "vvp_prev_show_all_collections"
+ALL_COLLECTIONS_CACHE_KEY = "vvp_all_collections"
 
 
 def set_success_popup(message: str) -> None:
@@ -384,6 +387,13 @@ def get_departements_cached(client: VVPClient) -> List[Dict[str, Any]]:
         with st.spinner("Lade Departemente..."):
             st.session_state["vvp_departements"] = client.get_departements()
     return st.session_state["vvp_departements"]
+
+
+def get_all_collections_cached(client: VVPClient) -> List[Dict[str, Any]]:
+    if ALL_COLLECTIONS_CACHE_KEY not in st.session_state:
+        with st.spinner("Lade alle Sammlungen..."):
+            st.session_state[ALL_COLLECTIONS_CACHE_KEY] = client.get_all_collections()
+    return st.session_state[ALL_COLLECTIONS_CACHE_KEY]
 
 
 def get_abteilungen_cached(client: VVPClient, departement_id: str) -> List[Dict[str, Any]]:
@@ -1176,7 +1186,16 @@ def main() -> None:
 
     client = get_vvp_client()
 
-    departements = get_departements_cached(client)
+    show_all_collections = st.checkbox("Alle Sammlungen laden", key=SHOW_ALL_COLLECTIONS_KEY)
+    previous_show_all_collections = bool(st.session_state.get(PREV_SHOW_ALL_COLLECTIONS_KEY, False))
+    if previous_show_all_collections and not show_all_collections:
+        st.session_state.pop(ALL_COLLECTIONS_CACHE_KEY, None)
+    st.session_state[PREV_SHOW_ALL_COLLECTIONS_KEY] = show_all_collections
+
+    if show_all_collections:
+        departements = get_all_collections_cached(client)
+    else:
+        departements = get_departements_cached(client)
     departement_options = build_collection_options(departements)
     selected_departement = searchable_combobox_no_default(
         title="Departement",
