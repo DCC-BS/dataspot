@@ -81,6 +81,17 @@ def split_source_lines(source_text: str) -> List[str]:
     return lines
 
 
+def source_line_url(line: Any) -> str:
+    parts = str(line or "").strip().split()
+    if not parts:
+        return ""
+    return parts[0].strip()
+
+
+def source_line_key(line: Any) -> str:
+    return normalize_url_key(source_line_url(line))
+
+
 def dedupe_urls(urls: List[str]) -> List[str]:
     deduped: List[str] = []
     seen: set[str] = set()
@@ -138,6 +149,105 @@ def build_row_urls(
         if value_url:
             urls.append(value_url)
     return urls
+
+
+def build_selected_value_ids_by_row(rows: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    return {
+        str(row.get("row_id")): [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()]
+        for row in rows
+    }
+
+
+def build_value_options_for_row(
+    *,
+    rows: List[Dict[str, Any]],
+    current_row: Dict[str, Any],
+    value_options: List[Dict[str, Any]],
+    selected_value_ids_by_row: Dict[str, List[str]] | None = None,
+) -> List[Dict[str, Any]]:
+    value_ids_by_row = selected_value_ids_by_row or build_selected_value_ids_by_row(rows)
+    current_row_id = str(current_row.get("row_id"))
+    current_value_ids = {str(value_id).strip() for value_id in current_row.get("value_ids", []) if str(value_id).strip()}
+
+    other_selected_value_ids: set[str] = set()
+    for other_row_id, selected_ids in value_ids_by_row.items():
+        if other_row_id == current_row_id:
+            continue
+        other_selected_value_ids.update(selected_ids)
+
+    return [
+        value
+        for value in value_options
+        if str(value.get("id")) in current_value_ids or str(value.get("id")) not in other_selected_value_ids
+    ]
+
+
+def build_row_source_lines_for_sync(
+    *,
+    rows: List[Dict[str, Any]],
+    row: Dict[str, Any],
+    object_lookup: Dict[str, Dict[str, Any]],
+    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]],
+    selected_value_ids_by_row: Dict[str, List[str]],
+) -> List[str]:
+    object_id = str(row.get("object_id") or "").strip()
+    if not object_id:
+        return []
+
+    row_urls: List[str] = []
+    object_url = str(object_lookup.get(object_id, {}).get("source_url") or "").strip()
+    if object_url:
+        row_urls.append(object_url)
+
+    object_values = value_lookup_by_object.get(object_id, {})
+    value_options_for_row = build_value_options_for_row(
+        rows=rows,
+        current_row=row,
+        value_options=list(object_values.values()),
+        selected_value_ids_by_row=selected_value_ids_by_row,
+    )
+    sorted_value_ids = sort_value_ids_by_option_order(
+        [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()],
+        value_options_for_row,
+    )
+    for value_id in sorted_value_ids:
+        value_url = str(object_values.get(value_id, {}).get("source_url") or "").strip()
+        if value_url:
+            row_urls.append(value_url)
+    row_urls = dedupe_urls(row_urls)
+    if not row_urls:
+        return []
+
+    if sorted_value_ids and len({normalize_url_key(url) for url in row_urls}) == 1:
+        codes = [
+            str(object_values.get(value_id, {}).get("code") or "").strip()
+            for value_id in sorted_value_ids
+            if str(object_values.get(value_id, {}).get("code") or "").strip()
+        ]
+        if codes:
+            return [f"{row_urls[0]} ({', '.join(codes)})"]
+    return row_urls
+
+
+def build_auto_source_lines_for_sync(
+    *,
+    selected_rows: List[Dict[str, Any]],
+    object_lookup: Dict[str, Dict[str, Any]],
+    value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]],
+) -> List[str]:
+    source_lines: List[str] = []
+    selected_value_ids_by_row = build_selected_value_ids_by_row(selected_rows)
+    for row in selected_rows:
+        source_lines.extend(
+            build_row_source_lines_for_sync(
+                rows=selected_rows,
+                row=row,
+                object_lookup=object_lookup,
+                value_lookup_by_object=value_lookup_by_object,
+                selected_value_ids_by_row=selected_value_ids_by_row,
+            )
+        )
+    return source_lines
 
 
 def collect_selected_law_target_ids(rows: List[Dict[str, Any]]) -> List[str]:
@@ -380,48 +490,69 @@ def sync_source_field_with_selected_urls(
     object_lookup: Dict[str, Dict[str, Any]],
     value_lookup_by_object: Dict[str, Dict[str, Dict[str, Any]]],
 ) -> None:
-    selected_url_lists = [
-        build_row_urls(
-            row=row,
-            object_lookup=object_lookup,
-            value_lookup_by_object=value_lookup_by_object,
-        )
-        for row in selected_rows
-    ]
-    current_auto_urls = dedupe_urls([url for urls in selected_url_lists for url in urls])
-    current_auto_keys = {normalize_url_key(url) for url in current_auto_urls}
-
-    previous_auto_urls = st.session_state.get(previous_auto_urls_state_key, [])
-    previous_auto_keys = {normalize_url_key(url) for url in previous_auto_urls}
-    if current_auto_keys == previous_auto_keys:
+    current_auto_lines = build_auto_source_lines_for_sync(
+        selected_rows=selected_rows,
+        object_lookup=object_lookup,
+        value_lookup_by_object=value_lookup_by_object,
+    )
+    previous_auto_lines_raw = st.session_state.get(previous_auto_urls_state_key, [])
+    previous_auto_lines = (
+        [str(line).strip() for line in previous_auto_lines_raw if str(line).strip()]
+        if isinstance(previous_auto_lines_raw, list)
+        else []
+    )
+    if current_auto_lines == previous_auto_lines:
         return
 
     existing_lines = split_source_lines(str(st.session_state.get(source_state_key, "")))
     existing_map: Dict[str, str] = {}
     existing_order: List[str] = []
     for line in existing_lines:
-        key = normalize_url_key(line)
-        if key in existing_map:
+        key = source_line_key(line)
+        if not key or key in existing_map:
             continue
         existing_map[key] = line
         existing_order.append(key)
 
+    previous_auto_map: Dict[str, str] = {}
+    for line in previous_auto_lines:
+        key = source_line_key(line)
+        if not key or key in previous_auto_map:
+            continue
+        previous_auto_map[key] = line
+    current_auto_map: Dict[str, str] = {}
+    for line in current_auto_lines:
+        key = source_line_key(line)
+        if not key or key in current_auto_map:
+            continue
+        current_auto_map[key] = line
+
+    previous_auto_keys = set(previous_auto_map.keys())
+    current_auto_keys = set(current_auto_map.keys())
     keys_to_remove = previous_auto_keys - current_auto_keys
     if keys_to_remove:
         existing_order = [key for key in existing_order if key not in keys_to_remove]
         for key in keys_to_remove:
             existing_map.pop(key, None)
 
-    for auto_url in current_auto_urls:
-        key = normalize_url_key(auto_url)
-        if key in existing_map:
+    for auto_line in current_auto_lines:
+        key = source_line_key(auto_line)
+        if not key:
             continue
-        existing_map[key] = auto_url
-        existing_order.append(key)
+        if key not in existing_map:
+            existing_map[key] = auto_line
+            existing_order.append(key)
+            continue
+
+        previous_auto_line = previous_auto_map.get(key, "")
+        existing_line = existing_map.get(key, "")
+        existing_line_url = source_line_url(existing_line)
+        if existing_line == previous_auto_line or existing_line == existing_line_url:
+            existing_map[key] = auto_line
 
     merged_lines = [existing_map[key] for key in existing_order]
     st.session_state[source_state_key] = "\n".join(merged_lines)
-    st.session_state[previous_auto_urls_state_key] = current_auto_urls
+    st.session_state[previous_auto_urls_state_key] = current_auto_lines
 
 
 def render_legal_basis_rows(
@@ -436,10 +567,7 @@ def render_legal_basis_rows(
 
     object_lookup = {str(option.get("id")): option for option in object_options}
     all_selected_object_ids = [str(row.get("object_id") or "").strip() for row in rows if str(row.get("object_id") or "").strip()]
-    selected_value_ids_by_row: Dict[str, List[str]] = {
-        str(row.get("row_id")): [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()]
-        for row in rows
-    }
+    selected_value_ids_by_row = build_selected_value_ids_by_row(rows)
     remove_row_ids: set[str] = set()
 
     for index, row in enumerate(rows):
@@ -474,16 +602,12 @@ def render_legal_basis_rows(
 
         value_options = get_law_values_for_object_cached(client=client, object_id=row.get("object_id", ""))
         value_lookup = {str(value.get("id")): value for value in value_options}
-        other_selected_value_ids: set[str] = set()
-        for other_row_id, selected_ids in selected_value_ids_by_row.items():
-            if other_row_id == row_id:
-                continue
-            other_selected_value_ids.update(selected_ids)
-        value_options_for_row = [
-            value
-            for value in value_options
-            if str(value.get("id")) in row.get("value_ids", []) or str(value.get("id")) not in other_selected_value_ids
-        ]
+        value_options_for_row = build_value_options_for_row(
+            rows=rows,
+            current_row=row,
+            value_options=value_options,
+            selected_value_ids_by_row=selected_value_ids_by_row,
+        )
         row["value_ids"] = sort_value_ids_by_option_order(
             [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()],
             value_options_for_row,

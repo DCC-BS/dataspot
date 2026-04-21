@@ -131,6 +131,7 @@ class VVPClient(BaseDataspotClient):
                         row.get("literal_of", row.get("literalOf"))
                     ).strip(),
                     "label": label,
+                    "code": self._normalize_string(row.get("code")).strip(),
                     "description": self._normalize_string(row.get("description")),
                     "source_url": self._extract_url_from_description(row.get("description")),
                 }
@@ -149,7 +150,7 @@ class VVPClient(BaseDataspotClient):
             return []
         value_uuid_list = ", ".join(f"'{value_id}'::uuid" for value_id in normalized_value_ids)
         query = f"""
-            SELECT l.id, l.literal_of, l.label, l.description
+            SELECT l.id, l.literal_of, l.label, l.code, l.description
             FROM dataspot.literal_view l
             WHERE l.id IN ({value_uuid_list})
               AND l.status = 'PUBLISHED'
@@ -167,6 +168,7 @@ class VVPClient(BaseDataspotClient):
                     "id": value_id,
                     "literal_of": parent_object_id,
                     "label": label,
+                    "code": self._normalize_string(row.get("code")).strip(),
                     "description": self._normalize_string(row.get("description")),
                     "source_url": self._extract_url_from_description(row.get("description")),
                 }
