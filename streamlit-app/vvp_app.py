@@ -194,11 +194,6 @@ def build_row_source_lines_for_sync(
     if not object_id:
         return []
 
-    row_urls: List[str] = []
-    object_url = str(object_lookup.get(object_id, {}).get("source_url") or "").strip()
-    if object_url:
-        row_urls.append(object_url)
-
     object_values = value_lookup_by_object.get(object_id, {})
     value_options_for_row = build_value_options_for_row(
         rows=rows,
@@ -210,6 +205,11 @@ def build_row_source_lines_for_sync(
         [str(value_id).strip() for value_id in row.get("value_ids", []) if str(value_id).strip()],
         value_options_for_row,
     )
+    row_urls: List[str] = []
+    if not sorted_value_ids:
+        object_url = str(object_lookup.get(object_id, {}).get("source_url") or "").strip()
+        if object_url:
+            row_urls.append(object_url)
     for value_id in sorted_value_ids:
         value_url = str(object_values.get(value_id, {}).get("source_url") or "").strip()
         if value_url:
