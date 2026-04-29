@@ -25,7 +25,7 @@ YAML_PROFILES = [
     ("Kennzahlen", "Annotation YAMLs/annotations_kennzahlen.yaml"),
     ("Referenzdaten", "Annotation YAMLs/annotations_referenzdaten.yaml"),
     ("Systeme", "Annotation YAMLs/annotations_systeme.yaml"),
-    ("VVP", "Annotation YAMLs/annotations_VVP.yaml"),
+    ("Personendaten", "Annotation YAMLs/annotations_personendaten.yaml"),
 ]
 
 def check_7_yaml(dataspot_client: BaseDataspotClient) -> dict:

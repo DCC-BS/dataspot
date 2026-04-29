@@ -12,7 +12,7 @@ from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
 class VVPClient(BaseDataspotClient):
-    """Client for interacting with the VVP scheme."""
+    """Client for interacting with the Personendaten (VVP) scheme."""
 
     ROOT_DEPARTMENTS_COLLECTION_LABEL = "Regierung und Verwaltung"
 
@@ -342,10 +342,10 @@ class VVPClient(BaseDataspotClient):
         return summary
 
     def get_vvp_scheme_id(self) -> str:
-        query = """
+        query = f"""
             SELECT s.id
             FROM dataspot.scheme_view s
-            WHERE s.label = 'VVP'
+            WHERE s.label = '{config.vvp_scheme_name}'
               AND s.status = 'PUBLISHED'
         """
         rows = self.execute_query_api(sql_query=query)
@@ -358,11 +358,11 @@ class VVPClient(BaseDataspotClient):
         return scheme_id
 
     def get_root_collection(self) -> Dict[str, Any]:
-        query = """
+        query = f"""
             WITH vvp_scheme AS (
                 SELECT s.id
                 FROM dataspot.scheme_view s
-                WHERE s.label = 'VVP'
+                WHERE s.label = '{config.vvp_scheme_name}'
                   AND s.status = 'PUBLISHED'
             )
             SELECT c.id, c.label, c.in_scheme
