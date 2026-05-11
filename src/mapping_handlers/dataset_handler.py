@@ -262,6 +262,7 @@ class DatasetHandler(BaseDataspotHandler):
                     
                     # Compare fields to track changes
                     changes = {}
+                    MISSING = object()
                     
                     # Fields to compare (add more as needed)
                     compare_fields = [
@@ -272,28 +273,36 @@ class DatasetHandler(BaseDataspotHandler):
                     
                     # Compare basic fields
                     for field_name, display_name in compare_fields:
-                        old_value = current_dataset.get(field_name)
-                        new_value = dataset_json.get(field_name)
-                        
+                        old_value = current_dataset.get(field_name, MISSING)
+                        new_value = dataset_json.get(field_name, MISSING)
+                        if old_value is MISSING and new_value is MISSING:
+                            continue
                         if old_value != new_value:
                             changes[display_name] = {
-                                "old_value": old_value,
-                                "new_value": new_value
+                                "old_value": None if old_value is MISSING else old_value,
+                                "new_value": None if new_value is MISSING else new_value
                             }
+                            if old_value is not MISSING and new_value is MISSING:
+                                dataset_json[field_name] = ""
                     
                     # Compare custom properties
-                    current_custom_props = current_dataset.get('customProperties', {})
-                    new_custom_props = dataset_json.get('customProperties', {})
+                    current_custom_props = current_dataset.get('customProperties') or {}
+                    new_custom_props = dataset_json.get('customProperties') or {}
                     
                     for prop_key in set(list(current_custom_props.keys()) + list(new_custom_props.keys())):
-                        old_value = current_custom_props.get(prop_key)
-                        new_value = new_custom_props.get(prop_key)
-                        
+                        old_value = current_custom_props.get(prop_key, MISSING)
+                        new_value = new_custom_props.get(prop_key, MISSING)
+                        if old_value is MISSING and new_value is MISSING:
+                            continue
                         if old_value != new_value:
                             changes[f"Custom Property: {prop_key}"] = {
-                                "old_value": old_value,
-                                "new_value": new_value
+                                "old_value": None if old_value is MISSING else old_value,
+                                "new_value": None if new_value is MISSING else new_value
                             }
+                            if old_value is not MISSING and new_value is MISSING:
+                                if 'customProperties' not in dataset_json:
+                                    dataset_json['customProperties'] = {}
+                                dataset_json['customProperties'][prop_key] = [] if isinstance(old_value, list) else ""
                     
                     # Only update if there are actual changes
                     if changes:
