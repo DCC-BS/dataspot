@@ -135,6 +135,12 @@ Derivation:
 
 #030 - ASSET, WORKFLOW, TAG
 Asset:
+  customFunctions:
+    openRestEndpoint:
+      label: REST-Endpunkt öffnen
+      title: Öffne den REST-Endpunkt dieses Assets
+      icon: gear
+      href: "https://datenkatalog.bs.ch/rest/${this.db}/assets/${this.id}"
   properties:
     status:
       literals:
