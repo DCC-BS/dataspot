@@ -1203,6 +1203,8 @@ Distribution:
           label: WMTS
         xls:
           label: XLS
+        xlsx:
+          label: XLSX
         xml:
           label: XML
         OGCFeatureAPI:
