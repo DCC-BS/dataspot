@@ -45,6 +45,11 @@ Theme:
 ############################################################
 
 Collection:
+  groups:
+    STATE_CALENDAR:
+      label: Staatskalender
+      order: 20
+      icon: memo-pad
 
 #PROPERTIES
   properties:
@@ -65,7 +70,8 @@ Collection:
               label: Link zum Staatskalender
               baseType: STRING
               title: Link zur Quelle im Staatskalender
-              width: 1
+              width: 2
+              group: STATE_CALENDAR
               order: 1
               readOnly: true
             stateCalendarId:
@@ -73,6 +79,7 @@ Collection:
               baseType: INTEGER
               title: Die interne ID im Staatskalender
               width: 1
+              group: STATE_CALENDAR
               order: 2
               readOnly: true
             stateCalendarParentId:
@@ -80,6 +87,7 @@ Collection:
               baseType: INTEGER
               title: Die interne ID der übergeordneten Einheit im Staatskalender
               width: 1
+              group: STATE_CALENDAR
               order: 3
               readOnly: true
               hidden: true
@@ -421,7 +429,7 @@ Deployment:
 Person:
   groups:
     STATE_CALENDAR:
-      label: Staatskalender-Anbindung
+      label: Staatskalender
       icon: memo-pad
       order: 80
 
@@ -471,7 +479,7 @@ Person:
 Post:
   groups:
     STATE_CALENDAR:
-      label: Staatskalender-Anbindung
+      label: Staatskalender
       icon: memo-pad
       order: 80
 
