@@ -950,24 +950,24 @@ Dataset:
     lastUpdate:
       label: Letzte Aktualisierung
       title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
-      order: 10
+      order: 110
       baseType: DATE
     creationDate:
       label: Erstellungsdatum
       title: Datum, an dem das Datenprodukt zum ersten Mal erstellt und gespeichert wurde.
-      order: 20
+      order: 120
       baseType: DATE
     publicationDate:
       label: Publikationsdatum
       title: Datum, an dem das Datenprodukt erstmals zugänglich gemacht wurde.
-      order: 25
+      order: 125
       baseType: DATE
     personalData:
       label: Personendaten
       title: Das Datenprodukt enthält Personendaten.
-      order: 30
+      order: 230
       cardinality: MANY
-      group: DATA_PRIVACY
+      #group: DATA_PRIVACY
       literals:
         none:
           label: Keine
@@ -992,8 +992,8 @@ Dataset:
     protectionLevel:
       label: Schutzbedarfsstufen
       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
-      order: 40
-      group: DATA_PRIVACY
+      order: 240
+      #group: DATA_PRIVACY
       literals:
         "1":
           label: Grundschutz (GS)
@@ -1007,8 +1007,8 @@ Dataset:
     confidentiality:
       label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Datenprodukts
-      order: 50
-      group: DATA_PRIVACY
+      order: 250
+      #group: DATA_PRIVACY
       literals:
         "1":
           label: Öffentlich
@@ -1025,9 +1025,9 @@ Dataset:
     confidentialityJustificationCategory:
       label: Begründung für Vertraulichkeit
       title: Kategorie der Begründung für eingeschränkten Zugang zum Datenprodukt
-      group: DATA_PRIVACY
+      #group: DATA_PRIVACY
       cardinality: MANY
-      order: 54
+      order: 254
       literals:
         person_data:
           label: 1. Die Daten enthalten Personendaten.
@@ -1064,15 +1064,15 @@ Dataset:
     confidentialityJustification:
       label: Bemerkungen zur Vertraulichkeit
       title: Bemerkungen für eingeschränkten Zugang zum Datenprodukt
-      group: DATA_PRIVACY
+      #group: DATA_PRIVACY
       baseType: TEXT
-      order: 55
+      order: 255
     usageRestriction:
       label: Nutzungseinschränkung
       title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
       baseType: TEXT
-      order: 60
-      group: DATA_PRIVACY
+      order: 260
+      #group: DATA_PRIVACY
     historicized:
       label: Historisierung
       title: Änderungen des Datenprodukts werden über die Zeit hinweg festgehalten. Frühere Versionen des Datenprodukts können wiederhergestellt werden.
@@ -1083,36 +1083,36 @@ Dataset:
         no:
           label: Nein
           order: 2
-      group: HISTORIOGRAPHY
-      order: 70
+      #group: HISTORIOGRAPHY
+      order: 320
     historicizedSince:
       label: Historisierung seit wann
       title: Datum, ab dem eine Änderung des Datenprodukts festgehalten wird. Datum, ab dem es frühere Versionen des Datenprodukts gibt.
       baseType: DATE
-      group: HISTORIOGRAPHY
-      order: 80
+      #group: HISTORIOGRAPHY
+      order: 330
     historicizationType:
       label: Art der Historisierung
       title: Art des Festhaltens einer Änderung des Datenprodukts (Snapshots etc.)
       baseType: TEXT
-      group: HISTORIOGRAPHY
-      order: 90
+      #group: HISTORIOGRAPHY
+      order: 340
     retentionPeriod:
       label: Aufbewahrungsfrist (Jahre)
       title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
-      group: HISTORIOGRAPHY
+      #group: HISTORIOGRAPHY
       baseType: INTEGER
-      order: 100
+      order: 350
     retentionJustification:
       label: Begründung für Aufbewahrungsfrist
       title: Begründung und Bemerkung zur Aufbewahrunsgfrist
-      group: HISTORIOGRAPHY
+      #group: HISTORIOGRAPHY
       baseType: TEXT
-      order: 110
+      order: 360
     archived:
       label: Archivierung
       title: Wird das Datenprodukt archiviert (Staatsarchiv?)
-      group: ARCHIVING
+      #group: ARCHIVING
       literals:
         yes:
           label: Ja
@@ -1120,19 +1120,19 @@ Dataset:
         no:
           label: Nein
           order: 2
-      order: 120
+      order: 420
     archiveDetails:
       label: Bemerkungen zur Archivierung
       title: Nach welchen Kriterien wird das Datenprodukt archiviert?
-      group: ARCHIVING
+      #group: ARCHIVING
       baseType: TEXT
-      order: 130
+      order: 430
     archiveJustification:
       label: Begründung für Archivierung
       title: Begründung der Archivwürdigkeit
-      group: ARCHIVING
+      #group: ARCHIVING
       baseType: TEXT
-      order: 140
+      order: 440
     legalFoundation:
       label: Rechtliche Grundlagen
       title: Rechtlicher Rahmen, der die Veröffentlichung dieses Datenprodukts begründet. Die konkreten Rechtsnormen können via *Herkunft von* referenziert werden.
