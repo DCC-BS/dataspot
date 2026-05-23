@@ -4,8 +4,9 @@ DataCatalog:
   label: Datenproduktekatalog
 
 SubDataset:
-  label: Subdatensatz
-  ling: s1p1um
+  label: Subdatenprodukt
+  plural: Subdatenprodukte
+  gender: n
 
 Dataset:
   label: Datenprodukt
@@ -206,10 +207,10 @@ Dataset:
           title: Die Daten werden niemals aktualisiert
           order: 39
 
-## DATENSATZ-TYP ##
+## DATENPRODUKT-TYP ##
     stereotype:
-      label: Datensatztyp
-      title: Der Datensatztyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
+      label: Datenprodukttyp
+      title: Der Datenprodukttyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
       literals:
 
 ## OGD ##
