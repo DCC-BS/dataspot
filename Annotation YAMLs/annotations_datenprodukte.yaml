@@ -34,6 +34,11 @@ Dataset:
       label: OGD
       order: 60
       icon: globe
+    I14Y:
+      label: I14Y
+      title: Metadaten, welche explizit für die Veröffentlichung auf i14y.admin.ch erfasst werden können
+      order: 70
+      icon: folder-plus
 
   properties:
     label:
@@ -218,7 +223,7 @@ Dataset:
           icon: link # brackets-curly, gear, gear-api (FontAwesome 7.2)
           order: 50
           customProperties:
-            endpointURL:
+            i14y_api_endpointURL:
               label: URL des Endpunktes
               labelEn: URL of the endpoint
               title: Internetadresse des primären Endpunktes der API.
@@ -226,21 +231,21 @@ Dataset:
               width: 1
               mandatory: true
               baseType: STRING
-            endpointDescription:
+            i14y_api_endpointDescription:
               label: Dokumentation des Endpunktes
               labelEn: Documentation of the endpoint
               title: Internetadresse der Dokumentationen des primären Endpunktes.
               order: 12
               width: 1
               baseType: STRING
-            landingPage:
-              label: Landing page
+            i14y_api_landingPage:
+              label: Landing page (API)
               labelEn: Landing page
               title: Link zu jener Webseite, auf welcher die API detailliert beschrieben wird.
               order: 20
               width: 2
-            accessRights:
-              label: Zugriffsrechte
+            i14y_api_accessRights:
+              label: Zugriffsrechte (API)
               labelEn: Access rights
               order: 30
               width: 1
@@ -296,6 +301,12 @@ Dataset:
             archiveJustification:
               hidden: true
             legalFoundation:
+              hidden: true
+            i14y_dataset_landingPage:
+              hidden: true
+            i14y_dataset_version:
+              hidden: true
+            i14y_dataset_versionNotes:
               hidden: true
 
 ## OGD ##
@@ -1228,6 +1239,23 @@ Dataset:
       title: Rechtlicher Rahmen, der die Veröffentlichung dieses Datenprodukts begründet. Die konkreten Rechtsnormen können via *Herkunft von* referenziert werden.
       order: 150
       baseType: TEXT
+
+    i14y_dataset_landingPage:
+      label: Landing page
+      baseType: STRING
+      group: I14Y
+      width: 2
+      title: Tragen Sie hier den Link zu jener Webseite bei Ihrer Organisation ein, auf welcher mehr Informationen zum betreffenden Datenangebot zu finden oder via die die Originaldaten abgerufen werden können.
+    i14y_dataset_version:
+      label: Version
+      baseType: STRING
+      group: I14Y
+      title: Tragen Sie hier die Versionsnummer Ihres Datensatzes ein. Bei Neueröffnung eines Eintrags wird die Versionsnummer 1.0.0 eingetragen. Bei kleineren Änderungen am Eintrag wird zur Versionsnummer 1.0.1 übergegangen. Bei relevanten inhaltlichen Änderungen wird zur Versionsnummer 1.1.0 genutzt übergegangen usw. Sollte der eingetragene Datensatz von einem neuen Datensatz abgelöst werden, wird die Versionsnummer 2.0.0 verwendet. Bitte beachten Sie, dass beim Erstellen einer neuen Version eines Eintrags die alte Version auf den Status “Abgelöst” gesetzt werden muss. Ansonsten ist es den Nutzerinnen und Nutzern der Plattform unmöglich, auf Anhieb die aktuelle Version des Eintrags zu finden. Dieses Feld ist in DCAT-AP CH 3.0 vorgesehen.
+    i14y_dataset_versionNotes:
+      label: Versionshinweise
+      baseType: STRING
+      group: I14Y
+      title: Erfassen Sie hier zusätzliche Informationen zur betreffenden Version. Dieses Feld ist in DCAT-AP CH 3.0 vorgesehen.
 
 ## BESTANDTEILE ##
 Composition:
