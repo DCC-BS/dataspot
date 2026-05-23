@@ -212,11 +212,97 @@ Dataset:
       label: Datenprodukttyp
       title: Der Datenprodukttyp unterstützt verschiedene Anwendungsfälle und bestimmt damit den Umfang der Metadatenfelder.
       literals:
+        API:
+          label: API
+          title: Programmierschnittstelle (application programming interface)
+          icon: link # brackets-curly, gear, gear-api (FontAwesome 7.2)
+          order: 50
+          customProperties:
+            endpointURL:
+              label: URL des Endpunktes
+              labelEn: URL of the endpoint
+              title: Internetadresse des primären Endpunktes der API.
+              order: 10
+              width: 1
+              mandatory: true
+              baseType: STRING
+            endpointDescription:
+              label: Dokumentation des Endpunktes
+              labelEn: Documentation of the endpoint
+              title: Internetadresse der Dokumentationen des primären Endpunktes.
+              order: 12
+              width: 1
+              baseType: STRING
+            landingPage:
+              label: Landing page
+              labelEn: Landing page
+              title: Link zu jener Webseite, auf welcher die API detailliert beschrieben wird.
+              order: 20
+              width: 2
+            accessRights:
+              label: Zugriffsrechte
+              labelEn: Access rights
+              order: 30
+              width: 1
+              mandatory: true
+              literals:
+                http://publications.europa.eu/resource/authority/access-right/PUBLIC:
+                  label: Öffentlich
+                  labelEn: Public
+                  order: 1
+                  title: "Publicly accessible by everyone. Usage note: Permissible obstacles include registration and request for API keys, as long as anyone can request such registration and/or API keys."
+                http://publications.europa.eu/resource/authority/access-right/RESTRICTED:
+                  label: Eingeschränkt
+                  labelEn: Restricted
+                  order: 2
+                  title: "Only available under certain conditions. Usage note: This category may include resources that require payment, resources shared under non-disclosure agreements, resources for which the publisher or owner has not yet decided if they can be publicly released."
+                http://publications.europa.eu/resource/authority/access-right/NON_PUBLIC:
+                  label: Nicht-öffentlich
+                  labelEn: Non public
+                  order: 3
+                  title: "Not publicly accessible for privacy, security or other reasons. Usage note: This category may include resources that contain sensitive or personal information."
+            lastUpdate:
+              hidden: true
+            creationDate:
+              hidden: true
+            publicationDate:
+              hidden: true
+            personalData:
+              hidden: true
+            protectionLevel:
+              hidden: true
+            confidentiality:
+              hidden: true
+            confidentialityJustificationCategory:
+              hidden: true
+            confidentialityJustification:
+              hidden: true
+            usageRestriction:
+              hidden: true
+            historicized:
+              hidden: true
+            historicizedSince:
+              hidden: true
+            historicizationType:
+              hidden: true
+            retentionPeriod:
+              hidden: true
+            retentionJustification:
+              hidden: true
+            archived:
+              hidden: true
+            archiveDetails:
+              hidden: true
+            archiveJustification:
+              hidden: true
+            legalFoundation:
+              hidden: true
 
 ## OGD ##
         OGD:
           label: OGD-Datensatz
           icon: globe
+          order: 20
 
           customProperties:
             topics:
@@ -399,6 +485,7 @@ Dataset:
         GEOUNDOGD:
           label: Geo- und OGD-Datensatz
           icon: earth-europe
+          order: 30
 
           customProperties:
             geoCategory:
@@ -696,6 +783,7 @@ Dataset:
         GEO:
           label: Geo-Datensatz
           icon: solid-location-dot
+          order: 10
 
           customProperties:
           #GROUP WEITERE GEO INFOS
@@ -818,6 +906,7 @@ Dataset:
         GEOPaket:
           label: Geo-Datensatz-Paket
           icon: layer-group
+          order: 11
 
           customProperties:
           #GROUP WEITERE GEO INFOS
