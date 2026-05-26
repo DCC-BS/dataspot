@@ -79,6 +79,7 @@ Use this method when connecting with an Active Directory user via Kerberos. This
 In the `application.yaml` file:
 - If the target is an **MS SQL database**, the default driver (`mssql-jdbc-13.2.0.jre11.jar`) is correct.
 - If the target is an **Oracle database**, update the driver to `ojdbc17.jar`.
+- If the target is a **PostgreSQL database**, update the driver to `postgresql-42.7.11.jar`.
 
 ### Optional Steps
 
