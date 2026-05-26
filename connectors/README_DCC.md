@@ -26,6 +26,7 @@ Use this method when connecting with a SQL database user. This is based on the `
 1. Copy the `stata-test` folder within the `connectors` folder and rename it for the new connector.
 2. Adapt the `Dockerfile` if necessary (usually not required for SQL User authentication).
 3. Push the changes to GitHub and wait for the Docker image to be built automatically.
+4. Set package visibility from 'internal' to 'public' at https://github.com/orgs/DCC-BS/packages?repo_name=dataspot
 
 ### 3. In the 'dags-airflow2' Repository
 
@@ -56,6 +57,7 @@ Use this method when connecting with an Active Directory user via Kerberos. This
    - `XYZ_AD_PASSWORD`
 
 3. Push the changes to GitHub and wait for the Docker image to be built automatically.
+4. Set package visibility from 'internal' to 'public' at https://github.com/orgs/DCC-BS/packages?repo_name=dataspot
 
 ### 3. In the 'dags-airflow2' Repository
 
@@ -71,13 +73,6 @@ Use this method when connecting with an Active Directory user via Kerberos. This
 ---
 
 ## Common Notes (Both Methods)
-
-### Package Visibility
-
-After pushing to GitHub and the Docker image is built:
-1. Update the package settings at: `https://github.com/orgs/DCC-BS/packages/container/dataspot%2Fconnectors%2F{CREATED-DOCKER-IMAGE-NAME}/settings`.
-2. Change the visibility from **Internal** to **public**.
-   - **Important:** Failure to set visibility to public is the most common cause of authentication errors in the Airflow script!
 
 ### Driver Selection
 
