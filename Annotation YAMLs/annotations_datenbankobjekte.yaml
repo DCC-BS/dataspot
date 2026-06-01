@@ -36,14 +36,27 @@ UmlClass:
               label: Dateiformat
               labelEn: file format
               literals:
-                json:
-                  label: json
-                xml:
-                  label: xml
-                shape:
-                  label: shape
                 csv:
                   label: csv
+                  order: 10
+                json:
+                  label: json
+                  order: 20
+                pdf:
+                  label: pdf
+                  order: 30
+                shape:
+                  label: shape
+                  order: 40
+                xls:
+                  label: xls
+                  order: 50
+                xlsx:
+                  label: xlsx
+                  order: 60
+                xml:
+                  label: xml
+                  order: 70
 
         ogd_dataset_manual:
           label: OGD-Datensatz
