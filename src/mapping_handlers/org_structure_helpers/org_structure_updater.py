@@ -322,6 +322,20 @@ class OrgStructureUpdater:
             endpoint = url_join('rest', config.database_name, 'collections', uuid, leading_slash=True)
             logging.info(f"Updating org unit '{change.title}' (ID: {change.staatskalender_id}) with status '{status}'")
             
+            changes_dict = change.details.get("changes", {})
+            if "status" in changes_dict:
+                changes_dict["status"]["new"] = status
+            
+            if set(changes_dict.keys()) == {"status"}:
+                try:
+                    self.client.set_asset_status(endpoint, status)
+                    logging.info(f"Republished org unit '{change.title}' (ID: {change.staatskalender_id}) from 'DELETENEW' to '{status}'")
+                    stats["updated"] += 1
+                except Exception as e:
+                    logging.error(f"Error republishing org unit '{change.title}' (ID: {change.staatskalender_id}): {str(e)}")
+                    stats["errors"] += 1
+                continue
+            
             # Create update data with only necessary fields
             update_data = self._create_update_data(change)
             
@@ -372,6 +386,8 @@ class OrgStructureUpdater:
         
         # Apply changes
         for field, change_info in change.details.get("changes", {}).items():
+            if field == "status":
+                continue
             if field == "customProperties":
                 # For customProperties, only include what's changed
                 if "customProperties" not in update_data:

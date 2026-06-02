@@ -172,6 +172,12 @@ class OrgStructureComparer:
                 "new": source_path
             }
         
+        if dataspot_unit.get("status") == "DELETENEW":
+            changes["status"] = {
+                "old": "DELETENEW",
+                "new": None
+            }
+        
         return changes
     
     @staticmethod
