@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /opt/workdir
 
 # Label to automatically link the package to the dataspot repository in GHCR
