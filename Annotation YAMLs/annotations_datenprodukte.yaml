@@ -1257,6 +1257,19 @@ Dataset:
       group: I14Y
       title: Erfassen Sie hier zusätzliche Informationen zur betreffenden Version. Dieses Feld ist in DCAT-AP CH 3.0 vorgesehen.
 
+    i14y_identifier:
+      label: Identifikator auf I14Y
+      baseType: STRING
+      group: I14Y
+      title: Der Identifikator ermöglicht eine eindeutige und stabile Referenzierung des Konzepts. Er wird einmal pro Tag automatisch eingetragen für alle Objekte, die auf I14Y veröffentlicht sind.
+      readOnly: true
+    i14y_permalink:
+      label: IRI (Permalink) auf I14Y
+      baseType: STRING
+      group: I14Y
+      title: Gleich bleibender Link auf I14Y. Er wird einmal pro Tag automatisch eingetragen für alle Objekte, die auf I14Y veröffentlicht sind.
+      readOnly: true
+
 ## BESTANDTEILE ##
 Composition:
   properties:
