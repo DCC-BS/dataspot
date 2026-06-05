@@ -14,18 +14,6 @@ Dataset:
   gender: n
 
   groups:
-    DATA_PRIVACY:
-      label: Datenschutz und -sicherheit
-      order: 20
-      icon: shield-halved
-    HISTORIOGRAPHY:
-      label: Historisierung
-      order: 30
-      icon: bookmark
-    ARCHIVING:
-      label: Archivierung
-      order: 40
-      icon: box-archive
     GEO:
       label: Geodaten
       order: 50
@@ -1068,7 +1056,6 @@ Dataset:
       title: Das Datenprodukt enthält Personendaten.
       order: 230
       cardinality: MANY
-      #group: DATA_PRIVACY
       literals:
         none:
           label: Keine
@@ -1094,7 +1081,6 @@ Dataset:
       label: Schutzbedarfsstufen
       title: Einstufung des Schutzbedarfs des Datenprodukts gemäss Schutzbedarfsanalyse
       order: 240
-      #group: DATA_PRIVACY
       literals:
         "1":
           label: Grundschutz (GS)
@@ -1109,7 +1095,6 @@ Dataset:
       label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Datenprodukts
       order: 250
-      #group: DATA_PRIVACY
       literals:
         "1":
           label: Öffentlich
@@ -1126,7 +1111,6 @@ Dataset:
     confidentialityJustificationCategory:
       label: Begründung für Vertraulichkeit
       title: Kategorie der Begründung für eingeschränkten Zugang zum Datenprodukt
-      #group: DATA_PRIVACY
       cardinality: MANY
       order: 254
       literals:
@@ -1165,7 +1149,6 @@ Dataset:
     confidentialityJustification:
       label: Bemerkungen zur Vertraulichkeit
       title: Bemerkungen für eingeschränkten Zugang zum Datenprodukt
-      #group: DATA_PRIVACY
       baseType: TEXT
       order: 255
     usageRestriction:
@@ -1173,7 +1156,6 @@ Dataset:
       title: Beschreibung von Einschränkungen, welche für die Nutzung des Datenprodukts besteht (z.B. aufgrund der Qualität des Datenprodukts).
       baseType: TEXT
       order: 260
-      #group: DATA_PRIVACY
     historicized:
       label: Historisierung
       title: Änderungen des Datenprodukts werden über die Zeit hinweg festgehalten. Frühere Versionen des Datenprodukts können wiederhergestellt werden.
@@ -1184,36 +1166,30 @@ Dataset:
         no:
           label: Nein
           order: 2
-      #group: HISTORIOGRAPHY
       order: 320
     historicizedSince:
       label: Historisierung seit wann
       title: Datum, ab dem eine Änderung des Datenprodukts festgehalten wird. Datum, ab dem es frühere Versionen des Datenprodukts gibt.
       baseType: DATE
-      #group: HISTORIOGRAPHY
       order: 330
     historicizationType:
       label: Art der Historisierung
       title: Art des Festhaltens einer Änderung des Datenprodukts (Snapshots etc.)
       baseType: TEXT
-      #group: HISTORIOGRAPHY
       order: 340
     retentionPeriod:
       label: Aufbewahrungsfrist (Jahre)
       title: Entscheid Aufbewahrungsdauer der Historisierung in Jahren (Frist beginnt mit Erstellungsdatum)
-      #group: HISTORIOGRAPHY
       baseType: INTEGER
       order: 350
     retentionJustification:
       label: Begründung für Aufbewahrungsfrist
       title: Begründung und Bemerkung zur Aufbewahrunsgfrist
-      #group: HISTORIOGRAPHY
       baseType: TEXT
       order: 360
     archived:
       label: Archivierung
       title: Wird das Datenprodukt archiviert (Staatsarchiv?)
-      #group: ARCHIVING
       literals:
         yes:
           label: Ja
@@ -1225,13 +1201,11 @@ Dataset:
     archiveDetails:
       label: Bemerkungen zur Archivierung
       title: Nach welchen Kriterien wird das Datenprodukt archiviert?
-      #group: ARCHIVING
       baseType: TEXT
       order: 430
     archiveJustification:
       label: Begründung für Archivierung
       title: Begründung der Archivwürdigkeit
-      #group: ARCHIVING
       baseType: TEXT
       order: 440
     legalFoundation:
