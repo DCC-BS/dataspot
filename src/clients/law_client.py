@@ -157,25 +157,37 @@ class LAWClient(BaseDataspotClient):
 
     def is_parent_in_use(self, enum_uuid: str) -> bool:
         """
-        Check whether the ReferenceObject (enumeration) appears in derivedfrom_view.derived_from.
-        Returns True if the parent is in use (has derivations).
+        Check whether the ReferenceObject (enumeration) is in use, either via
+        derivedfrom_view (derivedFrom in any catalog) or usageof_view (Usage in VVP).
+        Returns True if the parent is in use.
         """
         query = (
-            "SELECT DISTINCT d.derived_from "
+            "SELECT 1 "
             "FROM dataspot.derivedfrom_view d "
-            f"WHERE d.derived_from = '{enum_uuid}'::uuid"
+            f"WHERE d.derived_from = '{enum_uuid}'::uuid "
+            "UNION ALL "
+            "SELECT 1 "
+            "FROM dataspot.usageof_view u "
+            f"WHERE u.usage_of = '{enum_uuid}'::uuid "
+            "LIMIT 1"
         )
         results = self.execute_query_api(query)
         return len(results) > 0
 
     def get_child_literal_ids_in_use(self, enum_uuid: str) -> Set[str]:
         """
-        Return the set of child ReferenceValue (literal) UUIDs that appear in derivedfrom_view.derived_from.
+        Return the set of child ReferenceValue (literal) UUIDs that are in use,
+        either via derivedfrom_view (derivedFrom) or usageof_view (Usage in VVP).
         """
         query = (
             "SELECT DISTINCT l.id AS literal_id "
             "FROM dataspot.literal_view l "
             "JOIN dataspot.derivedfrom_view d ON d.derived_from = l.id "
+            f"WHERE l.literal_of = '{enum_uuid}'::uuid "
+            "UNION "
+            "SELECT DISTINCT l.id AS literal_id "
+            "FROM dataspot.literal_view l "
+            "JOIN dataspot.usageof_view u ON u.usage_of = l.id "
             f"WHERE l.literal_of = '{enum_uuid}'::uuid"
         )
         results = self.execute_query_api(query)
@@ -194,11 +206,11 @@ class LAWClient(BaseDataspotClient):
         self._delete_asset(endpoint, force_delete=True)
 
     def mark_literal_for_deletion(self, literal_id: str) -> None:
-        """Mark a ReferenceValue (literal) for deletion review (REVIEWDCC2)."""
+        """Mark a ReferenceValue (literal) for deletion review (DELETENEW)."""
         endpoint = url_join(
             "rest", config.database_name, "literals", literal_id, leading_slash=True
         )
-        self.set_asset_status(endpoint=endpoint, status="REVIEWDCC2")
+        self.set_asset_status(endpoint=endpoint, status="DELETENEW")
 
     def delete_reference_object(self, enum_id: str) -> None:
         """Permanently delete a ReferenceObject (enumeration)."""
@@ -207,9 +219,9 @@ class LAWClient(BaseDataspotClient):
         )
         self._delete_asset(endpoint, force_delete=True)
 
-    def mark_reference_object_for_deletion(self, enum_id: str, status: str = "DELETENEW") -> None:
-        """Mark a ReferenceObject (enumeration) for deletion review."""
+    def mark_reference_object_for_deletion(self, enum_id: str) -> None:
+        """Mark a ReferenceObject (enumeration) for deletion review (DELETENEW)."""
         endpoint = url_join(
             "rest", config.database_name, "enumerations", enum_id, leading_slash=True
         )
-        self._mark_asset_for_deletion(endpoint, status=status)
+        self._mark_asset_for_deletion(endpoint, status="DELETENEW")
