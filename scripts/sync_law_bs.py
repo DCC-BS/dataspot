@@ -90,21 +90,38 @@ def parse_paragraphs_from_gesetzestext_html(gesetzestext_html: str) -> List[Dict
 
     article_pattern = re.compile(
         r"<div class=['\"]article['\"]>\s*"
-        r"<div class=['\"]article_number['\"]>.*?<span class=['\"]article_symbol['\"]>.*?</span>\s*"
-        r"<span class=['\"]number['\"]>(?P<code>.*?)</span>.*?</div>\s*"
-        r"<div class=['\"]article_title['\"]>.*?<span class=['\"]title_text['\"]>(?P<title>.*?)</span>.*?</div>\s*"
+        r"<div class=['\"]article_number['\"]>(?P<number_block>.*?)</div>\s*"
+        r"<div class=['\"]article_title['\"]>(?P<title_block>.*?)</div>\s*"
         r"</div>",
+        re.DOTALL | re.IGNORECASE,
+    )
+    number_pattern = re.compile(
+        r"<span class=['\"]article_symbol['\"]>.*?</span>\s*"
+        r"<span class=['\"]number['\"]>(?P<code>.*?)</span>",
+        re.DOTALL | re.IGNORECASE,
+    )
+    title_text_pattern = re.compile(
+        r"<span class=['\"]title_text['\"]>(?P<title>.*?)</span>",
         re.DOTALL | re.IGNORECASE,
     )
 
     paragraphs: List[Dict[str, str]] = []
     seen_codes: set[str] = set()
     for match in article_pattern.finditer(gesetzestext_html):
-        code = _strip_html(match.group("code"))
+        number_match = number_pattern.search(match.group("number_block"))
+        if not number_match:
+            continue
+
+        code = _strip_html(number_match.group("code"))
         if not code or code in seen_codes:
             continue
 
-        short_text = _normalize_short_text(_strip_html(match.group("title")))
+        title_match = title_text_pattern.search(match.group("title_block"))
+        short_text = (
+            _normalize_short_text(_strip_html(title_match.group("title")))
+            if title_match
+            else ""
+        )
         if short_text in {"§", "�"}:
             short_text = ""
 
