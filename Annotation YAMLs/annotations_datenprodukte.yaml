@@ -497,58 +497,58 @@ Dataset:
               literals:
                 imageryBaseMapsEarthCover:
                   label: Basiskarten, Bodenbedeckung, Bilddaten
-                  order: 1
+                  order: 110
                 location:
                   label: Ortsangaben, Referenzsysteme
-                  order: 4
+                  order: 120
                 elevation:
                   label: Höhen
-                  order: 5
+                  order: 130
                 boundaries:
                   label: Politische und administrative Grenzen
-                  order: 6
+                  order: 140
                 planningCadastre:
                   label: Raumplanung, Grundstückskataster
-                  order: 7
+                  order: 150
                 geoscientificInformation:
                   label: Geologie, Boden, naturbedingte Risiken
-                  order: 9
+                  order: 210
                 biota:
                   label: Wald, Flora, Fauna
-                  order: 12
+                  order: 220
                 inlandWaters:
                   label: Gewässer
-                  order: 13
+                  order: 240
                 climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
-                  order: 14
+                  order: 250
                 environment:
                   label: Umwelt-, Naturschutz
-                  order: 15
+                  order: 260
                 society:
                   label: Bevölkerung, Gesellschaft, Kultur
-                  order: 17
+                  order: 310
                 health:
                   label: Gesundheit
-                  order: 18
+                  order: 320
                 structure:
                   label: Gebäude, Anlagen
-                  order: 19
+                  order: 330
                 transportation:
                   label: Verkehr
-                  order: 20
+                  order: 340
                 utilitiesCommunication:
                   label: Ver-, Entsorgung, Kommunikation
-                  order: 21
+                  order: 350
                 intelligenceMilitary:
                   label: Militär, Sicherheit
-                  order: 24
+                  order: 360
                 farming:
                   label: Landwirtschaft
-                  order: 25
+                  order: 370
                 economy:
                   label: Wirtschaftliche Aktivitäten
-                  order: 26
+                  order: 380
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
@@ -596,58 +596,58 @@ Dataset:
               literals:
                 imageryBaseMapsEarthCover:
                   label: Basiskarten, Bodenbedeckung, Bilddaten
-                  order: 1
+                  order: 110
                 location:
                   label: Ortsangaben, Referenzsysteme
-                  order: 4
+                  order: 120
                 elevation:
                   label: Höhen
-                  order: 5
+                  order: 130
                 boundaries:
                   label: Politische und administrative Grenzen
-                  order: 6
+                  order: 140
                 planningCadastre:
                   label: Raumplanung, Grundstückskataster
-                  order: 7
+                  order: 150
                 geoscientificInformation:
                   label: Geologie, Boden, naturbedingte Risiken
-                  order: 9
+                  order: 210
                 biota:
                   label: Wald, Flora, Fauna
-                  order: 12
+                  order: 220
                 inlandWaters:
                   label: Gewässer
-                  order: 13
+                  order: 240
                 climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
-                  order: 14
+                  order: 250
                 environment:
                   label: Umwelt-, Naturschutz
-                  order: 15
+                  order: 260
                 society:
                   label: Bevölkerung, Gesellschaft, Kultur
-                  order: 17
+                  order: 310
                 health:
                   label: Gesundheit
-                  order: 18
+                  order: 320
                 structure:
                   label: Gebäude, Anlagen
-                  order: 19
+                  order: 330
                 transportation:
                   label: Verkehr
-                  order: 20
+                  order: 340
                 utilitiesCommunication:
                   label: Ver-, Entsorgung, Kommunikation
-                  order: 21
+                  order: 350
                 intelligenceMilitary:
                   label: Militär, Sicherheit
-                  order: 24
+                  order: 360
                 farming:
                   label: Landwirtschaft
-                  order: 25
+                  order: 370
                 economy:
                   label: Wirtschaftliche Aktivitäten
-                  order: 26
+                  order: 380
             geoExtent:
               label: Ausdehnung Beschreibung
               title: Beschreibung der räumlichen Ausdehnung der Daten
