@@ -495,15 +495,9 @@ Dataset:
               order: 10
               cardinality: ONE
               literals:
-                imageryBaseMapsEarthCover_BaseMaps:
-                  label: Basiskarten, Landschaftsmodelle
+                imageryBaseMapsEarthCover:
+                  label: Basiskarten, Bodenbedeckung, Bilddaten
                   order: 1
-                imageryBaseMapsEarthCover_EarthCover:
-                  label: Bodenbedeckung, Bodennutzung
-                  order: 2
-                imageryBaseMapsEarthCover_Imagery:
-                  label: Luft-, Satellitenbilder
-                  order: 3
                 location:
                   label: Ortsangaben, Referenzsysteme
                   order: 4
@@ -513,21 +507,12 @@ Dataset:
                 boundaries:
                   label: Politische und administrative Grenzen
                   order: 6
-                planningCadastre_Planning:
-                  label: Raumplanung, Raumentwicklung
+                planningCadastre:
+                  label: Raumplanung, Grundstückskataster
                   order: 7
-                planningCadastre_Cadastre:
-                  label: Grundstückskataster
-                  order: 8
-                geoscientificInformation_Geology:
-                  label: Geologie
+                geoscientificInformation:
+                  label: Geologie, Boden, naturbedingte Risiken
                   order: 9
-                geoscientificInformation_Soils:
-                  label: Boden
-                  order: 10
-                geoscientificInformation_NaturalHazards:
-                  label: Naturbedingte Risiken
-                  order: 11
                 biota:
                   label: Wald, Flora, Fauna
                   order: 12
@@ -537,12 +522,9 @@ Dataset:
                 climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
                   order: 14
-                environment_EnvironmentalProtection:
-                  label: Umweltschutz, Lärm
+                environment:
+                  label: Umwelt-, Naturschutz
                   order: 15
-                environment_NatureProtection:
-                  label: Natur- und Landschaftsschutz
-                  order: 16
                 society:
                   label: Bevölkerung, Gesellschaft, Kultur
                   order: 17
@@ -555,15 +537,9 @@ Dataset:
                 transportation:
                   label: Verkehr
                   order: 20
-                utilitiesCommunication_Energy:
-                  label: Energie
+                utilitiesCommunication:
+                  label: Ver-, Entsorgung, Kommunikation
                   order: 21
-                utilitiesCommunication_Utilities:
-                  label: Wasser- und Abfallsysteme
-                  order: 22
-                utilitiesCommunication_Communication:
-                  label: Kommunikation
-                  order: 23
                 intelligenceMilitary:
                   label: Militär, Sicherheit
                   order: 24
@@ -618,15 +594,9 @@ Dataset:
               order: 10
               cardinality: ONE
               literals:
-                imageryBaseMapsEarthCover_BaseMaps:
-                  label: Basiskarten, Landschaftsmodelle
+                imageryBaseMapsEarthCover:
+                  label: Basiskarten, Bodenbedeckung, Bilddaten
                   order: 1
-                imageryBaseMapsEarthCover_EarthCover:
-                  label: Bodenbedeckung, Bodennutzung
-                  order: 2
-                imageryBaseMapsEarthCover_Imagery:
-                  label: Luft-, Satellitenbilder
-                  order: 3
                 location:
                   label: Ortsangaben, Referenzsysteme
                   order: 4
@@ -636,21 +606,12 @@ Dataset:
                 boundaries:
                   label: Politische und administrative Grenzen
                   order: 6
-                planningCadastre_Planning:
-                  label: Raumplanung, Raumentwicklung
+                planningCadastre:
+                  label: Raumplanung, Grundstückskataster
                   order: 7
-                planningCadastre_Cadastre:
-                  label: Grundstückskataster
-                  order: 8
-                geoscientificInformation_Geology:
-                  label: Geologie
+                geoscientificInformation:
+                  label: Geologie, Boden, naturbedingte Risiken
                   order: 9
-                geoscientificInformation_Soils:
-                  label: Boden
-                  order: 10
-                geoscientificInformation_NaturalHazards:
-                  label: Naturbedingte Risiken
-                  order: 11
                 biota:
                   label: Wald, Flora, Fauna
                   order: 12
@@ -660,12 +621,9 @@ Dataset:
                 climatologyMeteorologyAtmosphere:
                   label: Atmosphäre, Luft, Klima
                   order: 14
-                environment_EnvironmentalProtection:
-                  label: Umweltschutz, Lärm
+                environment:
+                  label: Umwelt-, Naturschutz
                   order: 15
-                environment_NatureProtection:
-                  label: Natur- und Landschaftsschutz
-                  order: 16
                 society:
                   label: Bevölkerung, Gesellschaft, Kultur
                   order: 17
@@ -678,15 +636,9 @@ Dataset:
                 transportation:
                   label: Verkehr
                   order: 20
-                utilitiesCommunication_Energy:
-                  label: Energie
+                utilitiesCommunication:
+                  label: Ver-, Entsorgung, Kommunikation
                   order: 21
-                utilitiesCommunication_Utilities:
-                  label: Wasser- und Abfallsysteme
-                  order: 22
-                utilitiesCommunication_Communication:
-                  label: Kommunikation
-                  order: 23
                 intelligenceMilitary:
                   label: Militär, Sicherheit
                   order: 24
