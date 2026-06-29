@@ -33,6 +33,12 @@ Processing:
       order: 4
       baseType: TEXT
       mandatory: true
+    currentAsOf:
+      label: Stand
+      title: Datum, zu dem das Verfahren mit Personendaten aktuell ist
+      baseType: DATE
+      order: 5
+      #mandatory: true # TODO: Add once added in streamnlit app and all values are added
 
 Usage:
   label: Rechtsgrundlage
