@@ -1,12 +1,25 @@
 # Datenräume
 
-ProjectDirectory:
-  label: Projektverzeichnis
+DataCatalog:
+  label: Datenraumverzeichnis
+  plural: Datenraumverzeichnisse
+  icon: cubes
 
+Dataset:
+  label: Element
+  plural: Elemente
+  icon: cube
+
+SubDataset:
+  label: Teilelement
+  plural: Teilelemente
+
+Collection:
   properties:
     stereotype:
-      label: Projektmodell-Typ
+      label: Typ
       literals:
-        "1":
-          label: Datenraumverzeichnis
-          icon: chart-network
+        DATA_SPACE:
+          label: Datenraum
+          plural: Datenräume
+          icon: cubes
