@@ -915,12 +915,18 @@ Composition:
           label: Muss
           labelEn: Mandatory
           order: 1
-    #completedness: TODO: Nochmals genau überlegen, was hier gespeichert werden soll, und wie das Mouseover jeweils sein soll.
-    #  label: Vollständigkeit
-    #  title: Gibt an, ob gemäss Gesetzesgrundlagen alle Datengrundlagen vollumfänglich bestehen. Wenn das Merkmal nur für gewisse Fälle obligatorisch ist,
-    #  literals:
-    #    COMPLETE:
-    #    INCOMPLETE:
+    conformity:
+      label: Konformität
+      title: Gibt an, ob gemäss Gesetzesgrundlagen alle Datengrundlagen vollumfänglich bestehen. Wenn das Merkmal nur für gewisse Fälle obligatorisch ist, kann auch eine unvollständige Erfassung gesetzeskonform sein und wird hier folglich als "Vollständig" markiert.
+      literals:
+        COMPLETE:
+          label: Vollständig
+          title: Daten sind gesetzeskonform erfasst.
+          order: 1
+        INCOMPLETE:
+          label: Unvollständig
+          title: Daten sind noch nicht gesetzeskonform erfasst.
+          order: 2
     reliability:
       label: Verbindlichkeit
       title: Belastbarkeit der Daten
