@@ -80,7 +80,7 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build and push ${{ matrix.connector }} connector
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./connectors/${{ matrix.connector }}
           push: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
