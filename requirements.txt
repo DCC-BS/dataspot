@@ -6,7 +6,7 @@ iniconfig==2.3.0
 ods_utils_py==0.2.6
 packaging==26.0
 pluggy==1.6.0
-pytest==9.0.3
+pytest==9.1.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
 pytz==2025.2
