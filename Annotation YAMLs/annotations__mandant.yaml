@@ -171,74 +171,74 @@ Asset:
           group: DRAFT
           order: 140
         PREPUBLISHED:
-          label: Kantonsintern sichtbar
-          icon: square-check
+          label: (historisiert) Kantonsintern sichtbar
+          #icon: square-check
           group: PUBLIC
-          order: 160
+          order: 999160
         TB:
-          label: Technische Datenbereitstellung
-          icon: screwdriver-wrench
+          label: (historisiert) Technische Datenbereitstellung
+          #icon: screwdriver-wrench
           group: PUBLIC
-          order: 180
+          order: 999180
         OGDCHECK:
-          label: OGD Prüfung
-          icon: user-group
+          label: (historisiert) OGD Prüfung
+          #icon: user-group
           group: PUBLIC
-          order: 200
+          order: 999200
         KORREKTUR:
-          label: Korrektur
-          icon: circle-exclamation
-          order: 220
+          label: (historisiert) Korrektur
+          #icon: circle-exclamation
+          order: 999220
           group: DRAFT
         MUTATION:
-          label: Mutation unter Beachtung der Abhängigkeiten
-          icon: circle-exclamation
-          order: 240
+          label: (historisiert) Mutation unter Beachtung der Abhängigkeiten
+          #icon: circle-exclamation
+          order: 999240
           group: DRAFT
         MUTATION_NV:
-          label: Mutation
-          icon: circle-exclamation
-          order: 260
+          label: (historisiert) Mutation
+          #icon: circle-exclamation
+          order: 999260
           group: DRAFT
         INTERMINATION:
-          label: Antrag auf Löschung
-          icon: trash
-          order: 280
+          label: (historisiert) Antrag auf Löschung
+          #icon: trash
+          order: 999280
           group: PUBLIC
         REVIEW2:
-          label: Lösch-Prüfung Data Steward Datenraum
-          icon: arrows-rotate
+          label: (historisiert) Lösch-Prüfung Data Steward Datenraum
+          #icon: arrows-rotate
           group: PUBLIC
-          order: 300
+          order: 999300
         REVIEWDCC2:
-          label: Lösch-Prüfung DCC
-          icon: arrows-rotate
+          label: (historisiert) Lösch-Prüfung DCC
+          #icon: arrows-rotate
           group: PUBLIC
-          order: 320
+          order: 999320
         REVIEW3:
-          label: Finale Abnahme DCC
-          icon: arrows-rotate
+          label: (historisiert) Finale Abnahme DCC
+          #icon: arrows-rotate
           group: PUBLIC
-          order: 340
+          order: 999340
         FADO2:
-          label: Finale Abnahme DO
-          icon: user-check
+          label: (historisiert) Finale Abnahme DO
+          #icon: user-check
           group: DRAFT
-          order: 360
+          order: 999360
         INTERMINATION2:
-          label: Metadaten archiviert
-          icon: trash
-          order: 380
+          label: (historisiert) Metadaten archiviert
+          #icon: trash
+          order: 999380
           group: NOT_PUBLIC
         DELETE:
-          label: Metadaten löschen
-          icon: solid-trash
-          order: 400
+          label: (historisiert) Metadaten löschen
+          #icon: solid-trash
+          order: 999400
           group: NOT_PUBLIC
         DELETE2:
-          label: Metadaten gelöscht
-          icon: solid-trash
-          order: 420
+          label: (historisiert) Metadaten gelöscht
+          #icon: solid-trash
+          order: 999420
           group: NOT_PUBLIC
         REVIEW3DS:
           label: Freigabe Data Steward
@@ -280,10 +280,10 @@ Asset:
           order: 620
           group: PUBLIC
         ARCHIVEDSDT:
-          label: Abnahme Data Steward Datenraum Archivierung
+          label: (historisiert) Abnahme Data Steward Datenraum Archivierung
           labelEn: Published
-          icon: inbox
-          order: 640
+          #icon: inbox
+          order: 999640
           group: PUBLIC
         ARCHIVEMETA:
           label: Archiviert
@@ -330,10 +330,10 @@ Asset:
           order: 40
           group: PUBLIC
         PUBLISHEDDCC:
-          label: Veröffentlicht und von DCC abgenommen
+          label: (historisiert) Veröffentlicht und von DCC abgenommen
           labelEn: Published
-          icon: globe
-          order: 45
+          #icon: globe
+          order: 99945
           group: PUBLIC
         INACTIVE:
           label: Inaktiv
