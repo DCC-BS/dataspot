@@ -8,3 +8,20 @@ ReferenceObject:
   label: Referenzliste
   plural: Referenzlisten
   title: Eine Referenzliste ist eine Aufzählung von gültigen Referenzwerten, die zur Klassifizierung bestimmter Eigenschaften dienen.
+  groups:
+    I14Y:
+      label: I14Y
+      title: Metadaten, welche explizit für die Veröffentlichung auf i14y.admin.ch erfasst werden können
+      order: 70
+      icon: folder-plus
+  customProperties:
+    publish_on_i14y:
+      label: Auf I14Y veröffentlichen
+      title: Dieses Datenprodukt soll auf I14Y veröffentlicht werden.
+      group: I14Y
+      defaultValue: no
+      literals:
+        yes:
+          label: Ja
+        no:
+          label: Nein

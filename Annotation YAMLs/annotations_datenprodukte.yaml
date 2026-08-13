@@ -863,6 +863,16 @@ Dataset:
       title: Rechtlicher Rahmen, der die Veröffentlichung dieses Datenprodukts begründet. Die konkreten Rechtsnormen können via *Herkunft von* referenziert werden.
       order: 150
       baseType: TEXT
+    publish_on_i14y:
+      label: Auf I14Y veröffentlichen
+      title: Dieses Datenprodukt soll auf I14Y veröffentlicht werden.
+      group: I14Y
+      defaultValue: no
+      literals:
+        yes:
+          label: Ja
+        no:
+          label: Nein
 
     i14y_dataset_landingPage:
       label: Landing page
