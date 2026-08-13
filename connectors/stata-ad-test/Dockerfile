@@ -1,4 +1,4 @@
-FROM eclipse-temurin:26-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /opt/workdir
 
 # Install Kerberos client libraries
