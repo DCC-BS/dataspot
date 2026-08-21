@@ -83,7 +83,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'link_errors': 0,
             'deleted_compositions': 0,
             'deployments_created': 0,
-            'deployment_errors': 0
+            'deployment_errors': 0,
+            'distributions_created': 0
         }, # TODO: Cleanup: Remove all count keys:
         'details': {
             'creations': {
@@ -115,6 +116,10 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                 'items': []
             },
             'deployments': {
+                'count': 0,
+                'items': []
+            },
+            'distributions': {
                 'count': 0,
                 'items': []
             }
@@ -206,10 +211,18 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
                         if 'deployments' in sync_summary['details']:
                             sync_results['details']['deployments']['count'] += sync_summary['details']['deployments'].get('count', 0)
                             sync_results['details']['deployments']['items'].extend(sync_summary['details']['deployments'].get('items', []))
+                        
+                        # Merge distributions (created by sync_datasets for each dataset)
+                        if 'distributions' in sync_summary['details']:
+                            sync_results['details']['distributions']['count'] += sync_summary['details']['distributions'].get('count', 0)
+                            sync_results['details']['distributions']['items'].extend(sync_summary['details']['distributions'].get('items', []))
                     
                     # Update deployment counts from sync_summary
                     sync_results['counts']['deployments_created'] += sync_summary.get('deployments_created', 0)
                     sync_results['counts']['deployment_errors'] += sync_summary.get('deployment_errors', 0)
+                    
+                    # Update distribution counts from sync_summary
+                    sync_results['counts']['distributions_created'] += sync_summary.get('distributions_created', 0)
                     
                     # Clear the batch for the next iteration
                     all_datasets = []
@@ -321,7 +334,8 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
             f"Linked {sync_results['counts']['linked']} datasets to compositions with {sync_results['counts']['deleted_compositions']} obsolete compositions removed. "
-            f"Huwise deployments: {sync_results['counts']['deployments_created']} created."
+            f"Huwise deployments: {sync_results['counts']['deployments_created']} created. "
+            f"OGD distributions: {sync_results['counts']['distributions_created']} created."
         )
         
     except Exception as e:
@@ -743,6 +757,7 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['link_errors']} link errors")
     logging.info(f"Huwise deployments: {sync_results['counts']['deployments_created']} created, "
                f"{sync_results['counts']['deployment_errors']} errors")
+    logging.info(f"OGD distributions: {sync_results['counts']['distributions_created']} created")
     
     # Log detailed information about deleted datasets
     if sync_results['details']['deletions']['count'] > 0:
@@ -870,7 +885,7 @@ def create_email_content(sync_results):
     is_error = sync_results['status'] == 'error'
     
     # Send email if there were changes or errors
-    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and counts.get('deployments_created', 0) == 0 and not is_error:
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and counts.get('deployments_created', 0) == 0 and counts.get('distributions_created', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary following the requested format
@@ -905,6 +920,7 @@ def create_email_content(sync_results):
     email_text += f"\n\nHuwise deployments: {counts.get('deployments_created', 0)} created"
     if counts.get('deployment_errors', 0) > 0:
         email_text += f", {counts['deployment_errors']} errors"
+    email_text += f"\n\nOGD distributions: {counts.get('distributions_created', 0)} created"
     email_text += f"\n\nTotal datasets processed: {counts['processed']}\n\n"
     
     # Add detailed information if available

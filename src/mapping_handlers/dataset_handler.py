@@ -109,6 +109,112 @@ def ensure_huwise_deployment(client: BaseDataspotClient, dataset_uuid: str, data
         return False
 
 
+# Module-level cache: dataset_uuid -> set of existing distribution format strings
+_dataset_distributions_cache = {}
+
+_DISTRIBUTION_SPECS = (
+    {
+        "format": "csv",
+        "path_suffix": "csv/?delimiter=%3B&lang=de&timezone=Europe%2FZurich&use_labels=true",
+        "description": "CSV verwendet ein Semikolon (;) als Trennzeichen.",
+    },
+    {
+        "format": "json",
+        "path_suffix": "json/?lang=de&timezone=Europe%2FZurich",
+        "description": None,
+    },
+    {
+        "format": "xlsx",
+        "path_suffix": "xlsx/?lang=de&timezone=Europe%2FZurich&use_labels=true",
+        "description": None,
+    },
+)
+
+
+def get_existing_distribution_formats(client: BaseDataspotClient, dataset_uuid: str) -> set:
+    """Return formats already present for a dataset. Cached per UUID for the process."""
+    global _dataset_distributions_cache
+    if dataset_uuid in _dataset_distributions_cache:
+        return _dataset_distributions_cache[dataset_uuid]
+
+    endpoint = f"/rest/{config.database_name}/datasets/{dataset_uuid}/distributions"
+    formats = set()
+    try:
+        response = client._get_asset(endpoint)
+        if response and "_embedded" in response and "distributions" in response["_embedded"]:
+            for dist in response["_embedded"]["distributions"]:
+                fmt = dist.get("format")
+                if fmt:
+                    formats.add(fmt)
+        logging.debug(
+            f"Found {len(formats)} existing distributions for dataset {dataset_uuid}: {sorted(formats)}"
+        )
+    except Exception as e:
+        logging.error(f"Error fetching distributions for dataset {dataset_uuid}: {str(e)}")
+        formats = set()
+
+    _dataset_distributions_cache[dataset_uuid] = formats
+    return formats
+
+
+def ensure_ogd_distributions(
+    client: BaseDataspotClient,
+    dataset_uuid: str,
+    ods_id: str,
+    dataset_title: str,
+) -> int:
+    """
+    Ensure csv/json/xlsx distributions exist for an OGD dataset.
+    Creates missing ones only; never updates or deletes existing distributions.
+    Returns number of distributions created.
+    """
+    existing_formats = get_existing_distribution_formats(client, dataset_uuid)
+    distributions_endpoint = (
+        f"/rest/{config.database_name}/datasets/{dataset_uuid}/distributions"
+    )
+    created = 0
+
+    for spec in _DISTRIBUTION_SPECS:
+        fmt = spec["format"]
+        if fmt in existing_formats:
+            logging.debug(
+                f"Distribution '{fmt}' already exists for dataset '{dataset_title}' "
+                f"({ods_id} / {dataset_uuid})"
+            )
+            continue
+
+        access_url = (
+            f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ods_id}/exports/"
+            f"{spec['path_suffix']}"
+        )
+        payload = {
+            "_type": "Distribution",
+            "label": f"{ods_id}.{fmt}",
+            "accessURL": access_url,
+            "format": fmt,
+        }
+        if spec["description"]:
+            payload["description"] = spec["description"]
+
+        try:
+            client._create_asset(
+                distributions_endpoint, data=payload, status="PUBLISHED"
+            )
+            existing_formats.add(fmt)
+            created += 1
+            logging.info(
+                f"Created distribution '{fmt}' for dataset '{dataset_title}' "
+                f"(ODS ID: {ods_id}, UUID: {dataset_uuid})"
+            )
+        except Exception as e:
+            logging.error(
+                f"Error creating distribution '{fmt}' for dataset '{dataset_title}' "
+                f"(ODS ID: {ods_id}, UUID: {dataset_uuid}): {str(e)}"
+            )
+
+    return created
+
+
 class DatasetHandler(BaseDataspotHandler):
     """
     Handler for dataset synchronization operations in Dataspot.
@@ -223,12 +329,14 @@ class DatasetHandler(BaseDataspotHandler):
             "deleted": 0,
             "deployments_created": 0,
             "deployment_errors": 0,
+            "distributions_created": 0,
             "details": {
                 "creations": {"count": 0, "items": []},
                 "updates": {"count": 0, "items": []},
                 "deletions": {"count": 0, "items": []},
                 "errors": {"count": 0, "items": []},
-                "deployments": {"count": 0, "items": []}
+                "deployments": {"count": 0, "items": []},
+                "distributions": {"count": 0, "items": []}
             }
         }
 
@@ -357,6 +465,18 @@ class DatasetHandler(BaseDataspotHandler):
                                     "title": title,
                                     "uuid": uuid
                                 })
+
+                            # Ensure OGD distributions exist (csv/json/xlsx)
+                            distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                            if distributions_created:
+                                result["distributions_created"] += distributions_created
+                                result["details"]["distributions"]["count"] += distributions_created
+                                result["details"]["distributions"]["items"].append({
+                                    "ods_id": odsDataportalId,
+                                    "title": title,
+                                    "uuid": uuid,
+                                    "created": distributions_created
+                                })
                                 
                         except Exception as e:
                             error_msg = f"Error updating dataset with odsDataportalId {odsDataportalId}: {str(e)}"
@@ -383,6 +503,18 @@ class DatasetHandler(BaseDataspotHandler):
                                 "ods_id": odsDataportalId,
                                 "title": title,
                                 "uuid": uuid
+                            })
+
+                        # Ensure OGD distributions exist even for unchanged datasets
+                        distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                        if distributions_created:
+                            result["distributions_created"] += distributions_created
+                            result["details"]["distributions"]["count"] += distributions_created
+                            result["details"]["distributions"]["items"].append({
+                                "ods_id": odsDataportalId,
+                                "title": title,
+                                "uuid": uuid,
+                                "created": distributions_created
                             })
                 
                 except Exception as e:
@@ -441,6 +573,18 @@ class DatasetHandler(BaseDataspotHandler):
                                     "ods_id": odsDataportalId,
                                     "title": title,
                                     "uuid": uuid
+                                })
+
+                            # Ensure OGD distributions exist for newly created dataset
+                            distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                            if distributions_created:
+                                result["distributions_created"] += distributions_created
+                                result["details"]["distributions"]["count"] += distributions_created
+                                result["details"]["distributions"]["items"].append({
+                                    "ods_id": odsDataportalId,
+                                    "title": title,
+                                    "uuid": uuid,
+                                    "created": distributions_created
                                 })
                         
                     except Exception as e:
