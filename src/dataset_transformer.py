@@ -155,7 +155,8 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
         datenportal_identifikation=ods_dataset_id,
         
         # Custom properties
-        tags=tags
+        tags=tags,
+        publish_on_i14y="yes",
     )
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
