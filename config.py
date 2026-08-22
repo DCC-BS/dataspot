@@ -44,6 +44,9 @@ huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
 law_bs_system_label = 'Systematische Gesetzessammlung Basel-Stadt'
 law_ch_system_label = 'Systematische Rechtssammlung Schweiz'
 
+# Staatskalender ID of the open-data org unit used as I14Y Kontaktstelle for synced OGD datasets
+ogd_i14y_kontaktstelle_sk_id = 1011 # TODO: Change to 1012 when mail is present in https://staatskalender.bs.ch/organization/regierung-und-verwaltung/praesidialdepartement/statistisches-amt/data-competence-center
+
 # Client-specific ODS Imports collection configurations, where needed. Empty list for the path means directly under scheme root
 # DNK client configuration
 dnk_ods_imports_collection_name = 'OGD-Datensätze aus Huwise'

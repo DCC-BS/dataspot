@@ -867,12 +867,22 @@ Dataset:
       label: Auf I14Y veröffentlichen
       title: Dieses Datenprodukt soll auf I14Y veröffentlicht werden.
       group: I14Y
+      order: 1
+      width: 2
       defaultValue: no
       literals:
         yes:
           label: Ja
         no:
           label: Nein
+
+    i14y_kontaktstelle_sk_id:
+      label: Kontaktstelle (Staatskalender-ID)
+      title: Staatskalender-ID der Organisationseinheit, die als Kontaktstelle für die I14Y-Veröffentlichung verwendet wird. Wenn gesetzt, wird diese Einheit als Kontaktstelle verwendet. Wenn leer, wird die Kontaktstelle aus der übergeordneten Organisationseinheit in der Sammlungshierarchie abgeleitet.
+      group: I14Y
+      order: 2
+      width: 1
+      baseType: INTEGER
 
     i14y_dataset_landingPage:
       label: Landing page

@@ -4,6 +4,7 @@ import pytz
 from dateutil import parser
 import datetime
 
+import config
 from src.dataspot_dataset import OGDDataset
 
 
@@ -157,6 +158,7 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
         # Custom properties
         tags=tags,
         publish_on_i14y="yes",
+        i14y_kontaktstelle_sk_id=config.ogd_i14y_kontaktstelle_sk_id,
     )
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
