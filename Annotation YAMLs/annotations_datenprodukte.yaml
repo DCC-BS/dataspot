@@ -214,7 +214,7 @@ Dataset:
             i14y_api_endpointURL:
               label: URL des Endpunktes
               labelEn: URL of the endpoint
-              title: Internetadresse des primären Endpunktes der API.
+              title: "Internetadresse des primären Endpunktes der API. Beispiel: https://.../api/1.0/"
               order: 10
               width: 1
               mandatory: true
