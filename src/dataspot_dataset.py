@@ -136,6 +136,7 @@ class OGDDataset(BasicDataset):
     tags: Optional[List[str]] = field(default=None, metadata={'json_key': 'odsDataportalTags', 'custom_property': True})
     publish_on_i14y: Optional[str] = field(default=None, metadata={'json_key': 'publish_on_i14y', 'custom_property': True})
     i14y_kontaktstelle_sk_id: Optional[int] = field(default=None, metadata={'json_key': 'i14y_kontaktstelle_sk_id', 'custom_property': True})
+    i14y_dataset_landing_page: Optional[str] = field(default=None, metadata={'json_key': 'i14y_dataset_landingPage', 'custom_property': True})
 
     # Immutable fields
     stereotype: str = field(default="OGD", init=False)

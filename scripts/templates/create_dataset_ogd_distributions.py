@@ -52,10 +52,14 @@ def _create_collection(client: DNKClient, label: str) -> dict:
 
 
 def _create_dataset(client: DNKClient, collection_id: str, namespace: str) -> dict:
+    datenportal_link = f"https://data.bs.ch/explore/dataset/{THROWAWAY_ODS_ID}/"
     dataset_obj = OGDDataset(
         name=f"{namespace} OGD Distributions Test",
         datenportal_identifikation=THROWAWAY_ODS_ID,
-        datenportal_link=f"https://data.bs.ch/explore/dataset/{THROWAWAY_ODS_ID}/",
+        datenportal_link=datenportal_link,
+        publish_on_i14y="yes",
+        i14y_kontaktstelle_sk_id=config.ogd_i14y_kontaktstelle_sk_id,
+        i14y_dataset_landing_page=datenportal_link,
     )
     dataset_payload = dataset_obj.to_json()
     dataset_payload["inCollection"] = collection_id

@@ -125,6 +125,8 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
     # TODO (Renato): Map default.references to appropriate field (example: "https://statistik.bs.ch/unterthema/9#Preise")
     
     # TODO (Renato): Consider if it makes sense to import creation date (dcat.created) and modification date (default.modified)
+
+    datenportal_link = f"https://data.bs.ch/explore/dataset/{ods_dataset_id}/"
     
     # Create the OGDDataset with mapped fields
     ogd_dataset = OGDDataset(
@@ -152,13 +154,14 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
         publizierende_organisation=publizierende_organisation,
         
         # Identifiers
-        datenportal_link=f"https://data.bs.ch/explore/dataset/{ods_dataset_id}/",
+        datenportal_link=datenportal_link,
         datenportal_identifikation=ods_dataset_id,
         
         # Custom properties
         tags=tags,
         publish_on_i14y="yes",
         i14y_kontaktstelle_sk_id=config.ogd_i14y_kontaktstelle_sk_id,
+        i14y_dataset_landing_page=datenportal_link,
     )
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
