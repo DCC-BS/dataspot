@@ -25,3 +25,9 @@ ReferenceObject:
           label: Ja
         no:
           label: Nein
+  customFunctions:
+    openInI14y:
+      label: In I14Y öffnen (falls veröffentlicht)
+      title: Diese Referenzliste im I14Y-Katalog öffnen, falls es dort veröffentlicht wurde.
+      icon: folder-plus
+      href: "https://register.ld.admin.ch/i14y/concept/${this.id}/"

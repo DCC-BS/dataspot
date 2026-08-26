@@ -900,6 +900,12 @@ Dataset:
       baseType: STRING
       group: I14Y
       title: Erfassen Sie hier zusätzliche Informationen zur betreffenden Version. Dieses Feld ist in DCAT-AP CH 3.0 vorgesehen.
+  customFunctions:
+    openInI14y:
+      label: In I14Y öffnen (falls veröffentlicht)
+      title: Dieses Datenprodukt im I14Y-Katalog öffnen, falls es dort veröffentlicht wurde.
+      icon: folder-plus
+      href: "https://register.ld.admin.ch/i14y/dataset/${this.id}/"
 
 ## BESTANDTEILE ##
 Composition:
