@@ -1,4 +1,5 @@
-from typing import Any, Dict, List
+from datetime import date, datetime, timezone
+from typing import Any, Dict, List, Optional
 import logging
 import re
 from urllib.parse import urlparse
@@ -41,6 +42,27 @@ class VVPClient(BaseDataspotClient):
     @staticmethod
     def _normalize_url_key(value: str) -> str:
         return str(value or "").strip().casefold()
+
+    @staticmethod
+    def _date_to_utc_midnight_ms(value: date) -> int:
+        dt = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+
+    @staticmethod
+    def _normalize_utc_midnight_ms(value: Any) -> Optional[int]:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
+    def _format_utc_midnight_ms(cls, value: Any) -> str:
+        ms = cls._normalize_utc_midnight_ms(value)
+        if ms is None:
+            return ""
+        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%d.%m.%Y")
 
     @staticmethod
     def _extract_url_from_description(value: Any) -> str:
@@ -475,9 +497,10 @@ class VVPClient(BaseDataspotClient):
                     MAX(CASE WHEN cp.name = 'legalFoundation' THEN cp.value END) AS legal_foundation,
                     MAX(CASE WHEN cp.name = 'legalFoundationSource' THEN cp.value END) AS legal_foundation_source,
                     MAX(CASE WHEN cp.name = 'website' THEN cp.value END) AS website,
-                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose
+                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose,
+                    MAX(CASE WHEN cp.name = 'currentAsOf' THEN cp.value END) AS current_as_of
                 FROM dataspot.customproperties_view cp
-                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose')
+                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose', 'currentAsOf')
                 GROUP BY cp.resource_id
             )
             SELECT
@@ -488,7 +511,8 @@ class VVPClient(BaseDataspotClient):
                 props.legal_foundation,
                 props.legal_foundation_source,
                 props.website,
-                props.data_processing_purpose
+                props.data_processing_purpose,
+                props.current_as_of
             FROM dataspot.processing_view p
             JOIN collection_tree ct ON p.in_collection = ct.id
             LEFT JOIN dataspot.collection_view ic ON ic.id = p.in_collection
@@ -545,6 +569,7 @@ class VVPClient(BaseDataspotClient):
             "quellen": self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource"))),
             "internetauftritt": self._normalize_string(processing.get("website")),
             "zweck_datenbearbeitung": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
+            "stand": self._format_utc_midnight_ms(processing.get("current_as_of", processing.get("currentAsOf"))),
             "verantwortliche_stelle": verantwortliche_stelle,
         }
 
@@ -556,9 +581,10 @@ class VVPClient(BaseDataspotClient):
                     MAX(CASE WHEN cp.name = 'legalFoundation' THEN cp.value END) AS legal_foundation,
                     MAX(CASE WHEN cp.name = 'legalFoundationSource' THEN cp.value END) AS legal_foundation_source,
                     MAX(CASE WHEN cp.name = 'website' THEN cp.value END) AS website,
-                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose
+                    MAX(CASE WHEN cp.name = 'dataProcessingPurpose' THEN cp.value END) AS data_processing_purpose,
+                    MAX(CASE WHEN cp.name = 'currentAsOf' THEN cp.value END) AS current_as_of
                 FROM dataspot.customproperties_view cp
-                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose')
+                WHERE cp.name IN ('legalFoundation', 'legalFoundationSource', 'website', 'dataProcessingPurpose', 'currentAsOf')
                 GROUP BY cp.resource_id
             )
             SELECT
@@ -568,7 +594,8 @@ class VVPClient(BaseDataspotClient):
                 props.legal_foundation,
                 props.legal_foundation_source,
                 props.website,
-                props.data_processing_purpose
+                props.data_processing_purpose,
+                props.current_as_of
             FROM dataspot.processing_view p
             LEFT JOIN processing_custom_props props ON props.resource_id = p.id
             WHERE p.id = '{processing_uuid}'
@@ -588,6 +615,7 @@ class VVPClient(BaseDataspotClient):
         data_processing_purpose_raw = self._normalize_string(
             processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))
         )
+        current_as_of_raw = processing.get("current_as_of", processing.get("currentAsOf"))
         mapped = {
             "id": self._normalize_string(processing.get("id")),
             "label": self._normalize_string(processing.get("label")),
@@ -596,6 +624,8 @@ class VVPClient(BaseDataspotClient):
             "legalFoundationSource": prepare_custom_property_for_form(legal_foundation_source_raw),
             "website": prepare_custom_property_for_form(website_raw),
             "dataProcessingPurpose": prepare_custom_property_for_form(data_processing_purpose_raw),
+            "currentAsOf": self._normalize_utc_midnight_ms(current_as_of_raw),
+            "stand": self._format_utc_midnight_ms(current_as_of_raw),
         }
         return mapped
 
@@ -607,6 +637,7 @@ class VVPClient(BaseDataspotClient):
         legal_foundation_source: str,
         website: str,
         data_processing_purpose: str,
+        current_as_of: date,
     ) -> Dict[str, Any]:
         payload = {
             "_type": "Processing",
@@ -617,6 +648,7 @@ class VVPClient(BaseDataspotClient):
                 "legalFoundationSource": self._normalize_custom_property_value(legal_foundation_source),
                 "website": self._normalize_custom_property_value(website),
                 "dataProcessingPurpose": self._normalize_custom_property_value(data_processing_purpose),
+                "currentAsOf": self._date_to_utc_midnight_ms(current_as_of),
             },
         }
         return payload
