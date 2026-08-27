@@ -559,9 +559,9 @@ class VVPClient(BaseDataspotClient):
     ) -> Dict[str, Any]:
         in_collection_value = processing.get("in_collection", processing.get("inCollection"))
         in_collection_label = self._normalize_string(processing.get("in_collection_label")).strip()
-        verantwortliche_stelle = in_collection_label
-        if not verantwortliche_stelle:
-            verantwortliche_stelle = self.resolve_collection_label_for_display(in_collection_value, collection_lookup)
+        verantwortliches_oeffentliches_organ = in_collection_label
+        if not verantwortliches_oeffentliches_organ:
+            verantwortliches_oeffentliches_organ = self.resolve_collection_label_for_display(in_collection_value, collection_lookup)
         return {
             "id": self._normalize_string(processing.get("id")),
             "bezeichnung": self._normalize_string(processing.get("label")),
@@ -570,7 +570,7 @@ class VVPClient(BaseDataspotClient):
             "internetauftritt": self._normalize_string(processing.get("website")),
             "zweck_datenbearbeitung": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
             "stand": self._format_utc_midnight_ms(processing.get("current_as_of", processing.get("currentAsOf"))),
-            "verantwortliche_stelle": verantwortliche_stelle,
+            "verantwortliches_oeffentliches_organ": verantwortliches_oeffentliches_organ,
         }
 
     def get_processing_by_uuid(self, processing_uuid: str) -> Dict[str, Any]:
