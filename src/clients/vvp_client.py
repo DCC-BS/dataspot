@@ -207,8 +207,10 @@ class VVPClient(BaseDataspotClient):
         query = f"""
             SELECT u.id, u.resource_id, u.usage_of, u.qualifier
             FROM dataspot.usageof_view u
+            JOIN dataspot.processing_view p
+              ON p.id = u.resource_id
+             AND p.model_id = u.model_id
             WHERE u.resource_id = '{normalized_processing_uuid}'::uuid
-              AND u.model_id = '{normalized_law_scheme_id}'::uuid
         """
         rows = self.execute_query_api(sql_query=query)
         logging.info("Loaded processing usages for processing=%s: %s", normalized_processing_uuid, len(rows))
