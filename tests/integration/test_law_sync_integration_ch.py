@@ -10,6 +10,8 @@ import pytest
 import config
 from scripts.sync_law_ch import (
     WRITE_STATUS,
+    _coerce_version_active_since_ms,
+    _date_applicability_to_utc_midnight_ms,
     fetch_active_laws_from_fedlex,
     normalize_systematic_number,
     parse_articles_from_fedlex_xml,
@@ -454,6 +456,39 @@ def _force_parent_xml_url_mismatch(
         systematic_number,
     )
     return drifted_xml_url
+
+
+def _force_parent_version_active_since_drift(
+    law_client: LAWClient, parent_asset: Dict[str, Any]
+) -> None:
+    law_id = str(parent_asset.get("id") or "").strip()
+    systematic_number = normalize_systematic_number(parent_asset.get("systematic_number"))
+    xml_url = str(parent_asset.get("xml_url") or "").strip()
+    if not law_id or not systematic_number or not xml_url:
+        raise AssertionError(
+            "Cannot force version_active_since drift: parent must have id, systematic_number, and xml_url"
+        )
+    drifted_ms = 946684800000  # 2000-01-01T00:00:00Z; unlikely to be a legitimate Fedlex value
+    payload = {
+        "_type": "ReferenceObject",
+        "label": str(parent_asset.get("label") or "").strip(),
+        "description": str(parent_asset.get("description") or "").strip(),
+        "title": str(parent_asset.get("title") or "").strip(),
+        "customProperties": {
+            "legal_form": str(parent_asset.get("legal_form") or "").strip(),
+            "short_title": str(parent_asset.get("short_title") or "").strip(),
+            "abbreviation": str(parent_asset.get("abbreviation") or "").strip(),
+            "systematic_number": systematic_number,
+            "xml_url": xml_url,
+            "version_active_since": drifted_ms,
+        },
+    }
+    law_client.update_reference_object(law_id=law_id, data=payload, status=WRITE_STATUS)
+    logging.info(
+        "Forced version_active_since drift for law_id=%s systematic_number=%s",
+        law_id,
+        systematic_number,
+    )
 
 
 def _literal_short_text(law_client: LAWClient, literal_id: str) -> str:
@@ -990,6 +1025,26 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     second_report = sync_law_ch()
     assert_deleted(law_client, "enumerations", parent["id"])
     assert second_report["counts"]["errors"] == 0
+
+
+def test_case_g_version_active_since_synced_from_fedlex(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    fedlex_law, parent = select_live_fedlex_law_present_in_db(law_client, law_collection_uuid)
+    expected_ms = _date_applicability_to_utc_midnight_ms(fedlex_law.get("date_applicability"))
+
+    _force_parent_version_active_since_drift(law_client=law_client, parent_asset=parent)
+
+    report = sync_law_ch()
+
+    updated_parent = get_asset_by_uuid(law_client, "enumerations", parent["id"])
+    assert updated_parent is not None
+    actual_ms = _coerce_version_active_since_ms(
+        updated_parent.get("customProperties", {}).get("version_active_since")
+    )
+    assert actual_ms == expected_ms
+    assert report["counts"]["errors"] == 0
 
 
 def test_case_upload_happy_path_recreate_parent_literals_and_deployment(

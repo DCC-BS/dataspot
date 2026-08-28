@@ -10,6 +10,8 @@ import pytest
 import config
 from scripts.sync_law_bs import (
     WRITE_STATUS,
+    _coerce_version_active_since_ms,
+    _version_active_since_to_utc_midnight_ms,
     fetch_active_laws_from_ods,
     normalize_systematic_number,
     parse_paragraphs_from_gesetzestext_html,
@@ -322,6 +324,35 @@ def create_test_literal(
     )
     logging.info("Created test literal id=%s code=%s", literal.get("id"), code)
     return literal
+
+
+def _force_parent_version_active_since_drift(
+    law_client: LAWClient, parent_asset: Dict[str, Any]
+) -> None:
+    law_id = str(parent_asset.get("id") or "").strip()
+    systematic_number = normalize_systematic_number(parent_asset.get("systematic_number"))
+    if not law_id or not systematic_number:
+        raise AssertionError(
+            "Cannot force version_active_since drift: parent must have id and systematic_number"
+        )
+    drifted_ms = 946684800000  # 2000-01-01T00:00:00Z; unlikely to be a legitimate ODS value
+    payload = {
+        "_type": "ReferenceObject",
+        "label": str(parent_asset.get("label") or "").strip(),
+        "description": str(parent_asset.get("description") or "").strip(),
+        "title": str(parent_asset.get("title") or "").strip(),
+        "customProperties": {
+            "legal_form": str(parent_asset.get("legal_form") or "").strip(),
+            "systematic_number": systematic_number,
+            "version_active_since": drifted_ms,
+        },
+    }
+    law_client.update_reference_object(law_id=law_id, data=payload, status=WRITE_STATUS)
+    logging.info(
+        "Forced version_active_since drift for law_id=%s systematic_number=%s",
+        law_id,
+        systematic_number,
+    )
 
 
 def create_disposable_target_asset(
@@ -788,3 +819,24 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     second_report = sync_law_bs()
     assert_deleted(law_client, "enumerations", parent["id"])
     assert second_report["counts"]["errors"] == 0
+
+
+def test_case_g_version_active_since_synced_from_ods(
+    law_client: LAWClient,
+    law_collection_uuid: str,
+) -> None:
+    _ensure_not_tiny_ods_subset()
+    ods_law, parent = select_live_ods_law_present_in_db(law_client, law_collection_uuid)
+    expected_ms = _version_active_since_to_utc_midnight_ms(ods_law.get("version_active_since"))
+
+    _force_parent_version_active_since_drift(law_client=law_client, parent_asset=parent)
+
+    report = sync_law_bs()
+
+    updated_parent = get_asset_by_uuid(law_client, "enumerations", parent["id"])
+    assert updated_parent is not None
+    actual_ms = _coerce_version_active_since_ms(
+        updated_parent.get("customProperties", {}).get("version_active_since")
+    )
+    assert actual_ms == expected_ms
+    assert report["counts"]["errors"] == 0
