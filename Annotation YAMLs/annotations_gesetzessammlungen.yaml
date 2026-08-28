@@ -29,6 +29,9 @@ ReferenceObject:
     abbreviation:
       label: Abkürzung
       labelEn: Abbreviation
+    version_active_since:
+      label: In Kraft seit
+      baseType: DATE
 
 ReferenceValue:
   label: Rechtsnorm

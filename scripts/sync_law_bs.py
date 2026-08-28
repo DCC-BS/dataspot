@@ -28,6 +28,37 @@ def normalize_systematic_number(value: Any) -> str:
     return normalized
 
 
+def _parse_iso_date_ymd(value: Any) -> Optional[datetime.date]:
+    raw = (str(value) or "").strip() if value is not None else ""
+    if len(raw) < 10:
+        return None
+    try:
+        return datetime.date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
+def _version_active_since_to_utc_midnight_ms(value: Any) -> Optional[int]:
+    """Convert an ODS version_active_since date (e.g. 'YYYY-MM-DD') to UTC midnight ms, or None if missing/invalid."""
+    parsed = _parse_iso_date_ymd(value)
+    if parsed is None:
+        if value not in (None, ""):
+            logging.error(f"Invalid version_active_since value from ODS, treating as unset: '{value}'")
+        return None
+    dt = datetime.datetime(parsed.year, parsed.month, parsed.day, tzinfo=datetime.timezone.utc)
+    return int(dt.timestamp() * 1000)
+
+
+def _coerce_version_active_since_ms(value: Any) -> Optional[int]:
+    """Normalize a version_active_since value from Download API / payload to Optional[int] ms for comparison."""
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _normalize_literal_field(value: Any) -> str:
     """Normalize literal code/shortText for cache key and comparison: strip and remove trailing spaces and '*'."""
     if value is None:
@@ -209,6 +240,7 @@ def build_law_cache(
             "title": asset.get("title", ""),
             "legal_form": asset.get("legal_form", ""),
             "systematic_number": systematic_number,
+            "version_active_since": _coerce_version_active_since_ms(asset.get("version_active_since")),
             "values_by_code": {},
         }
         label = asset["label"]
@@ -266,6 +298,7 @@ def build_reference_object_payload(
     original_url_de: str,
     keywords_de: str = "",
     legal_form: str = "",
+    version_active_since: Optional[int] = None,
 ) -> Dict[str, Any]:
     return {
         "_type": "ReferenceObject",
@@ -275,6 +308,7 @@ def build_reference_object_payload(
         "customProperties": {
             "legal_form": legal_form or "",
             "systematic_number": systematic_number,
+            "version_active_since": version_active_since if version_active_since is not None else "",
         },
     }
 
@@ -396,6 +430,7 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
             title_de = (record.get("title_de") or "").strip()
             original_url_de = (record.get("original_url_de") or "").strip()
             legal_form = (record.get("category_name") or "").strip()
+            version_active_since = _version_active_since_to_utc_midnight_ms(record.get("version_active_since"))
             raw_keywords = record.get("keywords_de")
             if isinstance(raw_keywords, list):
                 keywords_de = ", ".join(str(v) for v in raw_keywords if v is not None).strip()
@@ -421,6 +456,7 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
                 original_url_de=original_url_de,
                 keywords_de=keywords_de,
                 legal_form=legal_form,
+                version_active_since=version_active_since,
             )
 
             existing_law = law_cache.get(systematic_number)
@@ -460,6 +496,10 @@ def sync_law_bs(max_records: Optional[int] = None) -> Dict[str, Any]:
                     or normalize_systematic_number(existing_law.get("systematic_number"))
                     != normalize_systematic_number(
                         desired_law.get("customProperties", {}).get("systematic_number")
+                    )
+                    or existing_law.get("version_active_since")
+                    != _coerce_version_active_since_ms(
+                        desired_law.get("customProperties", {}).get("version_active_since")
                     )
                 )
 
