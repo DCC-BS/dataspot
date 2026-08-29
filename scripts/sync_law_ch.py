@@ -8,7 +8,12 @@ import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
 import config
-from src.clients.helpers import escape_special_chars
+from src.clients.helpers import (
+    coerce_utc_midnight_ms,
+    escape_special_chars,
+    parse_iso_date_utc_midnight_ms,
+    parse_iso_date_ymd,
+)
 from src.clients.law_client import LAWClient
 from src.common import requests_get
 from src.common import email_helpers
@@ -126,26 +131,16 @@ def _binding_value(row: Dict[str, Any], key: str) -> str:
     return (field.get("value") or "").strip()
 
 
-def _parse_iso_date_ymd(value: str) -> Optional[datetime.date]:
-    raw = (value or "").strip()
-    if len(raw) < 10:
-        return None
-    try:
-        return datetime.date.fromisoformat(raw[:10])
-    except ValueError:
-        return None
-
-
 def _normalize_date_applicability_ymd(value: str) -> str:
     raw = (value or "").strip()
-    parsed = _parse_iso_date_ymd(raw)
+    parsed = parse_iso_date_ymd(raw)
     if parsed is not None:
         return parsed.isoformat()
     return raw
 
 
 def _date_applicability_is_later(a: str, b: str) -> bool:
-    da, db = _parse_iso_date_ymd(a), _parse_iso_date_ymd(b)
+    da, db = parse_iso_date_ymd(a), parse_iso_date_ymd(b)
     if da is not None and db is not None:
         return da > db
     if da is not None:
@@ -153,27 +148,6 @@ def _date_applicability_is_later(a: str, b: str) -> bool:
     if db is not None:
         return False
     return a > b
-
-
-def _date_applicability_to_utc_midnight_ms(value: str) -> Optional[int]:
-    """Convert a normalized date_applicability ('YYYY-MM-DD') to UTC midnight ms, or None if missing/invalid."""
-    parsed = _parse_iso_date_ymd(value)
-    if parsed is None:
-        if (value or "").strip():
-            logging.error(f"Invalid date_applicability value for version_active_since, treating as unset: '{value}'")
-        return None
-    dt = datetime.datetime(parsed.year, parsed.month, parsed.day, tzinfo=datetime.timezone.utc)
-    return int(dt.timestamp() * 1000)
-
-
-def _coerce_version_active_since_ms(value: Any) -> Optional[int]:
-    """Normalize a version_active_since value from Download API / payload to Optional[int] ms for comparison."""
-    if value is None or value == "":
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str, str]:
@@ -335,7 +309,7 @@ def build_law_cache(
             "abbreviation": asset.get("abbreviation", ""),
             "systematic_number": systematic_number,
             "xml_url": xml_url,
-            "version_active_since": _coerce_version_active_since_ms(asset.get("version_active_since")),
+            "version_active_since": coerce_utc_midnight_ms(asset.get("version_active_since")),
             "values_by_code": {},
         }
         label = asset["label"]
@@ -575,7 +549,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
             existing_law = law_cache.get(systematic_number)
             abrev = (record.get("abrev") or "").strip()
             short_title = (record.get("short_title") or "").strip()
-            version_active_since = _date_applicability_to_utc_midnight_ms(record.get("date_applicability"))
+            version_active_since = parse_iso_date_utc_midnight_ms(record.get("date_applicability"))
 
             desired_law = build_reference_object_payload(
                 systematic_number=systematic_number,
@@ -675,7 +649,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 or (existing_law.get("xml_url") or "")
                 != (desired_law.get("customProperties", {}).get("xml_url") or "")
                 or existing_law.get("version_active_since")
-                != _coerce_version_active_since_ms(
+                != coerce_utc_midnight_ms(
                     desired_law.get("customProperties", {}).get("version_active_since")
                 )
             )

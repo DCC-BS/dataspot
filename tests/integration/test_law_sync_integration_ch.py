@@ -10,8 +10,6 @@ import pytest
 import config
 from scripts.sync_law_ch import (
     WRITE_STATUS,
-    _coerce_version_active_since_ms,
-    _date_applicability_to_utc_midnight_ms,
     fetch_active_laws_from_fedlex,
     normalize_systematic_number,
     parse_articles_from_fedlex_xml,
@@ -19,7 +17,7 @@ from scripts.sync_law_ch import (
 )
 from src.clients.dnk_client import DNKClient
 from src.clients.law_client import LAWClient
-from src.clients.helpers import url_join
+from src.clients.helpers import coerce_utc_midnight_ms, parse_iso_date_utc_midnight_ms, url_join
 from src.common import requests_delete, requests_get, requests_post
 from src.dataspot_dataset import OGDDataset
 
@@ -1032,7 +1030,7 @@ def test_case_g_version_active_since_synced_from_fedlex(
     law_collection_uuid: str,
 ) -> None:
     fedlex_law, parent = select_live_fedlex_law_present_in_db(law_client, law_collection_uuid)
-    expected_ms = _date_applicability_to_utc_midnight_ms(fedlex_law.get("date_applicability"))
+    expected_ms = parse_iso_date_utc_midnight_ms(fedlex_law.get("date_applicability"))
 
     _force_parent_version_active_since_drift(law_client=law_client, parent_asset=parent)
 
@@ -1040,7 +1038,7 @@ def test_case_g_version_active_since_synced_from_fedlex(
 
     updated_parent = get_asset_by_uuid(law_client, "enumerations", parent["id"])
     assert updated_parent is not None
-    actual_ms = _coerce_version_active_since_ms(
+    actual_ms = coerce_utc_midnight_ms(
         updated_parent.get("customProperties", {}).get("version_active_since")
     )
     assert actual_ms == expected_ms

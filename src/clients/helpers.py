@@ -5,6 +5,7 @@ This module provides utility functions and helpers for Dataspot API clients.
 """
 
 import logging
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 
@@ -191,3 +192,59 @@ def prepare_custom_property_for_form(value: str | None) -> str:
         return ""
     lines = decoded.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     return "\n".join(line.rstrip() for line in lines)
+
+
+def parse_iso_date_ymd(value: Any) -> date | None:
+    """
+    Parse an ISO calendar date (e.g. 'YYYY-MM-DD', or a longer ISO string with a date prefix) into a date.
+
+    Returns None if value is missing, too short, or not a valid ISO date.
+    """
+    raw = (str(value) or "").strip() if value is not None else ""
+    if len(raw) < 10:
+        return None
+    try:
+        return date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
+def date_to_utc_midnight_ms(value: date) -> int:
+    """Convert a date to UTC midnight epoch milliseconds."""
+    dt = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
+    return int(dt.timestamp() * 1000)
+
+
+def parse_iso_date_utc_midnight_ms(value: Any) -> int | None:
+    """
+    Parse an ISO calendar date string (e.g. 'YYYY-MM-DD') into UTC midnight epoch milliseconds.
+
+    Returns None if value is missing/empty. Logs an error and returns None if value is non-empty but invalid.
+    """
+    if value is None or value == "":
+        return None
+    parsed = parse_iso_date_ymd(value)
+    if parsed is None:
+        logging.error(f"Invalid ISO date value, treating as unset: '{value}'")
+        return None
+    return date_to_utc_midnight_ms(parsed)
+
+
+def coerce_utc_midnight_ms(value: Any) -> int | None:
+    """Coerce an already-epoch-ms value (int or numeric string) to int, or None if missing/invalid."""
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def format_utc_midnight_ms(value: Any) -> str:
+    """Format an epoch-ms value as a 'dd.mm.yyyy' string, or '' if missing/invalid."""
+    ms = coerce_utc_midnight_ms(value)
+    if ms is None:
+        return ""
+    # Avoid datetime.fromtimestamp: on Windows it raises OSError for pre-1970 (negative) ms.
+    dt = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(milliseconds=ms)
+    return dt.strftime("%d.%m.%Y")

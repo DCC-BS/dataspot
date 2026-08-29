@@ -1,5 +1,5 @@
-from datetime import date, datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import date
+from typing import Any, Dict, List
 import logging
 import re
 from urllib.parse import urlparse
@@ -7,7 +7,13 @@ from urllib.parse import urlparse
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.law_client import LAWClient
-from src.clients.helpers import normalize_multiline_markdown, prepare_custom_property_for_form
+from src.clients.helpers import (
+    coerce_utc_midnight_ms,
+    date_to_utc_midnight_ms,
+    format_utc_midnight_ms,
+    normalize_multiline_markdown,
+    prepare_custom_property_for_form,
+)
 from src.common import requests_delete_no_retry, requests_get, requests_patch_no_retry, requests_post_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
@@ -42,27 +48,6 @@ class VVPClient(BaseDataspotClient):
     @staticmethod
     def _normalize_url_key(value: str) -> str:
         return str(value or "").strip().casefold()
-
-    @staticmethod
-    def _date_to_utc_midnight_ms(value: date) -> int:
-        dt = datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
-        return int(dt.timestamp() * 1000)
-
-    @staticmethod
-    def _normalize_utc_midnight_ms(value: Any) -> Optional[int]:
-        if value is None or value == "":
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    @classmethod
-    def _format_utc_midnight_ms(cls, value: Any) -> str:
-        ms = cls._normalize_utc_midnight_ms(value)
-        if ms is None:
-            return ""
-        return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%d.%m.%Y")
 
     @staticmethod
     def _extract_url_from_description(value: Any) -> str:
@@ -571,7 +556,7 @@ class VVPClient(BaseDataspotClient):
             "quellen": self._normalize_string(processing.get("legal_foundation_source", processing.get("legalFoundationSource"))),
             "internetauftritt": self._normalize_string(processing.get("website")),
             "zweck_datenbearbeitung": self._normalize_string(processing.get("data_processing_purpose", processing.get("dataProcessingPurpose"))),
-            "stand": self._format_utc_midnight_ms(processing.get("current_as_of", processing.get("currentAsOf"))),
+            "stand": format_utc_midnight_ms(processing.get("current_as_of", processing.get("currentAsOf"))),
             "verantwortliches_oeffentliches_organ": verantwortliches_oeffentliches_organ,
         }
 
@@ -626,8 +611,8 @@ class VVPClient(BaseDataspotClient):
             "legalFoundationSource": prepare_custom_property_for_form(legal_foundation_source_raw),
             "website": prepare_custom_property_for_form(website_raw),
             "dataProcessingPurpose": prepare_custom_property_for_form(data_processing_purpose_raw),
-            "currentAsOf": self._normalize_utc_midnight_ms(current_as_of_raw),
-            "stand": self._format_utc_midnight_ms(current_as_of_raw),
+            "currentAsOf": coerce_utc_midnight_ms(current_as_of_raw),
+            "stand": format_utc_midnight_ms(current_as_of_raw),
         }
         return mapped
 
@@ -650,7 +635,7 @@ class VVPClient(BaseDataspotClient):
                 "legalFoundationSource": self._normalize_custom_property_value(legal_foundation_source),
                 "website": self._normalize_custom_property_value(website),
                 "dataProcessingPurpose": self._normalize_custom_property_value(data_processing_purpose),
-                "currentAsOf": self._date_to_utc_midnight_ms(current_as_of),
+                "currentAsOf": date_to_utc_midnight_ms(current_as_of),
             },
         }
         return payload
