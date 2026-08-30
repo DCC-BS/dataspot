@@ -45,3 +45,22 @@ Usage:
   plural: Rechtsgrundlagen
   gender: f
   icon: section
+  properties:
+    qualifier:
+      label: Aktualität
+      title: Wird automatisch berechnet anhand von «In Kraft seit» der Rechtsgrundlage und dem «Stand» des Verfahrens. Wird i.d.R. einmal täglich berechnet.
+      order: 1
+      cardinality: ONE
+      literals:
+        unknown:
+          label: Unbekannt
+          order: 1
+        changed:
+          label: Geändert
+          order: 2
+        repealed:
+          label: Ausser Kraft
+          order: 3
+        current:
+          label: Aktuell
+          order: 4

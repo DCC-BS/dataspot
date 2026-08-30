@@ -14,7 +14,7 @@ from src.clients.helpers import (
     normalize_multiline_markdown,
     prepare_custom_property_for_form,
 )
-from src.common import requests_delete_no_retry, requests_get, requests_patch_no_retry, requests_post_no_retry
+from src.common import requests_delete_no_retry, requests_get, requests_patch_no_retry, requests_post_no_retry, requests_put_no_retry
 from src.mapping_handlers.org_structure_handler import OrgStructureHandler
 
 
@@ -267,18 +267,35 @@ class VVPClient(BaseDataspotClient):
         )
         return created_usage
 
-    def update_usage(self, usage_uuid: str, usage_of_uuid: str) -> Dict[str, Any]:
+    def patch_usage(self, usage_uuid: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         url = f"{config.base_url}/rest/{config.database_name}/usages/{usage_uuid}"
-        payload = {
-            "_type": "Usage",
-            "usageOf": self._normalize_string(usage_of_uuid).strip(),
-        }
-        updated_usage = requests_patch_no_retry(
+        data_to_send = dict(payload)
+        get_response = requests_get(
             url=url,
-            json=payload,
+            headers=self.auth.get_headers(),
+            skip_sleep=True,
+            silent_status_codes=[404, 410],
+        )
+        current_usage = get_response.json() if get_response.status_code not in (404, 410) else None
+        if isinstance(current_usage, dict):
+            if "usedBy" not in data_to_send and current_usage.get("usedBy"):
+                data_to_send["usedBy"] = current_usage.get("usedBy")
+            if "usageOf" not in data_to_send and current_usage.get("usageOf"):
+                data_to_send["usageOf"] = current_usage.get("usageOf")
+        updated_usage = requests_put_no_retry(
+            url=url,
+            json=data_to_send,
             headers=self.auth.get_headers(),
             skip_sleep=True,
         ).json()
+        logging.info("Patched usage id=%s payload=%s", usage_uuid, data_to_send)
+        return updated_usage
+
+    def update_usage(self, usage_uuid: str, usage_of_uuid: str) -> Dict[str, Any]:
+        payload = {
+            "usageOf": self._normalize_string(usage_of_uuid).strip(),
+        }
+        updated_usage = self.patch_usage(usage_uuid=usage_uuid, payload=payload)
         logging.info("Updated usage id=%s usageOf=%s", usage_uuid, payload["usageOf"])
         return updated_usage
 

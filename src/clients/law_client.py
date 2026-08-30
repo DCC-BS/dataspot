@@ -57,6 +57,25 @@ class LAWClient(BaseDataspotClient):
         logging.info(f"Downloaded {len(assets)} assets in collection {collection_uuid} from LAW scheme via Download API")
         return assets
 
+    def download_all_law_assets(self) -> List[Dict[str, Any]]:
+        """
+        Download all assets across the entire Gesetzessammlungen scheme as JSON.
+        """
+        scheme_name_encoded = quote(config.law_scheme_name, safe="")
+        download_url = (
+            f"{config.base_url}/api/{config.database_name}/schemes/"
+            f"{scheme_name_encoded}/download?format=JSON"
+        )
+        response = requests_get(download_url, headers=self.auth.get_headers())
+        response.raise_for_status()
+        assets = response.json()
+        if not isinstance(assets, list):
+            raise ValueError(
+                f"Unexpected Download API response type: {type(assets)}. Expected list."
+            )
+        logging.info(f"Downloaded {len(assets)} assets from entire LAW scheme via Download API")
+        return assets
+
     def resolve_collection_uuid_by_label(self, collection_label: str) -> str:
         """
         Resolve collection UUID by exact label from the collection endpoint.
