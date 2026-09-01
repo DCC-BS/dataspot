@@ -22,6 +22,9 @@ UmlAttribute:
           order: 2
 
 UmlClass:
+  label: Datenbankobjekt
+  plural: Datenbankobjekte
+  title: "Datenbankobjekte sind die technischen Objekte, die tatsächlich in Dateien und Datenbanken gespeichert sind. Dazu zählen beispielsweise konkrete Dateinamen oder Datenbanken und ähnliche technische Strukturen, welche die konkrete Implementierung der Daten darstellen."
   properties:
     stereotype:
       label: Typ
