@@ -21,6 +21,7 @@ YAML_PROFILES = [
     ("Datentypen (technisch)", "Annotation YAMLs/annotations_datentypen_technisch.yaml"),
     ("Fachdaten", "Annotation YAMLs/annotations_fachdaten.yaml"),
     ("Gesetzessammlungen", "Annotation YAMLs/annotations_gesetzessammlungen.yaml"),
+    ("Glossar", "Annotation YAMLs/annotations_glossar.yaml"),
     ("Katalogqualitaet", "Annotation YAMLs/annotations_katalogqualitaet.yaml"),
     ("Kennzahlen", "Annotation YAMLs/annotations_kennzahlen.yaml"),
     ("Referenzdaten", "Annotation YAMLs/annotations_referenzdaten.yaml"),

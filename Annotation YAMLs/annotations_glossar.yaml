@@ -1,0 +1,39 @@
+# Glossar
+
+BusinessDataModel:
+  label: Glossar
+  icon: book
+
+BusinessObject:
+  label: Begriff
+  plural: Begriffe
+  title: Begriff
+  icon: note-sticky
+  properties:
+    tags:
+      hidden: true
+    synonyms:
+      hidden: true
+    examples:
+      hidden: true
+    subtypeOf:
+      hidden: true
+    dataProtectionCategory:
+      hidden: true
+  customProperties:
+    source:
+      label: Quelle
+      baseType: TEXT
+      width: 2
+    source_1:
+      label: Quelle 1
+      baseType: TEXT
+      width: 2
+    source_2:
+      label: Quelle 2
+      baseType: TEXT
+      width: 2
+    source_3:
+      label: Quelle 3
+      baseType: TEXT
+      width: 2
