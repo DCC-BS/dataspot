@@ -1,13 +1,13 @@
 # Datenbankobjekte
 
 UmlModel:
-  label: Datenobjektverzeichnis
+  label: Datenbankobjektverzeichnis
 
 UmlAttribute:
   properties:
     identifying:
       label: Primärschlüssel
-      title: Das Kennzeichen, das angibt, ob dieses Attribut Teil eines Primärschlüssels ist. Der Primärschlüssel ist ein Attribut oder eine Kombination von Attributen eines Datenobjekts, das jeden Eintrag eindeutig identifiziert.
+      title: Das Kennzeichen, das angibt, ob dieses Attribut Teil eines Primärschlüssels ist. Der Primärschlüssel ist ein Attribut oder eine Kombination von Attributen eines Datenbankobjekts, das jeden Eintrag eindeutig identifiziert.
       baseType: BOOLEAN
   customProperties:
     primaryCollection:
