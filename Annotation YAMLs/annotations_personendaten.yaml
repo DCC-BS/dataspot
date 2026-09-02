@@ -1,5 +1,10 @@
 # Personendaten
 
+Collection:
+  properties:
+    description:
+      hidden: true
+
 ProcessingRecords:
   icon: user-gear
 
@@ -7,6 +12,9 @@ Processing:
   extends: Activity
   label: Verfahren mit Personendaten
   icon: gears
+  properties:
+    description:
+      hidden: true
   customProperties:
     legalFoundation:
       label: Rechtliche Grundlage(n)
