@@ -34,6 +34,7 @@ vvp_scheme_name_short = 'VVP'
 
 law_bs_collection_label = 'Systematische Gesetzessammlung Basel-Stadt'
 law_ch_collection_label = 'Systematische Rechtssammlung Schweiz'
+law_ch_intl_collection_label = 'Systematische Rechtssammlung Schweiz - Internationales Recht'
 
 # Special names
 tenant_name = "Mandant"
@@ -43,6 +44,7 @@ organizations_name = "Data%20Governance"
 huwise_system_uuid = 'e6dca403-8d39-4597-96ae-601a81d30e85'
 law_bs_system_label = 'Systematische Gesetzessammlung Basel-Stadt'
 law_ch_system_label = 'Systematische Rechtssammlung Schweiz'
+law_ch_intl_system_label = 'Systematische Rechtssammlung Schweiz'
 
 # Staatskalender ID of the open-data org unit used as I14Y Kontaktstelle for synced OGD datasets
 ogd_i14y_kontaktstelle_sk_id = 1012

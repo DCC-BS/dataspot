@@ -161,8 +161,18 @@ def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str, st
     )
 
 
-def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dict[str, str]]:
-    query = """
+def fetch_active_laws_from_fedlex(
+    max_records: Optional[int] = None, sr_scope: str = "domestic"
+) -> List[Dict[str, str]]:
+    if sr_scope == "domestic":
+        sr_scope_filter = '        FILTER(!STRSTARTS(STR(?srNotation), "0."))'
+    elif sr_scope == "international":
+        sr_scope_filter = '        FILTER(STRSTARTS(STR(?srNotation), "0."))'
+    else:
+        raise ValueError(f"Unknown sr_scope={sr_scope!r}; expected 'domestic' or 'international'")
+
+    query = (
+        """
         PREFIX jolux: <http://data.legilux.public.lu/resource/ontology/jolux#>
         PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
         PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -198,8 +208,10 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         FILTER(!BOUND(?ccNoLonger) || xsd:date(?ccNoLonger) > xsd:date(now()))
         FILTER(!BOUND(?ccEnd) || xsd:date(?ccEnd) >= xsd:date(now()))
         FILTER(datatype(?srNotation) = <https://fedlex.data.admin.ch/vocabulary/notation-type/id-systematique>)
-        # Exclude international laws (0.*); remove this filter if needed later.
-        FILTER(!STRSTARTS(STR(?srNotation), "0."))
+        # SR scope filter: "domestic" excludes international law (0.*); "international" keeps only 0.*.
+        """
+        + sr_scope_filter
+        + """
         OPTIONAL {
             ?cc jolux:isRealizedBy ?ccExpr .
             ?ccExpr jolux:language ?language .
@@ -215,6 +227,7 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
         }
         ORDER BY ?srNotation DESC(?dateApplicabilityNode) DESC(STR(?fileUrl)) DESC(STR(?ccExpr))
         """
+    )
     response = requests_get(
         url=FEDLEX_SPARQL_ENDPOINT,
         params={"query": query, "format": "application/sparql-results+json"},
@@ -269,10 +282,11 @@ def fetch_active_laws_from_fedlex(max_records: Optional[int] = None) -> List[Dic
     if max_records is not None:
         records = records[:max_records]
         logging.info(
-            f"Retrieved {total_records} active SR laws from Fedlex SPARQL and kept {len(records)} due to max_records={max_records}"
+            f"Retrieved {total_records} active SR laws (sr_scope={sr_scope}) from Fedlex SPARQL "
+            f"and kept {len(records)} due to max_records={max_records}"
         )
     else:
-        logging.info(f"Retrieved {total_records} active SR laws from Fedlex SPARQL")
+        logging.info(f"Retrieved {total_records} active SR laws (sr_scope={sr_scope}) from Fedlex SPARQL")
     return records
 
 
@@ -450,7 +464,7 @@ def _extract_upload_api_errors(response_json: Any) -> List[str]:
     return errors
 
 
-def _create_law_email_content(report: Dict[str, Any]) -> tuple:
+def _create_law_email_content(report: Dict[str, Any], sync_display_name: str) -> tuple:
     counts = report.get("counts", {})
     marked = counts.get("values_marked_for_deletion", 0) + counts.get("laws_marked_for_deletion", 0)
     errors = counts.get("errors", 0)
@@ -459,22 +473,25 @@ def _create_law_email_content(report: Dict[str, Any]) -> tuple:
 
     is_error = report.get("status") == "error"
     if is_error:
-        email_subject = f"[ERROR][{config.database_name}/GS] LAW CH Sync: failed"
+        email_subject = f"[ERROR][{config.database_name}/GS] {sync_display_name}: failed"
     else:
         email_subject = (
-            f"[{config.database_name}/GS] LAW CH Sync: " f"{marked} marked for deletion, {errors} errors"
+            f"[{config.database_name}/GS] {sync_display_name}: "
+            f"{marked} marked for deletion, {errors} errors"
         )
 
     email_text = "Hi there,\n\n"
     if is_error:
-        email_text += "There was an error during the Swiss SR law sync in Dataspot.\n"
+        email_text += f"There was an error during the {sync_display_name} in Dataspot.\n"
         for err in report.get("errors", [])[:10]:
             email_text += f"- {err}\n"
         if len(report.get("errors", [])) > 10:
             email_text += f"- ... and {len(report['errors']) - 10} more (see attachment)\n"
         email_text += "\n"
     else:
-        email_text += "The Swiss SR law sync completed. The following assets were marked for deletion (still in use):\n\n"
+        email_text += (
+            f"The {sync_display_name} completed. The following assets were marked for deletion (still in use):\n\n"
+        )
         for item in report.get("marked_items", []):
             link = item.get("link", "")
             if item.get("type") == "ReferenceValue":
@@ -490,8 +507,17 @@ def _create_law_email_content(report: Dict[str, Any]) -> tuple:
     return email_subject, email_text, True
 
 
-def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
-    logging.info("Starting Swiss SR law sync")
+def sync_fedlex_laws(
+    *,
+    collection_label: str,
+    system_label: str,
+    sr_scope: str,
+    max_records: Optional[int],
+    report_prefix: str,
+    sync_display_name: str,
+    log_tag: str,
+) -> Dict[str, Any]:
+    logging.info(f"Starting {sync_display_name}")
 
     report = {
         "status": "pending",
@@ -514,15 +540,13 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex(max_records=max_records)
-        law_collection_uuid = law_client.resolve_collection_uuid_by_label(
-            config.law_ch_collection_label
-        )
-        logging.info(f"Resolved LAW CH target collection UUID: {law_collection_uuid}")
-        law_system_uuid = law_client.resolve_system_uuid_by_label(config.law_ch_system_label)
+        fedlex_laws = fetch_active_laws_from_fedlex(max_records=max_records, sr_scope=sr_scope)
+        law_collection_uuid = law_client.resolve_collection_uuid_by_label(collection_label)
+        logging.info(f"Resolved {sync_display_name} target collection UUID: {law_collection_uuid}")
+        law_system_uuid = law_client.resolve_system_uuid_by_label(system_label)
         scheme_assets = law_client.download_law_assets_in_collection(collection_uuid=law_collection_uuid)
 
-        law_cache = build_law_cache(assets=scheme_assets, law_collection_label=config.law_ch_collection_label)
+        law_cache = build_law_cache(assets=scheme_assets, law_collection_label=collection_label)
         queued_new_reference_objects: List[Dict[str, Any]] = []
         queued_new_reference_values: List[Dict[str, Any]] = []
         queued_new_law_systematic_numbers: List[str] = []
@@ -606,7 +630,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                         f"Internal error: skip_xml_fetch=True for new law systematic_number={systematic_number}"
                     )
                 law_payload = dict(desired_law)
-                law_payload["inCollection"] = config.law_ch_collection_label
+                law_payload["inCollection"] = collection_label
                 queued_new_reference_objects.append(law_payload)
 
                 for _, desired_value in desired_values:
@@ -616,7 +640,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
 
                 queued_new_law_systematic_numbers.append(systematic_number)
                 logging.info(
-                    f"[{idx}/{total}] Queued CH law '{desired_law['label']}' with systematic_number={systematic_number} "
+                    f"[{idx}/{total}] Queued {log_tag} law '{desired_law['label']}' with systematic_number={systematic_number} "
                     f"and {len(desired_values)} literals for Upload API"
                 )
                 continue
@@ -660,7 +684,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 )
                 report["counts"]["laws_updated"] += 1
                 logging.info(
-                    f"Updated CH law '{desired_law['label']}' with systematic_number={systematic_number}"
+                    f"Updated {log_tag} law '{desired_law['label']}' with systematic_number={systematic_number}"
                 )
             else:
                 report["counts"]["laws_unchanged"] += 1
@@ -682,7 +706,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                     )
                     report["counts"]["values_created"] += 1
                     logging.info(
-                        f"Created CH literal code={desired_value_code} for law systematic_number={systematic_number}"
+                        f"Created {log_tag} literal code={desired_value_code} for law systematic_number={systematic_number}"
                     )
                     continue
 
@@ -700,7 +724,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                     )
                     report["counts"]["values_updated"] += 1
                     logging.info(
-                        f"Updated CH literal code={desired_value_code} for law systematic_number={systematic_number}"
+                        f"Updated {log_tag} literal code={desired_value_code} for law systematic_number={systematic_number}"
                     )
                 else:
                     report["counts"]["values_unchanged"] += 1
@@ -734,13 +758,13 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                                 }
                             )
                             logging.info(
-                                f"Marked CH literal code={code} for deletion (in use) for law systematic_number={systematic_number}"
+                                f"Marked {log_tag} literal code={code} for deletion (in use) for law systematic_number={systematic_number}"
                             )
                         else:
                             law_client.delete_literal(literal_id)
                             report["counts"]["values_deleted"] += 1
                             logging.info(
-                                f"Deleted CH literal code={code} for law systematic_number={systematic_number}"
+                                f"Deleted {log_tag} literal code={code} for law systematic_number={systematic_number}"
                             )
                     except Exception as exc:
                         report["counts"]["errors"] += 1
@@ -816,7 +840,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 )
                 refreshed_law_cache = build_law_cache(
                     assets=refreshed_assets,
-                    law_collection_label=config.law_ch_collection_label,
+                    law_collection_label=collection_label,
                 )
                 deployment_failures = 0
                 for systematic_number in sorted(set(queued_new_law_systematic_numbers)):
@@ -826,10 +850,10 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                         deployment_failures += 1
                         report["counts"]["errors"] += 1
                         report["errors"].append(
-                            f"Cannot create CH system deployment because uploaded law id is missing for systematic_number={systematic_number}"
+                            f"Cannot create {log_tag} system deployment because uploaded law id is missing for systematic_number={systematic_number}"
                         )
                         logging.error(
-                            f"Cannot create CH system deployment because uploaded law id is missing for systematic_number={systematic_number}"
+                            f"Cannot create {log_tag} system deployment because uploaded law id is missing for systematic_number={systematic_number}"
                         )
                         continue
                     deployment_ok = law_client.create_reference_object_deployment(
@@ -841,7 +865,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                         deployment_failures += 1
                         report["counts"]["errors"] += 1
                         report["errors"].append(
-                            f"Failed to create CH system deployment for law systematic_number={systematic_number} law_id={created_law_id}"
+                            f"Failed to create {log_tag} system deployment for law systematic_number={systematic_number} law_id={created_law_id}"
                         )
                 logging.info(
                     f"Deployment pass completed for {len(set(queued_new_law_systematic_numbers))} uploaded laws "
@@ -896,13 +920,13 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                             }
                         )
                         logging.info(
-                            f"Marked CH literal code={code} for deletion (in use) for obsolete law systematic_number={systematic_number}"
+                            f"Marked {log_tag} literal code={code} for deletion (in use) for obsolete law systematic_number={systematic_number}"
                         )
                     else:
                         law_client.delete_literal(literal_id)
                         report["counts"]["values_deleted"] += 1
                         logging.info(
-                            f"Deleted CH literal code={code} for obsolete law systematic_number={systematic_number}"
+                            f"Deleted {log_tag} literal code={code} for obsolete law systematic_number={systematic_number}"
                         )
                 except Exception as exc:
                     report["counts"]["errors"] += 1
@@ -926,16 +950,16 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                             }
                         )
                         logging.info(
-                            f"Marked CH law for deletion (in use) systematic_number={systematic_number}"
+                            f"Marked {log_tag} law for deletion (in use) systematic_number={systematic_number}"
                         )
                     else:
                         logging.info(
-                            f"Marked CH law for deletion (child in use) systematic_number={systematic_number}"
+                            f"Marked {log_tag} law for deletion (child in use) systematic_number={systematic_number}"
                         )
                 else:
                     law_client.delete_reference_object(enum_id)
                     report["counts"]["laws_deleted"] += 1
-                    logging.info(f"Deleted obsolete CH law systematic_number={systematic_number}")
+                    logging.info(f"Deleted obsolete {log_tag} law systematic_number={systematic_number}")
             except Exception as exc:
                 report["counts"]["errors"] += 1
                 report["errors"].append(
@@ -949,7 +973,7 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
     except Exception as exc:
         report["status"] = "error"
         report["counts"]["errors"] += 1
-        error_msg = f"Swiss SR law sync failed: {str(exc)}"
+        error_msg = f"{sync_display_name} failed: {str(exc)}"
         report["errors"].append(error_msg)
         logging.error(error_msg)
         logging.error(traceback.format_exc())
@@ -961,14 +985,16 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
         reports_dir = os.path.join(project_root, "reports")
         os.makedirs(reports_dir, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = os.path.join(reports_dir, f"law_ch_sync_report_{timestamp}.json")
+        report_file = os.path.join(reports_dir, f"{report_prefix}_{timestamp}.json")
         with open(report_file, "w", encoding="utf-8") as handle:
             json.dump(report, handle, indent=2, ensure_ascii=False)
-        logging.info(f"Wrote LAW CH sync report: {report_file}")
+        logging.info(f"Wrote {sync_display_name} report: {report_file}")
     except Exception as report_error:
-        logging.error(f"Failed to write LAW CH sync report: {str(report_error)}")
+        logging.error(f"Failed to write {sync_display_name} report: {str(report_error)}")
 
-    email_subject, email_content, should_send = _create_law_email_content(report)
+    email_subject, email_content, should_send = _create_law_email_content(
+        report, sync_display_name=sync_display_name
+    )
     if should_send:
         try:
             attachment = report_file if report_file and os.path.exists(report_file) else None
@@ -978,14 +1004,14 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
                 attachment=attachment,
             )
             email_helpers.send_email(msg, technical_only=True)
-            logging.info("LAW CH sync email notification sent successfully")
+            logging.info(f"{sync_display_name} email notification sent successfully")
         except Exception as email_error:
-            logging.error(f"Failed to send LAW CH sync email notification: {str(email_error)}")
+            logging.error(f"Failed to send {sync_display_name} email notification: {str(email_error)}")
     else:
         logging.info("No marks-for-deletion or errors - email notification not sent")
 
     logging.info(
-        "LAW CH sync result: "
+        f"{sync_display_name} result: "
         f"{report['counts']['laws_created']} laws created, "
         f"{report['counts']['laws_updated']} laws updated, "
         f"{report['counts']['laws_unchanged']} laws unchanged, "
@@ -999,6 +1025,18 @@ def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
         f"{report['counts']['errors']} errors"
     )
     return report
+
+
+def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
+    return sync_fedlex_laws(
+        collection_label=config.law_ch_collection_label,
+        system_label=config.law_ch_system_label,
+        sr_scope="domestic",
+        max_records=max_records,
+        report_prefix="law_ch_sync_report",
+        sync_display_name="LAW CH Sync",
+        log_tag="CH",
+    )
 
 
 def main():
