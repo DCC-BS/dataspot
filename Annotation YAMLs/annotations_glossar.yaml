@@ -8,8 +8,10 @@ BusinessObject:
   label: Begriff
   plural: Begriffe
   title: Begriff
-  icon: note-sticky
+  icon: square
   properties:
+    description:
+      hidden: true
     tags:
       hidden: true
     synonyms:
@@ -20,20 +22,41 @@ BusinessObject:
       hidden: true
     dataProtectionCategory:
       hidden: true
+    stereotype:
+      label: Begriff-Typ
+      literals:
+        DATASPOT_INTERNAL:
+          label: dataspot.-Begriff
+          title: dataspot.-interner Begriff
+          icon: book-open
   customProperties:
+    definition:
+      label: Definition
+      baseType: TEXT
+      width: 2
+      order: 1
     source:
       label: Quelle
       baseType: TEXT
       width: 2
+      order: 2
     source_1:
-      label: Quelle 1
+      label: Quelle [1]
       baseType: TEXT
       width: 2
+      order: 4
     source_2:
-      label: Quelle 2
+      label: Quelle [2]
       baseType: TEXT
       width: 2
+      order: 6
     source_3:
-      label: Quelle 3
+      label: Quelle [3]
       baseType: TEXT
       width: 2
+      order: 8
+
+Collection:
+  properties:
+    description:
+      hidden: trues
