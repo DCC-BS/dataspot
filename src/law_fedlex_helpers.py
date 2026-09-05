@@ -18,7 +18,6 @@ from src.clients.law_client import LAWClient
 from src.common import requests_get
 from src.common import email_helpers
 
-
 FEDLEX_SPARQL_ENDPOINT = "https://fedlex.data.admin.ch/sparqlendpoint"
 WRITE_STATUS = "PUBLISHED"
 
@@ -162,14 +161,14 @@ def _record_tiebreak_key(record: Dict[str, str]) -> tuple[str, str, str, str, st
 
 
 def fetch_active_laws_from_fedlex(
-    max_records: Optional[int] = None, sr_scope: str = "domestic"
+    *, sr_scope: str, max_records: Optional[int] = None
 ) -> List[Dict[str, str]]:
     if sr_scope == "domestic":
         sr_scope_filter = '        FILTER(!STRSTARTS(STR(?srNotation), "0."))'
     elif sr_scope == "international":
         sr_scope_filter = '        FILTER(STRSTARTS(STR(?srNotation), "0."))'
     else:
-        raise ValueError(f"Unknown sr_scope={sr_scope!r}; expected 'domestic' or 'international'")
+        raise ValueError(f"sr_scope is required; expected 'domestic' or 'international', got {sr_scope!r}")
 
     query = (
         """
@@ -540,7 +539,7 @@ def sync_fedlex_laws(
 
     law_client = LAWClient()
     try:
-        fedlex_laws = fetch_active_laws_from_fedlex(max_records=max_records, sr_scope=sr_scope)
+        fedlex_laws = fetch_active_laws_from_fedlex(sr_scope=sr_scope, max_records=max_records)
         law_collection_uuid = law_client.resolve_collection_uuid_by_label(collection_label)
         logging.info(f"Resolved {sync_display_name} target collection UUID: {law_collection_uuid}")
         law_system_uuid = law_client.resolve_system_uuid_by_label(system_label)
@@ -1025,34 +1024,3 @@ def sync_fedlex_laws(
         f"{report['counts']['errors']} errors"
     )
     return report
-
-
-def sync_law_ch(max_records: Optional[int] = None) -> Dict[str, Any]:
-    return sync_fedlex_laws(
-        collection_label=config.law_ch_collection_label,
-        system_label=config.law_ch_system_label,
-        sr_scope="domestic",
-        max_records=max_records,
-        report_prefix="law_ch_sync_report",
-        sync_display_name="LAW CH Sync",
-        log_tag="CH",
-    )
-
-
-def main():
-    # Limit this to 500 per run for initial upload
-    sync_law_ch(max_records=None)
-
-
-if __name__ == "__main__":
-    if config.logging_for_prod:
-        logging.basicConfig(level=logging.INFO)
-    else:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-    logging.info(f"=== CURRENT DATABASE: {config.database_name} ===")
-    logging.info(f"Executing {__file__}...")
-    main()

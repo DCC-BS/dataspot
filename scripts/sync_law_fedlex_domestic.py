@@ -5,24 +5,20 @@ import config
 from src.law_fedlex_helpers import sync_fedlex_laws
 
 
-def sync_law_fedlex_international(max_records: Optional[int] = None) -> Dict[str, Any]:
+def sync_law_fedlex_domestic(max_records: Optional[int] = None) -> Dict[str, Any]:
     return sync_fedlex_laws(
-        collection_label=config.law_ch_intl_collection_label,
-        system_label=config.law_ch_intl_system_label,
-        sr_scope="international",
+        collection_label=config.law_ch_collection_label,
+        system_label=config.law_ch_system_label,
+        sr_scope="domestic",
         max_records=max_records,
-        report_prefix="law_ch_intl_sync_report",
-        sync_display_name="LAW CH International Sync",
-        log_tag="CH Intl",
+        report_prefix="law_ch_sync_report",
+        sync_display_name="LAW CH Sync",
+        log_tag="CH",
     )
 
 
 def main():
-    sync_law_fedlex_international(max_records=None)
-
-    # Use this for initial import
-    #for i in [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]:
-    #    sync_law_fedlex_international(max_records=i)
+    sync_law_fedlex_domestic(max_records=None)
 
 
 if __name__ == "__main__":

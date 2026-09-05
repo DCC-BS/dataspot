@@ -8,12 +8,12 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import pytest
 
 import config
-from scripts.sync_law_ch import (
+from scripts.sync_law_fedlex_domestic import sync_law_fedlex_domestic
+from src.law_fedlex_helpers import (
     WRITE_STATUS,
     fetch_active_laws_from_fedlex,
     normalize_systematic_number,
     parse_articles_from_fedlex_xml,
-    sync_law_ch,
 )
 from src.clients.dnk_client import DNKClient
 from src.clients.law_client import LAWClient
@@ -179,7 +179,7 @@ def fedlex_live_sample() -> Dict[str, Any]:
 
 def select_live_fedlex_law(require_paragraphs: bool = True) -> Dict[str, Any]:
     # CH sync uses SPARQL title_de for labels when present; otherwise label is "SR {systematic_number}".
-    laws = fetch_active_laws_from_fedlex()
+    laws = fetch_active_laws_from_fedlex(sr_scope="domestic")
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         xml_response = requests_get(url=law.get("xml_url") or "")
@@ -237,7 +237,7 @@ def select_live_fedlex_law_present_in_db(
     collection_uuid: str,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
-    laws = fetch_active_laws_from_fedlex()
+    laws = fetch_active_laws_from_fedlex(sr_scope="domestic")
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         xml_response = requests_get(url=law.get("xml_url") or "")
@@ -257,7 +257,7 @@ def select_live_fedlex_law_absent_in_db(
     law_client: LAWClient, collection_uuid: str
 ) -> Dict[str, Any]:
     existing_numbers = _existing_systematic_numbers(law_client, collection_uuid)
-    laws = fetch_active_laws_from_fedlex()
+    laws = fetch_active_laws_from_fedlex(sr_scope="domestic")
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         xml_response = requests_get(url=law.get("xml_url") or "")
@@ -368,7 +368,7 @@ def _select_present_law_with_existing_literal(
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, str]]:
     excluded = excluded_systematic_numbers or set()
     existing_by_number = _existing_laws_by_systematic_number(law_client, collection_uuid)
-    laws = fetch_active_laws_from_fedlex()
+    laws = fetch_active_laws_from_fedlex(sr_scope="domestic")
     for law in laws:
         systematic_number = normalize_systematic_number(law.get("systematic_number"))
         if not systematic_number or systematic_number in excluded:
@@ -704,7 +704,7 @@ def assert_status(
 
 
 #def _ensure_not_tiny_ods_subset() -> None:
-#    count = len(fetch_active_laws_from_fedlex())
+#    count = len(fetch_active_laws_from_fedlex(sr_scope="domestic"))
 #    assert count >= 10, (
 #        "Precondition failed: active ODS fetch appears tiny. "
 #        "Integration tests require uncapped realistic ODS set."
@@ -746,7 +746,7 @@ def _create_parent_with_two_literals(
 def test_sync_runs_once_noop(
     law_client: LAWClient,
 ) -> None:
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
     assert isinstance(report, dict)
     assert "status" in report
     assert "counts" in report
@@ -776,7 +776,7 @@ def test_case_a_obsolete_literal_not_in_use_deleted(
 
     assert get_asset_by_uuid(law_client, "literals", obsolete["id"]) is not None
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     assert_deleted(law_client, "literals", obsolete["id"])
     assert get_asset_by_uuid(law_client, "enumerations", parent["id"]) is not None
@@ -820,7 +820,7 @@ def test_case_b_obsolete_literal_in_use_marked(
     in_use_before = query_child_literals_in_use(law_client, parent["id"])
     assert obsolete["id"] in in_use_before
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     assert_status(law_client, "literals", obsolete["id"], "DELETENEW")
     assert get_asset_by_uuid(law_client, "enumerations", parent["id"]) is not None
@@ -849,7 +849,7 @@ def test_case_c_obsolete_parent_no_usage_deleted_with_children(
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert query_child_literals_in_use(law_client, parent["id"]) == set()
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     assert_deleted(law_client, "literals", literal_a["id"])
     assert_deleted(law_client, "literals", literal_b["id"])
@@ -888,7 +888,7 @@ def test_case_d_obsolete_parent_directly_in_use_marked(
     cleanup_manager.register("derivations", derivation["id"])
     assert query_parent_in_use(law_client, parent["id"]) is True
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
     assert report["counts"]["laws_marked_for_deletion"] >= 1
@@ -931,7 +931,7 @@ def test_case_e_obsolete_parent_child_only_in_use_marked_with_child_focus(
     assert query_parent_in_use(law_client, parent["id"]) is False
     assert used_literal["id"] in query_child_literals_in_use(law_client, parent["id"])
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     assert_status(law_client, "literals", used_literal["id"], "DELETENEW")
     assert_deleted(law_client, "literals", unused_literal["id"])
@@ -974,7 +974,7 @@ def test_case_f_rename_systematic_number_change_semantics(
     )
     cleanup_manager.register("literals", old_literal["id"])
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     # Old object gets obsolete processing, while canonical Fedlex systematic number exists post-sync.
     old_parent_after = get_asset_by_uuid(law_client, "enumerations", old_parent["id"])
@@ -1014,13 +1014,13 @@ def test_case_t6_follow_up_convergence_after_blocking_child_resolved(
     )
     cleanup_manager.register("derivations", derivation["id"])
 
-    first_report = sync_law_ch()
+    first_report = sync_law_fedlex_domestic()
     assert_status(law_client, "enumerations", parent["id"], "DELETENEW")
     assert first_report["counts"]["errors"] == 0
 
     delete_derivation(law_client, derivation["id"])
 
-    second_report = sync_law_ch()
+    second_report = sync_law_fedlex_domestic()
     assert_deleted(law_client, "enumerations", parent["id"])
     assert second_report["counts"]["errors"] == 0
 
@@ -1034,7 +1034,7 @@ def test_case_g_version_active_since_synced_from_fedlex(
 
     _force_parent_version_active_since_drift(law_client=law_client, parent_asset=parent)
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     updated_parent = get_asset_by_uuid(law_client, "enumerations", parent["id"])
     assert updated_parent is not None
@@ -1069,7 +1069,7 @@ def test_case_upload_happy_path_recreate_parent_literals_and_deployment(
         systematic_number=systematic_number,
     ) is None
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
@@ -1141,7 +1141,7 @@ def test_case_upload_mixed_create_and_update_in_single_run(
     # Reconciliation of existing-law literals is gated by xml_url change.
     _force_parent_xml_url_mismatch(law_client=law_client, parent_asset=update_parent)
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
@@ -1194,7 +1194,7 @@ def test_case_upload_existing_law_skip_when_xml_url_unchanged(
     before = _literal_short_text(law_client, update_target["literal_id"])
     assert before == drifted_short_text
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     after = _literal_short_text(law_client, update_target["literal_id"])
     assert after == drifted_short_text
@@ -1219,7 +1219,7 @@ def test_case_upload_business_key_mapping_for_recreated_assets(
         systematic_number=systematic_number,
     )
 
-    report = sync_law_ch()
+    report = sync_law_fedlex_domestic()
 
     recreated_parent = _find_law_asset_by_systematic_number(
         law_client=law_client,
