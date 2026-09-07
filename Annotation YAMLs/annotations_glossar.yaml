@@ -59,4 +59,4 @@ BusinessObject:
 Collection:
   properties:
     description:
-      hidden: trues
+      hidden: true
