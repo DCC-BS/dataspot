@@ -422,16 +422,157 @@ class BaseDataspotClient:
             raise ValueError(f"Scheme '{self.scheme_name}' does not exist")
         return scheme_response['_links']['self']['href']
 
-    def ensure_ods_imports_collection_exists(self) -> dict:
+    def ensure_collection_exists(self, collection_name: str, collection_path: List[str]) -> dict:
         """
-        Ensures that the ODS-Imports collection exists within the scheme.
+        Ensures that a collection with the given name exists within the scheme, at the given path.
 
-        The path is defined by self.ods_imports_collection_path, which is a list of folder names.
-        For example, if self.ods_imports_collection_path is ['A', 'B', 'C'], the function:
+        The path is defined by collection_path, which is a list of folder names.
+        For example, if collection_path is ['A', 'B', 'C'], the function:
         1. First checks if 'A/B/C' path already exists
         2. If the path doesn't exist, logs an error and throws an exception
-        3. If the path exists, checks if ODS-Imports collection exists at that location
-        4. Creates the ODS-Imports collection if it doesn't exist, or returns the existing one if it does
+        3. If the path exists, checks if the named collection exists at that location
+        4. Creates the collection if it doesn't exist, or returns the existing one if it does
+
+        Args:
+            collection_name: The name (label) of the collection to ensure exists
+            collection_path: The list of folder names leading to the collection's parent
+
+        Returns:
+            dict: The JSON response containing information about the collection
+
+        Raises:
+            ValueError: If the scheme does not exist or the configured path contains a '/' or the configured path doesn't exist
+            HTTPError: If API requests fail
+        """
+        logging.info(f"Ensuring collection '{collection_name}' exists")
+        # Assert that the scheme exists.
+        self.require_scheme_exists()
+
+        # Validate that the path contains only strings
+        for item in collection_path:
+            if type(item) != str:
+                logging.error(f"Path defined in config.py contains {item}, which is not a string.")
+                raise ValueError(
+                    f"Invalid path composition in collection_path: {item}. All path compositions must be strings.")
+
+        if collection_path:
+            logging.debug(f"Using configured path for collection '{collection_name}': {'/'.join(collection_path)}")
+        else:
+            logging.debug(f"No specific path configured for collection '{collection_name}', using scheme root")
+
+        # Check for special characters that would prevent using business keys
+        has_special_chars = False
+        for folder in collection_path:
+            if '/' in folder:
+                has_special_chars = True
+                logging.warning(
+                    f"Collection path contains forward slashes, which can't be used in business keys: {folder}")
+                break
+
+        # Check if the configured path exists
+        if not collection_path:
+            # No path specified, check directly under scheme
+            parent_endpoint = url_join('rest', config.database_name, 'schemes', self.scheme_name)
+            parent_response = self._get_asset(parent_endpoint)
+            if not parent_response:
+                error_msg = f"Scheme '{self.scheme_name}' does not exist"
+                logging.error(error_msg)
+                raise ValueError(error_msg)
+
+            # Parent exists (scheme root), check if the collection exists
+            collection_endpoint = url_join(parent_endpoint, 'collections', collection_name,
+                                            leading_slash=True)
+            collections_endpoint = url_join(parent_endpoint, 'collections', leading_slash=True)
+            existing_collection = self._get_asset(collection_endpoint)
+
+            # Check both existence and correct parent
+            collection_exists = False
+            if existing_collection:
+                # For root collections, parentId should match the scheme UUID
+                if 'parentId' in existing_collection and existing_collection['parentId'] == parent_response['id']:
+                    collection_exists = True
+                else:
+                    logging.warning(
+                        f"Found collection '{collection_name}' but it's not under the expected parent. Will create new one.")
+
+        elif has_special_chars:
+            error_msg = ("Path contains special characters that prevent using business keys. Fix the path in config. "
+                         "Using Collections that contain a slash is currently not supported. "
+                         "Implementing this would be time-consuming and likely introduce errors. "
+                         "Also, I don't think this error will ever happen, so I will not fix it at the moment.")
+            logging.error(error_msg)
+            raise ValueError(error_msg)
+        else:
+            # Construct business key path to check if the full path exists
+            # Format: /rest/{db}/schemes/{scheme}/collections/{col1}/collections/{col2}/...
+            path_elements = ['rest', config.database_name, 'schemes', self.scheme_name]
+
+            # Build up the path with 'collections' between each element
+            for folder in collection_path:
+                path_elements.append('collections')
+                path_elements.append(folder)
+
+            # Check if the parent path exists
+            parent_path = url_join(*path_elements, leading_slash=True)
+            parent_response = self._get_asset(parent_path)
+
+            if not parent_response:
+                # Parent path doesn't exist - throw error instead of creating it
+                error_msg = (f"Configured path '{'/'.join(collection_path)}' not found. "
+                             f"Please make sure the collection_path is set correctly!")
+                logging.error(error_msg)
+                raise ValueError(error_msg)
+
+            # Parent path exists, check if the collection exists under it
+            collections_endpoint = url_join(parent_path, 'collections', leading_slash=True)
+
+            # Create collection endpoint for checking existence
+            collection_elements = path_elements.copy()
+            collection_elements.append('collections')
+            collection_elements.append(collection_name)
+            collection_endpoint = url_join(*collection_elements, leading_slash=True)
+            existing_collection = self._get_asset(collection_endpoint)
+
+            # Check both existence and correct parent
+            collection_exists = False
+            if existing_collection:
+                # Verify the collection is under the expected parent
+                if 'parentId' in existing_collection and existing_collection['parentId'] == parent_response['id']:
+                    collection_exists = True
+                else:
+                    logging.warning(
+                        f"Found collection '{collection_name}' but it's not under the expected parent. Will create new one.")
+
+        try:
+            # Return existing or create new
+            if collection_exists:
+                logging.debug(f"Collection '{collection_name}' already exists under the correct parent, using it as is")
+                path_str = "/".join(collection_path) if collection_path else "scheme root"
+                logging.info(f"Collection '{collection_name}' found at: {path_str}")
+                return existing_collection
+            else:
+                logging.debug(f"Collection '{collection_name}' does not exist under the correct parent, creating it")
+                collection_data = {
+                    "label": collection_name,
+                    "_type": "Collection"
+                }
+                response_json = self._create_asset(
+                    endpoint=collections_endpoint,
+                    data=collection_data
+                )
+                path_str = "/".join(collection_path) if collection_path else "scheme root"
+                logging.info(f"Created collection '{collection_name}' at: {path_str}")
+                return response_json
+
+        except HTTPError as create_error:
+            logging.error(f"Failed to create collection '{collection_name}': {str(create_error)}")
+            raise
+
+    def ensure_ods_imports_collection_exists(self) -> dict:
+        """
+        Ensures that the ODS-Imports collection exists within the scheme, using the configured
+        self.ods_imports_collection_name / self.ods_imports_collection_path. The result is cached
+        on the instance for subsequent calls.
 
         Returns:
             dict: The JSON response containing information about the ODS-Imports collection
@@ -445,131 +586,10 @@ class BaseDataspotClient:
             logging.debug("Using cached ODS-Imports collection from initialization")
             return self._ods_imports_collection
 
-        logging.info("Ensuring ODS-Imports collection exists")
-        # Assert that the scheme exists.
-        self.require_scheme_exists()
-
-        # Validate that the path contains only strings
-        for item in self.ods_imports_collection_path:
-            if type(item) != str:
-                logging.error(f"Path defined in config.py contains {item}, which is not a string.")
-                raise ValueError(
-                    f"Invalid path composition in ods_imports_collection_path: {item}. All path compositions must be strings.")
-
-        if self.ods_imports_collection_path:
-            logging.debug(f"Using configured path for ODS-Imports: {'/'.join(self.ods_imports_collection_path)}")
-        else:
-            logging.debug("No specific path configured for ODS-Imports, using scheme root")
-
-        # Check for special characters that would prevent using business keys
-        has_special_chars = False
-        for folder in self.ods_imports_collection_path:
-            if '/' in folder:
-                has_special_chars = True
-                logging.warning(
-                    f"Collection path contains forward slashes, which can't be used in business keys: {folder}")
-                break
-
-        # Check if the configured path exists
-        if not self.ods_imports_collection_path:
-            # No path specified, check directly under scheme
-            parent_endpoint = url_join('rest', config.database_name, 'schemes', self.scheme_name)
-            parent_response = self._get_asset(parent_endpoint)
-            if not parent_response:
-                error_msg = f"Scheme '{self.scheme_name}' does not exist"
-                logging.error(error_msg)
-                raise ValueError(error_msg)
-
-            # Parent exists (scheme root), check if ODS-Imports exists
-            ods_imports_endpoint = url_join(parent_endpoint, 'collections', self.ods_imports_collection_name,
-                                            leading_slash=True)
-            collections_endpoint = url_join(parent_endpoint, 'collections', leading_slash=True)
-            existing_collection = self._get_asset(ods_imports_endpoint)
-
-            # Check both existence and correct parent
-            ods_imports_exists = False
-            if existing_collection:
-                # For root collections, parentId should match the scheme UUID
-                if 'parentId' in existing_collection and existing_collection['parentId'] == parent_response['id']:
-                    ods_imports_exists = True
-                else:
-                    logging.warning(
-                        f"Found ODS-Imports collection but it's not under the expected parent. Will create new one.")
-
-        elif has_special_chars:
-            error_msg = ("Path contains special characters that prevent using business keys. Fix the path in config. "
-                         "Using Collections that contain a slash is currently not supported in ODS-Imports path. "
-                         "Implementing this would be time-consuming and likely introduce errors. "
-                         "Also, I don't think this error will ever happen, so I will not fix it at the moment.")
-            logging.error(error_msg)
-            raise ValueError(error_msg)
-        else:
-            # Construct business key path to check if the full path exists
-            # Format: /rest/{db}/schemes/{scheme}/collections/{col1}/collections/{col2}/...
-            path_elements = ['rest', config.database_name, 'schemes', self.scheme_name]
-
-            # Build up the path with 'collections' between each element
-            for folder in self.ods_imports_collection_path:
-                path_elements.append('collections')
-                path_elements.append(folder)
-
-            # Check if the parent path exists
-            parent_path = url_join(*path_elements, leading_slash=True)
-            parent_response = self._get_asset(parent_path)
-
-            if not parent_response:
-                # Parent path doesn't exist - throw error instead of creating it
-                error_msg = (f"Configured path '{'/'.join(self.ods_imports_collection_path)}' not found. "
-                             f"Please make sure the ods_imports_collection_path field in config.py is set correctly!")
-                logging.error(error_msg)
-                raise ValueError(error_msg)
-
-            # Parent path exists, check if ODS-Imports exists under it
-            collections_endpoint = url_join(parent_path, 'collections', leading_slash=True)
-
-            # Create ODS-Imports endpoint for checking existence
-            ods_imports_elements = path_elements.copy()
-            ods_imports_elements.append('collections')
-            ods_imports_elements.append(self.ods_imports_collection_name)
-            ods_imports_endpoint = url_join(*ods_imports_elements, leading_slash=True)
-            existing_collection = self._get_asset(ods_imports_endpoint)
-
-            # Check both existence and correct parent
-            ods_imports_exists = False
-            if existing_collection:
-                # Verify the collection is under the expected parent
-                if 'parentId' in existing_collection and existing_collection['parentId'] == parent_response['id']:
-                    ods_imports_exists = True
-                else:
-                    logging.warning(
-                        f"Found ODS-Imports collection but it's not under the expected parent. Will create new one.")
-
-        try:
-            # Return existing or create new
-            if ods_imports_exists:
-                logging.debug(f"ODS-Imports collection already exists under the correct parent, using it as is")
-                path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
-                logging.info(f"ODS-Imports collection found at: {path_str}")
-                self._ods_imports_collection = existing_collection
-                return existing_collection
-            else:
-                logging.debug(f"ODS-Imports collection does not exist under the correct parent, creating it")
-                collection_data = {
-                    "label": self.ods_imports_collection_name,
-                    "_type": "Collection"
-                }
-                response_json = self._create_asset(
-                    endpoint=collections_endpoint,
-                    data=collection_data
-                )
-                path_str = "/".join(self.ods_imports_collection_path) if self.ods_imports_collection_path else "scheme root"
-                logging.info(f"Created ODS-Imports collection at: {path_str}")
-                self._ods_imports_collection = response_json
-                return response_json
-
-        except HTTPError as create_error:
-            logging.error(f"Failed to create ODS-Imports collection: {str(create_error)}")
-            raise
+        self._ods_imports_collection = self.ensure_collection_exists(
+            self.ods_imports_collection_name, self.ods_imports_collection_path
+        )
+        return self._ods_imports_collection
 
     def bulk_create_or_update_assets(self, scheme_name: str, data: List[Dict[str, Any]],
                                      operation: str = "ADD", dry_run: bool = False, 

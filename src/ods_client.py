@@ -1,5 +1,7 @@
 import ods_utils_py as ods_utils
 import logging
+import os
+import time
 from typing import Dict, List, Any
 
 class ODSClient:
@@ -133,3 +135,62 @@ class ODSClient:
         logging.info(f"Total organizations retrieved: {total_retrieved} (out of {all_organizations['total_count']})")
         
         return all_organizations
+
+    def get_all_dataset_ids_with_restricted_flag(self, max_datasets: int = None, cooldown: float = 1.0) -> List[Dict[str, Any]]:
+        """
+        Retrieve all ODS dataset ids together with their is_restricted flag, regardless of restriction status.
+
+        This mirrors the pagination logic of ods_utils_py's get_all_dataset_ids(), but keeps the
+        is_restricted flag per dataset instead of discarding it, since callers need to distinguish
+        restricted from unrestricted datasets in the same listing. Requires an API key with permission
+        to see restricted datasets.
+
+        Args:
+            max_datasets (int, optional): Maximum number of dataset entries to return. If None, all
+                datasets are returned.
+            cooldown (float): Sleep time in seconds between requests to avoid overloading the server.
+                Defaults to 1.0.
+
+        Returns:
+            List[Dict[str, Any]]: A list of {'dataset_id': str, 'is_restricted': bool} dicts, one per
+                ODS dataset.
+
+        Raises:
+            HTTPError: If any API request fails
+        """
+        ods_domain = os.getenv('ODS_DOMAIN')
+        ods_api_type = os.getenv('ODS_API_TYPE')
+        base_url = "https://" + f"{ods_domain}/api/{ods_api_type}".replace("//", "/")
+
+        batch_size = 100
+        r = ods_utils.requests_get(url=f"{base_url}/datasets/?limit={batch_size}")
+        r.raise_for_status()
+
+        all_datasets: List[Dict[str, Any]] = []
+
+        while True:
+            all_datasets += [
+                {'dataset_id': item['dataset_id'], 'is_restricted': item['is_restricted']}
+                for item in r.json().get('results', {})
+            ]
+
+            # Check if we have reached the maximum number of datasets
+            if max_datasets is not None and len(all_datasets) >= max_datasets:
+                all_datasets = all_datasets[:max_datasets]
+                break
+
+            next_request_url = r.json().get('next', None)
+
+            if not next_request_url:
+                break
+
+            # Add cooldown between requests
+            time.sleep(cooldown)
+
+            r = ods_utils.requests_get(url=next_request_url)
+            r.raise_for_status()
+
+        all_datasets.sort(key=lambda d: d['dataset_id'])
+
+        logging.info(f"Retrieved {len(all_datasets)} ODS dataset ids (with restricted flag)")
+        return all_datasets

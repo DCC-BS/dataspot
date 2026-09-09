@@ -57,3 +57,10 @@ dnk_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepart
 # TDM client configuration
 tdm_ods_imports_collection_name = 'OGD-Datensätze in Huwise'
 tdm_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']
+
+# Sibling collections for restricted/internal OGD datasets synced from Huwise (ODS)
+dnk_restricted_ods_imports_collection_name = 'OGD-Datensätze aus Huwise (unveröffentlicht)'
+dnk_restricted_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']
+
+dnk_internal_ods_imports_collection_name = 'OGD-Datensätze aus Huwise (intern)'
+dnk_internal_ods_imports_collection_path = ['Regierung und Verwaltung', 'Präsidialdepartement', 'Statistisches Amt', 'DCC Data Competence Center']

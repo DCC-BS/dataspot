@@ -39,7 +39,8 @@ LICENSE_MAP = {
 
 def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
                          ods_metadata_from_explore_api: Dict[str, Any],
-                         ods_dataset_id: str) -> OGDDataset:
+                         ods_dataset_id: str,
+                         is_restricted: bool = False) -> OGDDataset:
     """
     Transforms metadata from OpenDataSoft (ODS) format to Dataspot DNK format.
     
@@ -52,6 +53,9 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
             Expected to contain fields like dataset name, description, keywords, etc.
         ods_metadata_from_explore_api (Dict[str, Any]): The metadata dictionary obtained from ODS Explore API.
         ods_dataset_id (str): The ODS dataset ID, used for identification.
+        is_restricted (bool): Whether the ODS dataset is restricted (not publicly available). When True,
+            i14y-related fields are left empty and publish_on_i14y is set to "no", since a restricted
+            dataset has no public landing page to publish yet.
     
     Returns:
         OGDDataset: A dataset object containing the metadata in Dataspot format.
@@ -159,9 +163,9 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
         
         # Custom properties
         tags=tags,
-        publish_on_i14y="yes",
-        i14y_kontaktstelle_sk_id=config.ogd_i14y_kontaktstelle_sk_id,
-        i14y_dataset_landing_page=datenportal_link,
+        publish_on_i14y="no" if is_restricted else "yes",
+        i14y_kontaktstelle_sk_id=None if is_restricted else config.ogd_i14y_kontaktstelle_sk_id,
+        i14y_dataset_landing_page=None if is_restricted else datenportal_link,
     )
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")

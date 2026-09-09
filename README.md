@@ -44,6 +44,47 @@ DATASPOT_API_BASE_URL
 > **Note:** The authentication system has been updated to use M2M authentication. The legacy username/password authentication may be deprecated in the future.
 
 ---
+## OGD Dataset Sync: Restricted vs Public
+
+OGD datasets from Huwise (ODS) are synced into Dataspot by two independent scripts, run in this order:
+
+1. `scripts/sync_ods_restricted_datasets.py` - syncs datasets with `is_restricted=True` as DRAFT (`WORKING`) into `OGD-Datensätze aus Huwise (unveröffentlicht)`, with no compositions, Huwise deployment, or OGD distributions.
+2. `scripts/sync_ods_datasets.py` (and `scripts/sync_ods_dataset_compositions.py`) - syncs datasets with `is_restricted=False` as `PUBLISHED` into `OGD-Datensätze aus Huwise`, and also promotes any dataset that has left restriction.
+
+There are three sibling collections under `DCC Data Competence Center`:
+
+- `OGD-Datensätze aus Huwise` - published datasets.
+- `OGD-Datensätze aus Huwise (unveröffentlicht)` - newly synced restricted datasets land here.
+- `OGD-Datensätze aus Huwise (intern)` - stewards manually move datasets here that must never be auto-published (e.g. internal/test datasets).
+
+```mermaid
+flowchart TD
+    odsListing["ODS Automation API listing\n(dataset_id + is_restricted)"]
+    odsListing --> isRestricted{"is_restricted?"}
+    isRestricted -->|false| publicScript["sync_ods_datasets.py\n(own is_restricted=False fetch)"]
+    isRestricted -->|true| restrictedScript["sync_ods_restricted_datasets.py\n(full listing)"]
+
+    restrictedScript --> existsCheck{"exists in Dataspot?"}
+    existsCheck -->|no| createDraft["Create Dataset\nstatus=WORKING\nunveroeffentlicht folder"]
+    existsCheck -->|yes| statusCheck{"current status?"}
+    statusCheck -->|PUBLISHED or DELETENEW| deferMain["Skip - owned by\npublicScript / human"]
+    statusCheck -->|WORKING| compareUpdate["sync_datasets\nstatus=WORKING\nno deployments/distributions\n(folder preserved)"]
+
+    publicScript --> mappingCheck{"already exists\nin Dataspot?"}
+    mappingCheck -->|no| createPublished["Create Dataset\nstatus=PUBLISHED\nmain folder"]
+    mappingCheck -->|yes| statusGate{"current status\nWORKING?"}
+    statusGate -->|"no (already PUBLISHED, etc.)"| normalUpdate["Normal update\n(existing behavior)"]
+    statusGate -->|yes| folderCheck{"current folder\nUUID?"}
+    folderCheck -->|intern| skipInternal["Exclude from sync.\nLog + email as skipped-internal"]
+    folderCheck -->|unveröffentlicht| promoteMove["Script pre-pass:\nmove to main folder\nset status=PUBLISHED"]
+    folderCheck -->|anywhere else| promoteInPlace["Script pre-pass:\nset status=PUBLISHED\nleave folder unchanged"]
+    promoteMove --> normalUpdate
+    promoteInPlace --> normalUpdate
+```
+
+Datasets that are genuinely removed from ODS (neither restricted nor public) get marked `DELETENEW` by whichever script owns their current status (`sync_ods_restricted_datasets.py` for `WORKING`, `sync_ods_datasets.py` for `PUBLISHED`). Demotion (a published dataset becoming restricted again) is not handled automatically.
+
+---
 ## Managing (Data Owner) Posts
 
 The following gif shows everything needed to create a new post, and link the correct person. Note that we don't actually need to create the person or user, as this happens daily automatically.

@@ -84,7 +84,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'deleted_compositions': 0,
             'deployments_created': 0,
             'deployment_errors': 0,
-            'distributions_created': 0
+            'distributions_created': 0,
+            'promoted': 0,
+            'skipped_internal': 0
         }, # TODO: Cleanup: Remove all count keys:
         'details': {
             'creations': {
@@ -122,6 +124,14 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             'distributions': {
                 'count': 0,
                 'items': []
+            },
+            'promotions': {
+                'count': 0,
+                'items': []
+            },
+            'skipped_internal': {
+                'count': 0,
+                'items': []
             }
         }
     }
@@ -131,6 +141,72 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         logging.info(f"Step 1: Retrieving {max_datasets or 'all'} public dataset IDs from ODS...")
         ods_ids = ods_utils.get_all_dataset_ids(include_restricted=False, max_datasets=max_datasets)
         logging.info(f"Found {len(ods_ids)} datasets to process")
+
+        # Step 1b: Promotion / intern-exclusion pre-pass, once per run, before any sync batch.
+        # Datasets that left restriction (now unrestricted) but are still WORKING in Dataspot are
+        # either excluded here (if a steward moved them into the "(intern)" collection) or promoted
+        # to PUBLISHED here (moving them out of "(unveröffentlicht)" if that's where they still are).
+        logging.info("Step 1b: Classifying WORKING datasets for promotion / intern exclusion...")
+        unpublished_collection = dataspot_client.ensure_collection_exists(
+            config.dnk_restricted_ods_imports_collection_name,
+            config.dnk_restricted_ods_imports_collection_path,
+        )
+        internal_collection = dataspot_client.ensure_collection_exists(
+            config.dnk_internal_ods_imports_collection_name,
+            config.dnk_internal_ods_imports_collection_path,
+        )
+        all_dataspot_datasets_prepass = dataspot_client.get_datasets_with_cache()
+
+        skipped_internal_ids = set()
+
+        for ods_id in ods_ids:
+            existing_entry = all_dataspot_datasets_prepass.get(ods_id)
+            if not existing_entry or existing_entry.get('status') != 'WORKING':
+                continue
+
+            in_collection_uuid = existing_entry.get('inCollection')
+            title = existing_entry.get('label', f"<Unnamed Dataset {ods_id}>")
+            uuid = existing_entry.get('id')
+            dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else ''
+
+            if in_collection_uuid == internal_collection.get('id'):
+                # Steward-managed: never auto-publish datasets sitting in the "(intern)" collection.
+                skipped_internal_ids.add(ods_id)
+                sync_results['counts']['skipped_internal'] += 1
+                sync_results['details']['skipped_internal']['count'] += 1
+                sync_results['details']['skipped_internal']['items'].append({
+                    "ods_id": ods_id,
+                    "title": title,
+                    "uuid": uuid,
+                    "link": dataspot_link
+                })
+                logging.info(f"Excluding dataset {ods_id} from auto-publish: currently in the internal collection")
+                continue
+
+            # Promote: set status to PUBLISHED. If currently in "(unveröffentlicht)", also move it
+            # to the main folder. Otherwise, leave its current folder unchanged.
+            moved_to_main = in_collection_uuid == unpublished_collection.get('id')
+            update_data = {"_type": "Dataset"}
+            if moved_to_main:
+                update_data['inCollection'] = dataspot_client.dataset_handler.default_dataset_path_full
+
+            endpoint = f"/rest/{config.database_name}/datasets/{uuid}"
+            dataspot_client._update_asset(endpoint=endpoint, data=update_data, replace=False, status="PUBLISHED")
+
+            sync_results['counts']['promoted'] += 1
+            sync_results['details']['promotions']['count'] += 1
+            sync_results['details']['promotions']['items'].append({
+                "ods_id": ods_id,
+                "title": title,
+                "uuid": uuid,
+                "link": dataspot_link,
+                "moved_to_main_folder": moved_to_main
+            })
+            logging.info(f"Promoted dataset {ods_id} to PUBLISHED" + (" and moved to main folder" if moved_to_main else ""))
+
+        # Intern-excluded datasets are not processed further this run
+        if skipped_internal_ids:
+            ods_ids = [ods_id for ods_id in ods_ids if ods_id not in skipped_internal_ids]
 
         # Only turn this off for debugging!!!
         process_all_ods_ids = True
@@ -236,10 +312,14 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
         # Get all datasets from Dataspot
         all_dataspot_datasets = dataspot_client.get_datasets_with_cache()
         
-        # Extract ODS IDs from the datasets (dict keys are the ODS IDs)
-        dataspot_ods_ids = set(all_dataspot_datasets.keys())
+        # Only consider PUBLISHED/DELETENEW datasets as deletion candidates. WORKING datasets belong to
+        # sync_ods_restricted_datasets.py, which owns their deletion (via its own ODS listing).
+        dataspot_ods_ids = {
+            ods_id for ods_id, info in all_dataspot_datasets.items()
+            if info.get('status') in ('PUBLISHED', 'DELETENEW')
+        }
         
-        logging.info(f"Found {len(dataspot_ods_ids)} datasets with odsDataportalId in Dataspot")
+        logging.info(f"Found {len(dataspot_ods_ids)} PUBLISHED/DELETENEW datasets with odsDataportalId in Dataspot")
         
         # Find datasets that are in Dataspot but not in the current ODS fetch
         datasets_to_delete = dataspot_ods_ids - all_processed_ods_ids
@@ -335,7 +415,9 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
             f"Linked {sync_results['counts']['linked']} datasets to compositions with {sync_results['counts']['deleted_compositions']} obsolete compositions removed. "
             f"Huwise deployments: {sync_results['counts']['deployments_created']} created. "
-            f"OGD distributions: {sync_results['counts']['distributions_created']} created."
+            f"OGD distributions: {sync_results['counts']['distributions_created']} created. "
+            f"Promoted {sync_results['counts']['promoted']} datasets from restricted to published, "
+            f"skipped {sync_results['counts']['skipped_internal']} internal datasets from auto-publish."
         )
         
     except Exception as e:
@@ -758,6 +840,8 @@ def log_detailed_sync_report(sync_results):
     logging.info(f"Huwise deployments: {sync_results['counts']['deployments_created']} created, "
                f"{sync_results['counts']['deployment_errors']} errors")
     logging.info(f"OGD distributions: {sync_results['counts']['distributions_created']} created")
+    logging.info(f"Promotions: {sync_results['counts']['promoted']} datasets promoted from restricted to published, "
+               f"{sync_results['counts']['skipped_internal']} internal datasets skipped from auto-publish")
     
     # Log detailed information about deleted datasets
     if sync_results['details']['deletions']['count'] > 0:
@@ -844,6 +928,30 @@ def log_detailed_sync_report(sync_results):
             
             logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
     
+    # Log detailed information about promoted datasets
+    if sync_results['details']['promotions']['count'] > 0:
+        logging.info("")
+        logging.info("--- PROMOTED DATASETS (restricted -> published) ---")
+        for promotion in sync_results['details']['promotions']['items']:
+            ods_id = promotion.get('ods_id', 'Unknown')
+            title = promotion.get('title', 'Unknown')
+            dataspot_link = promotion.get('link', '')
+            moved = promotion.get('moved_to_main_folder', False)
+            
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})"
+                       f"{' [moved to main folder]' if moved else ''}")
+    
+    # Log detailed information about datasets skipped from auto-publish (internal)
+    if sync_results['details']['skipped_internal']['count'] > 0:
+        logging.info("")
+        logging.info("--- SKIPPED INTERNAL (not auto-published) ---")
+        for skipped in sync_results['details']['skipped_internal']['items']:
+            ods_id = skipped.get('ods_id', 'Unknown')
+            title = skipped.get('title', 'Unknown')
+            dataspot_link = skipped.get('link', '')
+            
+            logging.info(f"ODS dataset {ods_id}: {title} (Link: {dataspot_link})")
+    
     # Log detailed information about errors
     if sync_results['details']['errors']['count'] > 0:
         logging.info("")
@@ -885,7 +993,7 @@ def create_email_content(sync_results):
     is_error = sync_results['status'] == 'error'
     
     # Send email if there were changes or errors
-    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and counts.get('deployments_created', 0) == 0 and counts.get('distributions_created', 0) == 0 and not is_error:
+    if total_changes == 0 and counts.get('errors', 0) == 0 and counts.get('linked', 0) == 0 and counts.get('deployments_created', 0) == 0 and counts.get('distributions_created', 0) == 0 and counts.get('promoted', 0) == 0 and counts.get('skipped_internal', 0) == 0 and not is_error:
         return None, None, False
     
     # Create email subject with summary following the requested format
@@ -921,6 +1029,8 @@ def create_email_content(sync_results):
     if counts.get('deployment_errors', 0) > 0:
         email_text += f", {counts['deployment_errors']} errors"
     email_text += f"\n\nOGD distributions: {counts.get('distributions_created', 0)} created"
+    email_text += f"\n\nPromotions: {counts.get('promoted', 0)} datasets promoted from restricted to published"
+    email_text += f"\nSkipped internal (not auto-published): {counts.get('skipped_internal', 0)} datasets"
     email_text += f"\n\nTotal datasets processed: {counts['processed']}\n\n"
     
     # Add detailed information if available
@@ -999,6 +1109,28 @@ def create_email_content(sync_results):
             # Create Dataspot link
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else ''
             
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+
+    # Show promoted datasets (restricted -> published)
+    if sync_results['details']['promotions']['count'] > 0:
+        email_text += "\nPROMOTED DATASETS (restricted -> published):\n"
+        for promotion in sync_results['details']['promotions']['items']:
+            ods_id = promotion.get('ods_id', 'Unknown')
+            title = promotion.get('title', 'Unknown')
+            dataspot_link = promotion.get('link', '')
+            moved = promotion.get('moved_to_main_folder', False)
+
+            email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})"
+            email_text += " [moved to main folder]\n" if moved else "\n"
+
+    # Show datasets skipped from auto-publish (internal)
+    if sync_results['details']['skipped_internal']['count'] > 0:
+        email_text += "\nSKIPPED INTERNAL (not auto-published):\n"
+        for skipped in sync_results['details']['skipped_internal']['items']:
+            ods_id = skipped.get('ods_id', 'Unknown')
+            title = skipped.get('title', 'Unknown')
+            dataspot_link = skipped.get('link', '')
+
             email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
     
     if is_error:

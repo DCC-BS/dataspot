@@ -268,7 +268,10 @@ class DatasetHandler(BaseDataspotHandler):
 
         logging.debug(f"Default dataset path: {self.default_dataset_path_full}")
 
-    def sync_datasets(self, datasets: List[Dataset], status: str = "WORKING") -> Dict[str, Any]:
+    def sync_datasets(self, datasets: List[Dataset], status: str = "WORKING",
+                      ensure_deployments: bool = True, ensure_distributions: bool = True,
+                      in_collection_path: Optional[str] = None,
+                      mapping_in_collection: Optional[str] = None) -> Dict[str, Any]:
         """
         Synchronize datasets between ODS and Dataspot.
         This is the main public method for dataset synchronization.
@@ -285,6 +288,14 @@ class DatasetHandler(BaseDataspotHandler):
             datasets: List of Dataset objects to synchronize with Dataspot
             status: Status to set on created/updated datasets. Defaults to "WORKING" (DRAFT group).
                    Use "PUBLISHED" to make datasets public immediately.
+            ensure_deployments: Whether to ensure a Huwise deployment link exists for each dataset.
+                   Defaults to True. Set to False to skip this step entirely (e.g. for restricted datasets).
+            ensure_distributions: Whether to ensure csv/json/xlsx OGD distributions exist for each dataset.
+                   Defaults to True. Set to False to skip this step entirely (e.g. for restricted datasets).
+            in_collection_path: Optional business-key path of the collection new datasets should be created in.
+                   Defaults to the client's configured ODS-Imports collection when omitted.
+            mapping_in_collection: Optional collection name to store in the mapping for newly created datasets.
+                   Defaults to the client's configured ODS-Imports collection name when omitted.
             
         Returns:
             Dict[str, Any]: Report of the synchronization process
@@ -456,27 +467,29 @@ class DatasetHandler(BaseDataspotHandler):
                                 logging.debug(f"    - New: {values.get('new_value')}")
                             
                             # Ensure Huwise deployment exists
-                            deployment_created = ensure_huwise_deployment(self.client, uuid, title)
-                            if deployment_created:
-                                result["deployments_created"] += 1
-                                result["details"]["deployments"]["count"] += 1
-                                result["details"]["deployments"]["items"].append({
-                                    "ods_id": odsDataportalId,
-                                    "title": title,
-                                    "uuid": uuid
-                                })
+                            if ensure_deployments:
+                                deployment_created = ensure_huwise_deployment(self.client, uuid, title)
+                                if deployment_created:
+                                    result["deployments_created"] += 1
+                                    result["details"]["deployments"]["count"] += 1
+                                    result["details"]["deployments"]["items"].append({
+                                        "ods_id": odsDataportalId,
+                                        "title": title,
+                                        "uuid": uuid
+                                    })
 
                             # Ensure OGD distributions exist (csv/json/xlsx)
-                            distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
-                            if distributions_created:
-                                result["distributions_created"] += distributions_created
-                                result["details"]["distributions"]["count"] += distributions_created
-                                result["details"]["distributions"]["items"].append({
-                                    "ods_id": odsDataportalId,
-                                    "title": title,
-                                    "uuid": uuid,
-                                    "created": distributions_created
-                                })
+                            if ensure_distributions:
+                                distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                                if distributions_created:
+                                    result["distributions_created"] += distributions_created
+                                    result["details"]["distributions"]["count"] += distributions_created
+                                    result["details"]["distributions"]["items"].append({
+                                        "ods_id": odsDataportalId,
+                                        "title": title,
+                                        "uuid": uuid,
+                                        "created": distributions_created
+                                    })
                                 
                         except Exception as e:
                             error_msg = f"Error updating dataset with odsDataportalId {odsDataportalId}: {str(e)}"
@@ -495,27 +508,29 @@ class DatasetHandler(BaseDataspotHandler):
                         
                         # Ensure Huwise deployment exists even for unchanged datasets
                         title = dataset_json.get('label', f"<Unnamed Dataset {odsDataportalId}>")
-                        deployment_created = ensure_huwise_deployment(self.client, uuid, title)
-                        if deployment_created:
-                            result["deployments_created"] += 1
-                            result["details"]["deployments"]["count"] += 1
-                            result["details"]["deployments"]["items"].append({
-                                "ods_id": odsDataportalId,
-                                "title": title,
-                                "uuid": uuid
-                            })
+                        if ensure_deployments:
+                            deployment_created = ensure_huwise_deployment(self.client, uuid, title)
+                            if deployment_created:
+                                result["deployments_created"] += 1
+                                result["details"]["deployments"]["count"] += 1
+                                result["details"]["deployments"]["items"].append({
+                                    "ods_id": odsDataportalId,
+                                    "title": title,
+                                    "uuid": uuid
+                                })
 
                         # Ensure OGD distributions exist even for unchanged datasets
-                        distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
-                        if distributions_created:
-                            result["distributions_created"] += distributions_created
-                            result["details"]["distributions"]["count"] += distributions_created
-                            result["details"]["distributions"]["items"].append({
-                                "ods_id": odsDataportalId,
-                                "title": title,
-                                "uuid": uuid,
-                                "created": distributions_created
-                            })
+                        if ensure_distributions:
+                            distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                            if distributions_created:
+                                result["distributions_created"] += distributions_created
+                                result["details"]["distributions"]["count"] += distributions_created
+                                result["details"]["distributions"]["items"].append({
+                                    "ods_id": odsDataportalId,
+                                    "title": title,
+                                    "uuid": uuid,
+                                    "created": distributions_created
+                                })
                 
                 except Exception as e:
                     error_msg = f"Error processing update for dataset with odsDataportalId {odsDataportalId}: {str(e)}"
@@ -541,7 +556,11 @@ class DatasetHandler(BaseDataspotHandler):
                     
                     try:
                         # Create the dataset
-                        response = self.create_dataset(dataset, status=status)
+                        response = self.create_dataset(
+                            dataset, status=status,
+                            in_collection_path=in_collection_path,
+                            mapping_in_collection=mapping_in_collection
+                        )
                         
                         # Get UUID from response
                         uuid = response['id']
@@ -565,27 +584,29 @@ class DatasetHandler(BaseDataspotHandler):
                         
                         # Ensure Huwise deployment exists for newly created dataset
                         if uuid:
-                            deployment_created = ensure_huwise_deployment(self.client, uuid, title)
-                            if deployment_created:
-                                result["deployments_created"] += 1
-                                result["details"]["deployments"]["count"] += 1
-                                result["details"]["deployments"]["items"].append({
-                                    "ods_id": odsDataportalId,
-                                    "title": title,
-                                    "uuid": uuid
-                                })
+                            if ensure_deployments:
+                                deployment_created = ensure_huwise_deployment(self.client, uuid, title)
+                                if deployment_created:
+                                    result["deployments_created"] += 1
+                                    result["details"]["deployments"]["count"] += 1
+                                    result["details"]["deployments"]["items"].append({
+                                        "ods_id": odsDataportalId,
+                                        "title": title,
+                                        "uuid": uuid
+                                    })
 
                             # Ensure OGD distributions exist for newly created dataset
-                            distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
-                            if distributions_created:
-                                result["distributions_created"] += distributions_created
-                                result["details"]["distributions"]["count"] += distributions_created
-                                result["details"]["distributions"]["items"].append({
-                                    "ods_id": odsDataportalId,
-                                    "title": title,
-                                    "uuid": uuid,
-                                    "created": distributions_created
-                                })
+                            if ensure_distributions:
+                                distributions_created = ensure_ogd_distributions(self.client, uuid, odsDataportalId, title)
+                                if distributions_created:
+                                    result["distributions_created"] += distributions_created
+                                    result["details"]["distributions"]["count"] += distributions_created
+                                    result["details"]["distributions"]["items"].append({
+                                        "ods_id": odsDataportalId,
+                                        "title": title,
+                                        "uuid": uuid,
+                                        "created": distributions_created
+                                    })
                         
                     except Exception as e:
                         error_msg = f"Error creating dataset with odsDataportalId {odsDataportalId}: {str(e)}"
@@ -710,7 +731,9 @@ class DatasetHandler(BaseDataspotHandler):
         logging.info(f"Bulk dataset creation completed successfully")
         return response
 
-    def create_dataset(self, dataset: Dataset, status: str = "WORKING") -> dict:
+    def create_dataset(self, dataset: Dataset, status: str = "WORKING",
+                       in_collection_path: Optional[str] = None,
+                       mapping_in_collection: Optional[str] = None) -> dict:
         """
         Create a new dataset in the 'Datennutzungskatalog/ODS-Imports' in Dataspot.
         
@@ -718,6 +741,10 @@ class DatasetHandler(BaseDataspotHandler):
             dataset (Dataset): The dataset instance to be uploaded.
             status: Status to set on the dataset. Defaults to "WORKING" (DRAFT group).
                    Use "PUBLISHED" to make the dataset public immediately.
+            in_collection_path: Optional business-key path of the collection to create the dataset in.
+                   When omitted, defaults to the client's configured ODS-Imports collection.
+            mapping_in_collection: Optional collection name to store in the mapping for this dataset.
+                   When omitted, defaults to the client's configured ODS-Imports collection name.
             
         Returns:
             dict: The JSON response from the API containing the dataset data
@@ -745,8 +772,25 @@ class DatasetHandler(BaseDataspotHandler):
         title = dataset.to_json()['label']
         logging.info(f"Creating dataset: '{title}' with ODS ID: {odsDataportalId}")
 
-        # Get the collection UUID
-        collection_uuid = self.client._ods_imports_collection.get('id')
+        dataset_json = dataset.to_json()
+
+        if in_collection_path:
+            # Resolve the target collection's UUID from its business-key path
+            path_elements = ['rest', config.database_name, 'schemes', self.scheme_name]
+            for folder in in_collection_path.split('/'):
+                path_elements.append('collections')
+                path_elements.append(folder)
+            target_collection_endpoint = url_join(*path_elements, leading_slash=True)
+            target_collection = self.client._get_asset(target_collection_endpoint)
+            if not target_collection:
+                error_msg = f"Collection at path '{in_collection_path}' not found"
+                logging.error(error_msg)
+                raise ValueError(error_msg)
+            collection_uuid = target_collection.get('id')
+            dataset_json['inCollection'] = collection_uuid
+        else:
+            # Get the collection UUID
+            collection_uuid = self.client._ods_imports_collection.get('id')
 
         if not collection_uuid:
             error_msg = "Failed to get collection UUID"
@@ -758,9 +802,6 @@ class DatasetHandler(BaseDataspotHandler):
         
         # Create a new dataset
         dataset_creation_endpoint = url_join(collection_href, "datasets")
-        
-        # Ensure inCollection property is set with the full path
-        dataset_json = dataset.to_json()
 
         response = self.client._create_asset(
             endpoint=dataset_creation_endpoint,
@@ -772,10 +813,11 @@ class DatasetHandler(BaseDataspotHandler):
         if odsDataportalId:
             uuid = response['id']
             if uuid:
-                # For newly created datasets, store the ODS-Imports collection name as the business key
+                # For newly created datasets, store the collection name as the business key
                 # The _type for datasets created here is always "Dataset"
-                logging.debug(f"Adding mapping entry for ODS ID {odsDataportalId} with Type 'Dataset', UUID {uuid}, and inCollection '{self.client.ods_imports_collection_name}'")
-                self.mapping[odsDataportalId] = ("Dataset", uuid, self.client.ods_imports_collection_name)
+                mapping_collection = mapping_in_collection or self.client.ods_imports_collection_name
+                logging.debug(f"Adding mapping entry for ODS ID {odsDataportalId} with Type 'Dataset', UUID {uuid}, and inCollection '{mapping_collection}'")
+                self.mapping[odsDataportalId] = ("Dataset", uuid, mapping_collection)
             else:
                 logging.warning(f"Could not extract UUID from response for dataset '{title}'")
         
