@@ -10,7 +10,7 @@ from src.clients.dnk_client import DNKClient
 from src.clients.helpers import url_join
 from src.common import email_helpers as email_helpers
 import ods_utils_py as ods_utils
-from src.dataset_transformer import transform_ods_to_dnk
+from src.dataset_transformer import LICENSE_MAP, _get_field_value, transform_ods_to_dnk
 from src.ods_client import ODSClient
 
 
@@ -126,6 +126,21 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
             # Will break as soon as the Explore API V2.1 is deprecated, since the entire url is hardcoded.
             ods_metadata_from_explore_api_response = ods_utils.requests_get(url=f"https://data.bs.ch/api/explore/v2.1/catalog/datasets/{ods_id}")
             ods_metadata_from_explore_api = ods_metadata_from_explore_api_response.json()
+
+            license_id = None
+            if 'internal' in ods_metadata_from_automation_api and 'license_id' in ods_metadata_from_automation_api['internal']:
+                license_id = _get_field_value(ods_metadata_from_automation_api['internal']['license_id'])
+            if license_id and license_id not in LICENSE_MAP:
+                error_msg = f"Unknown license ID: {license_id}"
+                logging.error(f"Skipping restricted dataset {ods_id} due to faulty license: {error_msg}")
+                sync_results['counts']['errors'] += 1
+                sync_results['details']['errors']['count'] += 1
+                sync_results['details']['errors']['items'].append({
+                    "ods_id": ods_id,
+                    "message": error_msg
+                })
+                continue
+
             dataset = transform_ods_to_dnk(ods_metadata_from_automation_api=ods_metadata_from_automation_api,
                                            ods_metadata_from_explore_api=ods_metadata_from_explore_api,
                                            ods_dataset_id=ods_id,
@@ -235,7 +250,8 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
         sync_results['message'] = (
             f"ODS restricted datasets synchronization completed with {sync_results['counts']['total']} changes: "
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
-            f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted. "
+            f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted, "
+            f"{sync_results['counts']['errors']} errors. "
             f"Skipped {sync_results['counts']['skipped_unrestricted']} unrestricted and "
             f"{sync_results['counts']['skipped_not_working']} non-WORKING datasets."
         )
@@ -454,6 +470,13 @@ def create_email_content(sync_results):
             uuid = creation.get('uuid', '')
             dataspot_link = f"{config.base_url}/web/{config.database_name}/datasets/{uuid}" if uuid else creation.get('link', '')
             email_text += f"\nODS dataset {ods_id}: {title} (Link: {dataspot_link})\n"
+
+    if sync_results['details']['errors']['count'] > 0:
+        email_text += "\nERRORS:\n"
+        for error in sync_results['details']['errors']['items']:
+            ods_id = error.get('ods_id', 'Unknown')
+            message = error.get('message', 'Unknown error')
+            email_text += f"\nODS dataset {ods_id}: {message}\n"
 
     if is_error:
         email_text += "\nThe synchronization process did not complete successfully. "
