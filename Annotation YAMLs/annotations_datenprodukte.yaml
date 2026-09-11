@@ -748,6 +748,7 @@ Dataset:
       label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Datenprodukts
       order: 250
+      # Leave keys ("1", "2", ...) as they are for now: FGI use them for internal mappings (source: Loris Hubler)
       literals:
         "1":
           label: Öffentlich

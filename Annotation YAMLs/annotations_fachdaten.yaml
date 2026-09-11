@@ -42,6 +42,7 @@ BusinessAttribute:
       label: Vertraulichkeit
       title: Vertraulichkeitsstufe des Attributs
       order: 10
+      # Leave keys ("1", "2", ...) as they are for now: FGI use them for internal mappings (source: Loris Hubler)
       literals:
         "1":
           label: Öffentlich
