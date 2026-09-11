@@ -29,7 +29,8 @@ RECHTE_MAP = {
 LICENSE_MAP = {
     "4bj8ceb": "https://creativecommons.org/publicdomain/zero/1.0/",                            # CC0 1.0
     "cc_by": "https://creativecommons.org/licenses/by/3.0/ch/",                                 # CC BY 3.0 CH
-    "5sylls5": "https://creativecommons.org/licenses/by/4.0/",                               # CC BY 4.0
+    "5sylls5": "https://creativecommons.org/licenses/by/4.0/",                                  # CC BY 4.0
+    "hpi31y": "https://creativecommons.org/licenses/by-nc-sa/4.0/",                             # CC BY-NC-SA 4.0
     "t2kf10u": "https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf",     # CC BY 3.0 CH + OpenStreetMap
     "353v4r": "https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf",      # CC BY 4.0 + OpenStreetMap
     "vzo5u7j": "https://www.gnu.org/licenses/gpl-3.0",                                          # GNU General Public License 3

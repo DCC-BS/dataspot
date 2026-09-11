@@ -374,21 +374,24 @@ Dataset:
                 https://creativecommons.org/licenses/by/4.0/:
                   label: CC BY 4.0
                   order: 3
+                https://creativecommons.org/licenses/by-nc-sa/4.0/:
+                  label: CC BY-NC-SA 4.0
+                  order: 4
                 https://data-bs.ch/stata/dataspot/permalinks/20210113_OSM-Vektordaten.pdf:
                   label: CC BY 3.0 CH + OpenStreetMap
-                  order: 4
+                  order: 5
                 https://data-bs.ch/stata/dataspot/permalinks/20240822-osm-vektordaten.pdf:
                   label: CC BY 4.0 + OpenStreetMap
-                  order: 5
+                  order: 6
                 https://www.bs.ch/bvd/grundbuch-und-vermessungsamt/geo/anwendungen/agb:
                   label: Nutzungsbedingungen für Geodaten des Kantons Basel-Stadt
-                  order: 6
+                  order: 7
                 https://opendata.swiss/de/terms-of-use/:
                   label: Freie Nutzung. Quellenangabe ist Pflicht. Kommerzielle Nutzung nur mit Bewilligung des Datenlieferanten zulässig.
-                  order: 7
+                  order: 8
                 https://www.gnu.org/licenses/gpl-3.0:
                   label: GNU General Public License 3
-                  order: 8
+                  order: 9
             permissions:
               label: Rechte
               title: Nutzungsrechte, die der zugehörigen Lizenz zugrunde liegen und bei der Verwendung des Datensatzes berücksichtigt werden müssen.
