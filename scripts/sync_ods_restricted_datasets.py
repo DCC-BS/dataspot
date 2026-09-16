@@ -64,6 +64,7 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
             'processed': 0,
             'skipped_unrestricted': 0,
             'skipped_not_working': 0,
+            'skipped_unpublished': 0,
         },
         'details': {
             'creations': {'count': 0, 'items': []},
@@ -104,10 +105,16 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
         for idx, entry in enumerate(ods_datasets):
             ods_id = entry['dataset_id']
             is_restricted = entry['is_restricted']
+            is_published = entry['is_published']
 
             if not is_restricted:
                 logging.info(f"Skipping unrestricted dataset {ods_id} (handled by sync_ods_datasets.py)")
                 sync_results['counts']['skipped_unrestricted'] += 1
+                continue
+
+            if not is_published:
+                logging.info(f"Skipping unpublished dataset {ods_id} (not available via Explore API)")
+                sync_results['counts']['skipped_unpublished'] += 1
                 continue
 
             existing_entry = all_dataspot_datasets.get(ods_id)
@@ -252,8 +259,9 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
             f"{sync_results['counts']['created']} created, {sync_results['counts']['updated']} updated, "
             f"{sync_results['counts']['unchanged']} unchanged, {sync_results['counts']['deleted']} deleted, "
             f"{sync_results['counts']['errors']} errors. "
-            f"Skipped {sync_results['counts']['skipped_unrestricted']} unrestricted and "
-            f"{sync_results['counts']['skipped_not_working']} non-WORKING datasets."
+            f"Skipped {sync_results['counts']['skipped_unrestricted']} unrestricted, "
+            f"{sync_results['counts']['skipped_not_working']} non-WORKING, and "
+            f"{sync_results['counts']['skipped_unpublished']} unpublished datasets."
         )
 
     except Exception as e:
@@ -346,7 +354,8 @@ def log_detailed_sync_report(sync_results):
                f"{sync_results['counts']['deleted']} deleted, "
                f"{sync_results['counts']['errors']} errors")
     logging.info(f"Skipped: {sync_results['counts']['skipped_unrestricted']} unrestricted, "
-               f"{sync_results['counts']['skipped_not_working']} non-WORKING")
+               f"{sync_results['counts']['skipped_not_working']} non-WORKING, "
+               f"{sync_results['counts']['skipped_unpublished']} unpublished")
 
     if sync_results['details']['deletions']['count'] > 0:
         logging.info("")
@@ -436,7 +445,7 @@ def create_email_content(sync_results):
     email_text += f"- Deleted: {counts['deleted']} datasets\n"
     if counts.get('errors', 0) > 0:
         email_text += f"- Errors: {counts['errors']}\n"
-    email_text += f"\nSkipped: {counts.get('skipped_unrestricted', 0)} unrestricted, {counts.get('skipped_not_working', 0)} non-WORKING\n"
+    email_text += f"\nSkipped: {counts.get('skipped_unrestricted', 0)} unrestricted, {counts.get('skipped_not_working', 0)} non-WORKING, {counts.get('skipped_unpublished', 0)} unpublished\n"
     email_text += f"\nTotal datasets processed: {counts['processed']}\n\n"
 
     if sync_results['details']['deletions']['count'] > 0:

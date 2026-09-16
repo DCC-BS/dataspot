@@ -138,12 +138,14 @@ class ODSClient:
 
     def get_all_dataset_ids_with_restricted_flag(self, max_datasets: int = None, cooldown: float = 1.0) -> List[Dict[str, Any]]:
         """
-        Retrieve all ODS dataset ids together with their is_restricted flag, regardless of restriction status.
+        Retrieve all ODS dataset ids together with their is_restricted and is_published flags,
+        regardless of restriction status.
 
         This mirrors the pagination logic of ods_utils_py's get_all_dataset_ids(), but keeps the
-        is_restricted flag per dataset instead of discarding it, since callers need to distinguish
-        restricted from unrestricted datasets in the same listing. Requires an API key with permission
-        to see restricted datasets.
+        is_restricted and is_published flags per dataset instead of discarding them, since callers
+        need to distinguish restricted from unrestricted datasets and skip unpublished ones that
+        are absent from the Explore API. Requires an API key with permission to see restricted
+        datasets.
 
         Args:
             max_datasets (int, optional): Maximum number of dataset entries to return. If None, all
@@ -152,7 +154,8 @@ class ODSClient:
                 Defaults to 1.0.
 
         Returns:
-            List[Dict[str, Any]]: A list of {'dataset_id': str, 'is_restricted': bool} dicts, one per
+            List[Dict[str, Any]]: A list of
+                {'dataset_id': str, 'is_restricted': bool, 'is_published': bool} dicts, one per
                 ODS dataset.
 
         Raises:
@@ -170,7 +173,11 @@ class ODSClient:
 
         while True:
             all_datasets += [
-                {'dataset_id': item['dataset_id'], 'is_restricted': item['is_restricted']}
+                {
+                    'dataset_id': item['dataset_id'],
+                    'is_restricted': item['is_restricted'],
+                    'is_published': item['is_published'],
+                }
                 for item in r.json().get('results', {})
             ]
 
