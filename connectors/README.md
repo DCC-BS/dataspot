@@ -52,7 +52,7 @@ Für die Anbindung einer Datenbank an den Kantonalen Datenkatalog arbeitet die D
        - `password: ********`
 
 4. Nutzer-Berechtigung
-   - Siehe den zentralen Abschnitt [Nutzer-Berechtigung](#nutzer-berechtigung-zentrales-thema).
+   - Siehe den zentralen Abschnitt [Nutzer-Berechtigung](#nutzer-berechtigung).
 
 ### Nutzer-Berechtigung
 
