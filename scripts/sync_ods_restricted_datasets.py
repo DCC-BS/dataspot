@@ -30,7 +30,7 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
        retrieves metadata and transforms it into a DRAFT (WORKING) dataset without
        compositions, Huwise deployment, or OGD distributions
     5. Syncs the batch into the "(unveröffentlicht)" collection
-    6. Marks datasets no longer present in ODS at all for deletion review
+    6. Permanently deletes WORKING datasets no longer present in ODS at all
     7. Provides a summary of changes and logs a detailed report
     8. Sends an email notification if there were changes
 
@@ -214,11 +214,13 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
         ]
 
         if datasets_to_delete:
-            logging.info(f"Found {len(datasets_to_delete)} restricted datasets to mark for deletion")
+            logging.info(f"Found {len(datasets_to_delete)} restricted datasets to delete")
 
             for ods_id in datasets_to_delete:
                 try:
-                    deleted = dataspot_client.dataset_handler.delete_dataset(ods_id, fail_if_not_exists=False)
+                    deleted = dataspot_client.dataset_handler.delete_dataset(
+                        ods_id, fail_if_not_exists=False, force_delete=True
+                    )
 
                     if deleted:
                         sync_results['counts']['deleted'] += 1
@@ -237,10 +239,10 @@ def sync_ods_restricted_datasets(max_datasets: int = None, batch_size: int = 50)
                             "uuid": uuid,
                             "link": dataspot_link
                         })
-                        logging.info(f"Marked restricted dataset with odsDataportalId {ods_id} for deletion: {title} (Link: {dataspot_link})")
+                        logging.info(f"Deleted restricted dataset with odsDataportalId {ods_id}: {title} (Link: {dataspot_link})")
 
                 except Exception as e:
-                    error_msg = f"Error marking restricted dataset with odsDataportalId {ods_id} for deletion: {str(e)}"
+                    error_msg = f"Error deleting restricted dataset with odsDataportalId {ods_id}: {str(e)}"
                     logging.error(error_msg)
 
                     sync_results['counts']['errors'] += 1

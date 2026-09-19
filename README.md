@@ -82,7 +82,7 @@ flowchart TD
     promoteInPlace --> normalUpdate
 ```
 
-Datasets that are genuinely removed from ODS (neither restricted nor public) get marked `DELETENEW` by whichever script owns their current status (`sync_ods_restricted_datasets.py` for `WORKING`, `sync_ods_datasets.py` for `PUBLISHED`). Demotion (a published dataset becoming restricted again) is not handled automatically.
+Datasets that are genuinely removed from ODS (neither restricted nor public) are handled by status ownership: `sync_ods_restricted_datasets.py` permanently deletes `WORKING` datasets, while `sync_ods_datasets.py` marks `PUBLISHED` datasets as `DELETENEW`. Demotion (a published dataset becoming restricted again) is not handled automatically.
 
 ---
 ## Managing (Data Owner) Posts

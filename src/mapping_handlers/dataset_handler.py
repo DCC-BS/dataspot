@@ -985,13 +985,15 @@ class DatasetHandler(BaseDataspotHandler):
         logging.error("Unexpected error in create_or_update_dataset")
         raise RuntimeError("Unexpected error in create_or_update_dataset")
 
-    def delete_dataset(self, odsDataportalId: str, fail_if_not_exists: bool = False) -> bool:
+    def delete_dataset(self, odsDataportalId: str, fail_if_not_exists: bool = False, force_delete: bool = False) -> bool:
         """
         Delete a dataset from the DNK or mark it for deletion review.
         
         Args:
             odsDataportalId (str): The ODS ID of the dataset to delete
             fail_if_not_exists (bool): Whether to raise an error if the dataset doesn't exist
+            force_delete (bool): If True, permanently delete the asset. If False (default),
+                mark it for deletion review (DELETENEW).
             
         Returns:
             bool: True if the dataset was deleted or marked for deletion, or if it didn't exist but tracking was updated.
@@ -1018,9 +1020,12 @@ class DatasetHandler(BaseDataspotHandler):
         asset_exists = self.client._get_asset(href) is not None
         
         if asset_exists:
-            # Dataset exists, mark it for deletion
-            logging.info(f"Marking dataset with ODS ID '{odsDataportalId}' (UUID: {uuid}) for deletion review at {href}")
-            self.client._mark_asset_for_deletion(href)
+            if force_delete:
+                logging.info(f"Permanently deleting dataset with ODS ID '{odsDataportalId}' (UUID: {uuid}) at {href}")
+                self.client._delete_asset(href, force_delete=True)
+            else:
+                logging.info(f"Marking dataset with ODS ID '{odsDataportalId}' (UUID: {uuid}) for deletion review at {href}")
+                self.client._mark_asset_for_deletion(href)
         else:
             # Dataset already deleted in Dataspot, just log it
             logging.info(f"Dataset with ODS ID '{odsDataportalId}' (UUID: {uuid}) already deleted in Dataspot, updating local mapping only")
