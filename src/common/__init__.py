@@ -38,7 +38,7 @@ RATE_LIMIT_DELAY_SEC = 1.0
 
 from config import MAX_RETRIES_FOR_PROD
 if MAX_RETRIES_FOR_PROD:
-    MAX_RETRIES = 13
+    MAX_RETRIES = 8  # waits: 1, 2, 4, 8, 16, 32, 64 seconds
 else:
     MAX_RETRIES = 4
 
