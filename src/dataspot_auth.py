@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     print("Testing sample request to dataspot...")
     headers = auth.get_headers()
-    response = requests_get(url="https://datenkatalog.bs.ch/rest/prod/schemes/Systeme", headers=headers)
+    response = requests_get(url=f"{config.base_url}/rest/{config.database_name}/schemes/Systeme", headers=headers)
     response.raise_for_status()
 
     if response.status_code == 200:
