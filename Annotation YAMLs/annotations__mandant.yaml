@@ -467,6 +467,17 @@ Person:
       title: Person-ID im Staatskalender (der letzte Teil der URL https://staatskalender.bs.ch/person/c056392e5fc842e4a92ddacc8580db58)
       width: 1
       order: 80
+    facade_api_permissions:
+      label: Facade-API Berechtigungen
+      title: Die Berechtigungen welche der Access Key dieses Benutzers in der Facade API besitzt
+      cardinality: MANY
+      literals:
+        QUERY:
+          label: Query-Befehle
+          order: 1
+        UPDATE_LAST_UPDATE_DS:
+          label: Letzte Aktualisierung-Feld eines Assets als Data Steward aktualisieren
+          order: 2
 
   customFunctions:
     openStaatskalender:
