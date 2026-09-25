@@ -155,6 +155,7 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
             config.dnk_internal_ods_imports_collection_name,
             config.dnk_internal_ods_imports_collection_path,
         )
+        main_collection = dataspot_client.ensure_ods_imports_collection_exists()
         all_dataspot_datasets_prepass = dataspot_client.get_datasets_with_cache()
 
         skipped_internal_ids = set()
@@ -185,10 +186,12 @@ def sync_ods_datasets(max_datasets: int = None, batch_size: int = 50):
 
             # Promote: set status to PUBLISHED. If currently in "(unveröffentlicht)", also move it
             # to the main folder. Otherwise, leave its current folder unchanged.
+            # Dataspot rejects publishing while the dataset is still in the unpublished (WORKING)
+            # collection, and PATCH with an inCollection *path* returns HTTP 500 — use the UUID.
             moved_to_main = in_collection_uuid == unpublished_collection.get('id')
             update_data = {"_type": "Dataset"}
             if moved_to_main:
-                update_data['inCollection'] = dataspot_client.dataset_handler.default_dataset_path_full
+                update_data['inCollection'] = main_collection.get('id')
 
             endpoint = f"/rest/{config.database_name}/datasets/{uuid}"
             dataspot_client._update_asset(endpoint=endpoint, data=update_data, replace=False, status="PUBLISHED")
