@@ -33,13 +33,7 @@ BRYTECUBE_AGENT_ID = "brytecube-sync"
 # Status set on Datenprodukte that are no longer returned by the BryteCube API
 STALE_STATUS = "DELETENEW"
 
-#NOTE: change this before going productive!
-brytecube_insert_status = "WORKING"    # test
-# brytecube_insert_status = "PUBLISHED"  # prod
-
-
 ##### Questions: 
-# - how to handle views that do not exist anymore
 # - certificate?
 # - more information on views via ty-id?
 
@@ -133,7 +127,7 @@ def _build_dataset_assets(views: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
     for name, description in views:
         asset = {
             "_type": "Dataset",
-            "label": name,
+            "label": name + " (AUE)",
             "inCollection": BRYTECUBE_COLLECTION_PATH,
         }
         if description:
@@ -170,9 +164,9 @@ def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
         data=assets,
         operation="REPLACE",
         on_delete=STALE_STATUS,
-        #on_insert=brytecube_insert_status,
+        #on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
         agent_id=BRYTECUBE_AGENT_ID,
-        status=None,  # don't reset the status of existing Datenprodukte (or the collection) to WORKING
+        status=None,  # don't reset the status of the collection to WORKING
         dry_run=dry_run,
     )
  
@@ -190,10 +184,6 @@ def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
 def upload_brytecube_datenprodukte_from_api(url: str = BRYTECUBE_VIEWS_API_URL, dry_run: bool = False) -> Any:
     views = fetch_brytecube_views(url)
     names = _extract_view_names_and_descriptions(views)
-
-    ### just for test purposes!!!!!!
-    #names = names[:-1]
-    names = names[:-42]
 
     logging.info(f"Extracted {len(names)} unique Datenprodukt name(s) from TY_LONGNAME")
  
