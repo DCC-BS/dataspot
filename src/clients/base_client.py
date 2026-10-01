@@ -593,7 +593,8 @@ class BaseDataspotClient:
 
     def bulk_create_or_update_assets(self, scheme_name: str, data: List[Dict[str, Any]],
                                      operation: str = "ADD", dry_run: bool = False, 
-                                     status: str = "WORKING") -> Dict[str, Any]:
+                                     status: str = "WORKING", on_insert: str = None,
+                                     on_delete: str = None, agent_id: str = None) -> Dict[str, Any]:
         """
         Create or update multiple assets in bulk via the upload API.
 
@@ -646,6 +647,15 @@ class BaseDataspotClient:
 
         if operation != "ADD":
             query_params.append(f"operation={operation}")
+
+        if on_delete:
+            query_params.append(f"onDelete={quote(on_delete, safe='')}")
+
+        if on_insert:
+            query_params.append(f"onInsert={quote(on_insert, safe='')}")
+
+        if agent_id:
+            query_params.append(f"agentId={quote(agent_id, safe='')}")
 
         if dry_run:
             query_params.append("dryRun=true")

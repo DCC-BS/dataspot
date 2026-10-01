@@ -2,7 +2,7 @@ import argparse
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 from dotenv import load_dotenv
 import config
 from src.clients.base_client import BaseDataspotClient
@@ -20,14 +20,23 @@ REALM = "BS.CH"
 username = f"{REALM}\\{AUE_AD_USERNAME}"
 password = AUE_AD_PASSWORD
 
-DEFAULT_UPLOAD_FILE = os.path.join(os.path.dirname(__file__), "brytecube_test.json")
 BRYTECUBE_VIEWS_API_URL = "https://brytecube.aue.wsu.bs.ch/BcOdata/WebApi/ResourceMetadata/AllViews/46ba9cdc-f416-421b-a38f-75715f6a1554"
 
 # for "inCollection" value
 BRYTECUBE_COLLECTION_PATH = ("Regierung und Verwaltung/Departement für Wirtschaft, Soziales und Umwelt/Amt für Umwelt und Energie (AUE)/BryteCube")
 
+# Identifies this script as the owner of the Datenprodukte it uploads. With operation=REPLACE,
+# only assets carrying this agentId are considered obsolete, so Datenprodukte created by hand
+# (or by other scripts) in the BryteCube collection are never touched.
+BRYTECUBE_AGENT_ID = "brytecube-sync"
+ 
+# Status set on Datenprodukte that are no longer returned by the BryteCube API
+STALE_STATUS = "DELETENEW"
 
-original_https_proxy = os.environ.get("HTTPS_PROXY")
+#NOTE: change this before going productive!
+brytecube_insert_status = "WORKING"    # test
+# brytecube_insert_status = "PUBLISHED"  # prod
+
 
 ##### Questions: 
 # - how to handle views that do not exist anymore
@@ -52,43 +61,26 @@ def _extract_upload_errors(response_json: Any) -> List[str]:
 
 
 def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, Any]]:
-    """
-    Fetch the list of BryteCube view metadata records from the BryteCube Web API.
-
-    Authenticates with HTTP Basic Auth using the AUE_AD_USERNAME / AUE_AD_PASSWORD
-    AD service account credentials (loaded from .env).
-
-    Args:
-        url: The BryteCube API endpoint to call.
-
-    Returns:
-        list: The raw view metadata objects, as returned by the API.
-
-    Raises:
-        ValueError: If AUE_AD_USERNAME/AUE_AD_PASSWORD are not set, or the response
-            isn't a JSON list.
-        HTTPError: If the request fails.
-    """
-    if not AUE_AD_USERNAME or not AUE_AD_PASSWORD:
-        raise ValueError(
-            "AUE_AD_USERNAME and AUE_AD_PASSWORD must be set (e.g. in .env) to call the BryteCube API"
-        )
-
+    
     logging.info(f"Fetching BryteCube views from {url} ...")
 
-    # Disable proxie to connect to brytecube in internal network
-    os.environ['HTTPS_PROXY'] = ''
-
-    ## NOTE: verity=False is only a quick and dirty fix, in the longrun a certificate is needed (from aue or it?)
-    response = requests.get(url, auth=HttpNtlmAuth(username=username, password=password), verify=False)
-
-    # enable proxy again to connect to dataspot later
-    os.environ['HTTPS_PROXY'] = original_https_proxy
-    
+    # Disable proxy to connect to BryteCube in the internal network, and always restore it
+    # afterwards (even on error) so the Dataspot calls go through the proxy again.
+    original_https_proxy = os.environ.get("HTTPS_PROXY")
+    os.environ["HTTPS_PROXY"] = ""
+    try:
+        # NOTE: verify=False is only a quick and dirty fix, in the long run a certificate is needed (from AUE or IT?)
+        response = requests.get(url, auth=HttpNtlmAuth(username=username, password=password), verify=False)
+        response.raise_for_status()
+    finally:
+        if original_https_proxy is None:
+            os.environ.pop("HTTPS_PROXY", None)
+        else:
+            os.environ["HTTPS_PROXY"] = original_https_proxy
+ 
     views = response.json()
-
-    """ with open("test.json", "w", encoding="utf-8") as file:
-        json.dump(views, file, indent=2, ensure_ascii=False) """
+    if not isinstance(views, list):
+        raise ValueError(f"Unexpected response format from BryteCube API. Expected a list but got: {type(views)}")
 
     logging.info(f"Fetched {len(views)} view(s) from the BryteCube API")
     return views
@@ -96,7 +88,7 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
 
 def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
-    Extract and de-duplicate the TY_LONGNAME and TY_DESCRIPTION fields from each BryteCube view record.
+    Extract the TY_LONGNAME and TY_DESCRIPTION fields from each BryteCube view record.
     Entries missing TY_LONGNAME are skipped and logged.
     """
     results: List[Tuple[str, str]] = []
@@ -107,82 +99,38 @@ def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tu
             logging.warning(f"Skipping view with missing/blank TY_LONGNAME: {view}")
             continue
         if name in seen:
-            logging.debug(f"Skipping duplicate view name within this batch: '{name}'")
+            logging.warning(f"Duplicate TY_LONGNAME '{name}' - keeping only the first occurrence")
             continue
+        seen.add(name)
+ 
         description = (view.get("TY_DESCRIPTION") or "").strip()
         if not description:
             logging.debug(f"View '{name}' has no TY_DESCRIPTION")
-        seen.add(name)
         results.append((name, description))
     return results
 
 
-def _get_brytecube_collection_uuid(client: BaseDataspotClient, collection_path: str = BRYTECUBE_COLLECTION_PATH) -> str:
-    """Resolve the UUID of the BryteCube collection from its business-key path."""
-    path_elements = ["rest", config.database_name, "schemes", config.dnk_scheme_name]
-    for folder in collection_path.split("/"):
-        path_elements.append("collections")
-        path_elements.append(folder)
-    endpoint = url_join(*path_elements, leading_slash=True)
-
-    collection = client._get_asset(endpoint)
-    if not collection or not collection.get("id"):
-        raise ValueError(f"BryteCube collection not found at path '{collection_path}'")
-    return collection["id"]
-
-
-def _get_existing_datasets(client: BaseDataspotClient, collection_uuid: str) -> Dict[str, str]:
-    """Return {label: uuid} for Datasets already present directly in the given collection."""
-    query = f"""
-        SELECT id, label
-        FROM dataset_view
-        WHERE in_collection = '{collection_uuid}'
+def _build_collection_asset() -> Dict[str, Any]:
     """
-    results = client.execute_query_api(sql_query=query)
-    return {row["label"]: row["id"] for row in results if row.get("label") and row.get("id")}
-
-
-def _remove_stale_datasets(client: BaseDataspotClient, existing_datasets: Dict[str, str], current_names: set) -> List[str]:
+    Build the asset dict for the BryteCube collection itself.
+ 
+    It has to be part of the upload: with operation=REPLACE, dataspot only reconciles the
+    children of parents that are included in the upload.
     """
-    mark DELETENEW Datenprodukte that exist in the BryteCube collection
-    but are no longer present in current_names (i.e. no longer returned by the BryteCube API).
+    parent_path, _, collection_label = BRYTECUBE_COLLECTION_PATH.rpartition("/")
+    return {
+        "_type": "Collection",
+        "label": collection_label,
+        "inCollection": parent_path,
+    }
 
-    Args:
-        existing_datasets: {label: uuid} of Datenprodukte currently in the collection.
-        current_names: The set of view names currently returned by the BryteCube API.
 
-    Returns:
-        list: Labels of the Datenprodukte that were removed (or would be, in a dry run).
+def _build_dataset_assets(views: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
     """
-    stale_labels = [label for label in existing_datasets if label not in current_names]
-
-    if not stale_labels:
-        logging.info("No stale Datenprodukte to remove - BryteCube collection already matches the API.")
-        return []
-
-    logging.info(f"{len(stale_labels)} Datenprodukt(e) no longer in the BryteCube API, removing: {stale_labels}")
-
-    for label in stale_labels:
-        uuid = existing_datasets[label]
-        endpoint = url_join("rest", config.database_name, "datasets", uuid, leading_slash=True)
-
-        logging.info(f"Marking Datenprodukt '{label}' (uuid={uuid}) for deletion review")
-        client._mark_asset_for_deletion(endpoint)
-
-    return stale_labels
-
-
-def _build_dataset_assets(views: List[Tuple[str, str]], existing_labels: Optional[set] = None) -> List[Dict[str, Any]]:
+    Build bulk-upload asset dicts for the given (name, description) pairs
     """
-    Build bulk-upload asset dicts (new Datasets, no "id") for the given (name, description) pairs,
-    skipping any name that already exists in the target collection.
-    """
-    existing_labels = existing_labels or set()
     assets = []
     for name, description in views:
-        if name in existing_labels:
-            logging.debug(f"Datenprodukt '{name}' already exists in BryteCube collection, skipping")
-            continue
         asset = {
             "_type": "Dataset",
             "label": name,
@@ -194,26 +142,40 @@ def _build_dataset_assets(views: List[Tuple[str, str]], existing_labels: Optiona
     return assets
 
 
-def _upload_assets(assets: List[Dict[str, Any]], operation: str = "ADD") -> Dict[str, Any]:
-    """Push a list of asset dicts to the Datenprodukte (DNK) scheme via the bulk upload API."""
+def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
+    """
+    Reconcile the BryteCube collection in the Datenprodukte (DNK) scheme via the bulk upload API.
+ 
+    - New views are added, existing ones are updated (matched by label).
+    - Datenprodukte previously uploaded by this script that are no longer in the upload are set to STALE_STATUS.
+    - Existing statuses are left unchanged (status=None).
+    """
+    # NOTE: remove this once the script goes live
     if config.database_name != "test-aue-brytecube-api":
         logging.warning(
             f"config.database_name is '{config.database_name}', not the expected "
             "'test-aue-brytecube-api'. Double-check config.py before proceeding."
         )
-
+ 
     client = BaseDataspotClient(scheme_name=config.dnk_scheme_name, scheme_name_short=config.dnk_scheme_name_short)
-
-    if not assets:
-        logging.info("No assets to upload (everything already exists or nothing was found).")
-        return {}
-
+ 
     logging.info(
         f"Uploading {len(assets)} asset(s) to scheme '{client.scheme_name}' in database "
+        f"'{config.database_name}' (operation=REPLACE, onDelete={STALE_STATUS}, "
+        f"agentId={BRYTECUBE_AGENT_ID}, dryRun={dry_run})"
     )
-
-    response = client.bulk_create_or_update_assets(scheme_name=client.scheme_name, data=assets)
-
+ 
+    response = client.bulk_create_or_update_assets(
+        scheme_name=client.scheme_name,
+        data=assets,
+        operation="REPLACE",
+        on_delete=STALE_STATUS,
+        #on_insert=brytecube_insert_status,
+        agent_id=BRYTECUBE_AGENT_ID,
+        status=None,  # don't reset the status of existing Datenprodukte (or the collection) to WORKING
+        dry_run=dry_run,
+    )
+ 
     errors = _extract_upload_errors(response)
     if errors:
         logging.error(f"Upload completed with {len(errors)} error(s):")
@@ -221,80 +183,45 @@ def _upload_assets(assets: List[Dict[str, Any]], operation: str = "ADD") -> Dict
             logging.error(f"  - {error}")
     else:
         logging.info("Upload completed without errors.")
-
+ 
     return response
 
 
-def upload_brytecube_datenprodukte_from_api(url: str = BRYTECUBE_VIEWS_API_URL) -> Dict[str, Any]:
-    """
-    Fetch BryteCube views from the BryteCube API and mirror them into the BryteCube
-    collection in Dataspot: one Datenprodukt per view (named after TY_LONGNAME).
-
-    Datenprodukte whose name already exists in the BryteCube collection are skipped
-    on creation, so this can safely be re-run without creating duplicates.
-    """
+def upload_brytecube_datenprodukte_from_api(url: str = BRYTECUBE_VIEWS_API_URL, dry_run: bool = False) -> Any:
     views = fetch_brytecube_views(url)
     names = _extract_view_names_and_descriptions(views)
-    current_names = set(names)
+
+    ### just for test purposes!!!!!!
+    #names = names[:-1]
+    names = names[:-42]
+
     logging.info(f"Extracted {len(names)} unique Datenprodukt name(s) from TY_LONGNAME")
-
-    client = BaseDataspotClient(scheme_name=config.dnk_scheme_name,
-                                 scheme_name_short=config.dnk_scheme_name_short)
-    #collection_uuid = _get_brytecube_collection_uuid(client)
-    #existing_datasets = _get_existing_datasets(client, collection_uuid)
-    #logging.info(f"Found {len(existing_datasets)} existing Datenprodukt(e) in the BryteCube collection")
-
-    #assets = _build_dataset_assets(names, set(existing_datasets))
-    assets = _build_dataset_assets(names)
-    logging.info(f"{len(assets)} new Datenprodukt(e) to create")
-
-    response = _upload_assets(assets)
-
-    """ if not current_names:
-        # Safety net: never wipe out the whole collection just because the BryteCube
-        # API returned nothing (e.g. transient error, auth failure that still returned
-        # 200, or an empty page). Bail out instead of treating every existing
-        # Datenprodukt as "no longer there".
+ 
+    if not names:
+        # Safety net: with operation=REPLACE, uploading the collection without any Datasets
+        # would mark every Datenprodukt in it as obsolete. Never do that just because the
+        # BryteCube API returned nothing (transient error, auth failure that still returned 200, ...).
         logging.warning(
-            "BryteCube API returned zero view names - skipping removal step entirely "
-            "to avoid deleting the whole BryteCube collection."
+            "BryteCube API returned zero view names - aborting without uploading "
+            "to avoid marking the whole BryteCube collection for deletion."
         )
-    else:
-        _remove_stale_datasets(client, existing_datasets, current_names)
- """
-    return response
-
-
-# for test purposes
-def upload_brytecube_datenprodukte_from_file(file_path: str = DEFAULT_UPLOAD_FILE) -> Dict[str, Any]:
-    """
-    Upload a hand/export-crafted BryteCube Datenprodukte JSON file to Dataspot.
-
-    Items in the file that already carry an "id" are matched to the existing asset and
-    updated; items without an "id" are created new. Kept for testing without access to
-    the BryteCube API - see upload_brytecube_datenprodukte_from_api for the live source.
-    """
-    with open(file_path, "r", encoding="utf-8") as f:
-        assets = json.load(f)
-
-    logging.info(f"Loaded {len(assets)} asset(s) from {file_path}")
-    return _upload_assets(assets)
+        return {}
+ 
+    assets = [_build_collection_asset()] + _build_dataset_assets(names)
+    return _upload_assets(assets, dry_run=dry_run)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Create AUE BryteCube Datenprodukte in Dataspot via the bulk upload API."
-    )
-    parser.add_argument("--source", default="api", choices=["api", "file"],
-                         help="Where to read Datenprodukte from. 'api' (default) fetches views "
-                              "from the BryteCube Web API and creates one Datenprodukt per view. "
-                              "'file' uploads --file as-is (for testing without API access).")
-    args = parser.parse_args()
 
-    if args.source == "api":
-        response = upload_brytecube_datenprodukte_from_api()
-    else:
-        response = upload_brytecube_datenprodukte_from_file()
+    parser = argparse.ArgumentParser(description="Sync BryteCube views into the Datenprodukte (DNK) scheme.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run the upload as a dataspot dry run (no data is changed; the response shows what would happen).",
+    )
+    args = parser.parse_args()
+    
+    response = upload_brytecube_datenprodukte_from_api(dry_run=args.dry_run)
     logging.info(f"Response:\n{json.dumps(response, indent=2, ensure_ascii=False)}")
 
 
