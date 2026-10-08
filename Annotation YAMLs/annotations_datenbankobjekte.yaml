@@ -92,3 +92,19 @@ UmlClass:
               baseType: STRING
               order: 60
               readOnly: true
+
+        kdm_logical_entity:
+          label: Logische Entität (KDM)
+          order: 60
+          customProperties:
+            kdm_id:
+              label: Id (KDM)
+              baseType: INTEGER
+
+        kdm_physical_entity:
+          label: Physische Entität (KDM)
+          order: 65
+          customProperties:
+            kdm_id:
+              label: Id (KDM)
+              baseType: INTEGER
