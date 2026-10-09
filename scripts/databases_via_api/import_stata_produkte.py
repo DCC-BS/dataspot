@@ -5,6 +5,10 @@ import json
 import pandas as pd
 from pathlib import Path
 import pyodbc # add this to requirements.txt?
+import config
+from src.clients.base_client import BaseDataspotClient
+from src.clients.helpers import url_join
+from src.common import requests
 
 # --- CONFIGURATION ---
 
@@ -85,6 +89,7 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
  
     collections = {}   # path -> entry (dict keeps insertion order, no duplicates)
     datasets = []
+    seen_datasets = set()
  
     collections[top_path] = {
         "_type": "Collection",
@@ -119,15 +124,34 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
                 "inCollection": thema_path,
             })
  
+        dataset_path = f"{parent_path}/{label}"
+        if dataset_path in seen_datasets:
+            logger.warning(f"Duplicate dataset skipped: {dataset_path}")
+            continue
+        seen_datasets.add(dataset_path)
+
         datasets.append({
             "_type": "Dataset",
-            "label": label,
+            "label": label + " (ÖS)", # to make sure that a dataset doe snot have the same name as its collection and also to ensure uniqueness in dataspot
             "inCollection": parent_path,
         })
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
     return list(collections.values()) + datasets
 
+
+def upload_to_dataspot(assets: list[dict]):
+
+    logger.info("Uploading now")
+ 
+    client = BaseDataspotClient(scheme_name=config.dnk_scheme_name, scheme_name_short=config.dnk_scheme_name_short)
+ 
+    client.bulk_create_or_update_assets(
+        scheme_name=client.scheme_name,
+        data=assets,
+        operation="REPLACE",
+        on_delete = "DELETENEW"
+    )
 
 def main():
     """
@@ -137,10 +161,13 @@ def main():
 
     df = load_data()
     result = build_structure(df)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+    """ with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2) """
     n_coll = sum(e["_type"] == "Collection" for e in result)
     logger.info(f"Wrote {n_coll} collections and {len(result) - n_coll} datasets to {OUTPUT_FILE}")
+
+    upload_to_dataspot(result)
+
 
 
 if __name__ == "__main__":
