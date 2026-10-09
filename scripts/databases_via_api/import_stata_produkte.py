@@ -166,7 +166,7 @@ def upload_to_dataspot(assets: list[dict]):
         scheme_name=client.scheme_name,
         data=assets,
         operation="REPLACE",
-        on_delete = "DELETENEW"
+        status = "PUBLISHED"
     )
 
 def main():
