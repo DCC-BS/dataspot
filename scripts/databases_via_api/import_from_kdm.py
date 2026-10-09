@@ -337,15 +337,14 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
         item = {
             "_type": "Composition",
             "componentOf": f"{logical_entity_name} (KDM)",
-            "label": attribute.get('label', logical_attribute_name), # FIXME: I think the Label must not be empty. This is a fallback - but introduces inconsisteny with the actual dataproduct and should thus not be pushed! I just did this so I can debug code below.
+            "label": logical_attribute_name, # TODO: Potentially swap these 2
             "composedOf": f"/Datenbankobjekte/{LOGICAL_MODEL_PATH}/{logical_entity_name}/{logical_attribute_name}",
             "order": attribute['id'],
-            "title": logical_attribute_name,
+            "title": attribute.get('label', ""), # TODO: Potentially swap these 2
             "description": "",
         }
         if 'beschreibung' in attribute:
             item['description'] = _html_to_markdown(attribute['beschreibung'])
-
         transformed_data.append(item)
 
     # 4. Deployment
