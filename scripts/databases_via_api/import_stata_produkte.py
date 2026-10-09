@@ -83,13 +83,15 @@ def clean(value):
 
 
 def parse_tags(value) -> list[str]:
-    """Turn 'Haushalte; Wohnformen, Familienhaushalte' into a sorted list of unique tags."""
     value = clean(value)
     if value is None:
         return []
     parts = re.split(r"[;,|\n]", value)
-    tags = {p.strip() for p in parts if p.strip()}
+    # Strip whitespace and leading list markers like "- " or "– "
+    tags = {re.sub(r"^[\s\-–•]+", "", p).strip() for p in parts}
+    tags.discard("")
     return sorted(tags, key=str.lower)
+
  
  
 def build_structure(df: pd.DataFrame) -> list[dict]:
