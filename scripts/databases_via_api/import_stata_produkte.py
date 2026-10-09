@@ -9,6 +9,7 @@ import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
 from src.common import requests
+import re
 
 # --- CONFIGURATION ---
 
@@ -37,7 +38,6 @@ logger = logging.getLogger(__name__)
 # TODO: 
 # - add description
 # - add keywords
-# - upload to dataspot
 # - clean code
 
 def load_data() -> pd.DataFrame:
@@ -82,6 +82,16 @@ def clean(value):
         return None
     value = str(value).strip()
     return value or None
+
+
+def parse_tags(value) -> list[str]:
+    """Turn 'Haushalte; Wohnformen, Familienhaushalte' into a sorted list of unique tags."""
+    value = clean(value)
+    if value is None:
+        return []
+    parts = re.split(r"[;,|\n]", value)
+    tags = {p.strip() for p in parts if p.strip()}
+    return sorted(tags, key=str.lower)
  
  
 def build_structure(df: pd.DataFrame) -> list[dict]:
@@ -104,6 +114,9 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
         label = clean(row["bezeichnung"])
         thema = clean(row["thema"])
         unterthema = clean(row["unterthema"])
+        beschreibung = clean(row["beschreibung"])
+        stichwortliste = parse_tags(row["stichwortliste"])
+
         if label is None or thema is None:
             print(f"Skipped (missing bezeichnung or thema): {row.to_dict()}")
             continue
@@ -113,6 +126,8 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
             "_type": "Collection",
             "label": thema,
             "inCollection": top_path,
+            "description": beschreibung,
+            "tags": stichwortliste
         })
  
         parent_path = thema_path
@@ -122,6 +137,8 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
                 "_type": "Collection",
                 "label": unterthema,
                 "inCollection": thema_path,
+                "description": beschreibung,
+                "tags": stichwortliste
             })
  
         dataset_path = f"{parent_path}/{label}"
@@ -132,8 +149,10 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
 
         datasets.append({
             "_type": "Dataset",
-            "label": label + " (ÖS)", # to make sure that a dataset doe snot have the same name as its collection and also to ensure uniqueness in dataspot
+            "label": label + " (ÖS)", # to make sure that a dataset does not have the same name as its collection and also to ensure uniqueness in dataspot
             "inCollection": parent_path,
+            "description": beschreibung,
+            "tags": stichwortliste
         })
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
