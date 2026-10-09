@@ -4,7 +4,7 @@ import logging
 import json
 import pandas as pd
 from pathlib import Path
-import pyodbc # add this to requirements.txt?
+from mssql_python import connect # add to requirements.txt?
 import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
@@ -34,10 +34,11 @@ OUTPUT_FILE = Path(__file__).parent / "Oeffentliche_Statistik_export.json"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+QUERY = """ SELECT [produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],[beschreibung],[stichwortliste]
+            FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
+
 
 # TODO: 
-# - add description
-# - add keywords
 # - clean code
 
 def load_data() -> pd.DataFrame:
@@ -47,27 +48,24 @@ def load_data() -> pd.DataFrame:
 
     try:
         conn_str = (
-            "DRIVER={ODBC Driver 17 for SQL Server};"
-            f"SERVER={server};"
+            f"Server={server};"
             f"UID={username};"
             f"PWD={password};"
             "Trusted_Connection=yes;"
+            "Encrypt=yes;"
+            "TrustServerCertificate=yes;"
         )
-
-        with pyodbc.connect(conn_str) as conn:
-            # List all tables in the database
-            return pd.read_sql("""
-                SELECT TOP (1000)
-                [produkt]
-                ,[bezeichnung]
-                ,[thema]
-                ,[Thema_Nr]
-                ,[unterthema]
-                ,[suchprodukt]
-                ,[beschreibung]
-                ,[stichwortliste]
-            FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle'
-            """, conn)
+ 
+        conn = connect(conn_str)
+        try:
+            cursor = conn.cursor()
+            cursor.execute(QUERY, ("Webtabelle",))
+            columns = [col[0] for col in cursor.description]
+            rows = [tuple(row) for row in cursor.fetchall()]
+            cursor.close()
+            return pd.DataFrame.from_records(rows, columns=columns)
+        finally:
+            conn.close()
         
     finally:
         if original_https_proxy is None:
@@ -107,7 +105,6 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
         "inCollection": ROOT_PATH,
     }
 
-    # do we actually need to sort this?
     df = df.sort_values(["Thema_Nr", "unterthema", "bezeichnung"], key=lambda s: s.astype(str).str.zfill(2), na_position="last")
  
     for _, row in df.iterrows():
