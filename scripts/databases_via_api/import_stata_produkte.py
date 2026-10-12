@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 QUERY = """ SELECT [produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],[beschreibung],[stichwortliste]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
 
-
 # TODO: 
 # - clean code
 
@@ -119,8 +118,6 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
             "_type": "Collection",
             "label": thema,
             "inCollection": top_path,
-            "description": beschreibung,
-            "tags": stichwortliste
         })
  
         parent_path = thema_path
@@ -130,8 +127,6 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
                 "_type": "Collection",
                 "label": unterthema,
                 "inCollection": thema_path,
-                "description": beschreibung,
-                "tags": stichwortliste
             })
  
         dataset_path = f"{parent_path}/{label}"
