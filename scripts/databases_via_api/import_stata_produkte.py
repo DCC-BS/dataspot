@@ -23,12 +23,6 @@ ROOT_PATH = "Regierung und Verwaltung/Präsidialdepartement/Statistisches Amt"
 TOP_COLLECTION = "Öffentliche Statistik"
 OUTPUT_FILE = Path(__file__).parent / "Oeffentliche_Statistik_export.json"
 
-# TODO: uncomment these once we implement Load step
-#STATUS_ON_CREATE = 'PUBLISHED'
-#STATUS_ON_UPDATE = 'PUBLISHED'
-#STATUS_ON_DELETE = None # None: Delete directly
-
-
 # Logging configuration
 # TODO: Not sure how we want to implement logging so that it works system-wide
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -148,7 +142,7 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
 
         datasets.append({
             "_type": "Dataset",
-            "label": label + " (ÖS)", # to make sure that a dataset does not have the same name as its collection and also to ensure uniqueness in dataspot
+            "label": label + " (StatA)", # to make sure that a dataset does not have the same name as its collection and also to ensure uniqueness in dataspot
             "inCollection": parent_path,
             "description": beschreibung,
             "tags": stichwortliste
