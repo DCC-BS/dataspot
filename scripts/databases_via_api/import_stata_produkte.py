@@ -9,6 +9,7 @@ import config
 from src.clients.base_client import BaseDataspotClient
 from src.clients.helpers import url_join
 from src.common import requests
+from src.clients.helpers import parse_iso_date_utc_midnight_ms
 import re
 
 # --- CONFIGURATION ---
@@ -28,7 +29,9 @@ OUTPUT_FILE = Path(__file__).parent / "Oeffentliche_Statistik_export.json"
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-QUERY = """ SELECT [produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],[beschreibung],[stichwortliste]
+QUERY = """ SELECT [id],[produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],
+            [beschreibung],[stichwortliste],[naechste_aktualisierung],[zeitreihe_start_jahr],
+            [zeitreihe_ende_jahr]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
 
 # TODO: 
@@ -108,7 +111,19 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
         unterthema = clean(row["unterthema"])
         beschreibung = clean(row["beschreibung"])
         stichwortliste = parse_tags(row["stichwortliste"])
+        suchprodukt = parse_tags(row["suchprodukt"])
 
+        tag = parse_tags(row["zeitreihe_ende_jahr"])
+        zeitreihe_ende_jahr = int(float(tag[0])) if tag else None # row value would be something like ['2025.0'], we want 2025
+
+        tag = parse_tags(row["zeitreihe_start_jahr"])
+        zeitreihe_start_jahr = int(float(tag[0])) if tag else None
+
+        stata_id = parse_tags(row["id"])[0] # anscheinend ist das eine liste, warum auch immer
+
+        tag = parse_tags(row["naechste_aktualisierung"])
+        aktualisierung = parse_iso_date_utc_midnight_ms(tag[0]) if tag else None
+    
         if label is None or thema is None:
             print(f"Skipped (missing bezeichnung or thema): {row.to_dict()}")
             continue
@@ -140,7 +155,14 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
             "label": label + " (StatA)", # to make sure that a dataset does not have the same name as its collection and also to ensure uniqueness in dataspot
             "inCollection": parent_path,
             "description": beschreibung,
-            "tags": stichwortliste
+            "tags": stichwortliste,
+            "stereotype" : "STATA",
+            "stata_search_product": suchprodukt,
+            "stata_next_update": aktualisierung,
+            "stata_portal_url": "https://statistik.bs.ch/statistik/" + stata_id,
+            "stata_theme": thema,
+            "stata_zeitreihe_ende_jahr": zeitreihe_ende_jahr,
+            "stata_zeitreihe_start_jahr": zeitreihe_start_jahr
         })
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
