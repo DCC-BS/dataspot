@@ -34,9 +34,6 @@ QUERY = """ SELECT [id],[produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],
             [zeitreihe_ende_jahr]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
 
-# TODO: 
-# - clean code
-
 def load_data() -> pd.DataFrame:
 
     original_https_proxy = os.environ.get("HTTPS_PROXY")
@@ -190,8 +187,6 @@ def main():
 
     df = load_data()
     result = build_structure(df)
-    """ with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2) """
     n_coll = sum(e["_type"] == "Collection" for e in result)
     logger.info(f"Wrote {n_coll} collections and {len(result) - n_coll} datasets to {OUTPUT_FILE}")
 
