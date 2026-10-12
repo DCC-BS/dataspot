@@ -33,6 +33,8 @@ BRYTECUBE_AGENT_ID = "brytecube-sync"
 # Status set on Datenprodukte that are no longer returned by the BryteCube API
 STALE_STATUS = "DELETENEW"
 
+VIEW_NAME_PREFIX = "VW_"
+
 ##### Questions: 
 # - certificate?
 # - more information on views via ty-id?
@@ -73,6 +75,10 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
             os.environ["HTTPS_PROXY"] = original_https_proxy
  
     views = response.json()
+
+    with open("test.json", "w", encoding="utf-8") as file:
+        json.dump(views, file, indent=2, ensure_ascii=False)
+
     if not isinstance(views, list):
         raise ValueError(f"Unexpected response format from BryteCube API. Expected a list but got: {type(views)}")
 
@@ -84,23 +90,29 @@ def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tu
     """
     Extract the TY_LONGNAME and TY_DESCRIPTION fields from each BryteCube view record.
     Entries missing TY_LONGNAME are skipped and logged.
+    only take entries where TY_NAME starts with VIEW_NAME_PREFIX (i.e. actual views)
     """
     results: List[Tuple[str, str]] = []
     seen = set()
     for view in views:
-        name = (view.get("TY_LONGNAME") or "").strip()
-        if not name:
+        name = (view.get("TY_NAME") or "").strip()
+        if not name.startswith(VIEW_NAME_PREFIX):
+            logging.debug(f"Skipping view with TY_NAME '{name}' (does not start with '{VIEW_NAME_PREFIX}')")
+            continue
+
+        longname = (view.get("TY_LONGNAME") or "").strip()
+        if not longname:
             logging.warning(f"Skipping view with missing/blank TY_LONGNAME: {view}")
             continue
-        if name in seen:
-            logging.warning(f"Duplicate TY_LONGNAME '{name}' - keeping only the first occurrence")
+        if longname in seen:
+            logging.warning(f"Duplicate TY_LONGNAME '{longname}' - keeping only the first occurrence")
             continue
-        seen.add(name)
+        seen.add(longname)
  
         description = (view.get("TY_DESCRIPTION") or "").strip()
         if not description:
-            logging.debug(f"View '{name}' has no TY_DESCRIPTION")
-        results.append((name, description))
+            logging.debug(f"View '{longname}' has no TY_DESCRIPTION")
+        results.append((longname, description))
     return results
 
 
@@ -163,10 +175,9 @@ def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
         scheme_name=client.scheme_name,
         data=assets,
         operation="REPLACE",
-        on_delete=STALE_STATUS,
-        #on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
+        #on_delete=STALE_STATUS,
+        on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
         agent_id=BRYTECUBE_AGENT_ID,
-        status=None,  # don't reset the status of the collection to WORKING
         dry_run=dry_run,
     )
  
