@@ -20,6 +20,7 @@ server = os.getenv("STATA_PRODUKTE_SERVERNAME")
 username = os.getenv("STATA_PRODUKTE_USERNAME")
 password = os.getenv("STATA_PRODUKTE_PASSWORD")
 
+# TOOD: Future-proof me by only defining the UUID
 ROOT_PATH = "Regierung und Verwaltung/Präsidialdepartement/Statistisches Amt"
 TOP_COLLECTION = "Öffentliche Statistik"
 OUTPUT_FILE = Path(__file__).parent / "Oeffentliche_Statistik_export.json"
