@@ -45,7 +45,6 @@ def load_data() -> pd.DataFrame:
             f"Server={server};"
             f"UID={username};"
             f"PWD={password};"
-            "Trusted_Connection=yes;"
             "Encrypt=yes;"
             "TrustServerCertificate=yes;"
         )
