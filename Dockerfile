@@ -15,6 +15,8 @@ ENV LC_ALL=de_CH.UTF-8
 RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     tzdata \
+    krb5-user \
+    krb5-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure the system locale
