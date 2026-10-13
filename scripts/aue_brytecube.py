@@ -23,6 +23,7 @@ password = AUE_AD_PASSWORD
 BRYTECUBE_VIEWS_API_URL = "https://brytecube.aue.wsu.bs.ch/BcOdata/WebApi/ResourceMetadata/AllViews/46ba9cdc-f416-421b-a38f-75715f6a1554"
 
 # for "inCollection" value
+#TODO: make this variable, read value by uuid from dataspot
 BRYTECUBE_COLLECTION_PATH = ("Regierung und Verwaltung/Departement für Wirtschaft, Soziales und Umwelt/Amt für Umwelt und Energie (AUE)/BryteCube")
 
 # Identifies this script as the owner of the Datenprodukte it uploads. With operation=REPLACE,
@@ -35,9 +36,14 @@ STALE_STATUS = "DELETENEW"
 
 VIEW_NAME_PREFIX = "VW_"
 
-##### Questions: 
+##### TODO: 
 # - certificate?
 # - more information on views via ty-id?
+# - delete behaviour
+# - datenbankobjekte mit generieren?
+# - akronyme einfügen
+# - restructure code like in stata produkte and rename after etl
+# - how to handle ty_parent?
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -76,8 +82,8 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
  
     views = response.json()
 
-    with open("test.json", "w", encoding="utf-8") as file:
-        json.dump(views, file, indent=2, ensure_ascii=False)
+    """ with open("test.json", "w", encoding="utf-8") as file:
+        json.dump(views, file, indent=2, ensure_ascii=False) """
 
     if not isinstance(views, list):
         raise ValueError(f"Unexpected response format from BryteCube API. Expected a list but got: {type(views)}")
@@ -88,11 +94,11 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
 
 def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """
-    Extract the TY_LONGNAME and TY_DESCRIPTION fields from each BryteCube view record.
+    Extract the TY_LONGNAME, TY_ACRONYM and TY_DESCRIPTION fields from each BryteCube view record.
     Entries missing TY_LONGNAME are skipped and logged.
     only take entries where TY_NAME starts with VIEW_NAME_PREFIX (i.e. actual views)
     """
-    results: List[Tuple[str, str]] = []
+    results: List[Tuple[str, str, str]] = []
     seen = set()
     for view in views:
         name = (view.get("TY_NAME") or "").strip()
@@ -112,7 +118,12 @@ def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tu
         description = (view.get("TY_DESCRIPTION") or "").strip()
         if not description:
             logging.debug(f"View '{longname}' has no TY_DESCRIPTION")
-        results.append((longname, description))
+
+        acronym = (view.get("TY_ACRONYM") or "").strip()
+        if not acronym:
+            logging.debug(f"View '{longname}' has no TY_ACRONYM")
+
+        results.append((longname, description, acronym))
     return results
 
 
@@ -131,12 +142,12 @@ def _build_collection_asset() -> Dict[str, Any]:
     }
 
 
-def _build_dataset_assets(views: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
+def _build_dataset_assets(views: List[Tuple[str, str, str]]) -> List[Dict[str, Any]]:
     """
     Build bulk-upload asset dicts for the given (name, description) pairs
     """
     assets = []
-    for name, description in views:
+    for name, description, acronym in views:
         asset = {
             "_type": "Dataset",
             "label": name + " (AUE)",
@@ -144,6 +155,9 @@ def _build_dataset_assets(views: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
         }
         if description:
             asset["description"] = description
+        if acronym:
+            asset["tags"] = [acronym] #im moment als schlüsselwort, evt als synonym?
+        
         assets.append(asset)
     return assets
 
