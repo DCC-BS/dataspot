@@ -41,11 +41,13 @@ VIEW_NAME_PREFIX = "VW_"
 ##### TODO: 
 # - certificate?
 # - more information on views via ty-id?
-# - datenbankobjekte mit generieren?
+# - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
 # - restructure code like in stata produkte and rename after etl
-# - how to handle ty_parent?
+# - how to handle ty_parent? and has children?
 # - was genau sind die einträge die keine views sind?
-# - datnprodukte öffentlich?
+# - letzte Aktualisierung: TY_MODIFIED
+# - erstelldatum: TY_CREATED
+# - set some of them as geodaten?
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
