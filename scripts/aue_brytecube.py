@@ -32,18 +32,20 @@ BRYTECUBE_COLLECTION_PATH = ("Regierung und Verwaltung/Departement für Wirtscha
 BRYTECUBE_AGENT_ID = "brytecube-sync"
  
 # Status set on Datenprodukte that are no longer returned by the BryteCube API
-STALE_STATUS = "DELETENEW"
+# TODO: decide what to do, review to delete or archive
+#STALE_STATUS = "DELETENEW"
+STALE_STATUS = "ARCHIVEMETA"
 
 VIEW_NAME_PREFIX = "VW_"
 
 ##### TODO: 
 # - certificate?
 # - more information on views via ty-id?
-# - delete behaviour
 # - datenbankobjekte mit generieren?
-# - akronyme einfügen
 # - restructure code like in stata produkte and rename after etl
 # - how to handle ty_parent?
+# - was genau sind die einträge die keine views sind?
+# - datnprodukte öffentlich?
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -189,8 +191,9 @@ def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
         scheme_name=client.scheme_name,
         data=assets,
         operation="REPLACE",
-        #on_delete=STALE_STATUS,
-        on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
+        status="PUBLISHED",
+        on_delete=STALE_STATUS,
+        #on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
         agent_id=BRYTECUBE_AGENT_ID,
         dry_run=dry_run,
     )
