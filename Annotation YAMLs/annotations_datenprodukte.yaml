@@ -27,6 +27,10 @@ Dataset:
       title: Metadaten, welche explizit für die Veröffentlichung auf i14y.admin.ch erfasst werden können
       order: 70
       icon: folder-plus
+    STATA:
+      label: Statistisches Amt
+      order: 70
+      icon: square-poll-vertical
 
   properties:
     label:
@@ -680,6 +684,52 @@ Dataset:
               title: Dateiname des Datenprodukts
               baseType: STRING
               group: GEO
+
+        STATA:
+          label: Statistisches Amt Produkt
+          icon: square-poll-vertical
+          order: 49
+
+          customProperties:
+            stata_portal_url:
+              label: Statistikportal-URL
+              baseType: STRING
+              group: STATA
+              order: 45
+              width: 1
+            stata_search_product:
+              label: Produkt
+              title: Spezifizierung des Produkts. Heisst Suchprodukt in der StatApp
+              group: STATA
+              order: 20
+              width: 1
+              baseType: STRING
+            stata_theme:
+              label: Thema
+              group: STATA
+              order: 25
+              width: 1
+              baseType: STRING
+            stata_next_update:
+              label: Nächste Aktualisierung
+              group: STATA
+              baseType: DATE
+              order: 40
+              width: 1
+            stata_zeitreihe_start_jahr:
+              label: Start Zeitreihe
+              title: Beginn der Zeitreihe (Jahr)
+              group: STATA
+              baseType: INTEGER
+              order: 30
+              width: 1
+            stata_zeitreihe_ende_jahr:
+              label: Ende Zeitreihe
+              title: Ende der Zeitreihe (Jahr)
+              group: STATA
+              baseType: INTEGER
+              order: 35
+              width: 1
 
 ## CUSTOM PROPERTIES ##
 

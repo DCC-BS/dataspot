@@ -371,6 +371,7 @@ class DatasetHandler(BaseDataspotHandler):
                         result["errors"] += 1
                         result["details"]["errors"]["count"] += 1
                         result["details"]["errors"]["items"].append({
+                            "ods_id": odsDataportalId,
                             "odsDataportalId": odsDataportalId,
                             "message": "Dataset no longer exists in Dataspot"
                         })
@@ -498,6 +499,7 @@ class DatasetHandler(BaseDataspotHandler):
                             result["errors"] += 1
                             result["details"]["errors"]["count"] += 1
                             result["details"]["errors"]["items"].append({
+                                "ods_id": odsDataportalId,
                                 "odsDataportalId": odsDataportalId,
                                 "message": error_msg
                             })
@@ -539,6 +541,7 @@ class DatasetHandler(BaseDataspotHandler):
                     result["errors"] += 1
                     result["details"]["errors"]["count"] += 1
                     result["details"]["errors"]["items"].append({
+                        "ods_id": odsDataportalId,
                         "odsDataportalId": odsDataportalId,
                         "message": error_msg
                     })
@@ -615,6 +618,7 @@ class DatasetHandler(BaseDataspotHandler):
                         result["errors"] += 1
                         result["details"]["errors"]["count"] += 1
                         result["details"]["errors"]["items"].append({
+                            "ods_id": odsDataportalId,
                             "odsDataportalId": odsDataportalId,
                             "message": error_msg
                         })

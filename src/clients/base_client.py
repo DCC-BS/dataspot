@@ -592,7 +592,7 @@ class BaseDataspotClient:
         return self._ods_imports_collection
 
     def bulk_create_or_update_assets(self, scheme_name: str, data: List[Dict[str, Any]],
-                                     operation: str = "ADD", dry_run: bool = False, 
+                                     operation: str = "ADD", dry_run: bool = False,
                                      status: str = "WORKING") -> Dict[str, Any]:
         """
         Create or update multiple assets in bulk via the upload API.
