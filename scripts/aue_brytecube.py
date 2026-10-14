@@ -42,12 +42,12 @@ VIEW_NAME_PREFIX = "VW_"
 # - certificate?
 # - more information on views via ty-id?
 # - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
-# - restructure code like in stata produkte and rename after etl
 # - how to handle ty_parent? and has children?
 # - was genau sind die einträge die keine views sind?
 # - letzte Aktualisierung: TY_MODIFIED
 # - erstelldatum: TY_CREATED
 # - set some of them as geodaten?
+# - entry names
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -66,9 +66,9 @@ def _extract_upload_errors(response_json: Any) -> List[str]:
     return errors
 
 
-def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, Any]]:
+def extract_brytecube_views() -> List[Dict[str, Any]]:
     
-    logging.info(f"Fetching BryteCube views from {url} ...")
+    logging.info(f"Fetching BryteCube views from {BRYTECUBE_VIEWS_API_URL} ...")
 
     # Disable proxy to connect to BryteCube in the internal network, and always restore it
     # afterwards (even on error) so the Dataspot calls go through the proxy again.
@@ -76,7 +76,7 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
     os.environ["HTTPS_PROXY"] = ""
     try:
         # NOTE: verify=False is only a quick and dirty fix, in the long run a certificate is needed (from AUE or IT?)
-        response = requests.get(url, auth=HttpNtlmAuth(username=username, password=password), verify=False)
+        response = requests.get(BRYTECUBE_VIEWS_API_URL, auth=HttpNtlmAuth(username=username, password=password), verify=False)
         response.raise_for_status()
     finally:
         if original_https_proxy is None:
@@ -96,14 +96,19 @@ def fetch_brytecube_views(url: str = BRYTECUBE_VIEWS_API_URL) -> List[Dict[str, 
     return views
 
 
-def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
-    """
-    Extract the TY_LONGNAME, TY_ACRONYM and TY_DESCRIPTION fields from each BryteCube view record.
-    Entries missing TY_LONGNAME are skipped and logged.
-    only take entries where TY_NAME starts with VIEW_NAME_PREFIX (i.e. actual views)
-    """
-    results: List[Tuple[str, str, str]] = []
-    seen = set()
+def transform_bytecube_views(views: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    assets = []
+
+    # for the brytecube collection itself
+    parent_path, _, collection_label = BRYTECUBE_COLLECTION_PATH.rpartition("/")
+    assets.append({
+        "_type": "Collection",
+        "label": collection_label,
+        "inCollection": parent_path,
+    })
+
+    # extract relevant fields
+    seen = set() # to avoid duplicates
     for view in views:
         name = (view.get("TY_NAME") or "").strip()
         if not name.startswith(VIEW_NAME_PREFIX):
@@ -118,7 +123,7 @@ def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tu
             logging.warning(f"Duplicate TY_LONGNAME '{longname}' - keeping only the first occurrence")
             continue
         seen.add(longname)
- 
+
         description = (view.get("TY_DESCRIPTION") or "").strip()
         if not description:
             logging.debug(f"View '{longname}' has no TY_DESCRIPTION")
@@ -127,46 +132,24 @@ def _extract_view_names_and_descriptions(views: List[Dict[str, Any]]) -> List[Tu
         if not acronym:
             logging.debug(f"View '{longname}' has no TY_ACRONYM")
 
-        results.append((longname, description, acronym))
-    return results
 
-
-def _build_collection_asset() -> Dict[str, Any]:
-    """
-    Build the asset dict for the BryteCube collection itself.
- 
-    It has to be part of the upload: with operation=REPLACE, dataspot only reconciles the
-    children of parents that are included in the upload.
-    """
-    parent_path, _, collection_label = BRYTECUBE_COLLECTION_PATH.rpartition("/")
-    return {
-        "_type": "Collection",
-        "label": collection_label,
-        "inCollection": parent_path,
+    # for the actual datenprodukte
+    asset = {
+        "_type": "Dataset",
+        "label": name + " (AUE)",
+        "inCollection": BRYTECUBE_COLLECTION_PATH,
     }
+    if description:
+        asset["description"] = description
+    if acronym:
+        asset["tags"] = [acronym] #im moment als schlüsselwort, evt als synonym?
+    
+    assets.append(asset)
 
-
-def _build_dataset_assets(views: List[Tuple[str, str, str]]) -> List[Dict[str, Any]]:
-    """
-    Build bulk-upload asset dicts for the given (name, description) pairs
-    """
-    assets = []
-    for name, description, acronym in views:
-        asset = {
-            "_type": "Dataset",
-            "label": name + " (AUE)",
-            "inCollection": BRYTECUBE_COLLECTION_PATH,
-        }
-        if description:
-            asset["description"] = description
-        if acronym:
-            asset["tags"] = [acronym] #im moment als schlüsselwort, evt als synonym?
-        
-        assets.append(asset)
     return assets
 
 
-def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
+def upload_assets_to_dataspot(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
     """
     Reconcile the BryteCube collection in the Datenprodukte (DNK) scheme via the bulk upload API.
  
@@ -211,26 +194,6 @@ def _upload_assets(assets: List[Dict[str, Any]], dry_run: bool = False) -> Any:
     return response
 
 
-def upload_brytecube_datenprodukte_from_api(url: str = BRYTECUBE_VIEWS_API_URL, dry_run: bool = False) -> Any:
-    views = fetch_brytecube_views(url)
-    names = _extract_view_names_and_descriptions(views)
-
-    logging.info(f"Extracted {len(names)} unique Datenprodukt name(s) from TY_LONGNAME")
- 
-    if not names:
-        # Safety net: with operation=REPLACE, uploading the collection without any Datasets
-        # would mark every Datenprodukt in it as obsolete. Never do that just because the
-        # BryteCube API returned nothing (transient error, auth failure that still returned 200, ...).
-        logging.warning(
-            "BryteCube API returned zero view names - aborting without uploading "
-            "to avoid marking the whole BryteCube collection for deletion."
-        )
-        return {}
- 
-    assets = [_build_collection_asset()] + _build_dataset_assets(names)
-    return _upload_assets(assets, dry_run=dry_run)
-
-
 def main():
 
     parser = argparse.ArgumentParser(description="Sync BryteCube views into the Datenprodukte (DNK) scheme.")
@@ -240,8 +203,21 @@ def main():
         help="Run the upload as a dataspot dry run (no data is changed; the response shows what would happen).",
     )
     args = parser.parse_args()
-    
-    response = upload_brytecube_datenprodukte_from_api(dry_run=args.dry_run)
+
+    views = extract_brytecube_views()
+    assets = transform_bytecube_views(views)
+
+    if not assets:
+        # Safety net: with operation=REPLACE, uploading the collection without any Datasets
+        # would mark every Datenprodukt in it as obsolete. Never do that just because the
+        # BryteCube API returned nothing (transient error, auth failure that still returned 200, ...).
+        logging.warning(
+            "BryteCube API returned zero views - aborting without uploading "
+            "to avoid archiving the whole BryteCube collection."
+        )
+        return {}
+
+    response = upload_assets_to_dataspot(assets, dry_run=args.dry_run)
     logging.info(f"Response:\n{json.dumps(response, indent=2, ensure_ascii=False)}")
 
 
