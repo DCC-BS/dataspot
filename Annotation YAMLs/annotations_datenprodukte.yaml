@@ -743,6 +743,11 @@ Dataset:
           #label: Gebäude
         #"2":
           #label: Geo
+    actualLabel:
+      label: Tatsächlicher Name
+      title: Der tatsächliche Name ist normalerweise gleich wie der Name. Sie können jedoch verschieden sein, wenn dem Namen eine Klammer hinzugefügt wurde um Namens-Kollisionen unter Datenprodukten zu vermeiden.
+      order: 10
+      baseType: STRING
     lastUpdate:
       label: Letzte Aktualisierung
       title: Datum der letzten Aktualisierung oder Änderung des Datenprodukts
@@ -1184,6 +1189,11 @@ Composition:
           label: niemals
           title: Die Daten werden niemals aktualisiert
           order: 39
+    actualLabel:
+      label: Tatsächliche Bezeichnung
+      title: Der tatsächliche Bezeichnung ist normalerweise gleich wie die Bezeichnung. Sie können jedoch verschieden sein, wenn der Bezeichnung eine Klammer hinzugefügt wurde um Bezeichnungs-Kollisionen von Bestandteilen innerhalb eines Datenproduktes zu vermeiden.
+      order: 800
+      baseType: STRING
 
 ## DISTRIBUTION ##
 Distribution:
