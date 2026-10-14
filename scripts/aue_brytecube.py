@@ -2,13 +2,13 @@ import argparse
 import json
 import logging
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from dotenv import load_dotenv
 import config
 from src.clients.base_client import BaseDataspotClient
-from src.clients.helpers import url_join
 from src.common import requests
 from requests_ntlm import HttpNtlmAuth
+from src.clients.helpers import parse_iso_date_utc_midnight_ms
 
 load_dotenv()
 
@@ -44,10 +44,8 @@ VIEW_NAME_PREFIX = "VW_"
 # - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
 # - how to handle ty_parent? and has children?
 # - was genau sind die einträge die keine views sind?
-# - letzte Aktualisierung: TY_MODIFIED
-# - erstelldatum: TY_CREATED
 # - set some of them as geodaten?
-# - entry names
+# - entry names (see ..\composition)
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -132,19 +130,31 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> List[Dict[str, Any]
         if not acronym:
             logging.debug(f"View '{longname}' has no TY_ACRONYM")
 
+        creation_date = (view.get("TY_CREATED") or "").strip()
+        if not creation_date:
+            logging.debug(f"View '{longname}' has no TY_CREATED")
 
-    # for the actual datenprodukte
-    asset = {
-        "_type": "Dataset",
-        "label": name + " (AUE)",
-        "inCollection": BRYTECUBE_COLLECTION_PATH,
-    }
-    if description:
-        asset["description"] = description
-    if acronym:
-        asset["tags"] = [acronym] #im moment als schlüsselwort, evt als synonym?
-    
-    assets.append(asset)
+        last_updated = (view.get("TY_MODIFIED") or "").strip()
+        if not last_updated:
+            logging.debug(f"View '{longname}' has no TY_MODIFIED")
+
+
+        # for the actual datenprodukte
+        asset = {
+            "_type": "Dataset",
+            "label": longname + " (AUE)",
+            "inCollection": BRYTECUBE_COLLECTION_PATH,
+        }
+        if description:
+            asset["description"] = description
+        if acronym:
+            asset["tags"] = [acronym] #im moment als schlüsselwort, evt als synonym?
+        if creation_date:
+            asset["creationDate"] = parse_iso_date_utc_midnight_ms(creation_date)
+        if last_updated:
+            asset["lastUpdate"] = parse_iso_date_utc_midnight_ms(last_updated)
+        
+        assets.append(asset)
 
     return assets
 
