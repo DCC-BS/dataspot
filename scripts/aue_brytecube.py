@@ -42,10 +42,10 @@ VIEW_NAME_PREFIX = "VW_"
 # - certificate?
 # - more information on views via ty-id?
 # - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
-# - how to handle ty_parent? and has children?
 # - was genau sind die einträge die keine views sind?
 # - set some of them as geodaten?
 # - entry names (see ..\composition)
+# - ein datenset archiviert?
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -107,6 +107,8 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> List[Dict[str, Any]
 
     # extract relevant fields
     seen = set() # to avoid duplicates
+    kept_views: List[Dict[str, Any]] = []
+    label_by_id: Dict[str, str] = {} # to determine parent name
     for view in views:
         name = (view.get("TY_NAME") or "").strip()
         if not name.startswith(VIEW_NAME_PREFIX):
@@ -121,6 +123,14 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> List[Dict[str, Any]
             logging.warning(f"Duplicate TY_LONGNAME '{longname}' - keeping only the first occurrence")
             continue
         seen.add(longname)
+        kept_views.append(view)
+
+        ty_id = (view.get("TY_ID") or "").strip()
+        if ty_id:
+            label_by_id[ty_id] = longname
+
+    for view in kept_views:
+        longname = (view.get("TY_LONGNAME") or "").strip()
 
         description = (view.get("TY_DESCRIPTION") or "").strip()
         if not description:
@@ -138,13 +148,21 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> List[Dict[str, Any]
         if not last_updated:
             logging.debug(f"View '{longname}' has no TY_MODIFIED")
 
+        parent_id = (view.get("TY_PARENT") or "").strip()
+        if parent_id:
+            asset = {
+                "_type": "Dataset",
+                "label": longname + " (AUE)",
+                "subsetOf": label_by_id[parent_id] + " (AUE)"
+            }
+        else:
+            # for the actual datenprodukte
+            asset = {
+                "_type": "Dataset",
+                "label": longname + " (AUE)",
+                "inCollection": BRYTECUBE_COLLECTION_PATH,
+            }
 
-        # for the actual datenprodukte
-        asset = {
-            "_type": "Dataset",
-            "label": longname + " (AUE)",
-            "inCollection": BRYTECUBE_COLLECTION_PATH,
-        }
         if description:
             asset["description"] = description
         if acronym:
