@@ -2,3 +2,10 @@
 
 SystemCatalog:
   label: Systemkatalog
+
+System:
+  customProperties:
+    SCHUBAN:
+      label: Schuban-Nr.
+      title: Die Nummer des Schutzobjekts in isms.bs.ch (z.B. A1234)
+      baseType: STRING
