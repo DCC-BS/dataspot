@@ -5,6 +5,7 @@ import json
 from src.clients.tdm_client import TDMClient
 from src.clients.dnk_client import DNKClient
 from src.dataspot_auth import DataspotAuth
+from collections import Counter
 from typing import List, Dict, Any
 
 from src.kdm_api import KdmClient
@@ -40,12 +41,12 @@ _TDM_KDM_COLLECTION_UUID = '839208cf-9535-41ce-a1d2-cb52036d7dcc'
 _PHYSICAL_MODEL_LABEL = 'Physisches Modell'
 _LOGICAL_MODEL_LABEL = 'Logisches Modell'
 
-_DNK_KDM_COLLECTION_UUID = '1be154ad-e86a-4aed-8c8b-4e07ceb370cb' # CHANGE ME - THIS IS FOR TEST-DB ONLY
+#_DNK_KDM_COLLECTION_UUID = '1be154ad-e86a-4aed-8c8b-4e07ceb370cb' # CHANGE ME - THIS IS FOR TEST-DB ONLY (test-kdm-api)
+_DNK_KDM_COLLECTION_UUID = '7ba1353d-fa2a-463c-916a-336c17efb506' # CHANGE ME - THIS IS FOR TEST-DB ONLY (test-kdm-20261019)
 
-# TODO: uncomment these once we implement Load step
-#STATUS_ON_CREATE = 'PUBLISHED'
-#STATUS_ON_UPDATE = 'PUBLISHED'
-#STATUS_ON_DELETE = None # None: Delete directly
+STATUS_ON_INSERT = 'WORKING' # PUBLISHED
+STATUS_ON_UPDATE = 'WORKING' # PUBLISHED
+STATUS_ON_DELETE = None # None: Delete directly
 
 # --- SETUP ---
 dataspot_auth = DataspotAuth()
@@ -312,6 +313,13 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
     logical_attributes = raw_data['logical_attributes']
     logical_attributes.sort(key=lambda d: d["id"])
 
+    logical_attributes_by_entitaetId = {}
+    for item in logical_attributes:
+        if item['entitaetId'] in logical_attributes_by_entitaetId:
+            logical_attributes_by_entitaetId[item['entitaetId']].append(item)
+        else:
+            logical_attributes_by_entitaetId[item['entitaetId']] = [item]
+
     # 1. Collection
     item = {
         "_type": "Collection",
@@ -325,27 +333,37 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
         item = {
             "_type": "Dataset",
             "label": f"{entity['name']} (KDM)",
+            "actualLabel": entity['name'],
             "order": entity['id'],
+            "description": f"https://kdm.bs.ch/protected/modell/logisch/entitaeten/{entity['id']}",
             "inCollection": DNK_KDM_COLLECTION_PATH,
         }
         transformed_data.append(item)
 
     # 3. Composition
-    for attribute in logical_attributes:
-        logical_entity_name = logical_entity_names_by_id[attribute['entitaetId']]
-        logical_attribute_name = attribute['name']
-        item = {
-            "_type": "Composition",
-            "componentOf": f"{logical_entity_name} (KDM)",
-            "label": logical_attribute_name, # TODO: Potentially swap these 2
-            "composedOf": f"/Datenbankobjekte/{LOGICAL_MODEL_PATH}/{logical_entity_name}/{logical_attribute_name}",
-            "order": attribute['id'],
-            "title": attribute.get('label', ""), # TODO: Potentially swap these 2
-            "description": "",
-        }
-        if 'beschreibung' in attribute:
-            item['description'] = _html_to_markdown(attribute['beschreibung'])
-        transformed_data.append(item)
+    for entity_id in logical_attributes_by_entitaetId:
+        logical_entity_name = logical_entity_names_by_id[entity_id]
+        logical_attributes_of_entity = logical_attributes_by_entitaetId[entity_id]
+        logical_attributes_of_entity_label_counts = Counter([item.get('label', f"({item['name']})") for item in logical_attributes_of_entity])
+        for attribute in logical_attributes_of_entity:
+            logical_attribute_name = attribute['name']
+            logical_attribute_label = attribute.get('label', f"({logical_attribute_name})") # Fill in missing values
+
+            item = {
+                "_type": "Composition",
+                "componentOf": f"{logical_entity_name} (KDM)",
+                "actualLabel": attribute.get('label', ''),
+                "label": logical_attribute_label,
+                "composedOf": f"/Datenbankobjekte/{LOGICAL_MODEL_PATH}/{logical_entity_name}/{logical_attribute_name}",
+                "order": attribute['id'],
+                "title": "",
+                "description": "",
+            }
+            if 'beschreibung' in attribute:
+                item['description'] = _html_to_markdown(attribute['beschreibung'])
+            if logical_attributes_of_entity_label_counts[logical_attribute_label] > 1:
+                item["label"] = f"{logical_attribute_label} ({logical_attribute_name})"
+            transformed_data.append(item)
 
     # 4. Deployment
     for entity in logical_entities:
@@ -370,29 +388,57 @@ def load_into_catalog(datenbankobjekte_json: List[Dict[str, Any]], datenprodukte
         logger.warning("No data available for import.")
         return False
 
-    #logger.info(f"Importing {len(json_data)} entries into the data catalog...")
-
-    # 1. Upload Datenbankobjekte: ADD (Add new Datenbankobjekte)
-    # TODO: Implement me
-    # https://datenkatalog.bs.ch/api/test-kdm-api/schemes/d5acd695-03fb-401f-8208-6210edd244f4/upload?operation=ADD&v=3&onInsert=PUBLISHED&onUpdate=PUBLISHED&dryRun=true
-
-    # 2. Upload Datenprodukte: UPDATE
-    # TODO: Implement me
-    # https://datenkatalog.bs.ch/api/test-kdm-api/schemes/0f16581d-ddff-4815-a423-3628baa326cc/upload?operation=REPLACE&v=3&onInsert=PUBLISHED&onUpdate=PUBLISHED&dryRun=true
-
-    # 3. Upload Datenbankobjekte: UPDATE (Delete Datenbankobjekte that no longer exist)
-    # TODO: Implement me
-    # https://datenkatalog.bs.ch/api/test-kdm-api/schemes/d5acd695-03fb-401f-8208-6210edd244f4/upload?operation=REPLACE&v=3&onInsert=PUBLISHED&onUpdate=PUBLISHED&dryRun=true
-
     try:
-        #headers = {"Authorization": f"Bearer {API_TOKEN}", "Content-Type": "application/json"}
-        # Depending on the API: Single POST requests or a bulk import
-        #response = requests.post(CATALOG_API_URL, headers=headers, json=json_data, timeout=60)
-        #response.raise_for_status()
+        # 1. Upload Datenbankobjekte: ADD (Add new Datenbankobjekte)
+        logger.info(f"Importing {len(datenbankobjekte_json)} entries into Datenbankobjekte (ADD)...")
+        logger.debug("Breakdown:")
+        type_counts = Counter([item['_type'] for item in datenbankobjekte_json])
+        for t in type_counts:
+            logger.debug(f"  - {t}:   {type_counts[t]}")
+        logger.debug("")
+
+        tdm_client.upload_via_upload_api(scheme_name=config.tdm_scheme_name,
+                                         data=datenbankobjekte_json,
+                                         operation="ADD",
+                                         dry_run=False,
+                                         on_insert=STATUS_ON_INSERT,
+                                         on_update=STATUS_ON_UPDATE)
+
+        # 2. Upload Datenprodukte: REPLACE
+        logger.info(f"Importing {len(datenprodukte_json)} entries into Datenprodukte (REPLACE)...")
+        logger.debug("Breakdown:")
+        type_counts = Counter([item['_type'] for item in datenprodukte_json])
+        for t in type_counts:
+            logger.debug(f"  - {t}:   {type_counts[t]}")
+        logger.debug("")
+
+        dnk_client.upload_via_upload_api(scheme_name=config.dnk_scheme_name,
+                                         data=datenprodukte_json,
+                                         operation="REPLACE",
+                                         dry_run=False,
+                                         on_insert=STATUS_ON_INSERT,
+                                         on_update=STATUS_ON_UPDATE,
+                                         on_delete=STATUS_ON_DELETE)
+
+        # 3. Upload Datenbankobjekte: REPLACE (Delete Datenbankobjekte that no longer exist)
+        logger.info(f"Importing {len(datenbankobjekte_json)} entries into Datenbankobjekte (REPLACE)...")
+        logger.debug("Breakdown:")
+        type_counts = Counter([item['_type'] for item in datenbankobjekte_json])
+        for t in type_counts:
+            logger.debug(f"  - {t}:   {type_counts[t]}")
+        logger.debug("")
+
+        tdm_client.upload_via_upload_api(scheme_name=config.tdm_scheme_name,
+                                         data=datenbankobjekte_json,
+                                         operation="REPLACE",
+                                         dry_run=False,
+                                         on_insert=STATUS_ON_INSERT,
+                                         on_update=STATUS_ON_UPDATE,
+                                         on_delete=STATUS_ON_DELETE)
 
         logger.info("Import into the data catalog completed successfully.")
         return True
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.error(f"Error importing into the data catalog: {e}")
         return False
 
@@ -412,8 +458,7 @@ def main():
         datenprodukte_json = transform_to_datenprodukte_json(raw_data)
 
         # Step 3: Load
-        #success = load_into_catalog(datenbankobjekte_json=datenbankobjekte_json, datenprodukte_json=datenprodukte_json)
-        success = False
+        success = load_into_catalog(datenbankobjekte_json=datenbankobjekte_json, datenprodukte_json=datenprodukte_json)
 
         if success:
             logger.info("ETL process finished successfully.")
