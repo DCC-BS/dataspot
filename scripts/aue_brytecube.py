@@ -10,6 +10,7 @@ from src.clients.tdm_client import TDMClient # für Datenbankobjekte
 from src.common import requests
 from requests_ntlm import HttpNtlmAuth
 from src.clients.helpers import parse_iso_date_utc_midnight_ms
+from collections import Counter
 
 load_dotenv()
 
@@ -43,7 +44,6 @@ VIEW_NAME_PREFIX = "VW_"
 
 ##### TODO: 
 # - certificate?
-# - more information on views via ty-id?
 # - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
 # - was genau sind die einträge die keine views sind?
 # - set some of them as geodaten?
@@ -93,6 +93,7 @@ def extract_brytecube_data(url: str) -> List[Dict[str, Any]]:
     return response
 
 
+# TODO: für doppelte longnames: (name) dazu; count um die soppelten zu finden!
 def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     datenprodukte = []
     datenbankobjekte = []
@@ -113,29 +114,28 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
     })
 
     # extract relevant fields
-    seen = set() # to avoid duplicates; TODO: how to handle duplicates? datenprodukte vs datenbankobjekte?
     kept_views: List[Dict[str, Any]] = []
     label_by_id: Dict[str, str] = {} # to determine parent name
+
     for view in views:
         name = (view.get("TY_NAME") or "").strip()
         if not name.startswith(VIEW_NAME_PREFIX):
             logging.debug(f"Skipping view with TY_NAME '{name}' (does not start with '{VIEW_NAME_PREFIX}')")
             continue
 
-        longname = (view.get("TY_LONGNAME") or "").strip()
-        if not longname:
-            logging.warning(f"Skipping view with missing/blank TY_LONGNAME: {view}")
+        ly_ms_id = (view.get("LY_MS_ID") or "").strip()
+        if ly_ms_id:
+            logging.debug(f"Skipping entiry with TY_NAME '{name}', not a view")
             continue
-        if name in seen or longname in seen:
-            logging.warning(f"Duplicate TY_NAME '{name}' or TY_LONGNAME '{longname}' - keeping only the first occurrence")
-            continue
-        seen.add(name)
-        seen.add(longname)
+
         kept_views.append(view)
 
+        longname = (view.get("TY_LONGNAME") or "").strip()
         ty_id = (view.get("TY_ID") or "").strip()
         if ty_id:
             label_by_id[ty_id] = longname
+
+    longname_counts = Counter([item["TY_LONGNAME"] for item in kept_views])
 
     for view in kept_views:
         longname = (view.get("TY_LONGNAME") or "").strip()
@@ -158,20 +158,19 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
             logging.debug(f"View '{longname}' has no TY_MODIFIED")
 
         parent_id = (view.get("TY_PARENT") or "").strip()
-        if parent_id:
-            asset = {
-                "_type": "Dataset",
-                "label": longname + " (AUE)",
-                "subsetOf": label_by_id[parent_id] + " (AUE)"
-            }
-        else:
-            # for the actual datenprodukte
-            asset = {
-                "_type": "Dataset",
-                "label": longname + " (AUE)",
-                "inCollection": BRYTECUBE_COLLECTION_PATH,
-            }
 
+        # TODO: parents nicht in den datenprodukte, sondern in datenbankobjekten als "ist ein"
+        # TODO: add field "tatsächlicher name" (auch für attribute)
+        # for the actual datenprodukte
+        asset = {
+            "_type": "Dataset",
+            "inCollection": BRYTECUBE_COLLECTION_PATH,
+        }
+
+        if longname_counts[longname] > 1:
+            asset["label"] = longname + " (" + name + ") (AUE)"
+        else:
+            asset["label"] = longname + " (AUE)"
 
         if description:
             asset["description"] = description
@@ -190,26 +189,34 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
             "inCollection": BRYTECUBE_OBJECTS_PATH,
         })
 
-        # extract more information on each view, like column names
-        ty_id = (view.get("TY_ID") or "").strip() #redundancy? extract only once?
+        # TODO: how to handle this with sub datasets? 
+        # TODO: in general: sub datasets also as subdatasets in datenbankobjekte?
+        """ if not parent_id:
+            # extract more information on each view, like column names
+            ty_id = (view.get("TY_ID") or "").strip() #redundancy? extract only once?
 
-        if ty_id == "6850bef6-0087-4599-8e3b-d24678b676d0":
             url = BRYTECUBE_VIEW_DESCRIPTION_URL + ty_id + "/46ba9cdc-f416-421b-a38f-75715f6a1554"
 
             viewDescription = extract_brytecube_data(url)
 
-            datenprodukt_id = "b8fb2ebc-428f-4e28-af09-06ab0520c545" 
-
-            """ for entity in viewDescription:
+            for entity in viewDescription:
                 for attr in entity["Attributes"].values():
-                    print((attr["Name"], attr["DisplayName"]))
-                    # TODO wie funkt. das mit parents vs component of vs composed of?
-                    assets.append({
+                    datenbankobjekte.append({
+                        "_type": "UmlAttribute",
+                        "hasDomain": BRYTECUBE_OBJECTS_PATH + "/" + name,
+                        "label": attr["Name"]
+                    })
+                    datenprodukte.append({
                         "_type": "Composition",
-                        "componentOf": "Spritzasbestkataster (AUE)",
-                        "composedOf": "Spritzasbestkataster (AUE)",
-                        "label": attr["DisplayName"]
+                        "componentOf": BRYTECUBE_COLLECTION_PATH + "/" + longname + " (AUE)",
+                        "label" : attr["DisplayName"] + " (" + acronym + ")", # TODO: name mit (name) am ende, nur falls doppelt!!
+                        "composedOf" : "/Datenbankobjekte/" + BRYTECUBE_OBJECTS_PATH + "/" + name + "/" + attr["Name"]
                     }) """
+
+                    #TODO: enums und wertebereiche für attribute in datenbankobjekten
+
+    with open("upload.json", "w", encoding="utf-8") as file:
+        json.dump(datenprodukte, file, indent=2, ensure_ascii=False)
 
     return [datenprodukte, datenbankobjekte]
 
@@ -248,7 +255,9 @@ def upload_assets_to_dataspot(datenprodukte: List[Dict[str, Any]], datenbankobje
         dry_run=dry_run,
     )
 
-    tdm_client = TDMClient()
+    #TODO: sleep? how long does the api need to react?
+
+    """ tdm_client = TDMClient()
 
     tdm_client.bulk_create_or_update_assets(
         scheme_name=tdm_client.scheme_name,
@@ -259,7 +268,7 @@ def upload_assets_to_dataspot(datenprodukte: List[Dict[str, Any]], datenbankobje
         #on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
         agent_id=BRYTECUBE_AGENT_ID,
         dry_run=dry_run,
-    )
+    ) """
 
     # TODO: error handling
     """ errors = _extract_upload_errors(response)
