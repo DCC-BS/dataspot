@@ -93,7 +93,6 @@ def extract_brytecube_data(url: str) -> List[Dict[str, Any]]:
     return response
 
 
-# TODO: für doppelte longnames: (name) dazu; count um die soppelten zu finden!
 def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     datenprodukte = []
     datenbankobjekte = []
@@ -165,6 +164,7 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
         asset = {
             "_type": "Dataset",
             "inCollection": BRYTECUBE_COLLECTION_PATH,
+            "actualLabel": longname
         }
 
         if longname_counts[longname] > 1:
