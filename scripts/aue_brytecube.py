@@ -129,10 +129,9 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
 
         kept_views.append(view)
 
-        longname = (view.get("TY_LONGNAME") or "").strip()
         ty_id = (view.get("TY_ID") or "").strip()
         if ty_id:
-            label_by_id[ty_id] = longname
+            label_by_id[ty_id] = name
 
     longname_counts = Counter([item["TY_LONGNAME"] for item in kept_views])
 
@@ -159,7 +158,7 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
         parent_id = (view.get("TY_PARENT") or "").strip()
 
         # TODO: parents nicht in den datenprodukte, sondern in datenbankobjekten als "ist ein"
-        # TODO: add field "tatsächlicher name" (auch für attribute)
+        # TODO: add field für attribute
         # for the actual datenprodukte
         asset = {
             "_type": "Dataset",
@@ -183,11 +182,16 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
 
         datenprodukte.append(asset)
 
-        datenbankobjekte.append({
+        asset = ({
             "_type": "UmlClass",
-            "label": name, #TODO: naming??
+            "label": name,
             "inCollection": BRYTECUBE_OBJECTS_PATH,
         })
+
+        if parent_id:
+            asset["subtypeOf"] = BRYTECUBE_OBJECTS_PATH  + "/" + label_by_id[parent_id]
+
+        datenbankobjekte.append(asset)
 
         # TODO: how to handle this with sub datasets? 
         # TODO: in general: sub datasets also as subdatasets in datenbankobjekte?
@@ -257,7 +261,7 @@ def upload_assets_to_dataspot(datenprodukte: List[Dict[str, Any]], datenbankobje
 
     #TODO: sleep? how long does the api need to react?
 
-    """ tdm_client = TDMClient()
+    tdm_client = TDMClient()
 
     tdm_client.bulk_create_or_update_assets(
         scheme_name=tdm_client.scheme_name,
@@ -268,7 +272,7 @@ def upload_assets_to_dataspot(datenprodukte: List[Dict[str, Any]], datenbankobje
         #on_insert="PUBLISHED", #default is "WORKING", set to "PUBLISHED" on prod
         agent_id=BRYTECUBE_AGENT_ID,
         dry_run=dry_run,
-    ) """
+    )
 
     # TODO: error handling
     """ errors = _extract_upload_errors(response)
