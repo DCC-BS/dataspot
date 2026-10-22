@@ -44,11 +44,7 @@ VIEW_NAME_PREFIX = "VW_"
 
 ##### TODO: 
 # - certificate?
-# - datenbankobjekte mit generieren? -> felder können potentiell aus viewDescription call geholt werden
-# - was genau sind die einträge die keine views sind?
-# - set some of them as geodaten?
-# - entry names (see ..\composition)
-# - gleicher longname bei unterschiedlichem name and vice versa -> wie lösen?
+# - error handling
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -157,8 +153,6 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
 
         parent_id = (view.get("TY_PARENT") or "").strip()
 
-        # TODO: parents nicht in den datenprodukte, sondern in datenbankobjekten als "ist ein"
-        # TODO: add field für attribute
         # for the actual datenprodukte
         asset = {
             "_type": "Dataset",
@@ -188,36 +182,60 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
             "inCollection": BRYTECUBE_OBJECTS_PATH,
         })
 
+        # TODO: think about if parent handling is correct (also in regards of attributes)
         if parent_id:
             asset["subtypeOf"] = BRYTECUBE_OBJECTS_PATH  + "/" + label_by_id[parent_id]
 
         datenbankobjekte.append(asset)
 
-        # TODO: how to handle this with sub datasets? 
-        # TODO: in general: sub datasets also as subdatasets in datenbankobjekte?
-        """ if not parent_id:
-            # extract more information on each view, like column names
-            ty_id = (view.get("TY_ID") or "").strip() #redundancy? extract only once?
+        ############ Attributes ##########################################################################
 
-            url = BRYTECUBE_VIEW_DESCRIPTION_URL + ty_id + "/46ba9cdc-f416-421b-a38f-75715f6a1554"
+        #if name == "VW_ABK_SPRITZASBESTKATASTER":
 
-            viewDescription = extract_brytecube_data(url)
+        ty_id = (view.get("TY_ID") or "").strip() #redundancy? extract only once?
 
-            for entity in viewDescription:
-                for attr in entity["Attributes"].values():
-                    datenbankobjekte.append({
-                        "_type": "UmlAttribute",
-                        "hasDomain": BRYTECUBE_OBJECTS_PATH + "/" + name,
-                        "label": attr["Name"]
-                    })
-                    datenprodukte.append({
-                        "_type": "Composition",
-                        "componentOf": BRYTECUBE_COLLECTION_PATH + "/" + longname + " (AUE)",
-                        "label" : attr["DisplayName"] + " (" + acronym + ")", # TODO: name mit (name) am ende, nur falls doppelt!!
-                        "composedOf" : "/Datenbankobjekte/" + BRYTECUBE_OBJECTS_PATH + "/" + name + "/" + attr["Name"]
-                    }) """
+        url = BRYTECUBE_VIEW_DESCRIPTION_URL + ty_id + "/46ba9cdc-f416-421b-a38f-75715f6a1554"
 
-                    #TODO: enums und wertebereiche für attribute in datenbankobjekten
+        viewDescription = extract_brytecube_data(url)
+
+        for entity in viewDescription:
+            for attr in entity["Attributes"].values():
+
+                # TODO: add description (TY_DESCRIPTION), acronym (TY_ACRONYM) as schlagwort again? -> datenprodukt
+                attribute = {
+                    "_type": "UmlAttribute",
+                    "hasDomain": BRYTECUBE_OBJECTS_PATH + "/" + name,
+                    "label": attr["Name"]
+                }
+
+                if attr["BcAttribute"]:
+                    # NOTE: also get()? and strip()?
+                    nullable = attr["BcAttribute"]["AT_NULLABLE"]
+                    primary_key = attr["BcAttribute"]["AT_PRIMARY_KEY"]
+
+                    if not nullable:
+                        attribute["required"] = "MANDATORY"
+
+                    if primary_key:
+                        attribute["identifying"] = True
+
+                datenbankobjekte.append(attribute)
+
+                #TODO: enums und wertebereiche für attribute in datenbankobjekten (pocoType)
+
+                # NOTE: check if longname is not unique to find correct path, also check if display name of attribute is unique (only per datenprodukt?)
+                # NOTE: also add real name here!
+                """ datenprodukte.append({
+                    "_type": "Composition",
+                    "componentOf": BRYTECUBE_COLLECTION_PATH + "/" + longname + " (AUE)",
+                    "label" : attr["DisplayName"] + " (" + acronym + ")", # TODO: name mit (name) am ende, nur falls doppelt!!
+                    "composedOf" : "/Datenbankobjekte/" + BRYTECUBE_OBJECTS_PATH + "/" + name + "/" + attr["Name"]
+                }) """
+
+                if attr["BcAttribute"]:
+                    # NOTE: also get()? and strip()?
+                    attribute_description = attr["BcAttribute"]["TY_DESCRIPTION"]
+                    attribute_acronym = attr["BcAttribute"]["TY_ACRONYM"]
 
     with open("upload.json", "w", encoding="utf-8") as file:
         json.dump(datenprodukte, file, indent=2, ensure_ascii=False)
