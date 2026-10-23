@@ -190,8 +190,6 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
 
         ############ Attributes ##########################################################################
 
-        #if name == "VW_ABK_SPRITZASBESTKATASTER":
-
         ty_id = (view.get("TY_ID") or "").strip() #redundancy? extract only once?
 
         url = BRYTECUBE_VIEW_DESCRIPTION_URL + ty_id + "/46ba9cdc-f416-421b-a38f-75715f6a1554"
@@ -219,9 +217,35 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
                     if primary_key:
                         attribute["identifying"] = True
 
+                if attr["CodeList"]:
+
+                    #possible_entries = [" ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()]
+
+                    # because the entries are not f-ing unique???? TODO: how to handle this? (see e.g. AKT_LANDKEY in VW_AKTEUR, countries Bhutan, Bolivien, Chile etc. )
+                    possible_entries = list(dict.fromkeys(
+                        " ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()
+                    ))
+
+                    datenbankobjekte.append({
+                        "_type" : "UmlEnumeration",
+                        "label" : name + " " + attr["Name"] + " Enum", #TODO: how to name the enums??
+                        "inCollection" : BRYTECUBE_OBJECTS_PATH,
+                    })
+
+                    for entry in possible_entries:
+
+                        # TODO: add longname of code as "title", add description (run this by renato!)
+                        datenbankobjekte.append({
+                            "_type" : "UmlLiteral",
+                            "literalOf" : BRYTECUBE_OBJECTS_PATH + "/" + name + " " + attr["Name"] + " Enum", # TODO: make this a variable, so it only has to be changed once! (alo in other places??)
+                            "label" : entry,
+                        })
+
+                    attribute["hasRange"] = BRYTECUBE_OBJECTS_PATH + "/" + name + " " + attr["Name"] + " Enum"
+
                 datenbankobjekte.append(attribute)
 
-                #TODO: enums und wertebereiche für attribute in datenbankobjekten (pocoType)
+                # TODO: extract the datatype if not enum
 
                 attribute = {
                     "_type": "Composition",
@@ -292,7 +316,7 @@ def upload_assets_to_dataspot(datenprodukte: List[Dict[str, Any]], datenbankobje
         dry_run=dry_run,
     )
 
-    #TODO: sleep? how long does the api need to react?
+    #TODO: sleep? how long does the api need to react? (datenbankobjekte werden beim upload nocht gefunden)
 
     tdm_client = TDMClient()
 
