@@ -47,7 +47,7 @@ VIEW_NAME_PREFIX = "VW_"
 # - certificate?
 # - error handling
 # - clean and comment code
-# - immer description, falls null leerer string
+# - immer description, falls null leerer string (other fields too?)
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -220,16 +220,10 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
                     if primary_key:
                         attribute["identifying"] = True
 
+                ##################### data types ##########################################################
+
                 # if the attribute has a code list, add those as enum
                 if attr["CodeList"]:
-
-                    #possible_entries = [" ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()]
-
-                    # because the entries are not f-ing unique???? TODO: how to handle this? (see e.g. AKT_LANDKEY in VW_AKTEUR, countries Bhutan, Bolivien, Chile etc. )
-                    # TODO: write Luca
-                    possible_entries = list(dict.fromkeys(
-                        " ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()
-                    ))
 
                     enum_name = name + " " + attr["Name"] + " Enum" #TODO: how to name the enums??
 
@@ -239,14 +233,31 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
                         "inCollection" : BRYTECUBE_OBJECTS_PATH,
                     })
 
-                    for entry in possible_entries:
+                    # NOTE: entriy names are not unique TODO: how to handle this? (see e.g. AKT_LANDKEY in VW_AKTEUR, countries Bhutan, Bolivien, Chile etc. )
+                    # TODO: write Luca
 
-                        # TODO: add longname of code as "title", add description, acronym
-                        datenbankobjekte.append({
-                            "_type" : "UmlLiteral",
-                            "literalOf" : BRYTECUBE_OBJECTS_PATH + "/" + enum_name,
-                            "label" : entry,
-                        })
+                    seen_entry_names = []
+                    for code in attr["CodeList"].values():
+
+                        entry_name = " ".join(code["TY_NAME"].split()) # apparently contains new lines
+
+                        if entry_name in seen_entry_names:
+                            continue
+                        else:
+                            entry_title = " ".join(code["TY_LONGNAME"].split()) if code["TY_LONGNAME"] else ""
+                            entry_description = code["TY_DESCRIPTION"] if code["TY_DESCRIPTION"] else ""
+                            entry_tags = [code["TY_ACRONYM"]] if code["TY_ACRONYM"] else []
+
+                            datenbankobjekte.append({
+                                "_type" : "UmlLiteral",
+                                "literalOf" : BRYTECUBE_OBJECTS_PATH + "/" + enum_name,
+                                "label" : entry_name,
+                                "title" : entry_title,
+                                "description" : entry_description,
+                                "tags" : entry_tags
+                            })
+
+                            seen_entry_names.append(entry_name)
 
                     attribute["hasRange"] = BRYTECUBE_OBJECTS_PATH + "/" + enum_name
 
