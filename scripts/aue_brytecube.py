@@ -11,6 +11,7 @@ from src.common import requests
 from requests_ntlm import HttpNtlmAuth
 from src.clients.helpers import parse_iso_date_utc_midnight_ms
 from collections import Counter
+import re
 
 load_dotenv()
 
@@ -46,6 +47,7 @@ VIEW_NAME_PREFIX = "VW_"
 # - certificate?
 # - error handling
 # - clean and comment code
+# - immer description, falls null leerer string
 
 
 def _extract_upload_errors(response_json: Any) -> List[str]:
@@ -93,6 +95,7 @@ def extract_brytecube_data(url: str) -> List[Dict[str, Any]]:
 def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     datenprodukte = []
     datenbankobjekte = []
+    created_data_types = [] # for else branch of data types
 
     # for the brytecube collection itself
     parent_path, _, collection_label = BRYTECUBE_COLLECTION_PATH.rpartition("/")
@@ -217,35 +220,122 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
                     if primary_key:
                         attribute["identifying"] = True
 
+                # if the attribute has a code list, add those as enum
                 if attr["CodeList"]:
 
                     #possible_entries = [" ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()]
 
                     # because the entries are not f-ing unique???? TODO: how to handle this? (see e.g. AKT_LANDKEY in VW_AKTEUR, countries Bhutan, Bolivien, Chile etc. )
+                    # TODO: write Luca
                     possible_entries = list(dict.fromkeys(
                         " ".join(code["TY_NAME"].split()) for code in attr["CodeList"].values()
                     ))
 
+                    enum_name = name + " " + attr["Name"] + " Enum" #TODO: how to name the enums??
+
                     datenbankobjekte.append({
                         "_type" : "UmlEnumeration",
-                        "label" : name + " " + attr["Name"] + " Enum", #TODO: how to name the enums??
+                        "label" : enum_name,
                         "inCollection" : BRYTECUBE_OBJECTS_PATH,
                     })
 
                     for entry in possible_entries:
 
-                        # TODO: add longname of code as "title", add description (run this by renato!)
+                        # TODO: add longname of code as "title", add description, acronym
                         datenbankobjekte.append({
                             "_type" : "UmlLiteral",
-                            "literalOf" : BRYTECUBE_OBJECTS_PATH + "/" + name + " " + attr["Name"] + " Enum", # TODO: make this a variable, so it only has to be changed once! (alo in other places??)
+                            "literalOf" : BRYTECUBE_OBJECTS_PATH + "/" + enum_name,
                             "label" : entry,
                         })
 
-                    attribute["hasRange"] = BRYTECUBE_OBJECTS_PATH + "/" + name + " " + attr["Name"] + " Enum"
+                    attribute["hasRange"] = BRYTECUBE_OBJECTS_PATH + "/" + enum_name
+
+                # if not, create data type (or use exsting data type)
+                else:
+
+                    data_type = {
+                        "_type" : "UmlDatatype",
+                        "inCollection" : BRYTECUBE_OBJECTS_PATH,
+                    }
+
+                    m = re.match(r"System\.Nullable`1\[\[([^,\]]+)", attr["PocoType"])
+                    if m : 
+                        base_type = m.group(1)
+                    else: 
+                        base_type = attr["PocoType"].split(",")[0]
+
+                    if base_type == "System.String":
+                        if attr["BcAttribute"]:
+                            if attr["BcAttribute"]["AT_LENGTH"]:
+                                length = attr["BcAttribute"]["AT_LENGTH"]
+                                label = f"nvarchar({length})" #nvarchar vs varchar?
+
+                                data_type["maxLength"] = length
+                            else: 
+                                label = "string"
+                        else:
+                            label = "string"
+                        data_type["baseType"] = "STRING"
+                    elif base_type == "System.Guid":
+                        label = "uniqueidentifier"
+                        data_type["baseType"] = "STRING"
+                    elif base_type == "System.Int16":
+                        label = "smallint(5)"
+                        data_type["baseType"] = "INTEGER"
+                        data_type["minInclusive"] = -32768.0
+                        data_type["maxInclusive"] = 32767.0
+                    elif base_type == "System.DateTime":
+                        label = "datetime"
+                        data_type["baseType"] = "DATETIME"
+                    elif base_type == "System.Int32":
+                        label = "int(10)"
+                        data_type["baseType"] = "INTEGER"
+                        data_type["minInclusive"] = -2147483648
+                        data_type["maxInclusive"] = 2147483647
+                    elif base_type == "System.Data.Entity.Spatial.DbGeometry":
+                        label = "geometry"
+                        data_type["baseType"] = "BINARY"
+                    elif base_type == "System.Decimal":
+                        if attr["BcAttribute"]:
+                            if attr["BcAttribute"]["AT_LENGTH"]:
+                                length = attr["BcAttribute"]["AT_LENGTH"]
+                                if attr["BcAttribute"]["AT_PRECISION"]:
+                                    precision = attr["BcAttribute"]["AT_PRECISION"]
+                                    label = f"decimal({length},{precision})"
+                                    data_type["fractionDigits"] = precision
+                                else:
+                                    label = f"decimal({length})"
+                                data_type["integerDigits"] = length
+                            else:
+                                label = "decimal"
+                        else: 
+                            label = "decimal"
+                        data_type["baseType"] = "DECIMAL"
+                    elif base_type == "System.Boolean":
+                        label = "bit"
+                        data_type["baseType"] = "BOOLEAN"
+                    elif base_type == "System.Int64":
+                        label = "bigint(19)"
+                        data_type["baseType"] = "INTEGER"
+                        data_type["minInclusive"] = -9223372036854775808
+                        data_type["maxInclusive"] = 9223372036854775807
+                    elif base_type == "System.Double":
+                        label = "float"
+                        data_type["baseType"] = "DECIMAL"
+                    else:
+                        logging.warning(f"unknown base type in {name}, {attr["Name"]}: {base_type}")
+                        label = base_type
+
+                    data_type["label"] = label
+                    attribute["hasRange"] = BRYTECUBE_OBJECTS_PATH + "/" + label
+                    
+                    if not data_type in created_data_types:
+                        datenbankobjekte.append(data_type)
+                        created_data_types.append(data_type)
 
                 datenbankobjekte.append(attribute)
 
-                # TODO: extract the datatype if not enum
+                ############# datenprodukte attribute ######################################
 
                 attribute = {
                     "_type": "Composition",
@@ -277,7 +367,7 @@ def transform_bytecube_views(views: List[Dict[str, Any]]) -> tuple[List[Dict[str
                 datenprodukte.append(attribute)
 
     with open("upload.json", "w", encoding="utf-8") as file:
-        json.dump(datenprodukte, file, indent=2, ensure_ascii=False)
+        json.dump(datenbankobjekte, file, indent=2, ensure_ascii=False)
 
     return [datenprodukte, datenbankobjekte]
 
