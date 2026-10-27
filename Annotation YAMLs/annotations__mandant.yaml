@@ -150,6 +150,9 @@ Asset:
       icon: gear
       href: "https://datenkatalog.bs.ch/rest/${this.db}/assets/${this.id}"
   properties:
+    readOnly:
+      icon: pen-slash
+      title: Schreibgeschützt. Dieses Asset und alle seinen untergeordneten Assets werden automatisch angepasst.
     status:
       literals:
 
