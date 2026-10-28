@@ -16,5 +16,5 @@ pytz==2026.5
 requests==2.34.2
 setuptools==84.2.1
 six==1.17.0
-tzdata==2026.5
+tzdata==2026.6
 urllib3==2.8.0
