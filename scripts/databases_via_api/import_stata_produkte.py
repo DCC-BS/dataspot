@@ -11,6 +11,7 @@ from src.clients.helpers import url_join
 from src.common import requests
 from src.clients.helpers import parse_iso_date_utc_midnight_ms
 import re
+from urllib.parse import quote
 
 # --- CONFIGURATION ---
 
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 QUERY = """ SELECT [id],[produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],
             [beschreibung],[stichwortliste],[naechste_aktualisierung],[zeitreihe_start_jahr],
-            [zeitreihe_ende_jahr]
+            [zeitreihe_ende_jahr],[email]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
 
 def load_data() -> pd.DataFrame:
@@ -85,13 +86,22 @@ def parse_tags(value) -> list[str]:
     tags.discard("")
     return sorted(tags, key=str.lower)
 
- 
- 
-def build_structure(df: pd.DataFrame) -> list[dict]:
+
+# to escape slash in label, e.g. for dataset "Abend-/Nachtarbeit von Erwerbstätigen (StatA)" in "03 Arbeit und Erwerb"
+def escape(value: str) -> str:
+    # quote a segment if it contains / or "
+    if "/" in value or '"' in value:
+        return '"' + value.replace('"', '""') + '"'
+    return value
+
+
+def build_structure(df: pd.DataFrame) -> tuple[list[dict], list[dict]]:
     top_path = f"{ROOT_PATH}/{TOP_COLLECTION}"
  
     collections = {}   # path -> entry (dict keeps insertion order, no duplicates)
     datasets = []
+    attributions = []
+    distributions = []
     seen_datasets = set()
  
     collections[top_path] = {
@@ -109,6 +119,8 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
         beschreibung = clean(row["beschreibung"])
         stichwortliste = parse_tags(row["stichwortliste"])
         suchprodukt = parse_tags(row["suchprodukt"])
+
+        email = parse_tags(row["email"])
 
         tag = parse_tags(row["zeitreihe_ende_jahr"])
         zeitreihe_ende_jahr = int(float(tag[0])) if tag else None # row value would be something like ['2025.0'], we want 2025
@@ -161,23 +173,41 @@ def build_structure(df: pd.DataFrame) -> list[dict]:
             "stata_zeitreihe_ende_jahr": zeitreihe_ende_jahr,
             "stata_zeitreihe_start_jahr": zeitreihe_start_jahr
         })
+
+        distributions.append({
+            "_type": "Distribution",
+            "label" : "Statistikportal",
+            "distributionOf" : f"{parent_path}/{escape(label + " (StatA)")}",
+            "format" : "html",
+            "accessURL" : "https://statistik.bs.ch/statistik/" + stata_id,
+        })
+
+        # TODO: find name for attribution via email from person list in dataspot
+
+        """ attributions.append({
+            "_type": "Attribution",
+            "attributionFor": f"{parent_path}/{key(label + " (StatA)")}",
+            "attributedTo": "\"\"\"Moll Freddi\"\" Christa\"",
+            "attributedAs": "Data Steward"
+        }) """
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
-    return list(collections.values()) + datasets
+    return (list(collections.values()) + datasets + distributions, attributions)
 
 
-def upload_to_dataspot(assets: list[dict]):
+def upload_to_dataspot(assets: list[dict], status: str):
 
     logger.info("Uploading now")
  
     client = BaseDataspotClient(scheme_name=config.dnk_scheme_name, scheme_name_short=config.dnk_scheme_name_short)
- 
+
     client.bulk_create_or_update_assets(
         scheme_name=client.scheme_name,
         data=assets,
         operation="REPLACE",
-        status = "PUBLISHED"
+        status = status
     )
+
 
 def main():
     """
@@ -186,11 +216,15 @@ def main():
     logger.info("--- ETL Process Start: Stata Products -> Data Catalog ---")
 
     df = load_data()
-    result = build_structure(df)
+    result, attributions = build_structure(df)
     n_coll = sum(e["_type"] == "Collection" for e in result)
     logger.info(f"Wrote {n_coll} collections and {len(result) - n_coll} datasets to {OUTPUT_FILE}")
 
-    upload_to_dataspot(result)
+    """  with open("attributions.json", "w", encoding="utf-8") as file:
+        json.dump(attributions, file, indent=2, ensure_ascii=False) """
+
+    upload_to_dataspot(result, "PUBLISHED")
+    #upload_to_dataspot(attributions, None)
 
 
 
