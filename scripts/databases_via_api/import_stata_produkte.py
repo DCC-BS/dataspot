@@ -219,6 +219,12 @@ def build_structure(df: pd.DataFrame, people: Dict[str, Tuple[str, str]]) -> tup
             "attributedTo": attributed_to,
             "attributedAs": "Data Steward"
         })
+
+        attributions.append({
+            "_type" : "Deployment",
+            "deploymentOf" : f"{parent_path}/{escape(label + " (StatA)")}",
+            "deployedIn" : "/Systeme/\"Webserver StatA (https://statistik.bs.ch/)\""
+        })
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
     return (list(collections.values()) + datasets + distributions, attributions)
@@ -254,8 +260,8 @@ def main():
     """  with open("attributions.json", "w", encoding="utf-8") as file:
         json.dump(attributions, file, indent=2, ensure_ascii=False) """
 
-    upload_to_dataspot(result, "PUBLISHED", client)
-    upload_to_dataspot(attributions, None, client)
+    upload_to_dataspot(result, "PUBLISHED", client) # has status
+    upload_to_dataspot(attributions, None, client) # for fields that do not have status
 
 
 
