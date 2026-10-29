@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict, List, Tuple
 from dotenv import load_dotenv
 import logging
 import json
@@ -12,6 +13,7 @@ from src.common import requests
 from src.clients.helpers import parse_iso_date_utc_midnight_ms
 import re
 from urllib.parse import quote
+from src.clients.dnk_client import DNKClient
 
 # --- CONFIGURATION ---
 
@@ -35,6 +37,10 @@ QUERY = """ SELECT [id],[produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],
             [beschreibung],[stichwortliste],[naechste_aktualisierung],[zeitreihe_start_jahr],
             [zeitreihe_ende_jahr],[email]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
+
+PEOPLE_QUERY = """select u.login_id, p.given_name, p.family_name from user_view u join person_view p on p.id = u.is_person"""
+
+#TODO: add statistikportal as system
 
 def load_data() -> pd.DataFrame:
 
@@ -95,7 +101,30 @@ def escape(value: str) -> str:
     return value
 
 
-def build_structure(df: pd.DataFrame) -> tuple[list[dict], list[dict]]:
+def build_name_lookup(rows: List[Dict[str, Any]]) -> Dict[str, Tuple[str, str]]:
+    """email -> (family_name, given_name), case-insensitive"""
+    return {
+        str(r["login_id"]).strip().lower(): (r["family_name"], r["given_name"])
+        for r in rows
+        if r.get("login_id")
+    }
+
+
+def q(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+# TODO: add people for: Mathias.Bestgen@bs.ch, joelle.velvart@bs.ch, Michael.Muelli@bs.ch, Martina.Schriber@bs.ch, Matthias.Minke@bs.ch
+def person_key_from_email(email: str, names: Dict[str, Tuple[str, str]]) -> str:
+    key = email.strip().lower()
+    if key not in names:
+        #TODO: how to handle this?
+        raise KeyError(f"No dataspot person with email {email!r}")
+    family, given = names[key]
+    given_part = q(given) if (" " in given or '"' in given) else given
+    return q(f'{q(family)} {given_part}')
+
+
+def build_structure(df: pd.DataFrame, people: Dict[str, Tuple[str, str]]) -> tuple[list[dict], list[dict]]:
     top_path = f"{ROOT_PATH}/{TOP_COLLECTION}"
  
     collections = {}   # path -> entry (dict keeps insertion order, no duplicates)
@@ -120,7 +149,7 @@ def build_structure(df: pd.DataFrame) -> tuple[list[dict], list[dict]]:
         stichwortliste = parse_tags(row["stichwortliste"])
         suchprodukt = parse_tags(row["suchprodukt"])
 
-        email = parse_tags(row["email"])
+        email = parse_tags(row["email"])[0]
 
         tag = parse_tags(row["zeitreihe_ende_jahr"])
         zeitreihe_ende_jahr = int(float(tag[0])) if tag else None # row value would be something like ['2025.0'], we want 2025
@@ -182,24 +211,22 @@ def build_structure(df: pd.DataFrame) -> tuple[list[dict], list[dict]]:
             "accessURL" : "https://statistik.bs.ch/statistik/" + stata_id,
         })
 
-        # TODO: find name for attribution via email from person list in dataspot
+        attributed_to = person_key_from_email(email, people)
 
-        """ attributions.append({
+        attributions.append({
             "_type": "Attribution",
-            "attributionFor": f"{parent_path}/{key(label + " (StatA)")}",
-            "attributedTo": "\"\"\"Moll Freddi\"\" Christa\"",
+            "attributionFor": f"{parent_path}/{escape(label + " (StatA)")}",
+            "attributedTo": attributed_to,
             "attributedAs": "Data Steward"
-        }) """
+        })
  
     datasets.sort(key=lambda d: (d["inCollection"], d["label"]))
     return (list(collections.values()) + datasets + distributions, attributions)
 
 
-def upload_to_dataspot(assets: list[dict], status: str):
+def upload_to_dataspot(assets: list[dict], status: str, client):
 
     logger.info("Uploading now")
- 
-    client = BaseDataspotClient(scheme_name=config.dnk_scheme_name, scheme_name_short=config.dnk_scheme_name_short)
 
     client.bulk_create_or_update_assets(
         scheme_name=client.scheme_name,
@@ -215,16 +242,20 @@ def main():
     """
     logger.info("--- ETL Process Start: Stata Products -> Data Catalog ---")
 
+    client = DNKClient()
+
     df = load_data()
-    result, attributions = build_structure(df)
+    people = build_name_lookup(client.execute_query_api(PEOPLE_QUERY))
+
+    result, attributions = build_structure(df, people)
     n_coll = sum(e["_type"] == "Collection" for e in result)
     logger.info(f"Wrote {n_coll} collections and {len(result) - n_coll} datasets to {OUTPUT_FILE}")
 
     """  with open("attributions.json", "w", encoding="utf-8") as file:
         json.dump(attributions, file, indent=2, ensure_ascii=False) """
 
-    upload_to_dataspot(result, "PUBLISHED")
-    #upload_to_dataspot(attributions, None)
+    upload_to_dataspot(result, "PUBLISHED", client)
+    upload_to_dataspot(attributions, None, client)
 
 
 
