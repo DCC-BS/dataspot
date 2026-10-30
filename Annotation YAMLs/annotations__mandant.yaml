@@ -476,7 +476,7 @@ Person:
       cardinality: MANY
       literals:
         QUERY:
-          label: Query-Befehle
+          label: Query-Abfragen
           order: 1
         UPDATE_LAST_UPDATE_DS:
           label: Letzte Aktualisierung-Feld eines Assets als Data Steward aktualisieren
