@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 QUERY = """ SELECT [id],[produkt],[bezeichnung],[thema],[Thema_Nr],[unterthema],[suchprodukt],
             [beschreibung],[stichwortliste],[naechste_aktualisierung],[zeitreihe_start_jahr],
-            [zeitreihe_ende_jahr],[email]
+            [zeitreihe_ende_jahr],[email],[url]
             FROM [stata_produkte].[dbo].[vw_stata_website] WHERE produkt = 'Webtabelle' """
 
 PEOPLE_QUERY = """select u.login_id, p.given_name, p.family_name from user_view u join person_view p on p.id = u.is_person"""
@@ -148,8 +148,8 @@ def build_structure(df: pd.DataFrame, people: Dict[str, Tuple[str, str]]) -> tup
         beschreibung = clean(row["beschreibung"])
         stichwortliste = parse_tags(row["stichwortliste"])
         suchprodukt = parse_tags(row["suchprodukt"])
-
         email = parse_tags(row["email"])[0]
+        url = parse_tags(row["url"])[0]
 
         tag = parse_tags(row["zeitreihe_ende_jahr"])
         zeitreihe_ende_jahr = int(float(tag[0])) if tag else None # row value would be something like ['2025.0'], we want 2025
@@ -204,11 +204,19 @@ def build_structure(df: pd.DataFrame, people: Dict[str, Tuple[str, str]]) -> tup
         })
 
         distributions.append({
-            "_type": "Distribution",
+            "_type" : "Distribution",
             "label" : "Statistikportal",
             "distributionOf" : f"{parent_path}/{escape(label + " (StatA)")}",
             "format" : "html",
             "accessURL" : "https://statistik.bs.ch/statistik/" + stata_id,
+        })
+
+        distributions.append({
+            "_type": "Distribution",
+            "label" : "Excel",
+            "distributionOf" : f"{parent_path}/{escape(label + " (StatA)")}",
+            "format" : "xlsx",
+            "accessURL" : url,
         })
 
         attributed_to = person_key_from_email(email, people)
