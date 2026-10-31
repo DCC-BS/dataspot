@@ -1194,6 +1194,11 @@ Composition:
       title: Der tatsächliche Bezeichnung ist normalerweise gleich wie die Bezeichnung. Sie können jedoch verschieden sein, wenn der Bezeichnung eine Klammer hinzugefügt wurde um Bezeichnungs-Kollisionen von Bestandteilen innerhalb eines Datenproduktes zu vermeiden.
       order: 800
       baseType: STRING
+    customId:
+      label: ID
+      title: Datenprodukt-spezifische ID, z.B. die ID im Kantonalen Datenmarkt (KDM)
+      order: 850
+      baseType: STRING
 
 ## DISTRIBUTION ##
 Distribution:
