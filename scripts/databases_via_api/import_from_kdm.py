@@ -358,6 +358,7 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
                 "order": attribute['id'],
                 "title": "",
                 "description": "",
+                "customId": attribute['id'],
             }
             if 'beschreibung' in attribute:
                 item['description'] = _html_to_markdown(attribute['beschreibung'])
