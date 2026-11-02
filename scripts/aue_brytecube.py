@@ -60,6 +60,9 @@ datenprodukte = []
 datenbankobjekte = []
 created_data_types = []
 
+skip_logger = logging.getLogger("skipped_enum_entries")
+skip_logger.addHandler(logging.FileHandler("skipped_enum_entries.log", mode="w", encoding="utf-8"))
+
 ##### TODO: 
 # - certificate?
 # - error handling
@@ -196,10 +199,14 @@ def generate_enumeration(enum_name: str, name: str, attr):
     seen_entry_names = []
     for code in attr["CodeList"].values():
 
-        entry_name = " ".join(code.get("TY_NAME").split()) # apparently contains new lines
+        try: 
+            entry_name = " ".join(code.get("TY_NAME").split()) # apparently contains new lines
+        except AttributeError:
+            print(enum_name) # TODO: look into this when api response is fixed
+            continue
 
         if entry_name in seen_entry_names:
-            logging.info(f"Skipping {entry_name} (in view {name}), already exists\n")
+            skip_logger.info(f"Skipping {entry_name} in {enum_name}, already exists")
             continue
         else:
             entry_title = " ".join(code.get("TY_LONGNAME").split())
@@ -447,13 +454,13 @@ def main():
     
     transform_bytecube_views(views)
 
-    with open("upload_datenbankobjekte.json", "w", encoding="utf-8") as file:
+    """ with open("upload_datenbankobjekte.json", "w", encoding="utf-8") as file:
         json.dump(datenbankobjekte, file, indent=2, ensure_ascii=False)
 
     with open("upload_datenprodukte.json", "w", encoding="utf-8") as file:
-        json.dump(datenprodukte, file, indent=2, ensure_ascii=False)
+        json.dump(datenprodukte, file, indent=2, ensure_ascii=False) """
 
-    upload_assets_to_dataspot(dry_run=args.dry_run)
+    #upload_assets_to_dataspot(dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
