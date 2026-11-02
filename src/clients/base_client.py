@@ -3,6 +3,8 @@ import logging
 import json
 from urllib.parse import quote
 
+from typing_extensions import deprecated
+
 import config
 from src.dataspot_auth import DataspotAuth
 from src.common import requests_get, requests_delete, requests_delete_no_retry, requests_post, requests_put, requests_patch
@@ -591,6 +593,113 @@ class BaseDataspotClient:
         )
         return self._ods_imports_collection
 
+    def upload_via_upload_api(self,
+                              scheme_name: str,
+                              data: List[Dict[str, Any]],
+                              operation: str = "ADD",
+                              dry_run: bool = False,
+                              on_insert: str | None = None,
+                              on_update: str | None = None,
+                              on_delete: str | None = None,
+                              version: int | None = None
+                              ):
+        """
+        Create or update multiple assets in bulk via the upload API.
+
+        Each dictionary in the data list must contain a '_type' key specifying the asset type.
+
+        Args:
+            scheme_name (str): Name of the scheme to upload to (e.g. 'Datenprodukte'). This value is usually supplied
+                through config.*_scheme_name.
+            data (List[Dict[str, Any]]): List of JSON data for assets to create/update. Each dict must include '_type'.
+            operation (str, optional): Upload operation mode. Defaults to "ADD".
+                                      "ADD": Add or update only. Existing items not in the upload remain unchanged.
+                                      "REPLACE": Reconcile elements. Items not in the upload are considered obsolete.
+                                      "FULL_LOAD": USE WITH GREAT CAUTION!! Completely replaces with the uploaded data.
+            dry_run (bool, optional): Whether to perform a test run without changing data. Defaults to False.
+            on_insert (str, optional): Status to set newly created assets to. Defaults to dataspot default ("WORKING")
+            on_update (str, optional): Status to set updated assets to. Defaults to dataspot default ("WORKING")
+            on_delete (str, optional): Status to set deleted assets to. Use None to delete items directly (default).
+                Has no effect for operation "ADD".
+            version (int, optional): Upload API version to use. Can usually be left empty to let dataspot decide.
+
+        Returns:
+            Dict[str, Any]: JSON response from the API
+
+        Raises:
+            HTTPError: If the request fails
+            ValueError: If operation parameter is invalid or any data item is missing the '_type' key
+        """
+        # Validate operation parameter
+        valid_operations = ["ADD", "REPLACE", "FULL_LOAD"]
+        if operation not in valid_operations:
+            raise ValueError(f"Invalid operation: {operation}. Must be one of {valid_operations}")
+
+        # Create upload endpoint directly with scheme name
+        # The API endpoint is always "/api/<database>/schemes/<scheme_name>/upload"
+        upload_path = f"/api/{config.database_name}/schemes/{scheme_name}/upload"
+        logging.debug(f"Creating upload path for scheme '{scheme_name}': {upload_path}")
+
+        # Add query parameters
+        query_params = [f"operation={operation}"]
+
+        if version:
+            query_params.append(f"v={version}")
+
+        if on_insert:
+            query_params.append(f"onInsert={on_insert}")
+
+        if on_update:
+            query_params.append(f"onUpdate={on_update}")
+
+        if on_delete:
+            query_params.append(f"onDelete={on_delete}")
+
+        if dry_run:
+            query_params.append("dryRun=true")
+
+        upload_path = f"{upload_path}?{'&'.join(query_params)}"
+
+        # Prepare HTTP headers
+        headers = self.auth.get_headers()
+
+        # Remove Content-Type from headers as requests will set it automatically for multipart/form-data
+        if 'Content-Type' in headers:
+            del headers['Content-Type']
+
+        # Create full URL
+        full_url = url_join(config.base_url, upload_path)
+        logging.debug(f"Upload endpoint URL: {full_url}")
+
+        # Convert data to JSON string
+        json_data = json.dumps(data, ensure_ascii=False)
+
+        # Create a requests-compatible files dictionary that includes the JSON data from memory
+        # This preserves the multipart/form-data format expected by the API
+        files = {
+            'import.json': ('import.json', json_data, 'application/json')
+        }
+
+        logging.debug(f"Sending data as multipart/form-data with import.json field")
+
+        response = requests_put(
+            full_url,
+            headers=headers,
+            files=files
+        )
+
+        # Raise HTTPError for bad responses
+        response.raise_for_status()
+
+        # Try to parse response as JSON
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            # If response is not JSON, return the text content
+            logging.warning(f"Response was not valid JSON. Content: {response.text[:1000]}...")
+            return {"response_text": response.text}
+
+    @deprecated("Use upload_via_upload_api instead")
     def bulk_create_or_update_assets(self, scheme_name: str, data: List[Dict[str, Any]],
                                      operation: str = "ADD", dry_run: bool = False,
                                      status: str = "WORKING") -> Dict[str, Any]:
