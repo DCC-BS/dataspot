@@ -215,6 +215,7 @@ classDiagram
         +get_uuid_from_response()
         +escape_special_chars()
         +unescape_path_components()
+        +parse_iso_date_utc_midnight_ms()
     }
 
     %% HTTP Utilities
@@ -238,7 +239,6 @@ classDiagram
     class dataset_transformer {
         <<module>>
         +transform_ods_to_dnk()
-        +_iso_8601_to_unix_timestamp()
         +_get_field_value()
     }
 
@@ -256,6 +256,7 @@ classDiagram
     BasicDataset <|-- OGDDataset : extends
     dataset_transformer ..> OGDDataset : creates
     ODSClient ..> dataset_transformer : uses
+    dataset_transformer ..> helpers : uses
     DatasetHandler ..> Dataset : uses
     
     %% Handler relationships

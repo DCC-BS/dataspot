@@ -1,10 +1,8 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
-import pytz
-from dateutil import parser
-import datetime
 
 import config
+from src.clients.helpers import parse_iso_date_utc_midnight_ms
 from src.dataspot_dataset import OGDDataset
 
 
@@ -71,21 +69,14 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
     if title:
         title = f"{title} (OGD)"
     
-    # Get the dataset timezone if available, otherwise default to UTC
-    dataset_timezone = None
-    if 'default' in ods_metadata_from_automation_api and 'timezone' in ods_metadata_from_automation_api['default']:
-        dataset_timezone = _get_field_value(ods_metadata_from_automation_api['default']['timezone'])
-    
     # Extract update and publication information
     accrualperiodicity = _get_field_value(
         ods_metadata_from_automation_api.get('dcat', {}).get('accrualperiodicity', {'value': None})
     )
     
-    # For publication date (PD), normalize to midnight in source timezone
-    publication_date = _iso_8601_to_unix_timestamp(
-        _get_field_value(ods_metadata_from_automation_api.get('dcat', {}).get('issued')),
-        dataset_timezone,
-        normalize_to_midnight=True  # Only normalize PD field to midnight
+    # Dataspot stores date custom properties as UTC midnight of the calendar day
+    publication_date = parse_iso_date_utc_midnight_ms(
+        _get_field_value(ods_metadata_from_automation_api.get('dcat', {}).get('issued'))
     )
     
     # Extract geographical/spatial information
@@ -171,93 +162,6 @@ def transform_ods_to_dnk(ods_metadata_from_automation_api: Dict[str, Any],
     
     logging.debug(f"Transformed ODS dataset '{ods_dataset_id}' to DNK format")
     return ogd_dataset
-
-
-def _iso_8601_to_unix_timestamp(datetime_str: str, dataset_timezone: str = None, normalize_to_midnight: bool = False) -> Optional[int]:
-    """
-    Converts an ISO 8601 formatted datetime string to a Unix timestamp in milliseconds.
-    
-    This function handles different ISO 8601 formats and timezone information.
-    If a timezone is specified in the datetime string, it will be respected.
-    If no timezone is in the string but a dataset_timezone is provided, that will be used.
-    Otherwise, UTC is assumed as the fallback.
-    
-    When normalize_to_midnight is True, the function normalizes the datetime to midnight (00:00:00) 
-    in its source timezone before converting to UTC. This ensures consistency with Dataspot's 
-    handling of date fields like publication date (PD).
-    
-    Args:
-        datetime_str (str): ISO 8601 formatted datetime string (e.g., "2025-03-07T00:00:00Z")
-        dataset_timezone (str, optional): The timezone specified in the dataset metadata (e.g., "Europe/Zurich")
-        normalize_to_midnight (bool, optional): Whether to normalize the time to midnight in source timezone
-        
-    Returns:
-        Optional[int]: Unix timestamp in milliseconds (UTC), or None if conversion fails
-    """
-    if not datetime_str:
-        return None
-    
-    # Use dateutil parser to handle various ISO 8601 formats
-    try:
-        # Parse the datetime string - if it contains timezone info, it will be used
-        dt = parser.parse(datetime_str)
-        
-        # Record the original timezone info before any modifications
-        original_tzinfo = dt.tzinfo
-        
-        # If the datetime has no timezone info but we have a dataset timezone
-        if dt.tzinfo is None and dataset_timezone:
-            try:
-                # Get the timezone object
-                tz = pytz.timezone(dataset_timezone)
-                # Localize the naive datetime to the dataset timezone
-                dt = tz.localize(dt)
-            except pytz.exceptions.UnknownTimeZoneError:
-                # If timezone is invalid, fall back to UTC
-                dt = dt.replace(tzinfo=pytz.UTC)
-        elif dt.tzinfo is None:
-            # If no timezone info in the string and no dataset timezone, assume UTC
-            dt = dt.replace(tzinfo=pytz.UTC)
-        
-        # Normalize to midnight in the source timezone if requested
-        if normalize_to_midnight:
-            # First, extract the date part only (removing the time component)
-            date_only = dt.date()
-            
-            # Then combine with midnight time in the same timezone
-            if original_tzinfo is None and dataset_timezone:
-                # For datetimes that were localized using the dataset timezone
-                try:
-                    tz = pytz.timezone(dataset_timezone)
-                    dt = tz.localize(datetime.datetime.combine(date_only, datetime.time(0, 0, 0)))
-                except pytz.exceptions.UnknownTimeZoneError:
-                    # Fallback to UTC if timezone is invalid
-                    dt = datetime.datetime.combine(date_only, datetime.time(0, 0, 0), tzinfo=pytz.UTC)
-            else:
-                # For datetimes that already had timezone info or defaulted to UTC
-                # We need to use the timezone that the datetime currently has
-                current_tz = dt.tzinfo
-                naive_midnight = datetime.datetime.combine(date_only, datetime.time(0, 0, 0))
-                
-                # Handle pytz timezones vs fixed offset timezones differently
-                if hasattr(current_tz, 'localize'):
-                    # For pytz timezones
-                    dt = current_tz.localize(naive_midnight)
-                else:
-                    # For fixed offset timezones (like UTC)
-                    dt = naive_midnight.replace(tzinfo=current_tz)
-            
-            logging.debug(f"Normalized '{datetime_str}' to midnight in source timezone")
-        
-        # Convert to milliseconds, ensuring we're in UTC
-        timestamp_ms = int(dt.astimezone(pytz.UTC).timestamp() * 1000)
-        
-        logging.debug(f"Converted '{datetime_str}' to timestamp {timestamp_ms}")
-        return timestamp_ms
-    except (ValueError, TypeError) as e:
-        # Log the error and return None for invalid datetime strings
-        logging.error(f"Error parsing datetime '{datetime_str}': {e}")
-        return None
 
 
 def _get_field_value(field: Dict[str, Any] | Any) -> Any:
