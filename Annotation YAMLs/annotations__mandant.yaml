@@ -148,6 +148,11 @@ Asset:
       title: Öffne den REST-Endpunkt dieses Assets
       icon: gear
       href: "https://datenkatalog.bs.ch/rest/${this.db}/assets/${this.id}"
+    sendFeedbackMail:
+      label: Feedback geben
+      title: Schicke eine E-Mail mit Feedback zum Datenkatalog an das DCC Data Competence Center
+      icon: envelope
+      href: 'mailto:dcc@bs.ch?subject=Feedback zum Datenkatalog&body=Guten%20Tag%0D%0AIch%20möchte%20Feedback%20zu%20"${this.label}"%20(https://datenkatalog.bs.ch/web/${this.db}/assets/${this.id}/)%20geben:%0D%0A%0D%0A[Feedback%20einfügen]%0D%0A%0D%0AFreundliche%20Grüsse%0D%0A'
   properties:
     readOnly:
       icon: pen-slash
