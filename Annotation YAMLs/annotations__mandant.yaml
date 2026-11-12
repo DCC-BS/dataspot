@@ -151,7 +151,7 @@ Asset:
   properties:
     readOnly:
       icon: pen-slash
-      title: Schreibgeschützt. Dieses Asset und alle seinen untergeordneten Assets werden automatisch angepasst.
+      title: Schreibgeschützt. Dieses Asset und alle seinen untergeordneten Assets werden automatisiert angepasst.
     status:
       literals:
 
