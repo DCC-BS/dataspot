@@ -173,7 +173,7 @@ Asset:
           group: DRAFT
           order: 120
         FADO:
-          label: Abnahme Data Owner
+          label: Freigabe Data Owner
           icon: user-check
           group: DRAFT
           order: 140
@@ -253,10 +253,10 @@ Asset:
           group: DRAFT
           order: 500
         REVIEW4:
-          label: Freigabe Data Owner
-          icon: arrows-rotate
+          label: (historisiert) Freigabe Data Owner
+          #icon: arrows-rotate
           group: DRAFT
-          order: 520
+          order: 999520
         PUBLISHEDDCC2:
           label: OGD-Freigabe genehmigt
           labelEn: Published
@@ -269,7 +269,7 @@ Asset:
           order: 560
           group: DRAFT
         DELETEDO:
-          label: Abnahme Data Owner Löschung
+          label: Freigabe Data Owner Löschung
           labelEn: Published
           icon: solid-trash
           order: 580
@@ -281,7 +281,7 @@ Asset:
           order: 600
           group: PUBLIC
         ARCHIVEDO:
-          label: Abnahme Data Owner Archivierung
+          label: Freigabe Data Owner Archivierung
           labelEn: Published
           icon: inbox
           order: 620
