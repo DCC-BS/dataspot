@@ -2,6 +2,7 @@
 
 DataCatalog:
   label: Datenproduktekatalog
+  icon: box-isometric-tape
 
 SubDataset:
   label: Subdatenprodukt
