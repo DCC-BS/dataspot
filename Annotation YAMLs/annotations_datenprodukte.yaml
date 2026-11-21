@@ -976,6 +976,10 @@ Composition:
           label: Identifikator
           labelEn: Identifier
   customProperties:
+    # PLEASE REVIEW BEFORE MERGING
+    #kdmDataOwner:
+    #  label: Dateneigner im KDM
+    #  baseType: STRING
     required:
       label: Muss/Kann
       labelEn: Required

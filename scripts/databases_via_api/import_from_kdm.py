@@ -1,4 +1,5 @@
 import config
+import datetime
 import requests
 import logging
 import json
@@ -100,6 +101,8 @@ def extract_from_kdm() -> Dict[str, List[Dict[str, Any]]]:
             "logical_attributes": [],
             "physical_entities": [],
             "physical_attributes": [],
+            "data_owners": [],
+            "logical_attributes_data_owner_attributions": [],
     }
 
     try:
@@ -128,6 +131,38 @@ def extract_from_kdm() -> Dict[str, List[Dict[str, Any]]]:
         logger.info(f"Successfully extracted {len(data['physical_entities'])} physical entities and {len(data['physical_attributes'])} physical attributes from KDM.")
     except requests.exceptions.RequestException as e:
         logger.error(f"Error reading physical model from KDM: {e}")
+        return dict()
+
+    try:
+        response = kdm_client.get(KDM_API_URL + "/modell/dateneigner")
+        response.raise_for_status()
+
+        data_data_owners = response.json()
+
+        data["data_owners"] = data_data_owners
+
+        logger.info(f"Successfully extracted {len(data['data_owners'])} data owners from KDM.")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error reading logical model from KDM: {e}")
+        return dict()
+
+    try:
+        response = kdm_client.get(KDM_API_URL + "/modell/logisch/dateneignerzuordnungen")
+        response.raise_for_status()
+
+        data_logical_data_owner_assignments = response.json()
+
+        # Filter out expired assignments
+        for assignment in data_logical_data_owner_assignments:
+            if 'bis' in assignment:
+                assignment_expiration_date = datetime.date.fromisoformat(assignment['bis'])
+                if assignment_expiration_date < datetime.date.today():
+                    continue
+            data["logical_attributes_data_owner_attributions"].append(assignment)
+
+        logger.info(f"Successfully extracted {len(data['logical_attributes_data_owner_attributions'])} data owner attributions on logical attributes from KDM.")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error reading logical model from KDM: {e}")
         return dict()
 
     return data
@@ -320,6 +355,12 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
         else:
             logical_attributes_by_entitaetId[item['entitaetId']] = [item]
 
+    if any(Counter([item['id'] for item in raw_data['data_owners']])) > 1:
+        raise Exception("Data owners in KDM are not unique!")
+
+    data_owners_by_id = {item['id']: item['name'] for item in raw_data['data_owners']}
+    data_owners_by_logical_attribute_id = {item['attributId']: data_owners_by_id[item['dateneignerId']] for item in raw_data['logical_attributes_data_owner_attributions']}
+
     # 1. Collection
     item = {
         "_type": "Collection",
@@ -342,6 +383,7 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
 
     # 3. Composition
     for entity_id in logical_attributes_by_entitaetId:
+        #current_data_owners = set()
         logical_entity_name = logical_entity_names_by_id[entity_id]
         logical_attributes_of_entity = logical_attributes_by_entitaetId[entity_id]
         logical_attributes_of_entity_label_counts = Counter([item.get('label', f"({item['name']})") for item in logical_attributes_of_entity])
@@ -359,12 +401,16 @@ def transform_to_datenprodukte_json(raw_data: Dict[str, List[Dict[str, Any]]]) -
                 "title": "",
                 "description": "",
                 "customId": attribute['id'],
+                "kdmDataOwner": data_owners_by_logical_attribute_id.get(attribute['id'], "")
             }
+            #if attribute['id'] in data_owners_by_logical_attribute_id:
+            #    current_data_owners.add(data_owners_by_logical_attribute_id[attribute['id']])
             if 'beschreibung' in attribute:
                 item['description'] = _html_to_markdown(attribute['beschreibung'])
             if logical_attributes_of_entity_label_counts[logical_attribute_label] > 1:
                 item["label"] = f"{logical_attribute_label} ({logical_attribute_name})"
             transformed_data.append(item)
+        #print(f"Datenprodukt '{logical_entity_name}' has {len(current_data_owners)} Data Owners: {current_data_owners}")
 
     # 4. Deployment
     for entity in logical_entities:
