@@ -15,13 +15,14 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
     Check #6: Kontaktdetails bei Personen
 
     Verifies that all persons with a set sk_person_id have the correct contact
-    details from Staatskalender.
+    details and gender (from Anrede) from Staatskalender.
 
     Specifically checks (see defined_checks.md):
     - Phone number in Staatskalender matches Dataspot
     - E-mail address in Staatskalender matches Dataspot
     - Teams link contains the correct e-mail address
     - Contact website is correctly populated
+    - Gender matches Anrede (Herr→1, Frau→2, otherwise cleared)
 
     If differences are found:
     - Details in Dataspot are adjusted to match Staatskalender
@@ -76,6 +77,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
                 person_data = staatskalender_cache.get_person_by_id(sk_person_id)
                 sk_email = person_data.get('email')
                 sk_phone = person_data.get('phone')
+                sk_salutation = person_data.get('salutation')
             except Exception as e:
                 result['issues'].append({
                     'type': 'staatskalender_data_retrieval_failed',
@@ -90,7 +92,7 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
                 logging.info(f' - Could not retrieve person data from Staatskalender for {sk_person_id}: {str(e)}')
                 continue
             
-            # Build target customProperties
+            # Build target customProperties and gender from Anrede
             target_custom_properties = build_target_custom_properties(
                 sk_person_id=sk_person_id,
                 sk_email=sk_email,
@@ -98,16 +100,21 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
                 given_name=given_name,
                 family_name=family_name
             )
+            target_gender = map_salutation_to_gender(sk_salutation)
             
             # Compare and update if needed
             update_needed, differences = compare_and_determine_updates(
-                current_custom_properties={
+                current_values={
                     'email_custom_property': person.get('email_custom_property'),
                     'phone': person.get('phone'),
                     'state_calendar_website': person.get('state_calendar_website'),
-                    'teams': person.get('teams')
+                    'teams': person.get('teams'),
+                    'gender': person.get('gender')
                 },
-                target_custom_properties=target_custom_properties
+                target_values={
+                    **target_custom_properties,
+                    'gender': target_gender
+                }
             )
             
             if update_needed:
@@ -115,7 +122,8 @@ def check_6_person_contact_details(dataspot_client: BaseDataspotClient, staatska
                     update_person_contact_details(
                         dataspot_client=dataspot_client,
                         person_uuid=person_uuid,
-                        custom_properties=target_custom_properties
+                        custom_properties=target_custom_properties,
+                        gender=target_gender
                     )
                     
                     result['issues'].append({
@@ -192,6 +200,7 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
         p.given_name,
         p.family_name,
         p.additional_name,
+        p.gender,
         cp_sk.value AS sk_person_id,
         cp_email.value AS email_custom_property,
         cp_phone.value AS phone,
@@ -223,6 +232,8 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
         given_name = (result.get('given_name') or '').strip('"').strip()
         additional_name = (result.get('additional_name') or '').strip('"').strip() if result.get('additional_name') else ''
         family_name = (result.get('family_name') or '').strip('"').strip()
+        gender_raw = result.get('gender')
+        gender = str(gender_raw).strip('"').strip() if gender_raw is not None and str(gender_raw).strip('"').strip() else ''
 
         # given_name and family_name are mandatory; abort loudly if missing
         if not given_name or not family_name:
@@ -234,6 +245,7 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
             'family_name': family_name,
             'additional_name': additional_name if additional_name else None,
             'sk_person_id': result['sk_person_id'],
+            'gender': gender,
             'email_custom_property': result.get('email_custom_property', '').strip('"') if result.get('email_custom_property') else None,
             'phone': result.get('phone', '').strip('"') if result.get('phone') else None,
             'state_calendar_website': result.get('state_calendar_website', '').strip('"') if result.get('state_calendar_website') else None,
@@ -243,6 +255,19 @@ def get_persons_with_contact_details(dataspot_client: BaseDataspotClient) -> Lis
     
     logging.debug(f"Persons with contact details cache loaded with {len(_contact_details_cache)} entries")
     return _contact_details_cache
+
+
+def map_salutation_to_gender(salutation: Optional[str]) -> str:
+    """
+    Map Staatskalender Anrede (salutation) to Dataspot person.gender literal.
+
+    Herr → "1" (male), Frau → "2" (female), anything else → "" (cleared).
+    """
+    if salutation == 'Herr':
+        return '1'
+    if salutation == 'Frau':
+        return '2'
+    return ''
 
 
 def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], sk_phone: Optional[str], 
@@ -323,14 +348,14 @@ def build_target_custom_properties(sk_person_id: str, sk_email: Optional[str], s
     return custom_properties
 
 
-def compare_and_determine_updates(current_custom_properties: Dict[str, Optional[str]], 
-                                  target_custom_properties: Dict[str, str]) -> Tuple[bool, Dict[str, Dict[str, str]]]:
+def compare_and_determine_updates(current_values: Dict[str, Optional[str]], 
+                                  target_values: Dict[str, Optional[str]]) -> Tuple[bool, Dict[str, Dict[str, str]]]:
     """
-    Compare current and target custom properties to determine if update is needed.
+    Compare current and target field values to determine if update is needed.
     
     Args:
-        current_custom_properties: Current custom properties in Dataspot
-        target_custom_properties: Target custom properties from Staatskalender
+        current_values: Current field values in Dataspot (custom properties and core fields)
+        target_values: Target field values from Staatskalender
         
     Returns:
         Tuple of (update_needed: bool, differences: dict)
@@ -338,9 +363,9 @@ def compare_and_determine_updates(current_custom_properties: Dict[str, Optional[
     differences = {}
     update_needed = False
     
-    for key in ['email_custom_property', 'phone', 'state_calendar_website', 'teams']:
-        current_value = current_custom_properties.get(key)
-        target_value = target_custom_properties.get(key)
+    for key in ['email_custom_property', 'phone', 'state_calendar_website', 'teams', 'gender']:
+        current_value = current_values.get(key)
+        target_value = target_values.get(key)
         
         # Normalize None and empty string
         current_normalized = current_value if current_value else None
@@ -357,20 +382,22 @@ def compare_and_determine_updates(current_custom_properties: Dict[str, Optional[
 
 
 def update_person_contact_details(dataspot_client: BaseDataspotClient, person_uuid: str, 
-                                  custom_properties: Dict[str, str]) -> None:
+                                  custom_properties: Dict[str, str], gender: str) -> None:
     """
-    Update person contact details via REST API.
+    Update person contact details and gender via REST API.
     
     Args:
         dataspot_client: Database client
         person_uuid: Person UUID to update
         custom_properties: Custom properties to set
+        gender: Dataspot gender literal ("1", "2", or "" to clear)
         
     Returns:
         None
     """
     person_update = {
         "_type": "Person",
+        "gender": gender,
         "customProperties": custom_properties
     }
     

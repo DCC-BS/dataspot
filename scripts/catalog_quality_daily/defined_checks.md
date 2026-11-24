@@ -119,13 +119,14 @@ Falls nicht:
 ---
 6 Kontaktdetails bei Personen  
 
-Alle Personen mit sk_person_id haben die korrekten Kontakt-Daten (Tel/E-Mail/Teams-Link/Kontaktwebseite) aus dem Staatskalender.
+Alle Personen mit sk_person_id haben die korrekten Kontakt-Daten (Tel/E-Mail/Teams-Link/Kontaktwebseite) und das korrekte Geschlecht (aus der Anrede) aus dem Staatskalender.
 
 Spezifisch wird für alle Personen mit gesetzter sk_person_id überprüft:  
 - Die Telefonnummer im Staatskalender und in dataspot sind identisch
 - Die E-Mail Adresse im Staatskalender und in dataspot sind identisch
 - Der Teams-Link enthält die korrekte E-Mail Adresse
 - Die Kontaktwebseite ist korrekt ausgefüllt
+- Das Geschlecht (gender) entspricht der Anrede im Staatskalender: "Herr" → 1 (männlich), "Frau" → 2 (weiblich), alles andere → leer
 
 Falls nicht:
 - Wenn die Details nicht übereinstimmen werden die Details in dataspot angepasst

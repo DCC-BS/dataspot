@@ -158,6 +158,7 @@ class StaatskalenderCache:
         sk_first_name = None
         sk_additional_name = None
         sk_last_name = None
+        sk_salutation = None
         
         for item in person_data.get('collection', {}).get('items', []):
             for data_item in item.get('data', []):
@@ -168,6 +169,10 @@ class StaatskalenderCache:
                     sk_email = field_value
                 elif field_name == 'phone' or field_name == 'telephone' or field_name == 'phone_number':
                     sk_phone = field_value
+                elif field_name == 'salutation':
+                    sk_salutation = field_value
+                    if sk_salutation:
+                        sk_salutation = sk_salutation.strip() if sk_salutation.strip() else None
                 elif field_name == 'first_name':
                     # Split first_name into givenName and additionalName
                     raw_first_name = field_value
@@ -189,7 +194,8 @@ class StaatskalenderCache:
             'additional_name': sk_additional_name,
             'family_name': sk_last_name,
             'email': sk_email,
-            'phone': sk_phone
+            'phone': sk_phone,
+            'salutation': sk_salutation
         }
         
         self._person_cache[person_id] = person_info
