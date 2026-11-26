@@ -227,6 +227,11 @@ Dataset:
               order: 12
               width: 1
               baseType: STRING
+            mcp_server_url:
+              label: URL des MCP-Servers
+              title: Internetadresse des MCP-Server
+              baseType: STRING
+              order: 14
             i14y_api_landingPage:
               label: Landing page (API)
               labelEn: Landing page
