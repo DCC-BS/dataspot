@@ -5,7 +5,7 @@ colorama==0.4.6
 idna==3.20
 iniconfig==2.3.1
 markdownify==1.2.4
-mssql-python==1.18.0
+mssql-python==1.19.0
 ods_utils_py==0.2.6
 packaging==26.3
 pandas==3.1.1
