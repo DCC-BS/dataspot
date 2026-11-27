@@ -14,6 +14,7 @@ from src.clients.rdm_client import RDMClient
 from src.clients.kv_client import KVClient
 from src.clients.tdm_client import TDMClient
 from src.clients.vvp_client import VVPClient
+from src.mapping_handlers.org_structure_helpers.org_structure_cross_linker import link_cross_scheme_uuids
 
 from src.common import email_helpers as email_helpers
 
@@ -39,6 +40,11 @@ def main():
 
     vvp_client = VVPClient()
     sync_org_structures(dataspot_client=vvp_client)
+
+    # Cross-link Organisationseinheit UUIDs across DNK/FDM/RDM/KV/SK/TDM (not VVP)
+    link_cross_scheme_uuids(
+        clients=[dnk_client, fdm_client, rdm_client, kv_client, sk_client, tdm_client]
+    )
 
 def sync_org_structures(dataspot_client: BaseDataspotClient, default_status="PUBLISHED"):
     """

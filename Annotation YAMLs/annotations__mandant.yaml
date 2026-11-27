@@ -91,6 +91,79 @@ Collection:
               order: 3
               readOnly: true
               hidden: true
+            dnkCollectionUuid:
+              label: UUID in Datenprodukte
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Datenprodukte
+              readOnly: true
+              hidden: true
+            fdmCollectionUuid:
+              label: UUID in Fachdaten
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Fachdaten
+              readOnly: true
+              hidden: true
+            rdmCollectionUuid:
+              label: UUID in Referenzdaten
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Referenzdaten
+              readOnly: true
+              hidden: true
+            kvCollectionUuid:
+              label: UUID in Kennzahlen
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Kennzahlen
+              readOnly: true
+              hidden: true
+            skCollectionUuid:
+              label: UUID in Systeme
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Systeme
+              readOnly: true
+              hidden: true
+            tdmCollectionUuid:
+              label: UUID in Datenbankobjekte
+              baseType: STRING
+              title: UUID der entsprechenden Organisationseinheit im Modell Datenbankobjekte
+              readOnly: true
+              hidden: true
+  customFunctions:
+    openInDnk:
+      label: In Datenprodukte öffnen
+      title: Dieselbe Organisationseinheit im Modell Datenprodukte öffnen
+      icon: box-isometric-tape
+      order: 1
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.dnkCollectionUuid}"
+    openInFdm:
+      label: In Fachdaten öffnen
+      title: Dieselbe Organisationseinheit im Modell Fachdaten öffnen
+      icon: database
+      order: 3
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.fdmCollectionUuid}"
+    openInRdm:
+      label: In Referenzdaten öffnen
+      title: Dieselbe Organisationseinheit im Modell Referenzdaten öffnen
+      icon: square-list
+      order: 4
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.rdmCollectionUuid}"
+    openInKv:
+      label: In Kennzahlen öffnen
+      title: Dieselbe Organisationseinheit im Modell Kennzahlen öffnen
+      icon: chart-mixed
+      order: 8
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.kvCollectionUuid}"
+    openInSk:
+      label: In Systeme öffnen
+      title: Dieselbe Organisationseinheit im Modell Systeme öffnen
+      icon: server
+      order: 12
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.skCollectionUuid}"
+    openInTdm:
+      label: In Datenbankobjekte öffnen
+      title: Dieselbe Organisationseinheit im Modell Datenbankobjekte öffnen
+      icon: solid-database
+      order: 11
+      href: "https://datenkatalog.bs.ch/web/${this.db}/collections/${this.tdmCollectionUuid}"
 
 #020 - HERKUNFT VON
 Derivation:
